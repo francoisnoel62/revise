@@ -57,6 +57,9 @@ Desktop.ini
 # TypeScript
 *.tsbuildinfo
 
+# vitest
+.vitest
+
 # Vercel
 .vercel
 
