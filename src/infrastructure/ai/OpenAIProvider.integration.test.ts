@@ -1,6 +1,8 @@
 // ABOUTME: Integration tests for OpenAIProvider with real OpenAI API calls
 // ABOUTME: Validates end-to-end behavior with actual API - skip if OPENAI_API_KEY not set
 
+// @vitest-environment node
+
 import { describe, it, expect, beforeAll } from 'vitest';
 import { OpenAIProvider } from './OpenAIProvider';
 
