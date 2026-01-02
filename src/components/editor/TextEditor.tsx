@@ -22,6 +22,7 @@ export function TextEditor({
   placeholder = 'Commencez à écrire ou importez un document...',
 }: TextEditorProps) {
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit,
       Placeholder.configure({
