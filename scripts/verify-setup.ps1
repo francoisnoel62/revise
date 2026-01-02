@@ -30,7 +30,12 @@ Write-Host "4. Checking environment variables..." -ForegroundColor Yellow
 if (!(Test-Path .env.local)) {
     Write-Host "⚠️  Warning: .env.local not found. Copy .env.local.example and add your OpenAI API key." -ForegroundColor Yellow
 } else {
-    Write-Host "✅ .env.local exists" -ForegroundColor Green
+    $envContent = Get-Content .env.local -Raw
+    if ($envContent -match "OPENAI_API_KEY=your_api_key_here") {
+        Write-Host "⚠️  Warning: OPENAI_API_KEY still has placeholder value. Add your real API key." -ForegroundColor Yellow
+    } else {
+        Write-Host "✅ .env.local configured" -ForegroundColor Green
+    }
 }
 Write-Host ""
 
@@ -44,3 +49,6 @@ Write-Host "✅ Build OK" -ForegroundColor Green
 Write-Host ""
 
 Write-Host "🎉 All checks passed! Environment is ready for development." -ForegroundColor Green
+Write-Host ""
+Write-Host "Optional: Run integration tests with real OpenAI API:" -ForegroundColor Cyan
+Write-Host "  `$env:OPENAI_API_KEY='sk-...' ; npm run test:integration" -ForegroundColor Gray

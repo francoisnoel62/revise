@@ -10,6 +10,7 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
+    "test:integration": "vitest --run src/**/*.integration.test.ts",
     "verify": "powershell -ExecutionPolicy Bypass -File scripts/verify-setup.ps1"
   },
   "dependencies": {
@@ -18,6 +19,7 @@
     "@tiptap/starter-kit": "^3.14.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "docx": "^9.5.1",
     "lucide-react": "^0.562.0",
     "mammoth": "^1.11.0",
     "next": "^16.1.1",
