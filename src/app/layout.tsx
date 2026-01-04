@@ -1,0 +1,25 @@
+// ABOUTME: Root layout for Next.js application with metadata and global styles
+// ABOUTME: Provides consistent styling and document structure
+
+import type { Metadata } from "next";
+import { Inter } from 'next/font/google';
+import "./globals.css";
+
+const inter = Inter({ subsets: ['latin'] });
+
+export const metadata: Metadata = {
+  title: 'Revise - Outil d\'aide à l\'écriture',
+  description: 'Outil minimaliste pour réécrire vos textes avec l\'aide de l\'IA',
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="fr">
+      <body className={inter.className}>{children}</body>
+    </html>
+  );
+}

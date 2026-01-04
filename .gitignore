@@ -57,6 +57,9 @@ Desktop.ini
 # TypeScript
 *.tsbuildinfo
 
+# vitest
+.vitest
+
 # Vercel
 .vercel
 
@@ -77,3 +80,6 @@ Desktop.ini
 
 # Claude Code
 .claude/
+
+# Research files
+/thoughts/*
