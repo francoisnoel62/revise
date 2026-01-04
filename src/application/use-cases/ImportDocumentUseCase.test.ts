@@ -14,7 +14,7 @@ class MockDocumentParser implements DocumentParser {
     this.mockContent = content;
   }
 
-  async parse(buffer: Buffer, filename: string): Promise<string> {
+  async parse(_buffer: Buffer, _filename: string): Promise<string> {
     return this.mockContent;
   }
 

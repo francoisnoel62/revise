@@ -14,7 +14,7 @@ class MockDocumentExporter implements DocumentExporter {
     this.mockBuffer = buffer;
   }
 
-  async export(content: string, filename: string): Promise<Buffer> {
+  async export(_content: string, _filename: string): Promise<Buffer> {
     return this.mockBuffer;
   }
 

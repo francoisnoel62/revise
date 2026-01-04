@@ -4,7 +4,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { TextEditor } from './TextEditor';
-import userEvent from '@testing-library/user-event';
 
 describe('TextEditor', () => {
   it('should render editor with initial content', () => {

@@ -65,7 +65,7 @@ export default function HomePage() {
           );
         }
       }
-    } catch (error) {
+    } catch {
       alert('Une erreur est survenue lors de la réécriture.');
     } finally {
       setLoading(false);
@@ -88,7 +88,7 @@ export default function HomePage() {
         <header className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Revise</h1>
           <p className="text-slate-600">
-            Outil d'aide à l'écriture minimaliste
+            Outil d&apos;aide à l&apos;écriture minimaliste
           </p>
         </header>
 

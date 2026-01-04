@@ -16,7 +16,7 @@ class MockLLMProvider implements LLMProvider {
     this.mockProposals = proposals;
   }
 
-  async generateRewrites(text: string, context?: string): Promise<RewriteProposal[]> {
+  async generateRewrites(_text: string, _context?: string): Promise<RewriteProposal[]> {
     return this.mockProposals;
   }
 }

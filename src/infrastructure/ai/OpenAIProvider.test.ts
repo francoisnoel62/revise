@@ -4,7 +4,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { OpenAIProvider } from './OpenAIProvider';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
-import OpenAI from 'openai';
 
 // Mock OpenAI module
 vi.mock('openai', () => {
@@ -21,11 +20,12 @@ vi.mock('openai', () => {
 
 describe('OpenAIProvider', () => {
   let provider: OpenAIProvider;
-  let mockCreate: any;
+  let mockCreate: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     provider = new OpenAIProvider('fake-api-key', 'gpt-4o');
     // Access the mock after the provider is created
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockCreate = (provider as any).client.chat.completions.create;
     mockCreate.mockClear();
   });
