@@ -1,20 +1,24 @@
-// ABOUTME: UI controls for document import and export operations
-// ABOUTME: Provides file upload and download functionality with Server Actions
+// ABOUTME: Document import/export controls with loading states
+// ABOUTME: Handles file selection and triggers import/export actions
 
 'use client';
 
-import { useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { importDocument, exportDocument } from '@/app/actions';
+import { Upload, Download, Loader2 } from 'lucide-react';
+import { useRef } from 'react';
 
 interface DocumentControlsProps {
-  onImport: (content: string) => void;
-  currentContent: string;
+  onImport: (formData: FormData) => Promise<void>;
+  onExport: () => Promise<void>;
+  importing?: boolean;
+  exporting?: boolean;
 }
 
 export function DocumentControls({
   onImport,
-  currentContent,
+  onExport,
+  importing = false,
+  exporting = false,
 }: DocumentControlsProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -22,23 +26,14 @@ export function DocumentControls({
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file) return;
 
     const formData = new FormData();
     formData.append('file', file);
 
-    const result = await importDocument(formData);
-
-    if ('error' in result) {
-      alert(`Erreur d'import: ${result.error}`);
-      return;
-    }
-
-    onImport(result.content);
+    await onImport(formData);
 
     // Reset input
     if (fileInputRef.current) {
@@ -46,33 +41,8 @@ export function DocumentControls({
     }
   };
 
-  const handleExport = async () => {
-    const result = await exportDocument(currentContent);
-
-    if ('error' in result) {
-      alert(`Erreur d'export: ${result.error}`);
-      return;
-    }
-
-    // Convert number array back to Buffer
-    const buffer = Buffer.from(result.buffer);
-
-    // Create download link
-    const blob = new Blob([buffer], {
-      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `document-${Date.now()}.docx`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
   return (
-    <div className="flex gap-2 mb-4">
+    <div className="flex items-center gap-2">
       <input
         ref={fileInputRef}
         type="file"
@@ -80,11 +50,37 @@ export function DocumentControls({
         onChange={handleFileChange}
         className="hidden"
       />
-      <Button onClick={handleImportClick} variant="outline">
-        Importer .docx
+
+      <Button
+        onClick={handleImportClick}
+        variant="outline"
+        disabled={importing}
+      >
+        {importing ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Import...
+          </>
+        ) : (
+          <>
+            <Upload className="mr-2 h-4 w-4" />
+            Importer
+          </>
+        )}
       </Button>
-      <Button onClick={handleExport} variant="outline">
-        Exporter .docx
+
+      <Button onClick={onExport} variant="outline" disabled={exporting}>
+        {exporting ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Export...
+          </>
+        ) : (
+          <>
+            <Download className="mr-2 h-4 w-4" />
+            Exporter
+          </>
+        )}
       </Button>
     </div>
   );

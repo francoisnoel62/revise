@@ -15,20 +15,22 @@ vi.mock('@/app/actions', () => ({
 describe('DocumentControls', () => {
   it('should render import and export buttons', () => {
     const onImport = vi.fn();
+    const onExport = vi.fn();
 
-    render(<DocumentControls onImport={onImport} currentContent="" />);
+    render(<DocumentControls onImport={onImport} onExport={onExport} />);
 
-    expect(screen.getByText('Importer .docx')).toBeInTheDocument();
-    expect(screen.getByText('Exporter .docx')).toBeInTheDocument();
+    expect(screen.getByText('Importer')).toBeInTheDocument();
+    expect(screen.getByText('Exporter')).toBeInTheDocument();
   });
 
   it('should trigger file input when import button is clicked', async () => {
     const user = userEvent.setup();
     const onImport = vi.fn();
+    const onExport = vi.fn();
 
-    render(<DocumentControls onImport={onImport} currentContent="" />);
+    render(<DocumentControls onImport={onImport} onExport={onExport} />);
 
-    const importButton = screen.getByText('Importer .docx');
+    const importButton = screen.getByText('Importer');
     await user.click(importButton);
 
     const fileInput = document.querySelector('input[type="file"]');
@@ -37,8 +39,9 @@ describe('DocumentControls', () => {
 
   it('should accept only .docx files', () => {
     const onImport = vi.fn();
+    const onExport = vi.fn();
 
-    render(<DocumentControls onImport={onImport} currentContent="" />);
+    render(<DocumentControls onImport={onImport} onExport={onExport} />);
 
     const fileInput = document.querySelector('input[type="file"]');
     expect(fileInput).toHaveAttribute('accept', '.docx');
