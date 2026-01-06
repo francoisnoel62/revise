@@ -86,3 +86,4 @@ Desktop.ini
 
 # Fixtures
 /fixtures/*
+/tests/fixtures/*

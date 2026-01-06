@@ -105,6 +105,33 @@ describe('Performance Tests', () => {
       console.log(`  ✓ Import duration: ${duration.toFixed(0)}ms`);
       expect(duration).toBeLessThan(3000);
     });
+
+    it('should import large DOCX (1.2MB) efficiently', async () => {
+      // Use large-novel.docx from fixtures (La Prophétie d'Apophis - 1.2MB)
+      const fixturesPath = join(__dirname, '../fixtures/large-novel.docx');
+      let buffer: Buffer;
+
+      try {
+        buffer = readFileSync(fixturesPath);
+      } catch {
+        console.log('⚠️  Skipping large import test - fixture not found');
+        return;
+      }
+
+      const parser = new DocxParser();
+
+      const start = performance.now();
+      const chapters = await parser.parseToChapters(buffer, 'large-novel.docx');
+      const duration = performance.now() - start;
+
+      console.log(
+        `  ✓ Large import (${(buffer.length / 1024 / 1024).toFixed(2)}MB, ${chapters.length} chapters): ${duration.toFixed(0)}ms`
+      );
+
+      // Large documents may take longer, but should still be reasonable
+      expect(duration).toBeLessThan(5000);
+      expect(chapters.length).toBeGreaterThan(0);
+    });
   });
 
   describe('Project Export', () => {
