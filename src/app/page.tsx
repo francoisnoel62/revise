@@ -3,15 +3,14 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useProjectStore } from '@/store/projectStore';
 import { TextEditor } from '@/components/editor/TextEditor';
 import { FormattingToolbar } from '@/components/editor/FormattingToolbar';
 import { ChaptersSheet } from '@/components/navigation/ChaptersSheet';
-import { RewriteButton } from '@/components/editor/RewriteButton';
 import { ProposalsSheet } from '@/components/proposals/ProposalsSheet';
 import { DocumentControls } from '@/components/document/DocumentControls';
-import { getSelectionPosition } from '@/lib/selection-position';
+import { Switch } from '@/components/ui/switch';
 import { importDocument, exportProject, rewriteText } from './actions';
 import { useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -27,6 +26,13 @@ interface Proposal {
   styleLabel?: string;
 }
 
+interface SerializedChapter {
+  id: string;
+  title: string;
+  content: string;
+  order: number;
+}
+
 export default function HomePage() {
   // Store state
   const {
@@ -38,19 +44,20 @@ export default function HomePage() {
     addChapter,
     removeChapter,
     reorderChapters,
+    updateChapterTitle,
     saveCurrentChapter,
     setProject,
   } = useProjectStore();
 
   // UI state
   const [selection, setSelection] = useState({ from: 0, to: 0 });
-  const [buttonPosition, setButtonPosition] = useState({ top: 0, left: 0 });
-  const [showRewriteButton, setShowRewriteButton] = useState(false);
+  const [hasSelection, setHasSelection] = useState(false);
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [showProposals, setShowProposals] = useState(false);
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [chaptersOpen, setChaptersOpen] = useState(false);
 
   // Editor for formatting toolbar
   const editor = useEditor({
@@ -58,6 +65,9 @@ export default function HomePage() {
     shouldRerenderOnTransaction: false,
     extensions: [StarterKit, Bold, Italic, Underline, Highlight],
   });
+
+  // Ref for autosave timeout
+  const autosaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Import handler
   const handleImport = async (formData: FormData) => {
@@ -73,7 +83,7 @@ export default function HomePage() {
 
       // Reconstruct project in store
       const chapters = result.project.chapters.map(
-        (chData: any) =>
+        (chData: SerializedChapter) =>
           new Chapter(chData.id, chData.title, chData.content, chData.order)
       );
 
@@ -138,25 +148,33 @@ export default function HomePage() {
     }
   };
 
+  // Content change handler with autosave debounce
+  const handleContentChange = (content: string) => {
+    updateActiveContent(content);
+
+    // Clear existing timeout
+    if (autosaveTimeoutRef.current) {
+      clearTimeout(autosaveTimeoutRef.current);
+    }
+
+    // Set new timeout for autosave (1 second)
+    autosaveTimeoutRef.current = setTimeout(() => {
+      saveCurrentChapter();
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Autosave completed');
+      }
+    }, 1000);
+  };
+
   // Selection change handler
   const handleSelectionChange = (from: number, to: number) => {
     setSelection({ from, to });
-
-    if (from !== to) {
-      const position = getSelectionPosition();
-      if (position) {
-        setButtonPosition(position);
-        setShowRewriteButton(true);
-      }
-    } else {
-      setShowRewriteButton(false);
-    }
+    setHasSelection(from !== to);
   };
 
   // Rewrite handler
   const handleRewrite = async () => {
     setLoading(true);
-    setShowRewriteButton(false);
 
     try {
       const result = await rewriteText(
@@ -209,6 +227,11 @@ export default function HomePage() {
 
   // Chapter selection handler
   const handleSelectChapter = (chapterId: string) => {
+    // Cancel pending autosave before switching
+    if (autosaveTimeoutRef.current) {
+      clearTimeout(autosaveTimeoutRef.current);
+    }
+
     if (hasUnsavedChanges) {
       // eslint-disable-next-line no-undef
       const confirmSwitch = confirm(
@@ -222,11 +245,39 @@ export default function HomePage() {
     setActiveChapter(chapterId);
   };
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (autosaveTimeoutRef.current) {
+        clearTimeout(autosaveTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Cleanup on chapter switch
+  const activeChapterId = project.getActiveChapterId();
+  useEffect(() => {
+    return () => {
+      if (autosaveTimeoutRef.current) {
+        clearTimeout(autosaveTimeoutRef.current);
+      }
+    };
+  }, [activeChapterId]);
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="w-full mx-auto py-8 px-4">
         {/* Header with navigation and controls */}
         <header className="flex items-center gap-4 mb-8 max-w-[80%] mx-auto">
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={chaptersOpen}
+              onCheckedChange={setChaptersOpen}
+              aria-label="Toggle chapters panel"
+            />
+            <span className="text-sm text-slate-600">Chapitres</span>
+          </div>
+
           <ChaptersSheet
             chapters={project.getChapters()}
             activeChapterId={project.getActiveChapterId()}
@@ -234,6 +285,9 @@ export default function HomePage() {
             onAddChapter={addChapter}
             onRemoveChapter={removeChapter}
             onReorderChapters={reorderChapters}
+            onUpdateTitle={updateChapterTitle}
+            open={chaptersOpen}
+            onOpenChange={setChaptersOpen}
           />
 
           <div className="flex-1">
@@ -257,21 +311,19 @@ export default function HomePage() {
         {/* 80% width editor container */}
         <div className="w-[80%] mx-auto relative">
           <div className="border border-slate-200 rounded-lg bg-white overflow-hidden">
-            <FormattingToolbar editor={editor} />
+            <FormattingToolbar
+              editor={editor}
+              hasSelection={hasSelection}
+              onRewrite={handleRewrite}
+              rewriteLoading={loading}
+            />
 
             <TextEditor
               content={activeContent}
-              onContentChange={updateActiveContent}
+              onContentChange={handleContentChange}
               onSelectionChange={handleSelectionChange}
             />
           </div>
-
-          <RewriteButton
-            visible={showRewriteButton}
-            position={buttonPosition}
-            onRewrite={handleRewrite}
-            loading={loading}
-          />
         </div>
 
         {/* Proposals Sheet */}

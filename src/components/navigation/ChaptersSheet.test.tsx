@@ -19,39 +19,28 @@ describe('ChaptersSheet', () => {
     onAddChapter: vi.fn(),
     onRemoveChapter: vi.fn(),
     onReorderChapters: vi.fn(),
+    onUpdateTitle: vi.fn(),
+    open: true,
+    onOpenChange: vi.fn(),
   };
-
-  it('should render trigger button', () => {
-    render(<ChaptersSheet {...defaultProps} />);
-
-    const trigger = screen.getByTitle('Chapitres');
-    expect(trigger).toBeInTheDocument();
-  });
-
-  it('should open sheet when trigger is clicked', () => {
-    render(<ChaptersSheet {...defaultProps} />);
-
-    const trigger = screen.getByTitle('Chapitres');
-    fireEvent.click(trigger);
-
-    expect(screen.getByText('Chapitres')).toBeInTheDocument();
-  });
 
   it('should render chapter list when open', () => {
     render(<ChaptersSheet {...defaultProps} />);
 
-    const trigger = screen.getByTitle('Chapitres');
-    fireEvent.click(trigger);
-
+    expect(screen.getByText('Chapitres')).toBeInTheDocument();
     expect(screen.getByText('Chapter 1')).toBeInTheDocument();
     expect(screen.getByText('Chapter 2')).toBeInTheDocument();
   });
 
+  it('should not render when closed', () => {
+    const closedProps = { ...defaultProps, open: false };
+    render(<ChaptersSheet {...closedProps} />);
+
+    expect(screen.queryByText('Chapter 1')).not.toBeInTheDocument();
+  });
+
   it('should highlight active chapter', () => {
     render(<ChaptersSheet {...defaultProps} />);
-
-    const trigger = screen.getByTitle('Chapitres');
-    fireEvent.click(trigger);
 
     // Find the outermost container div for Chapter 1
     const chapter1Text = screen.getByText('Chapter 1');
@@ -64,9 +53,6 @@ describe('ChaptersSheet', () => {
   it('should call onSelectChapter when chapter clicked', () => {
     render(<ChaptersSheet {...defaultProps} />);
 
-    const trigger = screen.getByTitle('Chapitres');
-    fireEvent.click(trigger);
-
     const chapter2 = screen.getByText('Chapter 2');
     fireEvent.click(chapter2);
 
@@ -76,9 +62,6 @@ describe('ChaptersSheet', () => {
   it('should call onAddChapter when add button clicked', () => {
     render(<ChaptersSheet {...defaultProps} />);
 
-    const trigger = screen.getByTitle('Chapitres');
-    fireEvent.click(trigger);
-
     const addButton = screen.getByText('Nouveau chapitre');
     fireEvent.click(addButton);
 
@@ -87,9 +70,6 @@ describe('ChaptersSheet', () => {
 
   it('should call onRemoveChapter when delete button clicked', () => {
     render(<ChaptersSheet {...defaultProps} />);
-
-    const trigger = screen.getByTitle('Chapitres');
-    fireEvent.click(trigger);
 
     const deleteButtons = screen.getAllByRole('button');
     const deleteButton = deleteButtons.find(btn =>
@@ -106,17 +86,11 @@ describe('ChaptersSheet', () => {
     const emptyProps = { ...defaultProps, chapters: [] };
     render(<ChaptersSheet {...emptyProps} />);
 
-    const trigger = screen.getByTitle('Chapitres');
-    fireEvent.click(trigger);
-
     expect(screen.getByText(/Aucun chapitre/)).toBeInTheDocument();
   });
 
   it('should display chapter metadata (word count and character count)', () => {
     render(<ChaptersSheet {...defaultProps} />);
-
-    const trigger = screen.getByTitle('Chapitres');
-    fireEvent.click(trigger);
 
     expect(screen.getAllByText(/mots/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/caractères/).length).toBeGreaterThan(0);
@@ -124,9 +98,6 @@ describe('ChaptersSheet', () => {
 
   it('should render drag handle for each chapter', () => {
     render(<ChaptersSheet {...defaultProps} />);
-
-    const trigger = screen.getByTitle('Chapitres');
-    fireEvent.click(trigger);
 
     const gripIcons = screen.getAllByRole('button').filter(btn =>
       btn.querySelector('svg')?.classList.contains('lucide-grip-vertical')
@@ -140,9 +111,6 @@ describe('ChaptersSheet', () => {
     const props = { ...defaultProps, onSelectChapter };
 
     render(<ChaptersSheet {...props} />);
-
-    const trigger = screen.getByTitle('Chapitres');
-    fireEvent.click(trigger);
 
     const deleteButtons = screen.getAllByRole('button');
     const deleteButton = deleteButtons.find(btn =>

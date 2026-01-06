@@ -40,6 +40,7 @@ export const TIPTAP_EXTENSIONS = [
  * @param html - HTML string (from mammoth or other source)
  * @returns TipTap JSON object
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function htmlToTipTapJSON(html: string): any {
   try {
     return generateJSON(html, TIPTAP_EXTENSIONS);
@@ -58,6 +59,7 @@ export function htmlToTipTapJSON(html: string): any {
  * @param json - TipTap JSON object
  * @returns HTML string
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function tiptapJSONToHTML(json: any): string {
   try {
     return generateHTML(json, TIPTAP_EXTENSIONS);
@@ -72,6 +74,7 @@ export function tiptapJSONToHTML(json: any): string {
  * @param json - Object to validate
  * @returns true if valid TipTap JSON
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isValidTipTapJSON(json: any): boolean {
   return !!(
     json &&
@@ -85,6 +88,7 @@ export function isValidTipTapJSON(json: any): boolean {
  * Create empty TipTap document
  * @returns Empty TipTap JSON document
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function createEmptyTipTapDoc(): any {
   return {
     type: 'doc',
@@ -97,6 +101,7 @@ export function createEmptyTipTapDoc(): any {
  * @param json - TipTap JSON object
  * @returns Plain text string
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function extractTextFromTipTapJSON(json: any): string {
   if (!json) return '';
 
@@ -105,9 +110,8 @@ export function extractTextFromTipTapJSON(json: any): string {
   }
 
   if (json.content && Array.isArray(json.content)) {
-    return json.content
-      .map((node: any) => extractTextFromTipTapJSON(node))
-      .join(' ');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return json.content.map((node: any) => extractTextFromTipTapJSON(node)).join(' ');
   }
 
   return '';

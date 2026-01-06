@@ -3,15 +3,16 @@
 
 'use client';
 
+import React from 'react';
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from '@/components/ui/sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { FileText, Plus, Trash2, GripVertical } from 'lucide-react';
+import { Plus, Trash2, GripVertical } from 'lucide-react';
 import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -28,6 +29,9 @@ interface ChaptersSheetProps {
   onAddChapter: () => void;
   onRemoveChapter: (chapterId: string) => void;
   onReorderChapters: (fromIndex: number, toIndex: number) => void;
+  onUpdateTitle: (chapterId: string, title: string) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 function SortableChapterItem({
@@ -35,12 +39,16 @@ function SortableChapterItem({
   isActive,
   onSelect,
   onRemove,
+  onUpdateTitle,
 }: {
   chapter: Chapter;
   isActive: boolean;
   onSelect: () => void;
   onRemove: () => void;
+  onUpdateTitle: (title: string) => void;
 }) {
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [editedTitle, setEditedTitle] = React.useState(chapter.getTitle());
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: chapter.getId(),
   });
@@ -48,6 +56,18 @@ function SortableChapterItem({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+  };
+
+  const handleSave = () => {
+    if (editedTitle.trim() && editedTitle !== chapter.getTitle()) {
+      onUpdateTitle(editedTitle.trim());
+    }
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditedTitle(chapter.getTitle());
+    setIsEditing(false);
   };
 
   return (
@@ -68,11 +88,44 @@ function SortableChapterItem({
         <GripVertical className="h-4 w-4 text-slate-400" />
       </div>
 
-      <div className="flex-1 cursor-pointer" onClick={onSelect}>
-        <div className="font-medium text-sm">{chapter.getTitle()}</div>
-        <div className="text-xs text-slate-500">
-          {chapter.getMetadata().wordCount} mots · {chapter.getMetadata().characterCount} caractères
-        </div>
+      <div className="flex-1">
+        {isEditing ? (
+          <div className="space-y-1">
+            <input
+              type="text"
+              value={editedTitle}
+              onChange={(e) => setEditedTitle(e.target.value)}
+              onBlur={handleSave}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSave();
+                if (e.key === 'Escape') handleCancel();
+              }}
+              autoFocus
+              className="font-medium text-sm border border-blue-500 rounded px-2 py-1 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <div className="text-xs text-slate-500">
+              {chapter.getMetadata().wordCount} mots · {chapter.getMetadata().characterCount} caractères
+            </div>
+          </div>
+        ) : (
+          <div
+            className="cursor-pointer"
+            onClick={onSelect}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              setIsEditing(true);
+              setEditedTitle(chapter.getTitle());
+            }}
+          >
+            <div className="font-medium text-sm hover:text-blue-600">
+              {chapter.getTitle()}
+            </div>
+            <div className="text-xs text-slate-500">
+              {chapter.getMetadata().wordCount} mots · {chapter.getMetadata().characterCount} caractères
+            </div>
+          </div>
+        )}
       </div>
 
       <Button
@@ -97,6 +150,9 @@ export function ChaptersSheet({
   onAddChapter,
   onRemoveChapter,
   onReorderChapters,
+  onUpdateTitle,
+  open,
+  onOpenChange,
 }: ChaptersSheetProps) {
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -111,13 +167,7 @@ export function ChaptersSheet({
   }
 
   return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" title="Chapitres">
-          <FileText className="h-5 w-5" />
-        </Button>
-      </SheetTrigger>
-
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="w-[350px] sm:w-[400px]">
         <SheetHeader>
           <SheetTitle>Chapitres</SheetTitle>
@@ -129,33 +179,36 @@ export function ChaptersSheet({
             Nouveau chapitre
           </Button>
 
-          <DndContext
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={chapters.map((c) => c.getId())}
-              strategy={verticalListSortingStrategy}
+          <ScrollArea className="h-[calc(100vh-200px)] pr-4">
+            <DndContext
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
             >
-              <div className="space-y-2">
-                {chapters.map((chapter) => (
-                  <SortableChapterItem
-                    key={chapter.getId()}
-                    chapter={chapter}
-                    isActive={chapter.getId() === activeChapterId}
-                    onSelect={() => onSelectChapter(chapter.getId())}
-                    onRemove={() => onRemoveChapter(chapter.getId())}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
+              <SortableContext
+                items={chapters.map((c) => c.getId())}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-2">
+                  {chapters.map((chapter) => (
+                    <SortableChapterItem
+                      key={chapter.getId()}
+                      chapter={chapter}
+                      isActive={chapter.getId() === activeChapterId}
+                      onSelect={() => onSelectChapter(chapter.getId())}
+                      onRemove={() => onRemoveChapter(chapter.getId())}
+                      onUpdateTitle={(title) => onUpdateTitle(chapter.getId(), title)}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
 
-          {chapters.length === 0 && (
-            <div className="text-center py-8 text-slate-500">
-              Aucun chapitre. Cliquez sur &quot;Nouveau chapitre&quot; pour commencer.
-            </div>
-          )}
+            {chapters.length === 0 && (
+              <div className="text-center py-8 text-slate-500">
+                Aucun chapitre. Cliquez sur &quot;Nouveau chapitre&quot; pour commencer.
+              </div>
+            )}
+          </ScrollArea>
         </div>
       </SheetContent>
     </Sheet>

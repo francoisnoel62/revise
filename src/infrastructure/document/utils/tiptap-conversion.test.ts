@@ -26,7 +26,9 @@ describe('tiptap-conversion utilities', () => {
       const json = htmlToTipTapJSON(html);
 
       const textNodes = json.content[0].content;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const boldNode = textNodes.find((n: any) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         n.marks && n.marks.some((m: any) => m.type === 'bold')
       );
 
@@ -39,7 +41,9 @@ describe('tiptap-conversion utilities', () => {
       const json = htmlToTipTapJSON(html);
 
       const textNodes = json.content[0].content;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const italicNode = textNodes.find((n: any) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         n.marks && n.marks.some((m: any) => m.type === 'italic')
       );
 
@@ -52,7 +56,9 @@ describe('tiptap-conversion utilities', () => {
       const json = htmlToTipTapJSON(html);
 
       const textNodes = json.content[0].content;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const underlineNode = textNodes.find((n: any) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         n.marks && n.marks.some((m: any) => m.type === 'underline')
       );
 

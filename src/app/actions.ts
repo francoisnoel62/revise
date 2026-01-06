@@ -12,6 +12,18 @@ import { TextSelection } from '@/domain/value-objects/TextSelection';
 import { Project } from '@/domain/entities/Project';
 import { Chapter } from '@/domain/entities/Chapter';
 
+interface SerializedChapter {
+  id: string;
+  title: string;
+  content: string;
+  order: number;
+}
+
+interface SerializedProject {
+  chapters: SerializedChapter[];
+  activeChapterId: string | null;
+}
+
 /**
  * Import DOCX and parse into chapters
  */
@@ -52,7 +64,7 @@ export async function importDocument(formData: FormData) {
 /**
  * Export project as DOCX
  */
-export async function exportProject(projectData: any) {
+export async function exportProject(projectData: SerializedProject) {
   try {
     // Reconstruct Project from serialized data
     const project = reconstructProject(projectData);
@@ -116,9 +128,9 @@ export async function rewriteText(
 /**
  * Helper: Reconstruct Project from serialized data
  */
-function reconstructProject(projectData: any): Project {
+function reconstructProject(projectData: SerializedProject): Project {
   const chapters = projectData.chapters.map(
-    (chData: any) =>
+    (chData: SerializedChapter) =>
       new Chapter(chData.id, chData.title, chData.content, chData.order)
   );
 

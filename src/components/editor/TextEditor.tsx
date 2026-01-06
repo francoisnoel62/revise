@@ -4,11 +4,26 @@
 'use client';
 
 import { useEditor, EditorContent, Editor } from '@tiptap/react';
+import { Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Highlight from '@tiptap/extension-highlight';
 import Placeholder from '@tiptap/extension-placeholder';
 import { useEffect } from 'react';
+
+// Custom extension for em dash insertion with Ctrl+K
+const EmDashExtension = Extension.create({
+  name: 'emDash',
+
+  addKeyboardShortcuts() {
+    return {
+      'Mod-k': () => {
+        this.editor.commands.insertContent('—');
+        return true;
+      },
+    };
+  },
+});
 
 interface TextEditorProps {
   content: string; // TipTap JSON stringified
@@ -34,6 +49,7 @@ export function TextEditor({
       }),
       Underline,
       Highlight.configure({ multicolor: true }),
+      EmDashExtension,
       Placeholder.configure({ placeholder }),
     ],
     content: content ? JSON.parse(content) : { type: 'doc', content: [] },

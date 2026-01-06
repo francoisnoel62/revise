@@ -151,6 +151,7 @@ export class DocxExporter implements DocumentExporter {
    * @param json - TipTap JSON document
    * @returns Array of DOCX Paragraph objects
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private convertTipTapToDocx(json: any): Paragraph[] {
     if (!json || !json.content) return [];
 
@@ -169,6 +170,7 @@ export class DocxExporter implements DocumentExporter {
   /**
    * Convert single TipTap node to DOCX paragraph
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private convertNode(node: any): Paragraph | null {
     if (node.type === 'paragraph') {
       const runs = this.convertTextNodes(node.content || []);
@@ -195,6 +197,7 @@ export class DocxExporter implements DocumentExporter {
   /**
    * Convert TipTap text nodes to DOCX TextRuns
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private convertTextNodes(nodes: any[]): TextRun[] {
     if (!nodes || nodes.length === 0) {
       return [new TextRun('')];
@@ -204,11 +207,16 @@ export class DocxExporter implements DocumentExporter {
       if (node.type !== 'text') return new TextRun('');
 
       const marks = node.marks || [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const isBold = marks.some((m: any) => m.type === 'bold');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const isItalic = marks.some((m: any) => m.type === 'italic');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const isUnderline = marks.some((m: any) => m.type === 'underline');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const highlightMark = marks.find((m: any) => m.type === 'highlight');
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const runOptions: any = {
         text: node.text || '',
       };
