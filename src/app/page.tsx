@@ -69,6 +69,12 @@ export default function HomePage() {
   // Ref for autosave timeout
   const autosaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Ref for the actual TextEditor instance (not the toolbar editor)
+  const textEditorRef = useRef<any>(null);
+
+  // Ref for highlight timeout
+  const highlightTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Import handler
   const handleImport = async (formData: FormData) => {
     setImporting(true);
@@ -209,17 +215,49 @@ export default function HomePage() {
 
   // Insert proposal handler
   const handleInsert = (newText: string) => {
-    // Replace text in TipTap JSON using editor commands
-    if (editor) {
-      editor
+    // Replace text in TipTap JSON using the actual TextEditor instance
+    if (textEditorRef.current) {
+      const { from, to } = selection;
+
+      // Insert the new text
+      textEditorRef.current
         .chain()
         .focus()
-        .setTextSelection({ from: selection.from, to: selection.to })
+        .setTextSelection({ from, to })
         .insertContent(newText)
         .run();
 
-      const updatedJson = editor.getJSON();
+      // Calculate the new selection range (inserted text)
+      const newTo = from + newText.length;
+
+      // Highlight the inserted text with yellow color
+      textEditorRef.current
+        .chain()
+        .setTextSelection({ from, to: newTo })
+        .setHighlight({ color: '#fef08a' }) // Tailwind yellow-200
+        .run();
+
+      const updatedJson = textEditorRef.current.getJSON();
       updateActiveContent(JSON.stringify(updatedJson));
+
+      // Clear existing highlight timeout if any
+      if (highlightTimeoutRef.current) {
+        clearTimeout(highlightTimeoutRef.current);
+      }
+
+      // Remove highlight after 3 seconds
+      highlightTimeoutRef.current = setTimeout(() => {
+        if (textEditorRef.current) {
+          textEditorRef.current
+            .chain()
+            .setTextSelection({ from, to: newTo })
+            .unsetHighlight()
+            .run();
+
+          const finalJson = textEditorRef.current.getJSON();
+          updateActiveContent(JSON.stringify(finalJson));
+        }
+      }, 3000);
     }
 
     setShowProposals(false);
@@ -251,6 +289,9 @@ export default function HomePage() {
       if (autosaveTimeoutRef.current) {
         clearTimeout(autosaveTimeoutRef.current);
       }
+      if (highlightTimeoutRef.current) {
+        clearTimeout(highlightTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -260,6 +301,9 @@ export default function HomePage() {
     return () => {
       if (autosaveTimeoutRef.current) {
         clearTimeout(autosaveTimeoutRef.current);
+      }
+      if (highlightTimeoutRef.current) {
+        clearTimeout(highlightTimeoutRef.current);
       }
     };
   }, [activeChapterId]);
@@ -322,6 +366,9 @@ export default function HomePage() {
               content={activeContent}
               onContentChange={handleContentChange}
               onSelectionChange={handleSelectionChange}
+              onEditorReady={(editorInstance) => {
+                textEditorRef.current = editorInstance;
+              }}
             />
           </div>
         </div>
