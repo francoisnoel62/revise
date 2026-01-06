@@ -1,20 +1,23 @@
-// ABOUTME: Domain interface for parsing documents into plain text
-// ABOUTME: Abstracts document format handling (docx, pdf, txt) from business logic
+// ABOUTME: Contract for parsing documents from various formats into domain entities
+// ABOUTME: Defines methods for both single-document and multi-chapter parsing
+
+import { Chapter } from '../entities/Chapter';
 
 export interface DocumentParser {
   /**
-   * Parses document buffer into plain text
-   * @param buffer The raw document buffer
-   * @param filename Original filename (for format detection)
-   * @returns Promise resolving to extracted plain text
-   * @throws Error if parsing fails or format is unsupported
-   */
-  parse(buffer: Buffer, filename: string): Promise<string>;
-
-  /**
-   * Checks if this parser supports the given file format
-   * @param filename File name to check
-   * @returns true if parser can handle this format
+   * Check if this parser supports the given file format
    */
   supports(filename: string): boolean;
+
+  /**
+   * Parse document into multiple chapters (Phase 2+)
+   * Splits document by headings (H1) or other logical boundaries
+   */
+  parseToChapters(buffer: Buffer, filename: string): Promise<Chapter[]>;
+
+  /**
+   * Parse document into plain text (Phase 1 - backward compatibility)
+   * @deprecated Use parseToChapters for Phase 2+ features
+   */
+  parse(buffer: Buffer, filename: string): Promise<string>;
 }

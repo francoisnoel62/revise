@@ -3,6 +3,8 @@
 
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 import { DocumentExporter } from '@/domain/interfaces/DocumentExporter';
+import { Project } from '@/domain/entities/Project';
+import { Chapter } from '@/domain/entities/Chapter';
 
 export class DocxExporter implements DocumentExporter {
   supports(filename: string): boolean {
@@ -40,6 +42,16 @@ export class DocxExporter implements DocumentExporter {
       }
       throw new Error('Failed to export docx file');
     }
+  }
+
+  async exportProject(_project: Project, _filename: string): Promise<Buffer> {
+    // TODO: Phase 2.2 - Implement project export with formatted chapters
+    throw new Error('exportProject not yet implemented - will be added in Phase 2.2');
+  }
+
+  async exportChapter(_chapter: Chapter, _filename: string): Promise<Buffer> {
+    // TODO: Phase 2.2 - Implement single chapter export with formatting
+    throw new Error('exportChapter not yet implemented - will be added in Phase 2.2');
   }
 
   private splitIntoParagraphs(content: string): string[] {

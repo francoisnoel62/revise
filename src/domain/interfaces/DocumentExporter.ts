@@ -1,20 +1,29 @@
-// ABOUTME: Domain interface for exporting text content to document formats
-// ABOUTME: Abstracts document generation (docx, pdf, txt) from business logic
+// ABOUTME: Contract for exporting domain entities to various document formats
+// ABOUTME: Defines methods for single-chapter, multi-chapter, and legacy exports
+
+import { Project } from '../entities/Project';
+import { Chapter } from '../entities/Chapter';
 
 export interface DocumentExporter {
   /**
-   * Exports plain text to document format
-   * @param content The text content to export
-   * @param filename Desired output filename
-   * @returns Promise resolving to document buffer
-   * @throws Error if export fails
-   */
-  export(content: string, filename: string): Promise<Buffer>;
-
-  /**
-   * Checks if this exporter supports the given file format
-   * @param filename File name to check
-   * @returns true if exporter can handle this format
+   * Check if this exporter supports the given file format
    */
   supports(filename: string): boolean;
+
+  /**
+   * Export entire project with all chapters (Phase 2+)
+   * Combines chapters with page breaks or section separators
+   */
+  exportProject(project: Project, filename: string): Promise<Buffer>;
+
+  /**
+   * Export single chapter (Phase 2+)
+   */
+  exportChapter(chapter: Chapter, filename: string): Promise<Buffer>;
+
+  /**
+   * Export plain text content (Phase 1 - backward compatibility)
+   * @deprecated Use exportProject or exportChapter for Phase 2+ features
+   */
+  export(content: string, filename: string): Promise<Buffer>;
 }

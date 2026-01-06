@@ -18,6 +18,12 @@ class MockDocumentParser implements DocumentParser {
     return this.mockContent;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async parseToChapters(_buffer: Buffer, _filename: string): Promise<any[]> {
+    // Stub for Phase 2 - not used in Phase 1 tests
+    throw new Error('Not implemented in Phase 1 tests');
+  }
+
   supports(filename: string): boolean {
     return filename.endsWith('.docx');
   }
@@ -66,6 +72,9 @@ describe('ImportDocumentUseCase', () => {
     const failingParser: DocumentParser = {
       async parse() {
         throw new Error('Corrupted file');
+      },
+      async parseToChapters() {
+        throw new Error('Not implemented');
       },
       supports() {
         return true;

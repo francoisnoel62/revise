@@ -3,6 +3,7 @@
 
 import mammoth from 'mammoth';
 import { DocumentParser } from '@/domain/interfaces/DocumentParser';
+import { Chapter } from '@/domain/entities/Chapter';
 
 export class DocxParser implements DocumentParser {
   supports(filename: string): boolean {
@@ -23,5 +24,10 @@ export class DocxParser implements DocumentParser {
       }
       throw new Error('Failed to parse docx file');
     }
+  }
+
+  async parseToChapters(_buffer: Buffer, _filename: string): Promise<Chapter[]> {
+    // TODO: Phase 2.2 - Implement chapter parsing with heading detection
+    throw new Error('parseToChapters not yet implemented - will be added in Phase 2.2');
   }
 }
