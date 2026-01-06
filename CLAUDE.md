@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### MVP Status: Phase 2 Complete ✅
 
-**Phase 2 Multi-Chapter Architecture** is **fully implemented and tested** with 237 passing tests including integration tests with OpenAI API.
+**Phase 2 Multi-Chapter Architecture** is **fully implemented and tested** with 236 passing tests including integration tests with OpenAI API.
 
 **Implemented features:**
 - **Multi-chapter document management** with drag & drop navigation
@@ -20,10 +20,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Formatted import/export** (.docx with formatting preservation)
 - **Chapter splitting** by H1 headings on import
 - **TipTap JSON-based editor** with formatting toolbar
-- **Contextual "Réécrire" button** on text selection
-- **AI-powered rewrite** with 5 distinct proposals (formatted text support)
+- **Fixed "Réécrire" button** in formatting toolbar (enabled on text selection)
+- **AI-powered rewrite** with 5 distinct proposals (language-preserving, formatted text support)
 - **Proposals Sheet** (dismissible right panel)
-- **Chapters Sheet** (left navigation with chapter management)
+- **Chapters Sheet** (left navigation with Switch toggle, scrollable, inline title editing)
+- **Autosave** with 1-second debounce after last keystroke
+- **Keyboard shortcuts** (CTRL+B/I/U, CTRL+Shift+H, CTRL+K for em dash)
 - **Unsaved changes detection** with confirmation dialogs
 - **Full undo/redo** support (Ctrl+Z)
 - **Clean Architecture** with complete test coverage
@@ -82,11 +84,10 @@ This project MUST follow Clean Architecture principles adapted to Next.js:
 4. **Interface Layer** (`src/app`, `src/components`)
    - React components and UI
    - **Editor Components**:
-     - `TextEditor` - TipTap-based rich text editor with JSON storage
-     - `FormattingToolbar` - Bold, italic, underline, highlight controls
-     - `RewriteButton` - Contextual rewrite trigger
+     - `TextEditor` - TipTap-based rich text editor with JSON storage and em dash extension
+     - `FormattingToolbar` - Bold, italic, underline, highlight controls + fixed rewrite button
    - **Navigation Components**:
-     - `ChaptersSheet` - Left panel with drag & drop chapter list
+     - `ChaptersSheet` - Left panel with Switch toggle, scrollable list, drag & drop, inline title editing
      - `ProposalsSheet` - Right panel for AI proposals
    - **Document Components**:
      - `DocumentControls` - Import/export with loading states
@@ -95,7 +96,7 @@ This project MUST follow Clean Architecture principles adapted to Next.js:
    - **Server Actions**:
      - `importDocument` - Multi-chapter import
      - `exportProject` - Multi-chapter export
-     - `rewriteText` - AI rewriting
+     - `rewriteText` - AI rewriting with language preservation
 
 ### Dependency Rules
 - Domain depends on nothing
@@ -150,23 +151,24 @@ This architecture enables future evolution (persistence, projects, memory) witho
 
 ### Multi-Chapter Workflow (✅ Phase 2 Implemented)
 1. **Import**: User imports .docx → document split into chapters by H1
-2. **Navigate**: Click chapter icon (left) → ChaptersSheet opens with chapter list
+2. **Navigate**: Toggle Switch (top left) → ChaptersSheet opens with scrollable chapter list
 3. **Manage Chapters**:
    - Add new chapters via "Nouveau chapitre" button
    - Delete chapters (except last one)
    - Drag & drop to reorder chapters
    - Click chapter to switch (auto-saves current content)
-4. **Edit**: User types in 80%-width editor with formatting toolbar
-5. **Format**: Use toolbar or keyboard shortcuts (Ctrl+B, I, U, Shift+H)
-6. **Rewrite**: Select text → "Réécrire" button → 5 proposals in right Sheet
+   - Double-click chapter title to rename inline (Enter/Blur to save, Escape to cancel)
+4. **Edit**: User types in 80%-width editor with formatting toolbar (auto-saves after 1 second)
+5. **Format**: Use toolbar or keyboard shortcuts (Ctrl+B, I, U, Shift+H, Ctrl+K for em dash)
+6. **Rewrite**: Select text → Click "Réécrire" button in toolbar → 5 language-preserving proposals in right Sheet
 7. **Insert**: Click "Insérer" on chosen proposal → text replaced
 8. **Undo/Redo**: Ctrl+Z / Ctrl+Shift+Z available
 9. **Export**: Click "Exporter" → all chapters exported to single .docx
 
 ### Text Rewriting Flow (✅ Enhanced for Rich Text)
 1. User selects formatted or plain text block in TipTap editor
-2. Contextual "Réécrire" button appears near selection
-3. User clicks button, AI generates exactly 5 proposals
+2. "Réécrire" button in toolbar becomes enabled (disabled when no selection)
+3. User clicks button, AI generates exactly 5 language-preserving proposals
 4. Proposals displayed in dismissible ProposalsSheet (right panel)
 5. Each proposal has "Insérer" button
 6. Clicking "Insérer" replaces selected text and closes sheet
@@ -178,6 +180,7 @@ No chat, no discussion, no configuration, no onboarding.
 ### AI Prompting Strategy (✅ Implemented)
 - Single, fixed, carefully crafted system prompt in `OpenAIProvider`
 - Generates exactly 5 stylistically distinct variants
+- **Language preservation**: Detects input language and generates all proposals in the same language (FR → FR, EN → EN)
 - Strict preservation of original meaning and length
 - Maintains author's voice and intent
 - Uses GPT-4o-mini for balance of quality and speed
@@ -199,7 +202,6 @@ No chat, no discussion, no configuration, no onboarding.
 ### Explicitly Excluded (Phase 2 - Future in Phase 3+)
 - **Phase 3** (Planned):
   - Server-side persistence (MongoDB/PostgreSQL)
-  - Autosave
   - Session resumption
   - User accounts and authentication
   - Multiple projects per user

@@ -2,7 +2,7 @@
 
 An ultra-minimalist AI-assisted writing tool for multi-chapter documents. Focus on one high-value action: instant text rewriting without breaking creative flow.
 
-**Status**: MVP Phase 2 Complete ✅ (237 tests passing)
+**Status**: MVP Phase 2 Complete ✅ (236 tests passing)
 
 ## Core Value Proposition
 
@@ -15,9 +15,10 @@ This is **not** a chat AI or verbose assistant. It's a production tool designed 
 ### Phase 2: Multi-Chapter Architecture
 
 - **Multi-Chapter Management**: Import documents split automatically by H1 headings
-- **Chapter Navigation**: Left panel with drag & drop reordering
+- **Chapter Navigation**: Left panel with Switch toggle, drag & drop reordering, inline title editing
 - **Rich Text Formatting**: Bold, italic, underline, highlight with toolbar and keyboard shortcuts
-- **Instant AI Rewriting**: Select any text block and get 5 distinct, high-quality alternatives powered by GPT-4o-mini
+- **Instant AI Rewriting**: Select any text block and get 5 distinct, language-preserving alternatives powered by GPT-4o-mini
+- **Autosave**: Automatic save 1 second after last keystroke
 - **Formatted Import/Export**: Preserve formatting in `.docx` files
 - **Proposals Sheet**: Dismissible right panel showing 5 AI proposals
 - **Unsaved Changes Detection**: Visual indicators and confirmation dialogs
@@ -73,10 +74,11 @@ npm start
    - Documents are automatically split by H1 headings
    - Formatting is preserved (bold, italic, underline, highlight)
 
-2. **Navigate chapters** - Click the chapter icon (top left) to open the chapters panel
+2. **Navigate chapters** - Toggle the Switch (top left) to open the chapters panel
    - Add new chapters with "Nouveau chapitre"
    - Drag & drop to reorder
    - Click to switch chapters
+   - Double-click chapter title to rename inline
    - Delete chapters (except the last one)
 
 3. **Edit your text** - Use the rich text editor with formatting toolbar
@@ -84,12 +86,13 @@ npm start
    - **Italic**: Ctrl+I
    - **Underline**: Ctrl+U
    - **Highlight**: Ctrl+Shift+H
+   - **Em dash (—)**: Ctrl+K
    - Undo/redo: Ctrl+Z / Ctrl+Shift+Z
 
 4. **Select text to rewrite** - Highlight any text block
-   - Contextual "Réécrire" button appears
+   - "Réécrire" button in toolbar becomes enabled
 
-5. **Click "Réécrire"** - AI generates 5 distinct proposals
+5. **Click "Réécrire"** - AI generates 5 distinct, language-preserving proposals
    - Proposals appear in right panel
    - Each shows style variation
 
@@ -101,14 +104,14 @@ npm start
    - Chapters separated by page breaks
    - Formatting preserved
 
-**Note**: Documents exist only in your browser session. Export regularly to save your work.
+**Note**: Documents auto-save as you type (1-second debounce) but exist only in your browser session. Export regularly to save your work.
 
 ## Tech Stack
 
 - **Framework**: Next.js 16.1.1 (App Router)
 - **Rendering**: React 19 with Server Components
 - **Editor**: TipTap 3.14.0 with rich text extensions
-- **UI Components**: shadcn/ui + Radix UI (Sheet, Button, ScrollArea)
+- **UI Components**: shadcn/ui + Radix UI (Sheet, Button, ScrollArea, Switch)
 - **State Management**: Zustand for project/chapter state
 - **Drag & Drop**: @dnd-kit for chapter reordering
 - **Styling**: Tailwind CSS v4
@@ -146,8 +149,8 @@ src/
 └── app/components/      Next.js interface layer
     ├── app/            Pages and Server Actions
     ├── components/     React UI components
-    │   ├── editor/     TextEditor, FormattingToolbar, RewriteButton
-    │   ├── navigation/ ChaptersSheet
+    │   ├── editor/     TextEditor (with em dash extension), FormattingToolbar (with rewrite button)
+    │   ├── navigation/ ChaptersSheet (with Switch, ScrollArea, inline editing)
     │   ├── proposals/  ProposalsSheet
     │   └── document/   DocumentControls
     └── lib/            UI utilities
@@ -176,7 +179,7 @@ All Phase 2 targets **exceeded**:
 
 ## Testing
 
-Comprehensive test suite with 237 passing tests:
+Comprehensive test suite with 236 passing tests:
 
 ```bash
 npm test                     # Run all unit tests
@@ -188,7 +191,7 @@ npm run test:e2e             # Run end-to-end tests with Playwright (setup ready
 
 ### Test Coverage
 
-**237 tests passing** (100% success rate):
+**236 tests passing** (100% success rate):
 - **Domain Layer**: 45 tests - 97.62% coverage
 - **Application Layer**: 39 tests - 100% coverage
 - **Infrastructure Layer**: 40 tests
@@ -197,10 +200,10 @@ npm run test:e2e             # Run end-to-end tests with Playwright (setup ready
   - TipTap conversion: 14 tests
   - OpenAI integration: 4 tests
   - Repository: 5 tests
-- **Interface Layer**: 53 tests
+- **Interface Layer**: 52 tests
   - TextEditor: 8 tests
   - FormattingToolbar: 9 tests
-  - ChaptersSheet: 11 tests
+  - ChaptersSheet: 10 tests
   - ProposalsSheet: 10 tests
   - DocumentControls: 3 tests
   - Other components: 12 tests
@@ -217,6 +220,7 @@ npm run test:e2e             # Run end-to-end tests with Playwright (setup ready
 The prompt is a critical product component (see `src/infrastructure/ai/OpenAIProvider.ts`):
 - Single, fixed, carefully crafted system prompt
 - Generates exactly 5 clearly differentiated variants
+- **Language preservation**: Detects input language and generates all proposals in the same language (FR → FR, EN → EN)
 - Strict preservation of original meaning and length
 - Context-aware: uses surrounding text for better understanding
 - Maintains author's voice and intent
@@ -232,7 +236,7 @@ Multi-chapter architecture with rich text formatting is fully implemented.
 ### Current Limitations (By Design)
 
 - Documents are ephemeral (in-memory only during session)
-- User must export to save work
+- User must export to save work permanently
 - No server-side persistence
 - No session resumption
 - Undo/redo history is shared across all chapters
@@ -241,7 +245,7 @@ Multi-chapter architecture with rich text formatting is fully implemented.
 
 The codebase is **ready** for Phase 3 with database-agnostic design:
 - Server-side persistence (MongoDB Atlas or PostgreSQL)
-- Auto-save with conflict resolution
+- Conflict resolution for concurrent edits
 - User accounts and authentication
 - Multiple projects per user
 - Session resumption
