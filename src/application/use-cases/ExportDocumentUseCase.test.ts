@@ -18,6 +18,18 @@ class MockDocumentExporter implements DocumentExporter {
     return this.mockBuffer;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async exportProject(_project: any, _filename: string): Promise<Buffer> {
+    // Stub for Phase 2 - not used in Phase 1 tests
+    throw new Error('Not implemented in Phase 1 tests');
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async exportChapter(_chapter: any, _filename: string): Promise<Buffer> {
+    // Stub for Phase 2 - not used in Phase 1 tests
+    throw new Error('Not implemented in Phase 1 tests');
+  }
+
   supports(filename: string): boolean {
     return filename.endsWith('.docx');
   }
@@ -53,6 +65,12 @@ describe('ExportDocumentUseCase', () => {
         capturedContent = content;
         return Buffer.from('result');
       },
+      async exportProject() {
+        throw new Error('Not implemented');
+      },
+      async exportChapter() {
+        throw new Error('Not implemented');
+      },
       supports() {
         return true;
       },
@@ -87,6 +105,12 @@ describe('ExportDocumentUseCase', () => {
     const failingExporter: DocumentExporter = {
       async export() {
         throw new Error('Export failed');
+      },
+      async exportProject() {
+        throw new Error('Not implemented');
+      },
+      async exportChapter() {
+        throw new Error('Not implemented');
       },
       supports() {
         return true;

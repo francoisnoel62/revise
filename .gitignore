@@ -83,3 +83,7 @@ Desktop.ini
 
 # Research files
 /thoughts/*
+
+# Fixtures
+/fixtures/*
+/tests/fixtures/*

@@ -1,17 +1,35 @@
-// ABOUTME: Core TipTap editor component for text editing with selection tracking
-// ABOUTME: Provides rich text editing interface with undo/redo and selection detection
+// ABOUTME: Enhanced TipTap editor with rich text formatting support
+// ABOUTME: Stores content as TipTap JSON for formatting preservation
 
 'use client';
 
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, Editor } from '@tiptap/react';
+import { Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
+import Underline from '@tiptap/extension-underline';
+import Highlight from '@tiptap/extension-highlight';
 import Placeholder from '@tiptap/extension-placeholder';
 import { useEffect } from 'react';
 
+// Custom extension for em dash insertion with Ctrl+K
+const EmDashExtension = Extension.create({
+  name: 'emDash',
+
+  addKeyboardShortcuts() {
+    return {
+      'Mod-k': () => {
+        this.editor.commands.insertContent('—');
+        return true;
+      },
+    };
+  },
+});
+
 interface TextEditorProps {
-  content: string;
+  content: string; // TipTap JSON stringified
   onContentChange: (content: string) => void;
   onSelectionChange: (from: number, to: number) => void;
+  onEditorReady?: (editor: Editor) => void;
   placeholder?: string;
 }
 
@@ -19,20 +37,25 @@ export function TextEditor({
   content,
   onContentChange,
   onSelectionChange,
+  onEditorReady,
   placeholder = 'Commencez à écrire ou importez un document...',
 }: TextEditorProps) {
   const editor = useEditor({
     immediatelyRender: false,
+    shouldRerenderOnTransaction: false, // Performance optimization
     extensions: [
-      StarterKit,
-      Placeholder.configure({
-        placeholder,
+      StarterKit.configure({
+        // StarterKit includes bold and italic by default, but not underline or highlight
       }),
+      Underline,
+      Highlight.configure({ multicolor: true }),
+      EmDashExtension,
+      Placeholder.configure({ placeholder }),
     ],
-    content,
+    content: content ? JSON.parse(content) : { type: 'doc', content: [] },
     onUpdate: ({ editor }) => {
-      const text = editor.getText();
-      onContentChange(text);
+      const json = editor.getJSON();
+      onContentChange(JSON.stringify(json));
     },
     onSelectionUpdate: ({ editor }) => {
       const { from, to } = editor.state.selection;
@@ -45,12 +68,27 @@ export function TextEditor({
     },
   });
 
-  // Update editor content when prop changes (e.g., after import)
+  // Notify parent when editor is ready
   useEffect(() => {
-    if (editor && content !== editor.getText()) {
-      editor.commands.setContent(content);
+    if (editor && onEditorReady) {
+      onEditorReady(editor);
+    }
+  }, [editor, onEditorReady]);
+
+  // Update editor when content changes externally (e.g., chapter switch)
+  useEffect(() => {
+    if (!editor) return;
+
+    const currentJson = JSON.stringify(editor.getJSON());
+    if (content !== currentJson) {
+      const newContent = content ? JSON.parse(content) : { type: 'doc', content: [] };
+      editor.commands.setContent(newContent, {
+        emitUpdate: false, // Don't trigger update event during switch
+      });
     }
   }, [content, editor]);
+
+  if (!editor) return null;
 
   return (
     <div className="w-full border border-slate-200 rounded-lg bg-white">

@@ -66,6 +66,15 @@ CRITICAL REQUIREMENTS:
 - PROHIBIT clichés, filler words, and generic expressions
 - Each proposal should feel like it came from a different stylistic approach
 
+LANGUAGE PRESERVATION (CRITICAL):
+- DETECT the language of the input text
+- Generate ALL 5 proposals in the EXACT SAME LANGUAGE as the input
+- If input is French, ALL proposals MUST be in French
+- If input is English, ALL proposals MUST be in English
+- If input is Spanish, ALL proposals MUST be in Spanish
+- NEVER translate or change the language
+- This is a HARD REQUIREMENT - violating this makes all proposals unusable
+
 STYLE DIVERSITY (aim for these distinct approaches):
 1. Formal/Professional - Elevated register, precise terminology
 2. Casual/Conversational - Natural, approachable tone
@@ -93,6 +102,7 @@ Return a JSON object with this exact structure:
       prompt += `\n\nFull document context (for understanding tone and voice):\n"${context}"`;
     }
 
+    prompt += '\n\nIMPORTANT: Generate all proposals in the SAME LANGUAGE as the selected text above.';
     prompt += '\n\nGenerate exactly 5 stylistically distinct proposals as JSON.';
 
     return prompt;
