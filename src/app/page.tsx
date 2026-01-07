@@ -11,6 +11,7 @@ import { ChaptersSheet } from '@/components/navigation/ChaptersSheet';
 import { ProposalsSheet } from '@/components/proposals/ProposalsSheet';
 import { DocumentControls } from '@/components/document/DocumentControls';
 import { Switch } from '@/components/ui/switch';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { importDocument, exportProject, rewriteText } from './actions';
 import { useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -18,6 +19,7 @@ import Bold from '@tiptap/extension-bold';
 import Italic from '@tiptap/extension-italic';
 import Underline from '@tiptap/extension-underline';
 import Highlight from '@tiptap/extension-highlight';
+import { CheckCircle2, XCircle } from 'lucide-react';
 import { Chapter } from '@/domain/entities/Chapter';
 import { Project } from '@/domain/entities/Project';
 
@@ -31,6 +33,12 @@ interface SerializedChapter {
   title: string;
   content: string;
   order: number;
+}
+
+interface Notification {
+  type: 'success' | 'error';
+  title: string;
+  message: string;
 }
 
 export default function HomePage() {
@@ -58,6 +66,7 @@ export default function HomePage() {
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [chaptersOpen, setChaptersOpen] = useState(false);
+  const [notification, setNotification] = useState<Notification | null>(null);
 
   // Editor for formatting toolbar
   const editor = useEditor({
@@ -75,6 +84,28 @@ export default function HomePage() {
   // Ref for highlight timeout
   const highlightTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Ref for notification timeout
+  const notificationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Show notification with auto-dismiss
+  const showNotification = (
+    type: 'success' | 'error',
+    title: string,
+    message: string
+  ) => {
+    // Clear existing timeout if any
+    if (notificationTimeoutRef.current) {
+      clearTimeout(notificationTimeoutRef.current);
+    }
+
+    setNotification({ type, title, message });
+
+    // Auto-dismiss after 5 seconds
+    notificationTimeoutRef.current = setTimeout(() => {
+      setNotification(null);
+    }, 5000);
+  };
+
   // Import handler
   const handleImport = async (formData: FormData) => {
     setImporting(true);
@@ -83,7 +114,11 @@ export default function HomePage() {
       const result = await importDocument(formData);
 
       if ('error' in result) {
-        alert(`Erreur d'import: ${result.error}`);
+        showNotification(
+          'error',
+          "Erreur d'importation",
+          result.error || "Une erreur est survenue lors de l'importation"
+        );
         return;
       }
 
@@ -99,8 +134,18 @@ export default function HomePage() {
       }
 
       setProject(importedProject);
+
+      showNotification(
+        'success',
+        'Document importé',
+        `${chapters.length} chapitre${chapters.length > 1 ? 's' : ''} importé${chapters.length > 1 ? 's' : ''} avec succès`
+      );
     } catch (error) {
-      alert("Une erreur est survenue lors de l'import.");
+      showNotification(
+        'error',
+        "Erreur d'importation",
+        "Une erreur inattendue est survenue lors de l'import."
+      );
       console.error(error);
     } finally {
       setImporting(false);
@@ -129,7 +174,11 @@ export default function HomePage() {
       const result = await exportProject(projectData);
 
       if ('error' in result) {
-        alert(`Erreur d'export: ${result.error}`);
+        showNotification(
+          'error',
+          "Erreur d'exportation",
+          result.error || "Une erreur est survenue lors de l'exportation"
+        );
         return;
       }
 
@@ -146,8 +195,18 @@ export default function HomePage() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+
+      showNotification(
+        'success',
+        'Document exporté',
+        'Votre document a été exporté avec succès'
+      );
     } catch (error) {
-      alert("Une erreur est survenue lors de l'export.");
+      showNotification(
+        'error',
+        "Erreur d'exportation",
+        "Une erreur inattendue est survenue lors de l'export."
+      );
       console.error(error);
     } finally {
       setExporting(false);
@@ -292,6 +351,9 @@ export default function HomePage() {
       if (highlightTimeoutRef.current) {
         clearTimeout(highlightTimeoutRef.current);
       }
+      if (notificationTimeoutRef.current) {
+        clearTimeout(notificationTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -310,6 +372,21 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Notification */}
+      {notification && (
+        <div className="fixed top-4 right-4 z-50 w-96 animate-in slide-in-from-top-2">
+          <Alert variant={notification.type === 'success' ? 'success' : 'destructive'}>
+            {notification.type === 'success' ? (
+              <CheckCircle2 className="h-4 w-4" />
+            ) : (
+              <XCircle className="h-4 w-4" />
+            )}
+            <AlertTitle>{notification.title}</AlertTitle>
+            <AlertDescription>{notification.message}</AlertDescription>
+          </Alert>
+        </div>
+      )}
+
       <div className="w-full mx-auto py-8 px-4">
         {/* Header with navigation and controls */}
         <header className="flex items-center gap-4 mb-8 max-w-[80%] mx-auto">
