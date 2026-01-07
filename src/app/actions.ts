@@ -1,101 +1,194 @@
-// ABOUTME: Server Actions for document import, export, and AI rewriting
-// ABOUTME: Handles file operations and OpenAI integration on server side
+// ABOUTME: Main Server Actions for document operations.
+// ABOUTME: Import creates persisted project, export loads from database.
 
 'use server';
 
 import { DocxParser } from '@/infrastructure/document/parsers/DocxParser';
 import { DocxExporter } from '@/infrastructure/document/exporters/DocxExporter';
-import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
-import { RewriteTextUseCase } from '@/application/use-cases/RewriteTextUseCase';
-import { TextDocument } from '@/domain/entities/TextDocument';
-import { TextSelection } from '@/domain/value-objects/TextSelection';
 import { Project } from '@/domain/entities/Project';
 import { Chapter } from '@/domain/entities/Chapter';
+import { TextDocument } from '@/domain/entities/TextDocument';
+import { TextSelection } from '@/domain/value-objects/TextSelection';
+import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
+import { RewriteTextUseCase } from '@/application/use-cases/RewriteTextUseCase';
+import {
+  type ActionResult,
+  getAuthenticatedUserId,
+  getRepository,
+  withErrorHandling,
+} from './actions/utils';
+import { type SerializedProject } from './actions/project-actions';
 
-interface SerializedChapter {
-  id: string;
-  title: string;
-  content: string;
-  order: number;
+// === Serialization ===
+
+function serializeProject(project: Project): SerializedProject {
+  return {
+    id: project.getId(),
+    title: project.getTitle(),
+    chapters: project.getChapters().map((ch) => ({
+      id: ch.getId(),
+      title: ch.getTitle(),
+      content: ch.getContent(),
+      order: ch.getOrder(),
+      metadata: {
+        wordCount: ch.getMetadata().wordCount,
+        characterCount: ch.getMetadata().characterCount,
+        lastEdited: ch.getMetadata().lastEdited.toISOString(),
+      },
+    })),
+    activeChapterId: project.getActiveChapterId(),
+    createdAt: project.getCreatedAt().toISOString(),
+    updatedAt: project.getUpdatedAt().toISOString(),
+  };
 }
 
-interface SerializedProject {
-  chapters: SerializedChapter[];
-  activeChapterId: string | null;
-}
+// === Document Import ===
 
 /**
- * Import DOCX and parse into chapters
+ * Import a document file and create a new project.
+ * Parses DOCX, splits by H1 headings, persists to database.
  */
-export async function importDocument(formData: FormData) {
-  try {
+export async function importDocument(
+  formData: FormData
+): Promise<ActionResult<SerializedProject>> {
+  const auth = await getAuthenticatedUserId();
+  if ('error' in auth) return auth.error;
+
+  return withErrorHandling(async () => {
     const file = formData.get('file') as File;
     if (!file) {
-      return { error: 'No file provided' };
+      throw new Error('No file provided');
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const parser = new DocxParser();
 
-    const chapters = await parser.parseToChapters(buffer, file.name);
-    const project = new Project(chapters);
+    if (!parser.supports(file.name)) {
+      throw new Error(`Unsupported file format: ${file.name}`);
+    }
 
-    // Serialize for client
+    const chapters = await parser.parseToChapters(buffer, file.name);
+
+    // Auto-name chapters without titles
+    chapters.forEach((chapter, index) => {
+      if (!chapter.getTitle() || chapter.getTitle().trim() === '') {
+        chapter.updateTitle(`Chapitre ${index + 1}`);
+      }
+    });
+
+    // Extract title from filename
+    const title = file.name.replace(/\.[^/.]+$/, '') || 'Document importé';
+
+    // Create and persist project
+    const project = Project.create(auth.userId, title, chapters);
+    const repository = await getRepository();
+    await repository.createProject(auth.userId, project);
+
+    return serializeProject(project);
+  });
+}
+
+// === Document Export ===
+
+/**
+ * Export a project to DOCX format.
+ * Loads project from database by ID.
+ */
+export async function exportProject(
+  projectId: string
+): Promise<ActionResult<{ buffer: number[]; filename: string }>> {
+  const auth = await getAuthenticatedUserId();
+  if ('error' in auth) return auth.error;
+
+  return withErrorHandling(async () => {
+    const repository = await getRepository();
+    const project = await repository.loadProject(auth.userId, projectId);
+
+    if (!project) {
+      throw new Error('Project not found');
+    }
+
+    const exporter = new DocxExporter();
+    const buffer = await exporter.exportProject(project, `${project.getTitle()}.docx`);
+
     return {
-      project: {
-        chapters: project.getChapters().map((ch) => ({
-          id: ch.getId(),
-          title: ch.getTitle(),
-          content: ch.getContent(),
-          order: ch.getOrder(),
-          metadata: ch.getMetadata(),
-        })),
-        activeChapterId: project.getActiveChapterId(),
-      },
+      buffer: Array.from(buffer),
+      filename: `${project.getTitle()}.docx`,
     };
-  } catch (error) {
-    console.error('Import error:', error);
-    return {
-      error: error instanceof Error ? error.message : 'Failed to import document',
-    };
-  }
+  });
+}
+
+// === Legacy Export (for backward compatibility during migration) ===
+
+interface LegacySerializedProject {
+  chapters: Array<{
+    id: string;
+    title: string;
+    content: string;
+    order: number;
+  }>;
+  activeChapterId: string | null;
 }
 
 /**
- * Export project as DOCX
+ * @deprecated Use exportProject(projectId) instead
+ * Legacy export that accepts serialized project data directly.
+ * Kept for backward compatibility during Phase 3.3 migration.
  */
-export async function exportProject(projectData: SerializedProject) {
+export async function exportProjectLegacy(
+  projectData: LegacySerializedProject
+): Promise<{ buffer: number[] } | { error: string }> {
   try {
-    // Reconstruct Project from serialized data
-    const project = reconstructProject(projectData);
+    const chapters = projectData.chapters.map(
+      (chData) => new Chapter(chData.id, chData.title, chData.content, chData.order)
+    );
+
+    // Create temporary project for export (not persisted)
+    const project = new Project(
+      'temp-export',
+      '',
+      'Export',
+      chapters,
+      projectData.activeChapterId,
+      new Date(),
+      new Date()
+    );
 
     const exporter = new DocxExporter();
     const buffer = await exporter.exportProject(project, 'export.docx');
 
-    return {
-      buffer: Array.from(buffer), // Convert Buffer to array for JSON serialization
-    };
+    return { buffer: Array.from(buffer) };
   } catch (error) {
-    console.error('Export error:', error);
     return {
-      error: error instanceof Error ? error.message : 'Failed to export document',
+      error: error instanceof Error ? error.message : 'Export failed',
     };
   }
 }
 
+// === AI Rewriting ===
+
+interface RewriteResult {
+  proposals: Array<{ content: string; styleLabel: string }>;
+  duration: number;
+}
+
 /**
- * Rewrite selected text using OpenAI
+ * Rewrite selected text using AI.
+ * Does not require project persistence - operates on content directly.
  */
 export async function rewriteText(
-  content: string, // TipTap JSON stringified
+  content: string,
   selectionStart: number,
   selectionEnd: number
-) {
-  try {
-    const startTime = Date.now();
+): Promise<RewriteResult | { error: string }> {
+  // Note: rewriteText doesn't require auth in current design
+  // It operates on content passed directly, not stored data
+  // Consider adding auth if usage tracking is needed
 
-    // Create temporary TextDocument for rewriting
-    const doc = new TextDocument(content);
+  const startTime = Date.now();
+
+  try {
+    const document = new TextDocument(content);
     const selection = new TextSelection(selectionStart, selectionEnd);
 
     const apiKey = process.env.OPENAI_API_KEY;
@@ -103,41 +196,21 @@ export async function rewriteText(
       throw new Error('OpenAI API key not configured');
     }
 
-    const llmProvider = new OpenAIProvider(apiKey);
-    const useCase = new RewriteTextUseCase(llmProvider);
+    const provider = new OpenAIProvider(apiKey);
+    const useCase = new RewriteTextUseCase(provider);
 
-    const proposals = await useCase.execute(doc, selection);
-
-    const duration = Date.now() - startTime;
+    const proposals = await useCase.execute(document, selection);
 
     return {
       proposals: proposals.map((p) => ({
         content: p.content,
-        styleLabel: p.styleLabel,
+        styleLabel: p.styleLabel || 'Variant',
       })),
-      duration,
+      duration: Date.now() - startTime,
     };
   } catch (error) {
-    console.error('Rewrite error:', error);
     return {
-      error: error instanceof Error ? error.message : 'Failed to rewrite text',
+      error: error instanceof Error ? error.message : 'Rewrite failed',
     };
   }
-}
-
-/**
- * Helper: Reconstruct Project from serialized data
- */
-function reconstructProject(projectData: SerializedProject): Project {
-  const chapters = projectData.chapters.map(
-    (chData: SerializedChapter) =>
-      new Chapter(chData.id, chData.title, chData.content, chData.order)
-  );
-
-  const project = new Project(chapters);
-  if (projectData.activeChapterId) {
-    project.setActiveChapter(projectData.activeChapterId);
-  }
-
-  return project;
 }

@@ -1,38 +1,52 @@
-// ABOUTME: Database-agnostic interface for project persistence
-// ABOUTME: Defines contract for saving/loading projects (Phase 3 implementation)
+// ABOUTME: Repository interface for Project persistence with multi-tenant support.
+// ABOUTME: All methods require userId for ownership verification.
 
 import { Project } from '../entities/Project';
 import { Chapter } from '../entities/Chapter';
 
 /**
- * Repository interface for project persistence
- * Phase 2: Mock implementation (in-memory)
- * Phase 3: Real implementation (MongoDB/PostgreSQL)
+ * Repository interface for Project aggregate persistence.
+ * All methods include userId parameter for multi-tenant isolation.
+ * Implementations must filter by ownerId to prevent data leakage.
  */
 export interface ProjectRepository {
   /**
-   * Save entire project
-   * @param project - Project to save
-   * @returns Saved project (with updated timestamps, etc.)
+   * Create a new project in the database.
+   * The project's ownerId must match the provided userId.
+   * @throws Error if project already exists or ownerId mismatch
    */
-  saveProject(project: Project): Promise<Project>;
+  createProject(userId: string, project: Project): Promise<Project>;
 
   /**
-   * Load project by ID
-   * @param projectId - Project identifier
-   * @returns Project or null if not found
+   * Load a project by ID, verifying ownership.
+   * @returns Project if found and owned by userId, null otherwise
    */
-  loadProject(projectId: string): Promise<Project | null>;
+  loadProject(userId: string, projectId: string): Promise<Project | null>;
 
   /**
-   * Save single chapter (optimized update)
-   * @param chapter - Chapter to save
+   * List all projects owned by a user.
+   * Results are sorted by updatedAt descending (most recent first).
    */
-  saveChapter(chapter: Chapter): Promise<void>;
+  listProjects(userId: string): Promise<Project[]>;
 
   /**
-   * Delete project
-   * @param projectId - Project identifier
+   * Update an existing project.
+   * Only updates if userId matches project's ownerId.
+   * @throws Error if project not found or not owned
    */
-  deleteProject(projectId: string): Promise<void>;
+  updateProject(userId: string, project: Project): Promise<Project>;
+
+  /**
+   * Delete a project.
+   * Only deletes if userId matches project's ownerId.
+   * @throws Error if project not found or not owned
+   */
+  deleteProject(userId: string, projectId: string): Promise<void>;
+
+  /**
+   * Update a single chapter within a project.
+   * Optimized for frequent autosave operations.
+   * @throws Error if project not found or not owned
+   */
+  updateChapter(userId: string, projectId: string, chapter: Chapter): Promise<void>;
 }

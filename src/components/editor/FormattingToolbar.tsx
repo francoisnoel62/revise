@@ -39,6 +39,9 @@ export function FormattingToolbar({
 }: FormattingToolbarProps) {
   if (!editor) return null;
 
+  // Guard: Don't render until editor view is ready
+  if (!editor.view || editor.isDestroyed) return null;
+
   // Helper to get current alignment icon
   const getAlignmentIcon = () => {
     const currentAlign = editor.getAttributes('paragraph').textAlign || 'justify';
@@ -57,6 +60,7 @@ export function FormattingToolbar({
 
   // Helper to cycle through alignments
   const cycleAlignment = () => {
+    if (!editor.view || editor.isDestroyed) return;
     const alignments = ['left', 'center', 'right', 'justify'];
     const current = editor.getAttributes('paragraph').textAlign || 'justify';
     const currentIndex = alignments.indexOf(current);
@@ -123,6 +127,7 @@ export function FormattingToolbar({
           }
           size="sm"
           onClick={() => {
+            if (!editor.view || editor.isDestroyed) return;
             const current = editor.getAttributes('textStyle').fontFamily;
             const newFont =
               current === 'Times New Roman' ? 'Georgia' : 'Times New Roman';
@@ -145,7 +150,10 @@ export function FormattingToolbar({
             {['11pt', '12pt', '13pt', '14pt', '16pt'].map((size) => (
               <DropdownMenuItem
                 key={size}
-                onClick={() => editor.chain().focus().setFontSize(size).run()}
+                onClick={() => {
+                  if (!editor.view || editor.isDestroyed) return;
+                  editor.chain().focus().setFontSize(size).run();
+                }}
                 className={
                   editor.getAttributes('textStyle').fontSize === size
                     ? 'bg-slate-100'

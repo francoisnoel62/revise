@@ -1,30 +1,87 @@
-// ABOUTME: In-memory mock implementation of ProjectRepository for Phase 2
-// ABOUTME: No actual persistence - data lost on refresh (Phase 3 will implement real storage)
+// ABOUTME: In-memory implementation of ProjectRepository for testing.
+// ABOUTME: Stores projects in a Map keyed by projectId.
 
 import { ProjectRepository } from '@/domain/interfaces/ProjectRepository';
 import { Project } from '@/domain/entities/Project';
 import { Chapter } from '@/domain/entities/Chapter';
 
+/**
+ * In-memory ProjectRepository for testing.
+ * Simulates multi-tenant behavior with ownership filtering.
+ */
 export class InMemoryProjectRepository implements ProjectRepository {
-  private project: Project | null = null;
+  private projects: Map<string, Project> = new Map();
 
-  async saveProject(project: Project): Promise<Project> {
-    // In Phase 2, just store in memory (lost on refresh)
-    this.project = project;
+  async createProject(userId: string, project: Project): Promise<Project> {
+    if (project.getOwnerId() !== userId) {
+      throw new Error('Project ownerId does not match userId');
+    }
+    if (this.projects.has(project.getId())) {
+      throw new Error(`Project with id ${project.getId()} already exists`);
+    }
+    this.projects.set(project.getId(), project);
     return project;
   }
 
-  async loadProject(_projectId: string): Promise<Project | null> {
-    // In Phase 2, return in-memory project (projectId unused)
-    return this.project;
+  async loadProject(userId: string, projectId: string): Promise<Project | null> {
+    const project = this.projects.get(projectId);
+    if (!project) return null;
+    if (project.getOwnerId() !== userId) return null; // Security: don't reveal existence
+    return project;
   }
 
-  async saveChapter(_chapter: Chapter): Promise<void> {
-    // In Phase 2, chapter already updated in Project entity
-    // No additional persistence needed
+  async listProjects(userId: string): Promise<Project[]> {
+    const userProjects: Project[] = [];
+    for (const project of this.projects.values()) {
+      if (project.getOwnerId() === userId) {
+        userProjects.push(project);
+      }
+    }
+    // Sort by updatedAt descending
+    return userProjects.sort(
+      (a, b) => b.getUpdatedAt().getTime() - a.getUpdatedAt().getTime()
+    );
   }
 
-  async deleteProject(_projectId: string): Promise<void> {
-    this.project = null;
+  async updateProject(userId: string, project: Project): Promise<Project> {
+    const existing = this.projects.get(project.getId());
+    if (!existing) {
+      throw new Error(`Project with id ${project.getId()} not found`);
+    }
+    if (existing.getOwnerId() !== userId) {
+      throw new Error('Not authorized to update this project');
+    }
+    this.projects.set(project.getId(), project);
+    return project;
+  }
+
+  async deleteProject(userId: string, projectId: string): Promise<void> {
+    const existing = this.projects.get(projectId);
+    if (!existing) {
+      throw new Error(`Project with id ${projectId} not found`);
+    }
+    if (existing.getOwnerId() !== userId) {
+      throw new Error('Not authorized to delete this project');
+    }
+    this.projects.delete(projectId);
+  }
+
+  async updateChapter(userId: string, projectId: string, _chapter: Chapter): Promise<void> {
+    const project = await this.loadProject(userId, projectId);
+    if (!project) {
+      throw new Error(`Project with id ${projectId} not found or not owned`);
+    }
+    // Chapter is already updated in the Project entity (aggregate pattern)
+    // Just trigger timestamp update
+    project.touch();
+  }
+
+  // Test helpers
+  clear(): void {
+    this.projects.clear();
+  }
+
+  getProjectCount(): number {
+    return this.projects.size;
   }
 }

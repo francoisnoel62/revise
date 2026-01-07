@@ -50,7 +50,7 @@ describe('ImportProjectUseCase', () => {
     ];
     mockParser.setMockChapters(mockChapters);
 
-    const result = await useCase.execute(buffer, filename);
+    const result = await useCase.execute(null, buffer, filename);
 
     expect(result.getChapterCount()).toBe(2);
     expect(result.getChapter('id-1')?.getTitle()).toBe('Chapter 1');
@@ -67,7 +67,7 @@ describe('ImportProjectUseCase', () => {
     ];
     mockParser.setMockChapters(mockChapters);
 
-    const result = await useCase.execute(buffer, filename);
+    const result = await useCase.execute(null, buffer, filename);
 
     expect(result.getChapter('id-1')?.getTitle()).toBe('Chapitre 1');
     expect(result.getChapter('id-2')?.getTitle()).toBe('Chapitre 2');
@@ -79,7 +79,7 @@ describe('ImportProjectUseCase', () => {
     const filename = 'test.docx';
     mockParser.setMockChapters([]);
 
-    const result = await useCase.execute(buffer, filename);
+    const result = await useCase.execute(null, buffer, filename);
 
     expect(result.getChapterCount()).toBe(0);
   });
@@ -89,7 +89,7 @@ describe('ImportProjectUseCase', () => {
     const filename = 'test.pdf';
 
     await expect(async () => {
-      await useCase.execute(buffer, filename);
+      await useCase.execute(null, buffer, filename);
     }).rejects.toThrow('Unsupported document format: test.pdf');
   });
 
@@ -118,7 +118,7 @@ describe('ImportProjectUseCase', () => {
     const mockChapters = [createMockChapter('id-1', 'Only Chapter', 0)];
     mockParser.setMockChapters(mockChapters);
 
-    const result = await useCase.execute(buffer, filename);
+    const result = await useCase.execute(null, buffer, filename);
 
     expect(result.getChapterCount()).toBe(1);
     expect(result.getActiveChapter()?.getTitle()).toBe('Only Chapter');

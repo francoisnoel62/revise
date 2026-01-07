@@ -1,55 +1,201 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+// ABOUTME: Tests for the project store with mocked server actions.
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { act } from '@testing-library/react';
 import { useProjectStore } from './projectStore';
-import { Project } from '@/domain/entities/Project';
-import { Chapter } from '@/domain/entities/Chapter';
+
+// Mock server actions
+vi.mock('@/app/actions/project-actions', () => ({
+  createProjectAction: vi.fn(),
+  loadProjectAction: vi.fn(),
+}));
+
+vi.mock('@/app/actions/chapter-actions', () => ({
+  updateChapterContentAction: vi.fn(),
+  addChapterAction: vi.fn(),
+  removeChapterAction: vi.fn(),
+  reorderChaptersAction: vi.fn(),
+  updateChapterTitleAction: vi.fn(),
+  setActiveChapterAction: vi.fn(),
+}));
+
+import {
+  createProjectAction,
+  loadProjectAction,
+} from '@/app/actions/project-actions';
+
+import {
+  updateChapterContentAction,
+  addChapterAction,
+} from '@/app/actions/chapter-actions';
+
+const mockProject = {
+  id: 'proj-1',
+  title: 'Test Project',
+  chapters: [
+    {
+      id: 'ch-1',
+      title: 'Chapter 1',
+      content: '{"type":"doc","content":[]}',
+      order: 0,
+      metadata: { wordCount: 0, characterCount: 0, lastEdited: new Date().toISOString() },
+    },
+  ],
+  activeChapterId: 'ch-1',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};
 
 describe('projectStore', () => {
   beforeEach(() => {
-    // Reset store before each test
+    vi.clearAllMocks();
+    // Reset store state
     useProjectStore.setState({
-      project: new Project(),
-      activeContent: JSON.stringify({ type: 'doc', content: [] }),
+      projectId: null,
+      project: null,
+      activeContent: '{"type":"doc","content":[{"type":"paragraph"}]}',
+      isLoading: false,
+      isSaving: false,
+      isImporting: false,
+      isExporting: false,
+      error: null,
       hasUnsavedChanges: false,
+      lastSavedAt: null,
     });
   });
 
-  const createMockChapter = (id: string, title: string, order: number): Chapter => {
-    const content = JSON.stringify({ type: 'doc', content: [] });
-    return new Chapter(id, title, content, order);
-  };
+  describe('loadProject', () => {
+    it('loads project and sets state', async () => {
+      vi.mocked(loadProjectAction).mockResolvedValue({
+        success: true,
+        data: mockProject,
+      });
 
-  describe('setProject', () => {
-    it('should set project and active content', () => {
-      const chapter = createMockChapter('id-1', 'Chapter 1', 0);
-      const project = new Project([chapter]);
-
-      useProjectStore.getState().setProject(project);
+      await act(async () => {
+        await useProjectStore.getState().loadProject('proj-1');
+      });
 
       const state = useProjectStore.getState();
-      expect(state.project).toBe(project);
-      expect(state.activeContent).toBe(chapter.getContent());
-      expect(state.hasUnsavedChanges).toBe(false);
+      expect(state.projectId).toBe('proj-1');
+      expect(state.project).toEqual(mockProject);
+      expect(state.isLoading).toBe(false);
     });
 
-    it('should handle empty project', () => {
-      const project = new Project();
+    it('handles load error', async () => {
+      vi.mocked(loadProjectAction).mockResolvedValue({
+        success: false,
+        error: 'Not found',
+      });
 
-      useProjectStore.getState().setProject(project);
+      await act(async () => {
+        await useProjectStore.getState().loadProject('non-existent');
+      });
 
       const state = useProjectStore.getState();
-      expect(state.project).toBe(project);
-      expect(state.activeContent).toBe(JSON.stringify({ type: 'doc', content: [] }));
+      expect(state.error).toBe('Not found');
+      expect(state.project).toBeNull();
+    });
+  });
+
+  describe('createProject', () => {
+    it('creates project and returns ID', async () => {
+      vi.mocked(createProjectAction).mockResolvedValue({
+        success: true,
+        data: mockProject,
+      });
+
+      let projectId: string | null = null;
+      await act(async () => {
+        projectId = await useProjectStore.getState().createProject('My Project');
+      });
+
+      expect(projectId).toBe('proj-1');
+      expect(useProjectStore.getState().project).toEqual(mockProject);
+    });
+  });
+
+  describe('saveCurrentChapter', () => {
+    it('saves chapter content', async () => {
+      vi.mocked(updateChapterContentAction).mockResolvedValue({
+        success: true,
+        data: { saved: true, updatedAt: new Date().toISOString() },
+      });
+
+      // Setup state with unsaved changes
+      useProjectStore.setState({
+        projectId: 'proj-1',
+        project: mockProject,
+        activeContent: '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"New content"}]}]}',
+        hasUnsavedChanges: true,
+      });
+
+      await act(async () => {
+        await useProjectStore.getState().saveCurrentChapter();
+      });
+
+      const state = useProjectStore.getState();
+      expect(state.hasUnsavedChanges).toBe(false);
+      expect(state.lastSavedAt).not.toBeNull();
+    });
+
+    it('does not save if no unsaved changes', async () => {
+      useProjectStore.setState({
+        projectId: 'proj-1',
+        project: mockProject,
+        hasUnsavedChanges: false,
+      });
+
+      await act(async () => {
+        await useProjectStore.getState().saveCurrentChapter();
+      });
+
+      expect(updateChapterContentAction).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('addChapter', () => {
+    it('adds chapter and switches to it', async () => {
+      const projectWithNewChapter = {
+        ...mockProject,
+        chapters: [
+          ...mockProject.chapters,
+          {
+            id: 'ch-2',
+            title: 'Chapitre 2',
+            content: '{"type":"doc","content":[]}',
+            order: 1,
+            metadata: { wordCount: 0, characterCount: 0, lastEdited: new Date().toISOString() },
+          },
+        ],
+      };
+
+      vi.mocked(addChapterAction).mockResolvedValue({
+        success: true,
+        data: projectWithNewChapter,
+      });
+
+      useProjectStore.setState({
+        projectId: 'proj-1',
+        project: mockProject,
+      });
+
+      await act(async () => {
+        await useProjectStore.getState().addChapter();
+      });
+
+      const state = useProjectStore.getState();
+      expect(state.project?.chapters).toHaveLength(2);
+      expect(state.project?.activeChapterId).toBe('ch-2');
     });
   });
 
   describe('updateActiveContent', () => {
-    it('should update content and mark as unsaved', () => {
-      const newContent = JSON.stringify({
-        type: 'doc',
-        content: [{ type: 'paragraph', content: [] }],
-      });
+    it('marks content as unsaved', () => {
+      const newContent = '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Updated"}]}]}';
 
-      useProjectStore.getState().updateActiveContent(newContent);
+      act(() => {
+        useProjectStore.getState().updateActiveContent(newContent);
+      });
 
       const state = useProjectStore.getState();
       expect(state.activeContent).toBe(newContent);
@@ -57,145 +203,22 @@ describe('projectStore', () => {
     });
   });
 
-  describe('addChapter', () => {
-    it('should add new chapter to project', () => {
-      const initialCount = useProjectStore.getState().project.getChapterCount();
-
-      useProjectStore.getState().addChapter();
-
-      const newCount = useProjectStore.getState().project.getChapterCount();
-      expect(newCount).toBe(initialCount + 1);
-    });
-  });
-
-  describe('removeChapter', () => {
-    it('should remove chapter from project', () => {
-      const chapters = [
-        createMockChapter('id-1', 'Chapter 1', 0),
-        createMockChapter('id-2', 'Chapter 2', 1),
-      ];
-      const project = new Project(chapters);
-      useProjectStore.getState().setProject(project);
-
-      useProjectStore.getState().removeChapter('id-1');
-
-      const state = useProjectStore.getState();
-      expect(state.project.getChapterCount()).toBe(1);
-      expect(state.project.getChapter('id-1')).toBeNull();
-    });
-
-    it('should throw error when removing last chapter', () => {
-      const chapter = createMockChapter('id-1', 'Chapter 1', 0);
-      const project = new Project([chapter]);
-      useProjectStore.getState().setProject(project);
-
-      expect(() => {
-        useProjectStore.getState().removeChapter('id-1');
-      }).toThrow('Cannot remove the last chapter');
-    });
-  });
-
-  describe('saveCurrentChapter', () => {
-    it('should save active content to chapter', () => {
-      const chapter = createMockChapter('id-1', 'Chapter 1', 0);
-      const project = new Project([chapter]);
-      useProjectStore.getState().setProject(project);
-
-      const newContent = JSON.stringify({
-        type: 'doc',
-        content: [
-          {
-            type: 'paragraph',
-            content: [{ type: 'text', text: 'New content' }],
-          },
-        ],
+  describe('clearProject', () => {
+    it('resets project state', () => {
+      useProjectStore.setState({
+        projectId: 'proj-1',
+        project: mockProject,
+        hasUnsavedChanges: true,
       });
 
-      useProjectStore.getState().updateActiveContent(newContent);
-      useProjectStore.getState().saveCurrentChapter();
-
-      const savedChapter = project.getChapter('id-1');
-      expect(savedChapter!.getContent()).toBe(newContent);
-      expect(useProjectStore.getState().hasUnsavedChanges).toBe(false);
-    });
-
-    it('should handle no active chapter gracefully', () => {
-      const project = new Project();
-      useProjectStore.getState().setProject(project);
-
-      // Should not throw
-      expect(() => {
-        useProjectStore.getState().saveCurrentChapter();
-      }).not.toThrow();
-    });
-  });
-
-  describe('setActiveChapter', () => {
-    it('should switch active chapter', () => {
-      const chapters = [
-        createMockChapter('id-1', 'Chapter 1', 0),
-        createMockChapter('id-2', 'Chapter 2', 1),
-      ];
-      const project = new Project(chapters);
-      useProjectStore.getState().setProject(project);
-
-      useProjectStore.getState().setActiveChapter('id-2');
-
-      const state = useProjectStore.getState();
-      expect(state.project.getActiveChapterId()).toBe('id-2');
-    });
-
-    it('should save content before switching if unsaved', () => {
-      const chapters = [
-        createMockChapter('id-1', 'Chapter 1', 0),
-        createMockChapter('id-2', 'Chapter 2', 1),
-      ];
-      const project = new Project(chapters);
-      useProjectStore.getState().setProject(project);
-
-      const newContent = JSON.stringify({
-        type: 'doc',
-        content: [{ type: 'paragraph', content: [] }],
+      act(() => {
+        useProjectStore.getState().clearProject();
       });
 
-      useProjectStore.getState().updateActiveContent(newContent);
-      useProjectStore.getState().setActiveChapter('id-2');
-
-      const chapter1 = project.getChapter('id-1');
-      expect(chapter1!.getContent()).toBe(newContent);
+      const state = useProjectStore.getState();
+      expect(state.projectId).toBeNull();
+      expect(state.project).toBeNull();
+      expect(state.hasUnsavedChanges).toBe(false);
     });
   });
-
-  describe('reorderChapters', () => {
-    it('should reorder chapters correctly', () => {
-      const chapters = [
-        createMockChapter('id-1', 'Chapter 1', 0),
-        createMockChapter('id-2', 'Chapter 2', 1),
-        createMockChapter('id-3', 'Chapter 3', 2),
-      ];
-      const project = new Project(chapters);
-      useProjectStore.getState().setProject(project);
-
-      useProjectStore.getState().reorderChapters(0, 2);
-
-      const reorderedChapters = project.getChapters();
-      expect(reorderedChapters[0].getId()).toBe('id-2');
-      expect(reorderedChapters[2].getId()).toBe('id-1');
-    });
-  });
-
-  describe('updateChapterTitle', () => {
-    it('should update chapter title', () => {
-      const chapter = createMockChapter('id-1', 'Old Title', 0);
-      const project = new Project([chapter]);
-      useProjectStore.getState().setProject(project);
-
-      useProjectStore.getState().updateChapterTitle('id-1', 'New Title');
-
-      expect(project.getChapter('id-1')!.getTitle()).toBe('New Title');
-    });
-  });
-
-  // Note: Import/Export are handled via Server Actions, not in the store
-  // The store receives the Project after import and provides data for export
 });

@@ -15,6 +15,8 @@ import { FontSize } from '@tiptap/extension-text-style/font-size';
 import TextAlign from '@tiptap/extension-text-align';
 import { IndentParagraph } from './extensions/IndentParagraph';
 import { useEffect } from 'react';
+import { useAutosave } from '@/hooks/useAutosave';
+import { useProjectStore } from '@/store/projectStore';
 
 // Custom extension for em dash insertion with Ctrl+K
 const EmDashExtension = Extension.create({
@@ -31,20 +33,21 @@ const EmDashExtension = Extension.create({
 });
 
 interface TextEditorProps {
-  content: string; // TipTap JSON stringified
-  onContentChange: (content: string) => void;
   onSelectionChange: (from: number, to: number) => void;
   onEditorReady?: (editor: Editor) => void;
   placeholder?: string;
 }
 
 export function TextEditor({
-  content,
-  onContentChange,
   onSelectionChange,
   onEditorReady,
   placeholder = 'Commencez à écrire ou importez un document...',
 }: TextEditorProps) {
+  const { activeContent, updateActiveContent, project } = useProjectStore();
+
+  // Enable autosave
+  useAutosave();
+
   const editor = useEditor({
     immediatelyRender: false,
     shouldRerenderOnTransaction: false, // Performance optimization
@@ -71,10 +74,10 @@ export function TextEditor({
       EmDashExtension,
       Placeholder.configure({ placeholder }),
     ],
-    content: content ? JSON.parse(content) : { type: 'doc', content: [] },
+    content: activeContent ? JSON.parse(activeContent) : { type: 'doc', content: [] },
     onUpdate: ({ editor }) => {
       const json = editor.getJSON();
-      onContentChange(JSON.stringify(json));
+      updateActiveContent(JSON.stringify(json));
     },
     onSelectionUpdate: ({ editor }) => {
       const { from, to } = editor.state.selection;
@@ -94,18 +97,19 @@ export function TextEditor({
     }
   }, [editor, onEditorReady]);
 
-  // Update editor when content changes externally (e.g., chapter switch)
+  // Update editor when active chapter changes
   useEffect(() => {
     if (!editor) return;
 
     const currentJson = JSON.stringify(editor.getJSON());
-    if (content !== currentJson) {
-      const newContent = content ? JSON.parse(content) : { type: 'doc', content: [] };
+    if (activeContent !== currentJson) {
+      const newContent = activeContent ? JSON.parse(activeContent) : { type: 'doc', content: [] };
       editor.commands.setContent(newContent, {
         emitUpdate: false, // Don't trigger update event during switch
       });
     }
-  }, [content, editor]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor, project?.activeChapterId]); // Trigger on activeChapterId change
 
   if (!editor) return null;
 

@@ -19,7 +19,7 @@ describe('ReorderChaptersUseCase', () => {
       createMockChapter('id-2', 'Chapter 2', 1),
       createMockChapter('id-3', 'Chapter 3', 2),
     ];
-    const project = new Project(chapters);
+    const project = Project.create('test-user', 'Test Project', chapters);
 
     useCase.execute(project, 0, 2); // Move first to last
 
@@ -35,7 +35,7 @@ describe('ReorderChaptersUseCase', () => {
       createMockChapter('id-1', 'Chapter 1', 0),
       createMockChapter('id-2', 'Chapter 2', 1),
     ];
-    const project = new Project(chapters);
+    const project = Project.create('test-user', 'Test Project', chapters);
 
     useCase.execute(project, 0, 0);
 
@@ -47,7 +47,7 @@ describe('ReorderChaptersUseCase', () => {
   it('should throw error for invalid indices', () => {
     const useCase = new ReorderChaptersUseCase();
     const chapter = createMockChapter('id-1', 'Chapter 1', 0);
-    const project = new Project([chapter]);
+    const project = Project.create('test-user', 'Test Project', [chapter]);
 
     expect(() => {
       useCase.execute(project, 0, 5);
