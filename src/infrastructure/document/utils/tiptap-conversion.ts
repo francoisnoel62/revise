@@ -3,7 +3,6 @@
 
 import { generateJSON, generateHTML } from '@tiptap/html/server';
 import Document from '@tiptap/extension-document';
-import Paragraph from '@tiptap/extension-paragraph';
 import Text from '@tiptap/extension-text';
 import Bold from '@tiptap/extension-bold';
 import Italic from '@tiptap/extension-italic';
@@ -14,6 +13,11 @@ import BulletList from '@tiptap/extension-bullet-list';
 import OrderedList from '@tiptap/extension-ordered-list';
 import ListItem from '@tiptap/extension-list-item';
 import HardBreak from '@tiptap/extension-hard-break';
+import { TextStyle } from '@tiptap/extension-text-style';
+import { FontFamily } from '@tiptap/extension-text-style/font-family';
+import { FontSize } from '@tiptap/extension-text-style/font-size';
+import TextAlign from '@tiptap/extension-text-align';
+import { IndentParagraph } from '@/components/editor/extensions/IndentParagraph';
 
 /**
  * Standard extensions used across the application
@@ -22,7 +26,7 @@ import HardBreak from '@tiptap/extension-hard-break';
  */
 export const TIPTAP_EXTENSIONS = [
   Document,
-  Paragraph,
+  IndentParagraph, // Custom paragraph with indent support (replaces standard Paragraph)
   Text,
   Bold,
   Italic,
@@ -33,6 +37,18 @@ export const TIPTAP_EXTENSIONS = [
   OrderedList,
   ListItem,
   HardBreak,
+  TextStyle, // Required for FontFamily and FontSize
+  FontFamily.configure({
+    types: ['textStyle'],
+  }),
+  FontSize.configure({
+    types: ['textStyle'],
+  }),
+  TextAlign.configure({
+    types: ['heading', 'paragraph'],
+    alignments: ['left', 'center', 'right', 'justify'],
+    defaultAlignment: 'justify',
+  }),
 ];
 
 /**

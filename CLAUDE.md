@@ -10,16 +10,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Select text → Trigger rewrite → Receive 5 stylistically distinct proposals → Insert chosen version instantly
 - Success metric: Users prefer this flow over copy-pasting to ChatGPT
 
-### MVP Status: Phase 2 Complete ✅
+### MVP Status: Phase 2.5 Complete ✅
 
-**Phase 2 Multi-Chapter Architecture** is **fully implemented and tested** with 236 passing tests including integration tests with OpenAI API.
+**Phase 2.5 A4 Page Styling & Advanced Typography** is **fully implemented and tested** with 248 passing tests including integration tests with OpenAI API.
 
 **Implemented features:**
 - **Multi-chapter document management** with drag & drop navigation
+- **A4 page styling** (794px fixed width, realistic page shadows, professional margins)
+- **Advanced typography controls**:
+  - Font family toggle (Georgia ↔ Times New Roman)
+  - Font size dropdown (11pt, 12pt, 13pt default, 14pt, 16pt)
+  - Text alignment cycle (left/center/right/justify)
+  - First-line indent toggle (1.27cm per paragraph)
+  - 1.5 line height, automatic hyphenation
 - **Rich text formatting** (bold, italic, underline, highlight)
-- **Formatted import/export** (.docx with formatting preservation)
+- **Formatted import/export** (.docx with full typography preservation)
 - **Chapter splitting** by H1 headings on import
-- **TipTap JSON-based editor** with formatting toolbar
+- **TipTap JSON-based editor** with enhanced formatting toolbar
 - **Fixed "Réécrire" button** in formatting toolbar (enabled on text selection)
 - **AI-powered rewrite** with 5 distinct proposals (language-preserving, formatted text support)
 - **Proposals Sheet** (dismissible right panel)
@@ -84,8 +91,9 @@ This project MUST follow Clean Architecture principles adapted to Next.js:
 4. **Interface Layer** (`src/app`, `src/components`)
    - React components and UI
    - **Editor Components**:
-     - `TextEditor` - TipTap-based rich text editor with JSON storage and em dash extension
-     - `FormattingToolbar` - Bold, italic, underline, highlight controls + fixed rewrite button
+     - `TextEditor` - TipTap-based rich text editor with A4 styling, JSON storage, and custom extensions
+     - `FormattingToolbar` - Bold, italic, underline, highlight + typography controls (font family toggle, font size dropdown, alignment cycle, indent toggle) + rewrite button
+     - Custom TipTap Extensions: `IndentParagraph` (first-line indent support), `FontFamily`, `FontSize`, `TextAlign`
    - **Navigation Components**:
      - `ChaptersSheet` - Left panel with Switch toggle, scrollable list, drag & drop, inline title editing
      - `ProposalsSheet` - Right panel for AI proposals
@@ -109,23 +117,26 @@ This project MUST follow Clean Architecture principles adapted to Next.js:
 
 This architecture enables future evolution (persistence, projects, memory) without refactoring.
 
-## Technical Stack (Phase 2 Implementation)
+## Technical Stack (Phase 2.5 Implementation)
 
 - **Framework**: Next.js 16.1.1 (App Router)
 - **Rendering**: React 19 with Server Components
-- **Editor**: TipTap 3.14.0 with rich text extensions
+- **Editor**: TipTap 3.14.0 with advanced typography extensions
   - StarterKit, Bold, Italic, Underline, Highlight, Heading
-  - Document, Paragraph, Text, BulletList, OrderedList
+  - TextStyle, FontFamily, FontSize, TextAlign (official extensions)
+  - IndentParagraph (custom extension for first-line indent)
+  - Document, Text, BulletList, OrderedList, HardBreak
+  - EmDash extension (Ctrl+K)
 - **UI Components**: shadcn/ui + Radix UI
-  - Sheet, Button, ScrollArea for navigation panels
+  - Sheet, Button, ScrollArea, DropdownMenu for navigation and controls
 - **State Management**: Zustand for global project/chapter state
 - **Drag & Drop**: @dnd-kit for chapter reordering
-- **Styling**: Tailwind CSS v4 + tailwind-merge
+- **Styling**: Tailwind CSS v4 + tailwind-merge + A4 page styling
 - **Document Parsing**: mammoth with HTML conversion
-- **Document Export**: docx library with formatting support
+- **Document Export**: docx library with full typography support (font family, size, alignment, indent)
 - **AI Provider**: OpenAI API (GPT-4o-mini)
 - **Testing**: Vitest + React Testing Library + Playwright
-  - 237 tests passing across all layers
+  - 248 tests passing across all layers
   - Integration tests with real OpenAI API
   - Performance tests validating targets
 - **Data Storage**: InMemoryProjectRepository (ephemeral, Phase 2)
@@ -133,17 +144,19 @@ This architecture enables future evolution (persistence, projects, memory) witho
 
 ## Key Features & Constraints
 
-### Document Import/Export (✅ Phase 2 Enhanced)
+### Document Import/Export (✅ Phase 2.5 Enhanced)
 - **Import format**: .docx only
 - **Export format**: .docx only
 - **Import capabilities**:
-  - Preserves formatting (bold, italic, underline, highlight)
+  - Preserves rich text formatting (bold, italic, underline, highlight)
   - Automatic chapter splitting by H1 headings
+  - Best-effort typography import (mammoth limitations accepted)
   - Converts to TipTap JSON for rich text editing
   - Falls back to single chapter if no H1 found
 - **Export capabilities**:
   - Multi-chapter export with page breaks
-  - Preserves rich text formatting
+  - Preserves rich text formatting (bold, italic, underline, highlight)
+  - Full typography export (font family, font size, text alignment, first-line indent)
   - Chapter titles as H1 headings
   - Single-chapter or full project export
 - File handling via browser file input (no server upload)
@@ -196,7 +209,7 @@ No chat, no discussion, no configuration, no onboarding.
 - No AI jargon
 - Maximum 2 clicks after selection
 - Silent, fast, discreet interface
-- 80% screen width for comfortable writing
+- A4 page width (794px) for realistic writing experience
 - Visual unsaved changes indicator (non-intrusive)
 
 ### Explicitly Excluded (Phase 2 - Future in Phase 3+)
@@ -235,7 +248,7 @@ No chat, no discussion, no configuration, no onboarding.
 - ✅ Content Update: < 100ms → **0.10ms** (1000x faster than target)
 - ✅ Keystroke Latency: < 100ms → **< 100ms** (immediate)
 
-**Test Results**: 237/237 tests passing (24% above Phase 2 target of 190+)
+**Test Results**: 248/248 tests passing (30% above Phase 2 target of 190+)
 
 ## Development Guidelines
 
@@ -251,22 +264,23 @@ No chat, no discussion, no configuration, no onboarding.
 - Keep domain logic framework-agnostic
 - Abstract all external dependencies behind interfaces
 
-### Testing Status (✅ Phase 2 Complete)
+### Testing Status (✅ Phase 2.5 Complete)
 
-**Test Coverage**: 237 tests passing (100% success rate)
+**Test Coverage**: 248 tests passing (100% success rate)
 - **Domain Layer**: 45 tests (Chapter, Project, TextDocument, Value Objects)
   - Coverage: 97.62% (excellent)
 - **Application Layer**: 39 tests (all use cases including multi-chapter)
   - Coverage: 100% (perfect)
 - **Infrastructure Layer**: 40 tests (parsers, exporters, AI, utilities)
   - DocxParser: 4 tests (enhanced with chapter splitting)
-  - DocxExporter: 7 tests (enhanced with formatting)
-  - TipTap conversion: 14 tests (HTML ↔ JSON)
+  - DocxExporter: 7 tests (enhanced with formatting + typography export)
+  - TipTap conversion: 14 tests (HTML ↔ JSON with new extensions)
   - OpenAI integration: 4 tests (real API)
   - Repository: 5 tests (persistence abstraction)
-- **Interface Layer**: 53 tests (all React components)
-  - TextEditor: 8 tests (rich text support)
-  - FormattingToolbar: 9 tests (formatting controls)
+- **Interface Layer**: 64 tests (all React components + custom extensions)
+  - TextEditor: 8 tests (A4 styling + rich text support)
+  - FormattingToolbar: 9 tests (formatting + typography controls)
+  - IndentParagraph extension: 11 tests (custom first-line indent)
   - ChaptersSheet: 11 tests (navigation & drag-drop)
   - ProposalsSheet: 10 tests (dismissible panel)
   - DocumentControls: 3 tests (loading states)
@@ -288,9 +302,10 @@ No chat, no discussion, no configuration, no onboarding.
 - E2E infrastructure ready (Playwright setup complete)
 
 **Verified Scenarios**:
-- Multi-chapter import/export with formatting
+- Multi-chapter import/export with full typography preservation
 - Chapter navigation and management
-- Rich text editing with formatting toolbar
+- Rich text editing with A4 page styling
+- Advanced typography controls (font family, size, alignment, indent)
 - Real long-form text rewriting with formatted text
 - Proposal diversity and quality (5 distinct variants)
 - Text replacement with formatting preservation
@@ -302,8 +317,8 @@ No chat, no discussion, no configuration, no onboarding.
 
 ## Future Evolution Path
 
-### Phase 2 Complete ✅
-Multi-chapter architecture with rich text formatting is fully implemented.
+### Phase 2.5 Complete ✅
+Multi-chapter architecture with A4 page styling and advanced typography controls is fully implemented.
 
 ### Phase 3: Persistence & Cloud Storage (Next)
 The codebase is **ready** for Phase 3 with database-agnostic design:

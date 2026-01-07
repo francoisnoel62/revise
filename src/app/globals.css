@@ -121,3 +121,43 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* A4 Page Styling */
+.editor-a4-page {
+  width: 794px; /* 210mm */
+  min-height: 1123px; /* 297mm A4 height */
+  background: white;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  margin: 0 auto;
+  padding: 151px 113px; /* 4cm top/bottom, 3cm left/right (approximatif) */
+
+  /* Typography defaults */
+  font-family: Georgia, serif;
+  font-size: 13pt;
+  line-height: 1.5;
+  text-align: justify;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  -ms-hyphens: auto;
+}
+
+/* First-line indent for paragraphs */
+.tiptap p[data-indent="true"] {
+  text-indent: 1.27cm; /* 0.5 inch = 48px ≈ 1.27cm */
+}
+
+/* Font families */
+.tiptap [data-font-family="Georgia"] {
+  font-family: Georgia, serif;
+}
+
+.tiptap [data-font-family="Times New Roman"] {
+  font-family: "Times New Roman", Times, serif;
+}
+
+/* Font sizes */
+.tiptap [data-font-size="11pt"] { font-size: 11pt; }
+.tiptap [data-font-size="12pt"] { font-size: 12pt; }
+.tiptap [data-font-size="13pt"] { font-size: 13pt; }
+.tiptap [data-font-size="14pt"] { font-size: 14pt; }
+.tiptap [data-font-size="16pt"] { font-size: 16pt; }

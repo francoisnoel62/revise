@@ -5,7 +5,24 @@
 
 import { Editor } from '@tiptap/react';
 import { Button } from '@/components/ui/button';
-import { Bold, Italic, Underline, Highlighter } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Bold,
+  Italic,
+  Underline,
+  Highlighter,
+  Type,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
+  IndentIncrease,
+} from 'lucide-react';
 
 interface FormattingToolbarProps {
   editor: Editor | null;
@@ -21,6 +38,31 @@ export function FormattingToolbar({
   rewriteLoading = false,
 }: FormattingToolbarProps) {
   if (!editor) return null;
+
+  // Helper to get current alignment icon
+  const getAlignmentIcon = () => {
+    const currentAlign = editor.getAttributes('paragraph').textAlign || 'justify';
+    switch (currentAlign) {
+      case 'left':
+        return <AlignLeft className="h-4 w-4" />;
+      case 'center':
+        return <AlignCenter className="h-4 w-4" />;
+      case 'right':
+        return <AlignRight className="h-4 w-4" />;
+      case 'justify':
+      default:
+        return <AlignJustify className="h-4 w-4" />;
+    }
+  };
+
+  // Helper to cycle through alignments
+  const cycleAlignment = () => {
+    const alignments = ['left', 'center', 'right', 'justify'];
+    const current = editor.getAttributes('paragraph').textAlign || 'justify';
+    const currentIndex = alignments.indexOf(current);
+    const nextAlign = alignments[(currentIndex + 1) % 4];
+    editor.chain().focus().setTextAlign(nextAlign).run();
+  };
 
   return (
     <div className="border-b border-slate-200 p-2 flex gap-1 bg-slate-50 justify-between">
@@ -67,6 +109,75 @@ export function FormattingToolbar({
           className="w-9 h-9"
         >
           <Highlighter className="h-4 w-4" />
+        </Button>
+
+        {/* Separator */}
+        <div className="w-px h-8 bg-slate-300 mx-1" />
+
+        {/* Font Family Toggle */}
+        <Button
+          variant={
+            editor.getAttributes('textStyle').fontFamily === 'Times New Roman'
+              ? 'default'
+              : 'ghost'
+          }
+          size="sm"
+          onClick={() => {
+            const current = editor.getAttributes('textStyle').fontFamily;
+            const newFont =
+              current === 'Times New Roman' ? 'Georgia' : 'Times New Roman';
+            editor.chain().focus().setFontFamily(newFont).run();
+          }}
+          title="Police (Georgia ↔ Times New Roman)"
+          className="w-9 h-9"
+        >
+          <Type className="h-4 w-4" />
+        </Button>
+
+        {/* Font Size Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" title="Taille de police" className="w-auto px-2">
+              {editor.getAttributes('textStyle').fontSize || '13pt'}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            {['11pt', '12pt', '13pt', '14pt', '16pt'].map((size) => (
+              <DropdownMenuItem
+                key={size}
+                onClick={() => editor.chain().focus().setFontSize(size).run()}
+                className={
+                  editor.getAttributes('textStyle').fontSize === size
+                    ? 'bg-slate-100'
+                    : ''
+                }
+              >
+                {size}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Text Alignment Cycle */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={cycleAlignment}
+          title="Alignement (cycle: gauche/centre/droite/justifié)"
+          className="w-9 h-9"
+        >
+          {getAlignmentIcon()}
+        </Button>
+
+        {/* First-line Indent Toggle */}
+        <Button
+          variant={editor.getAttributes('paragraph').indent ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => editor.chain().focus().toggleIndent().run()}
+          title="Retrait 1ère ligne (1.27cm)"
+          className="w-9 h-9"
+        >
+          <IndentIncrease className="h-4 w-4" />
         </Button>
       </div>
 

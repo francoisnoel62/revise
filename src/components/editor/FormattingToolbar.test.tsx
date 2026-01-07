@@ -12,6 +12,10 @@ describe('FormattingToolbar', () => {
         toggleItalic: vi.fn().mockReturnThis(),
         toggleUnderline: vi.fn().mockReturnThis(),
         toggleHighlight: vi.fn().mockReturnThis(),
+        setFontFamily: vi.fn().mockReturnThis(),
+        setFontSize: vi.fn().mockReturnThis(),
+        setTextAlign: vi.fn().mockReturnThis(),
+        toggleIndent: vi.fn().mockReturnThis(),
         run: vi.fn().mockReturnThis(),
       };
       return chain;
@@ -19,6 +23,15 @@ describe('FormattingToolbar', () => {
 
     return {
       isActive: vi.fn((format: string) => activeFormats.includes(format)),
+      getAttributes: vi.fn((type: string) => {
+        if (type === 'textStyle') {
+          return { fontFamily: 'Georgia', fontSize: '13pt' };
+        }
+        if (type === 'paragraph') {
+          return { textAlign: 'justify', indent: false };
+        }
+        return {};
+      }),
       can: vi.fn(() => ({
         chain: () => ({
           focus: () => ({

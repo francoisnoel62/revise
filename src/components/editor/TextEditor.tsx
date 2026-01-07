@@ -9,6 +9,11 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Highlight from '@tiptap/extension-highlight';
 import Placeholder from '@tiptap/extension-placeholder';
+import { TextStyle } from '@tiptap/extension-text-style';
+import { FontFamily } from '@tiptap/extension-text-style/font-family';
+import { FontSize } from '@tiptap/extension-text-style/font-size';
+import TextAlign from '@tiptap/extension-text-align';
+import { IndentParagraph } from './extensions/IndentParagraph';
 import { useEffect } from 'react';
 
 // Custom extension for em dash insertion with Ctrl+K
@@ -46,9 +51,23 @@ export function TextEditor({
     extensions: [
       StarterKit.configure({
         // StarterKit includes bold and italic by default, but not underline or highlight
+        paragraph: false, // Disable default paragraph - use our custom IndentParagraph
       }),
+      IndentParagraph, // Custom paragraph with indent support
       Underline,
       Highlight.configure({ multicolor: true }),
+      TextStyle, // Required for FontFamily and FontSize
+      FontFamily.configure({
+        types: ['textStyle'],
+      }),
+      FontSize.configure({
+        types: ['textStyle'],
+      }),
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+        alignments: ['left', 'center', 'right', 'justify'],
+        defaultAlignment: 'justify',
+      }),
       EmDashExtension,
       Placeholder.configure({ placeholder }),
     ],
@@ -63,7 +82,7 @@ export function TextEditor({
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-slate max-w-none focus:outline-none min-h-[500px] p-8',
+        class: 'editor-a4-page focus:outline-none tiptap',
       },
     },
   });
@@ -91,7 +110,7 @@ export function TextEditor({
   if (!editor) return null;
 
   return (
-    <div className="w-full border border-slate-200 rounded-lg bg-white">
+    <div className="w-full bg-slate-50">
       <EditorContent editor={editor} />
     </div>
   );

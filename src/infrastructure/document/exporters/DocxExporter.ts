@@ -9,6 +9,7 @@ import {
   UnderlineType,
   PageBreak,
   HeadingLevel,
+  AlignmentType,
 } from 'docx';
 import { DocumentExporter } from '@/domain/interfaces/DocumentExporter';
 import { Project } from '@/domain/entities/Project';
@@ -174,7 +175,22 @@ export class DocxExporter implements DocumentExporter {
   private convertNode(node: any): Paragraph | null {
     if (node.type === 'paragraph') {
       const runs = this.convertTextNodes(node.content || []);
-      return new Paragraph({ children: runs });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const paragraphOptions: any = { children: runs };
+
+      // Handle text alignment
+      if (node.attrs?.textAlign) {
+        paragraphOptions.alignment = this.convertAlignment(node.attrs.textAlign);
+      }
+
+      // Handle first-line indent
+      if (node.attrs?.indent) {
+        paragraphOptions.indent = {
+          firstLine: 720, // 720 twips = 0.5 inch = 1.27cm
+        };
+      }
+
+      return new Paragraph(paragraphOptions);
     }
 
     if (node.type === 'heading') {
@@ -215,6 +231,8 @@ export class DocxExporter implements DocumentExporter {
       const isUnderline = marks.some((m: any) => m.type === 'underline');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const highlightMark = marks.find((m: any) => m.type === 'highlight');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const textStyleMark = marks.find((m: any) => m.type === 'textStyle');
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const runOptions: any = {
@@ -229,6 +247,20 @@ export class DocxExporter implements DocumentExporter {
       if (highlightMark) {
         // DOCX highlight colors are limited
         runOptions.highlight = this.getHighlightColor(highlightMark.attrs?.color);
+      }
+
+      // Handle font family and font size from textStyle mark
+      if (textStyleMark?.attrs) {
+        if (textStyleMark.attrs.fontFamily) {
+          runOptions.font = textStyleMark.attrs.fontFamily;
+        }
+        if (textStyleMark.attrs.fontSize) {
+          // Convert pt to half-points (docx library uses half-points)
+          const ptValue = parseInt(textStyleMark.attrs.fontSize);
+          if (!isNaN(ptValue)) {
+            runOptions.size = ptValue * 2; // e.g., 13pt → 26 half-points
+          }
+        }
       }
 
       return new TextRun(runOptions);
@@ -269,6 +301,19 @@ export class DocxExporter implements DocumentExporter {
     };
 
     return colorMap[color] || 'yellow';
+  }
+
+  /**
+   * Convert TipTap text alignment to DOCX AlignmentType
+   */
+  private convertAlignment(align: string): typeof AlignmentType[keyof typeof AlignmentType] {
+    const mapping: { [key: string]: typeof AlignmentType[keyof typeof AlignmentType] } = {
+      left: AlignmentType.LEFT,
+      center: AlignmentType.CENTER,
+      right: AlignmentType.RIGHT,
+      justify: AlignmentType.JUSTIFIED,
+    };
+    return mapping[align] || AlignmentType.JUSTIFIED;
   }
 
   /**

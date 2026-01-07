@@ -13,12 +13,7 @@ import { DocumentControls } from '@/components/document/DocumentControls';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { importDocument, exportProject, rewriteText } from './actions';
-import { useEditor } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Bold from '@tiptap/extension-bold';
-import Italic from '@tiptap/extension-italic';
-import Underline from '@tiptap/extension-underline';
-import Highlight from '@tiptap/extension-highlight';
+import { Editor } from '@tiptap/react';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { Chapter } from '@/domain/entities/Chapter';
 import { Project } from '@/domain/entities/Project';
@@ -67,19 +62,13 @@ export default function HomePage() {
   const [exporting, setExporting] = useState(false);
   const [chaptersOpen, setChaptersOpen] = useState(false);
   const [notification, setNotification] = useState<Notification | null>(null);
-
-  // Editor for formatting toolbar
-  const editor = useEditor({
-    immediatelyRender: false,
-    shouldRerenderOnTransaction: false,
-    extensions: [StarterKit, Bold, Italic, Underline, Highlight],
-  });
+  const [editor, setEditor] = useState<Editor | null>(null);
 
   // Ref for autosave timeout
   const autosaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Ref for the actual TextEditor instance (not the toolbar editor)
-  const textEditorRef = useRef<any>(null);
+  const textEditorRef = useRef<Editor | null>(null);
 
   // Ref for highlight timeout
   const highlightTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -429,8 +418,8 @@ export default function HomePage() {
           />
         </header>
 
-        {/* 80% width editor container */}
-        <div className="w-[80%] mx-auto relative">
+        {/* A4 width editor container (794px = 210mm) */}
+        <div className="w-[794px] mx-auto relative">
           <div className="border border-slate-200 rounded-lg bg-white overflow-hidden">
             <FormattingToolbar
               editor={editor}
@@ -445,6 +434,7 @@ export default function HomePage() {
               onSelectionChange={handleSelectionChange}
               onEditorReady={(editorInstance) => {
                 textEditorRef.current = editorInstance;
+                setEditor(editorInstance);
               }}
             />
           </div>
