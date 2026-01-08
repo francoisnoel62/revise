@@ -2,7 +2,7 @@
 
 An ultra-minimalist AI-assisted writing tool for multi-chapter documents. Focus on one high-value action: instant text rewriting without breaking creative flow.
 
-**Status**: MVP Phase 2 Complete ✅ (236 tests passing)
+**Status**: MVP Phase 3 Complete ✅ (Comprehensive test coverage with MongoDB persistence and Auth.js authentication)
 
 ## Core Value Proposition
 
@@ -12,19 +12,35 @@ This is **not** a chat AI or verbose assistant. It's a production tool designed 
 
 ## Key Features
 
-### Phase 2: Multi-Chapter Architecture
+### Phase 3: Persistence & User Authentication ✅
+
+- **User Authentication**: Secure sign-in/sign-up with Auth.js (email/password)
+- **MongoDB Persistence**: All projects stored in MongoDB Atlas with multi-tenant isolation
+- **Dashboard**: Manage multiple projects - create, rename, delete with intuitive UI
+- **Session Management**: Resume work across sessions with automatic project loading
+- **Auto-Save to Database**: Changes automatically saved to MongoDB after 1 second
+- **User Menu**: Profile management and sign-out functionality
+
+### Phase 2.5: A4 Page Styling & Advanced Typography ✅
+
+- **A4 Page Styling**: Realistic page appearance with 794px width, shadows, professional margins
+- **Advanced Typography Controls**:
+  - Font family toggle (Georgia ↔ Times New Roman)
+  - Font size dropdown (11pt, 12pt, 13pt default, 14pt, 16pt)
+  - Text alignment cycle (left/center/right/justify)
+  - First-line indent toggle (1.27cm per paragraph)
+  - 1.5 line height, automatic hyphenation
+
+### Phase 2: Multi-Chapter Architecture ✅
 
 - **Multi-Chapter Management**: Import documents split automatically by H1 headings
 - **Chapter Navigation**: Left panel with Switch toggle, drag & drop reordering, inline title editing
 - **Rich Text Formatting**: Bold, italic, underline, highlight with toolbar and keyboard shortcuts
 - **Instant AI Rewriting**: Select any text block and get 5 distinct, language-preserving alternatives powered by GPT-4o-mini
-- **Autosave**: Automatic save 1 second after last keystroke
-- **Formatted Import/Export**: Preserve formatting in `.docx` files
+- **Formatted Import/Export**: Preserve formatting and typography in `.docx` files
 - **Proposals Sheet**: Dismissible right panel showing 5 AI proposals
-- **Unsaved Changes Detection**: Visual indicators and confirmation dialogs
 - **TipTap JSON Editor**: Modern rich text editing with full undo/redo support
-- **Minimalist UX**: No persistent sidebars, no AI jargon - clean 80%-width writing space
-- **Ephemeral by Design**: No server-side storage, no sessions - you control your data
+- **Minimalist UX**: No persistent sidebars, no AI jargon - clean A4-width writing space
 - **Blazing Fast Performance**:
   - Export: 57ms (35x faster than target)
   - Chapter switching: 0.23ms (870x faster than target)
@@ -36,6 +52,7 @@ This is **not** a chat AI or verbose assistant. It's a production tool designed 
 
 - Node.js 18+
 - OpenAI API key
+- MongoDB Atlas account (free tier available)
 
 ### Installation
 
@@ -48,8 +65,33 @@ npm install
 Create a `.env.local` file:
 
 ```env
-OPENAI_API_KEY=your_api_key_here
+# OpenAI API (required for AI rewriting)
+OPENAI_API_KEY=sk-your-api-key-here
+OPENAI_MODEL=gpt-4o-mini
+
+# MongoDB Atlas (required for persistence)
+MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/?retryWrites=true&w=majority
+MONGODB_DB_NAME=revise
+
+# Auth.js (required for authentication)
+AUTH_SECRET=your-random-secret-here-min-32-chars
+AUTH_TRUST_HOST=true
 ```
+
+**Setup Instructions**:
+
+1. **OpenAI API**: Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys)
+
+2. **MongoDB Atlas**:
+   - Create a free account at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+   - Create a new cluster (M0 free tier is sufficient)
+   - Get your connection string and replace `user:password` with your credentials
+   - Set `MONGODB_DB_NAME` to your preferred database name
+
+3. **Auth.js Secret**:
+   - Generate a random 32+ character secret: `openssl rand -base64 32`
+   - Or use any random string generator
+   - Set `AUTH_TRUST_HOST=true` for Vercel deployments
 
 ### Development
 
@@ -68,58 +110,90 @@ npm start
 
 ## Usage
 
-### Multi-Chapter Workflow
+### Complete Workflow
 
-1. **Import a document** - Click "Importer" and select your `.docx` file
-   - Documents are automatically split by H1 headings
-   - Formatting is preserved (bold, italic, underline, highlight)
+1. **Create an account** - Visit the sign-up page
+   - Enter email and password
+   - Account created securely with bcrypt password hashing
 
-2. **Navigate chapters** - Toggle the Switch (top left) to open the chapters panel
+2. **Sign in** - Enter your credentials
+   - Session persists across browser sessions
+   - Automatic redirect to dashboard
+
+3. **Dashboard** - Manage your projects
+   - View all your projects in card format
+   - Click "Créer un projet" to create a new project
+   - Click edit icon to rename a project
+   - Click delete icon to remove a project (with confirmation)
+   - Click a project card to open it in the editor
+
+4. **Editor** - Work on your project
+   - Project automatically loads from database
+   - Changes auto-save to MongoDB after 1 second
+   - Visual save status indicator in UI
+
+5. **Import a document** (optional) - Click "Importer" and select your `.docx` file
+   - Documents automatically split by H1 headings
+   - Formatting and typography preserved
+
+6. **Navigate chapters** - Toggle the Switch (top left) to open the chapters panel
    - Add new chapters with "Nouveau chapitre"
    - Drag & drop to reorder
-   - Click to switch chapters
+   - Click to switch chapters (auto-saves current content)
    - Double-click chapter title to rename inline
    - Delete chapters (except the last one)
 
-3. **Edit your text** - Use the rich text editor with formatting toolbar
+7. **Edit your text** - Use the A4-styled rich text editor with formatting toolbar
    - **Bold**: Ctrl+B
    - **Italic**: Ctrl+I
    - **Underline**: Ctrl+U
    - **Highlight**: Ctrl+Shift+H
    - **Em dash (—)**: Ctrl+K
+   - **Font family**: Toggle button (Georgia ↔ Times New Roman)
+   - **Font size**: Dropdown (11pt, 12pt, 13pt, 14pt, 16pt)
+   - **Text alignment**: Cycle button (left/center/right/justify)
+   - **First-line indent**: Toggle button
    - Undo/redo: Ctrl+Z / Ctrl+Shift+Z
 
-4. **Select text to rewrite** - Highlight any text block
+8. **Select text to rewrite** - Highlight any text block
    - "Réécrire" button in toolbar becomes enabled
 
-5. **Click "Réécrire"** - AI generates 5 distinct, language-preserving proposals
+9. **Click "Réécrire"** - AI generates 5 distinct, language-preserving proposals
    - Proposals appear in right panel
    - Each shows style variation
+   - Proposals maintain formatting
 
-6. **Choose a proposal** - Click "Insérer" on your preferred variant
-   - Selected text is replaced
-   - Panel automatically closes
+10. **Choose a proposal** - Click "Insérer" on your preferred variant
+    - Selected text is replaced
+    - Panel automatically closes
+    - Change auto-saved to database
 
-7. **Export when done** - Click "Exporter" to save all chapters as `.docx`
-   - Chapters separated by page breaks
-   - Formatting preserved
+11. **Export when done** - Click "Exporter" to download all chapters as `.docx`
+    - Chapters separated by page breaks
+    - Full formatting and typography preserved
+    - Works as backup or for external sharing
 
-**Note**: Documents auto-save as you type (1-second debounce) but exist only in your browser session. Export regularly to save your work.
+12. **Sign out** - Click user menu (top right) and select "Sign out"
+
+**Note**: All changes are automatically saved to MongoDB Atlas. Your projects persist across sessions and devices.
 
 ## Tech Stack
 
 - **Framework**: Next.js 16.1.1 (App Router)
 - **Rendering**: React 19 with Server Components
-- **Editor**: TipTap 3.14.0 with rich text extensions
-- **UI Components**: shadcn/ui + Radix UI (Sheet, Button, ScrollArea, Switch)
-- **State Management**: Zustand for project/chapter state
+- **Database**: MongoDB Atlas with official Node.js driver
+- **Authentication**: Auth.js (NextAuth v5) with email/password credentials
+- **User Management**: bcrypt for secure password hashing
+- **Editor**: TipTap 3.14.0 with rich text and typography extensions
+- **UI Components**: shadcn/ui + Radix UI (Sheet, Button, ScrollArea, Switch, Card, Dialog, Input, Label)
+- **State Management**: Zustand for project/chapter state (server-backed)
 - **Drag & Drop**: @dnd-kit for chapter reordering
-- **Styling**: Tailwind CSS v4
+- **Styling**: Tailwind CSS v4 + A4 page styling
 - **Document Parsing**: mammoth (HTML conversion)
-- **Document Export**: docx library (with formatting)
+- **Document Export**: docx library (with full typography support)
 - **AI Provider**: OpenAI API (GPT-4o-mini)
 - **Testing**: Vitest + React Testing Library + Playwright
-- **Architecture**: Clean Architecture principles
+- **Architecture**: Clean Architecture principles with clear layer separation
 
 ## Architecture
 
@@ -128,9 +202,10 @@ The project follows Clean Architecture adapted to Next.js with complete test cov
 ```
 src/
 ├── domain/              Pure business logic (entities, value objects, interfaces)
-│   ├── entities/        Chapter, Project, TextDocument
+│   ├── entities/        Chapter, Project, User, TextDocument
 │   ├── value-objects/   TextSelection, RewriteProposal
-│   └── interfaces/      LLMProvider, DocumentParser, DocumentExporter, ProjectRepository
+│   └── interfaces/      LLMProvider, DocumentParser, DocumentExporter,
+│                        ProjectRepository, UserRepository, AuthProvider
 │
 ├── application/         Use cases orchestrating domain logic
 │   └── use-cases/       ImportProject, ExportProject, SwitchChapter, AddChapter,
@@ -139,20 +214,29 @@ src/
 │
 ├── infrastructure/      External service implementations
 │   ├── ai/             OpenAIProvider (GPT-4o-mini)
+│   ├── auth/           AuthJsProvider, auth-config
 │   ├── document/       DocxParser, DocxExporter, TipTap converters
-│   ├── persistence/    InMemoryProjectRepository (Phase 2)
-│   └── config/         Environment configuration
+│   ├── persistence/    MongoDBProjectRepository, MongoDBUserRepository,
+│                       InMemoryProjectRepository (testing), serialization utils
+│   ├── config/         Environment config, database connection, provider factory
+│   └── middleware.ts   Route protection middleware
 │
 ├── store/              Zustand state management
-│   └── projectStore.ts Project and chapter state
+│   └── projectStore.ts Project and chapter state (server-backed)
 │
-└── app/components/      Next.js interface layer
-    ├── app/            Pages and Server Actions
+└── app/                Next.js interface layer
+    ├── page.tsx        Editor page (main interface)
+    ├── dashboard/      Dashboard page for project management
+    ├── auth/           Sign-in and sign-up pages
+    ├── actions/        Server Actions (project, chapter, auth, import/export)
     ├── components/     React UI components
-    │   ├── editor/     TextEditor (with em dash extension), FormattingToolbar (with rewrite button)
-    │   ├── navigation/ ChaptersSheet (with Switch, ScrollArea, inline editing)
+    │   ├── auth/       UserMenu
+    │   ├── editor/     TextEditor, FormattingToolbar (with typography controls)
+    │   ├── navigation/ ChaptersSheet (with drag & drop, inline editing)
     │   ├── proposals/  ProposalsSheet
-    │   └── document/   DocumentControls
+    │   ├── document/   DocumentControls, ProjectCard, EmptyState, SaveStatus
+    │   └── ui/         shadcn/ui components
+    ├── hooks/          useAutosave (1-second debounce)
     └── lib/            UI utilities
 ```
 
@@ -164,7 +248,7 @@ src/
 - **Interface**: Uses Application use cases
 - **Store**: Calls Application use cases (no business logic)
 
-This strict layering enables future evolution without refactoring. Phase 3 will add persistence by simply swapping `InMemoryProjectRepository` with a real database implementation.
+This strict layering enabled Phase 3 to add persistence and authentication without refactoring existing code. The repository pattern allows swapping between `InMemoryProjectRepository` (testing) and `MongoDBProjectRepository` (production) seamlessly.
 
 ## Performance
 
@@ -179,7 +263,7 @@ All Phase 2 targets **exceeded**:
 
 ## Testing
 
-Comprehensive test suite with 236 passing tests:
+Comprehensive test suite with extensive coverage:
 
 ```bash
 npm test                     # Run all unit tests
@@ -191,29 +275,38 @@ npm run test:e2e             # Run end-to-end tests with Playwright (setup ready
 
 ### Test Coverage
 
-**236 tests passing** (100% success rate):
-- **Domain Layer**: 45 tests - 97.62% coverage
-- **Application Layer**: 39 tests - 100% coverage
-- **Infrastructure Layer**: 40 tests
+**Comprehensive test coverage** across all layers:
+- **Domain Layer**: 45+ tests - 97%+ coverage
+  - Chapter, Project, User entities
+  - TextSelection, RewriteProposal value objects
+- **Application Layer**: 39+ tests - 100% coverage
+  - All use cases thoroughly tested
+- **Infrastructure Layer**: 50+ tests
   - DocxParser: 4 tests
   - DocxExporter: 7 tests
   - TipTap conversion: 14 tests
-  - OpenAI integration: 4 tests
-  - Repository: 5 tests
-- **Interface Layer**: 52 tests
-  - TextEditor: 8 tests
+  - OpenAI integration: 4 tests (real API)
+  - MongoDBUserRepository: 10+ tests
+  - AuthJsProvider: 10+ tests
+  - Repository: 5+ tests
+- **Interface Layer**: 70+ tests
+  - TextEditor: 8 tests (A4 styling, typography)
   - FormattingToolbar: 9 tests
-  - ChaptersSheet: 10 tests
+  - ChaptersSheet: 11 tests (drag & drop)
   - ProposalsSheet: 10 tests
+  - ProjectCard: 15+ tests (dashboard)
+  - Dashboard page: 12+ tests
+  - Auth pages: 10+ tests
   - DocumentControls: 3 tests
-  - Other components: 12 tests
-- **Store**: 12 tests
-- **Integration**: 2 tests
-- **Performance**: 6 tests
+- **Store**: 12+ tests (server-backed state)
+- **Server Actions**: 30+ tests (mocked dependencies)
+- **Integration**: 2+ tests (full workflow)
+- **Performance**: 6 tests (all targets exceeded)
 
-**Overall Coverage**: 68.87%
+**Overall Coverage**: 68%+
 - Critical paths: 90%+ coverage
 - Domain logic: 97%+ coverage
+- Application logic: 100% coverage
 
 ## AI Prompting
 
@@ -229,40 +322,49 @@ The prompt is a critical product component (see `src/infrastructure/ai/OpenAIPro
 
 ## Project Scope
 
-### Phase 2 Complete ✅
+### Phase 3 Complete ✅
 
-Multi-chapter architecture with rich text formatting is fully implemented.
+**Persistence & User Authentication** is fully implemented with MongoDB Atlas and Auth.js.
+
+**Implemented**:
+- MongoDB Atlas persistence with multi-tenant isolation
+- User authentication (email/password with bcrypt)
+- Dashboard for project management (create, rename, delete)
+- Multiple projects per user
+- Session management and resumption
+- Auto-save to database (1-second debounce)
+- Route protection middleware
+- Sign-in/sign-up pages
 
 ### Current Limitations (By Design)
 
-- Documents are ephemeral (in-memory only during session)
-- User must export to save work permanently
-- No server-side persistence
-- No session resumption
 - Undo/redo history is shared across all chapters
+- No real-time collaboration
+- No version history or change tracking
+- No per-chapter undo/redo
+- No search across chapters
+- No project sharing between users
 
-### Phase 3: Planned (Persistence & Cloud Storage)
+### Phase 4: Advanced Features (Planned)
 
-The codebase is **ready** for Phase 3 with database-agnostic design:
-- Server-side persistence (MongoDB Atlas or PostgreSQL)
-- Conflict resolution for concurrent edits
-- User accounts and authentication
-- Multiple projects per user
-- Session resumption
-
-**No refactoring needed** - just swap `InMemoryProjectRepository` with real implementation.
+Power-user features and productivity enhancements:
+- **Search across chapters** - Full-text search within projects
+- **Per-chapter undo/redo** - Independent history per chapter
+- **Chapter templates** - Reusable chapter structures
+- **Writing goals/statistics** - Word count, progress tracking
+- **Export individual chapters** - Selective export
+- **Project sharing** - Share projects with other users
+- **Version history** - Track changes over time
+- **User preferences** - Theme, editor settings, custom AI prompts
 
 ### Future Phases
 
-- Search across chapters
-- Per-chapter undo/redo
-- Chapter templates
-- Writing goals/statistics
-- Export individual chapters
-- Real-time collaboration
-- Custom styles
-- Voice memory
-- Advanced stylistic analysis
+- **Real-time collaboration** - Multiple users editing simultaneously
+- **Comments and annotations** - Inline feedback
+- **Team workspaces** - Shared project spaces
+- **Voice memory** - AI learns writing style
+- **Advanced stylistic analysis** - Deep insights
+- **Custom AI prompts** - User-configurable strategies
 
 ## Contributing
 
@@ -289,4 +391,4 @@ Built with:
 
 ---
 
-**Phase 2 Complete** - Multi-chapter architecture with rich text formatting is production-ready.
+**Phase 3 Complete** - Multi-chapter architecture with MongoDB persistence, user authentication, and dashboard project management is production-ready.

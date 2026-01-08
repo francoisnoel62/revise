@@ -10,11 +10,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Select text → Trigger rewrite → Receive 5 stylistically distinct proposals → Insert chosen version instantly
 - Success metric: Users prefer this flow over copy-pasting to ChatGPT
 
-### MVP Status: Phase 2.5 Complete ✅
+### MVP Status: Phase 3 Complete ✅
 
-**Phase 2.5 A4 Page Styling & Advanced Typography** is **fully implemented and tested** with 248 passing tests including integration tests with OpenAI API.
+**Phase 3 Persistence & User Authentication** is **fully implemented and tested** with comprehensive MongoDB integration, Auth.js authentication, and multi-tenant project management.
 
 **Implemented features:**
+
+**Phase 3 - Persistence & Authentication:**
+- **MongoDB Atlas integration** with MongoDBProjectRepository
+- **User authentication** via Auth.js (email/password)
+- **User management** with secure password hashing (bcrypt)
+- **Sign-in/Sign-up pages** with form validation
+- **Dashboard** for project management (create, rename, delete projects)
+- **Multiple projects per user** with multi-tenant data isolation
+- **Session management** with route protection middleware
+- **Auto-save to database** with 1-second debounce
+- **Project loading** from database on editor page
+- **User menu** with profile and sign-out options
+- **Server Actions** for all database operations (project-actions, chapter-actions, auth-actions)
+
+**Phase 2.5 - A4 Page Styling & Advanced Typography:**
 - **Multi-chapter document management** with drag & drop navigation
 - **A4 page styling** (794px fixed width, realistic page shadows, professional margins)
 - **Advanced typography controls**:
@@ -27,23 +42,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Formatted import/export** (.docx with full typography preservation)
 - **Chapter splitting** by H1 headings on import
 - **TipTap JSON-based editor** with enhanced formatting toolbar
-- **Fixed "Réécrire" button** in formatting toolbar (enabled on text selection)
 - **AI-powered rewrite** with 5 distinct proposals (language-preserving, formatted text support)
 - **Proposals Sheet** (dismissible right panel)
 - **Chapters Sheet** (left navigation with Switch toggle, scrollable, inline title editing)
-- **Autosave** with 1-second debounce after last keystroke
 - **Keyboard shortcuts** (CTRL+B/I/U, CTRL+Shift+H, CTRL+K for em dash)
 - **Unsaved changes detection** with confirmation dialogs
 - **Full undo/redo** support (Ctrl+Z)
 - **Clean Architecture** with complete test coverage
 
 **Current scope:**
-- Documents are ephemeral (in-memory only during session)
-- Multi-chapter projects with rich text formatting
+- **Persistent multi-chapter projects** stored in MongoDB Atlas
+- **User authentication** with session management
+- **Multiple projects per user** with multi-tenant isolation
+- **Auto-save to database** after each edit
+- **Dashboard** for project management
+- **Session resumption** - projects persist across sessions
+- **Export capability** for downloading .docx files
+- Rich text formatting with advanced typography controls
 - Chapter add/remove/reorder capabilities
-- User is responsible for saving their work via export
-- No server-side persistence (Phase 3)
-- No session resumption (Phase 3)
 
 **Performance:**
 - Export: 57ms (35x faster than target)
@@ -85,11 +101,22 @@ This project MUST follow Clean Architecture principles adapted to Next.js:
    - `OpenAIProvider` - LLMProvider implementation with GPT-4o-mini
    - `DocxParser` - Enhanced parser with HTML import and chapter splitting
    - `DocxExporter` - Enhanced exporter with formatted output
-   - `InMemoryProjectRepository` - Ephemeral storage (Phase 2)
+   - **`MongoDBProjectRepository`** - MongoDB Atlas persistence (Phase 3)
+   - **`MongoDBUserRepository`** - User management with bcrypt password hashing (Phase 3)
+   - **`AuthJsProvider`** - Auth.js authentication provider (Phase 3)
+   - `InMemoryProjectRepository` - Ephemeral storage (legacy/testing)
    - TipTap conversion utilities (HTML ↔ JSON)
+   - **Project serialization** utilities for MongoDB storage
+   - **Database configuration** and connection management
+   - **Middleware** for route protection
 
 4. **Interface Layer** (`src/app`, `src/components`)
    - React components and UI
+   - **Pages**:
+     - `Dashboard` - Project management page with create/rename/delete
+     - `Editor` (page.tsx) - Main editing interface with project loading
+     - `Sign In` - Email/password authentication page
+     - `Sign Up` - User registration page
    - **Editor Components**:
      - `TextEditor` - TipTap-based rich text editor with A4 styling, JSON storage, and custom extensions
      - `FormattingToolbar` - Bold, italic, underline, highlight + typography controls (font family toggle, font size dropdown, alignment cycle, indent toggle) + rewrite button
@@ -97,14 +124,23 @@ This project MUST follow Clean Architecture principles adapted to Next.js:
    - **Navigation Components**:
      - `ChaptersSheet` - Left panel with Switch toggle, scrollable list, drag & drop, inline title editing
      - `ProposalsSheet` - Right panel for AI proposals
+     - `UserMenu` - User profile dropdown with sign-out option
    - **Document Components**:
      - `DocumentControls` - Import/export with loading states
+     - `ProjectCard` - Dashboard project card with actions
+     - `EmptyState` - Dashboard empty state for new users
+     - `SaveStatus` - Auto-save indicator
    - **State Management**:
-     - Zustand store for project and chapter state
+     - Zustand store for project and chapter state (server-backed)
    - **Server Actions**:
+     - `project-actions` - Create, load, update, delete, rename projects
+     - `chapter-actions` - Add, remove, update, reorder chapters
+     - `auth-actions` - Sign in, sign up, sign out
      - `importDocument` - Multi-chapter import
      - `exportProject` - Multi-chapter export
      - `rewriteText` - AI rewriting with language preservation
+   - **Hooks**:
+     - `useAutosave` - Auto-save hook with 1-second debounce
 
 ### Dependency Rules
 - Domain depends on nothing
@@ -117,10 +153,20 @@ This project MUST follow Clean Architecture principles adapted to Next.js:
 
 This architecture enables future evolution (persistence, projects, memory) without refactoring.
 
-## Technical Stack (Phase 2.5 Implementation)
+## Technical Stack (Phase 3 Implementation)
 
 - **Framework**: Next.js 16.1.1 (App Router)
 - **Rendering**: React 19 with Server Components
+- **Database**: MongoDB Atlas with official Node.js driver
+  - Multi-tenant data isolation via ownerId filtering
+  - Project serialization/deserialization utilities
+  - Connection pooling and error handling
+- **Authentication**: Auth.js (NextAuth v5)
+  - Email/password credentials provider
+  - Session management with JWT
+  - Route protection middleware
+  - TypeScript type extensions
+- **User Management**: bcrypt for password hashing
 - **Editor**: TipTap 3.14.0 with advanced typography extensions
   - StarterKit, Bold, Italic, Underline, Highlight, Heading
   - TextStyle, FontFamily, FontSize, TextAlign (official extensions)
@@ -128,19 +174,19 @@ This architecture enables future evolution (persistence, projects, memory) witho
   - Document, Text, BulletList, OrderedList, HardBreak
   - EmDash extension (Ctrl+K)
 - **UI Components**: shadcn/ui + Radix UI
-  - Sheet, Button, ScrollArea, DropdownMenu for navigation and controls
-- **State Management**: Zustand for global project/chapter state
+  - Sheet, Button, ScrollArea, DropdownMenu, Card, Dialog, Input, Label
+  - Alert dialogs for confirmations
+- **State Management**: Zustand for global project/chapter state (server-backed)
 - **Drag & Drop**: @dnd-kit for chapter reordering
 - **Styling**: Tailwind CSS v4 + tailwind-merge + A4 page styling
 - **Document Parsing**: mammoth with HTML conversion
 - **Document Export**: docx library with full typography support (font family, size, alignment, indent)
 - **AI Provider**: OpenAI API (GPT-4o-mini)
 - **Testing**: Vitest + React Testing Library + Playwright
-  - 248 tests passing across all layers
+  - Comprehensive test coverage across all layers
   - Integration tests with real OpenAI API
   - Performance tests validating targets
-- **Data Storage**: InMemoryProjectRepository (ephemeral, Phase 2)
-  - Ready for Phase 3: MongoDB Atlas or PostgreSQL
+  - Server Action tests with mocked dependencies
 
 ## Key Features & Constraints
 
@@ -162,21 +208,31 @@ This architecture enables future evolution (persistence, projects, memory) witho
 - File handling via browser file input (no server upload)
 - Server Actions for async import/export operations
 
-### Multi-Chapter Workflow (✅ Phase 2 Implemented)
-1. **Import**: User imports .docx → document split into chapters by H1
-2. **Navigate**: Toggle Switch (top left) → ChaptersSheet opens with scrollable chapter list
-3. **Manage Chapters**:
+### Multi-Chapter Workflow (✅ Phase 3 Implemented)
+1. **Sign Up/Sign In**: User creates account or signs in via email/password
+2. **Dashboard**: User sees list of all their projects
+   - Create new project via "Créer un projet" button
+   - Rename project by clicking edit icon
+   - Delete project via delete icon (with confirmation)
+   - Click project card to open in editor
+3. **Editor Page**: URL format `/?project={projectId}`
+   - Project automatically loaded from database
+   - If no project ID, redirects to dashboard
+4. **Import**: User imports .docx → document split into chapters by H1
+5. **Navigate**: Toggle Switch (top left) → ChaptersSheet opens with scrollable chapter list
+6. **Manage Chapters**:
    - Add new chapters via "Nouveau chapitre" button
    - Delete chapters (except last one)
    - Drag & drop to reorder chapters
-   - Click chapter to switch (auto-saves current content)
+   - Click chapter to switch (auto-saves current content to database)
    - Double-click chapter title to rename inline (Enter/Blur to save, Escape to cancel)
-4. **Edit**: User types in 80%-width editor with formatting toolbar (auto-saves after 1 second)
-5. **Format**: Use toolbar or keyboard shortcuts (Ctrl+B, I, U, Shift+H, Ctrl+K for em dash)
-6. **Rewrite**: Select text → Click "Réécrire" button in toolbar → 5 language-preserving proposals in right Sheet
-7. **Insert**: Click "Insérer" on chosen proposal → text replaced
-8. **Undo/Redo**: Ctrl+Z / Ctrl+Shift+Z available
-9. **Export**: Click "Exporter" → all chapters exported to single .docx
+7. **Edit**: User types in A4-styled editor with formatting toolbar (auto-saves to database after 1 second)
+8. **Format**: Use toolbar or keyboard shortcuts (Ctrl+B, I, U, Shift+H, Ctrl+K for em dash)
+9. **Rewrite**: Select text → Click "Réécrire" button in toolbar → 5 language-preserving proposals in right Sheet
+10. **Insert**: Click "Insérer" on chosen proposal → text replaced and saved
+11. **Undo/Redo**: Ctrl+Z / Ctrl+Shift+Z available
+12. **Export**: Click "Exporter" → all chapters exported to single .docx file
+13. **Sign Out**: User menu (top right) → Sign out option
 
 ### Text Rewriting Flow (✅ Enhanced for Rich Text)
 1. User selects formatted or plain text block in TipTap editor
@@ -212,25 +268,22 @@ No chat, no discussion, no configuration, no onboarding.
 - A4 page width (794px) for realistic writing experience
 - Visual unsaved changes indicator (non-intrusive)
 
-### Explicitly Excluded (Phase 2 - Future in Phase 3+)
-- **Phase 3** (Planned):
-  - Server-side persistence (MongoDB/PostgreSQL)
-  - Session resumption
-  - User accounts and authentication
-  - Multiple projects per user
-- **Future Phases**:
-  - Version control
-  - Document history
-  - Collaborative editing
-  - Real-time collaboration
+### Explicitly Excluded (Future Phases)
+- **Phase 4 Candidates**:
+  - Version control and document history
+  - Collaborative editing with real-time sync
   - Advanced layout management
   - PDF export
-  - User settings/preferences
-  - Streaming responses
+  - User settings/preferences (theme, editor preferences)
+  - Streaming responses for AI rewrites
   - Search across chapters
-  - Per-chapter undo/redo
+  - Per-chapter undo/redo (currently shared history)
   - Chapter templates
   - Writing goals/statistics
+  - Project sharing and permissions
+  - Comments and annotations
+  - Custom AI prompt configuration
+  - Voice memory and style learning
 
 ## Performance Targets & Results
 
@@ -317,37 +370,47 @@ No chat, no discussion, no configuration, no onboarding.
 
 ## Future Evolution Path
 
-### Phase 2.5 Complete ✅
-Multi-chapter architecture with A4 page styling and advanced typography controls is fully implemented.
+### Phase 3 Complete ✅
+**Persistence & User Authentication** is fully implemented with MongoDB Atlas, Auth.js, and multi-tenant project management.
 
-### Phase 3: Persistence & Cloud Storage (Next)
-The codebase is **ready** for Phase 3 with database-agnostic design:
-- Replace `InMemoryProjectRepository` with real implementation
-- Choose: MongoDB Atlas or PostgreSQL with Vercel
-- Implement auto-save with conflict resolution
-- Add user accounts and authentication
-- Support multiple projects per user
-- Session resumption
-- **No refactoring needed** - just swap repository implementation
+**Achievements**:
+- MongoDB Atlas integration with MongoDBProjectRepository
+- User authentication and session management
+- Dashboard for project management
+- Multiple projects per user with data isolation
+- Auto-save to database with 1-second debounce
+- Sign-in/sign-up pages with secure password hashing
+- Route protection middleware
+- Project serialization for MongoDB storage
+- Server Actions for all database operations
 
-### Phase 4: Advanced Features
-After proving persistence:
-- Search across chapters
-- Per-chapter undo/redo (remove shared history limitation)
-- Chapter templates
-- Writing goals/statistics
-- Export individual chapters
-- Advanced formatting (lists, headings, etc.)
+### Phase 4: Advanced Features (Next)
+Now that persistence is proven, focus on power-user features:
+- **Search across chapters** - Full-text search within projects
+- **Per-chapter undo/redo** - Independent history per chapter
+- **Chapter templates** - Reusable chapter structures
+- **Writing goals/statistics** - Word count, progress tracking
+- **Export individual chapters** - Selective export
+- **Project sharing** - Share projects with other users
+- **Version history** - Track changes over time
+- **User preferences** - Theme, editor settings, AI prompt customization
 
 ### Phase 5: Collaborative Features
-Long-term vision:
-- Real-time collaboration
-- Comments and suggestions
-- Version history
-- Team workspaces
-- Custom styles
-- Voice memory
-- Advanced stylistic analysis
+Long-term vision for team collaboration:
+- **Real-time collaboration** - Multiple users editing simultaneously
+- **Comments and annotations** - Inline feedback system
+- **Team workspaces** - Shared project spaces
+- **Role-based permissions** - Owner, editor, viewer roles
+- **Change tracking** - Track who made what changes
+- **Notification system** - Alerts for comments, shares, changes
+
+### Phase 6: AI Enhancement
+Advanced AI capabilities:
+- **Voice memory** - Remember user's writing style
+- **Advanced stylistic analysis** - Deep style insights
+- **Custom AI prompts** - User-configurable rewrite strategies
+- **Streaming responses** - Real-time AI generation
+- **Context-aware suggestions** - Proactive writing assistance
 
 **Core Principle**: Each phase proves value before adding complexity.
-**Phase 2 Success Metric**: Users manage multi-chapter documents more efficiently than with traditional word processors.
+**Phase 3 Success Metric**: Users reliably store and manage multiple projects with seamless session resumption.

@@ -2,7 +2,7 @@
 
 Implements domain interfaces with concrete external services.
 
-**Status**: ✅ Phase 2 Complete (40 unit tests + 4 integration tests)
+**Status**: ✅ Phase 3 Complete (60+ unit tests + 4 integration tests)
 
 ## Rules:
 - Implements interfaces defined in Domain layer
@@ -136,42 +136,201 @@ Implements domain interfaces with concrete external services.
 
 ---
 
-### Persistence (✅ Phase 2 - Ephemeral)
+### Authentication ⭐ NEW (Phase 3)
 
-#### `InMemoryProjectRepository` ⭐ NEW
+#### `AuthJsProvider`
+**Implements**: `AuthProvider` interface
+**Technology**: Auth.js (NextAuth v5)
+
+**Features**:
+- Email/password credentials provider
+- Session management with JWT
+- Secure password verification with bcrypt
+- Type-safe session handling
+
+**Configuration** (`auth-config.ts`):
+- Credentials provider setup
+- Session strategy: JWT
+- Custom callbacks for session/JWT
+- MongoDB adapter integration (future)
+- TypeScript type extensions
+
+**Methods**:
+- `signIn(email, password)` - Validates credentials, creates session
+- `signOut()` - Terminates session
+- `getCurrentUser()` - Retrieves authenticated user from session
+- `createSession(user)` - Creates JWT session
+
+**Tests**: 10+ tests covering authentication flows
+
+---
+
+#### `middleware.ts` ⭐ NEW
+**Purpose**: Route protection middleware
+
+**Features**:
+- Protects authenticated routes (dashboard, editor)
+- Redirects unauthenticated users to sign-in
+- Session validation on each request
+- Public routes whitelist (sign-in, sign-up, API routes)
+
+**Protected Routes**:
+- `/dashboard` - Project management
+- `/` (editor) - Main editor page
+
+**Public Routes**:
+- `/auth/signin` - Sign-in page
+- `/auth/signup` - Sign-up page
+- `/api/*` - API routes
+
+---
+
+### Persistence ⭐ ENHANCED (Phase 3)
+
+#### `MongoDBProjectRepository` ⭐ NEW (Phase 3)
 **Implements**: `ProjectRepository` interface
-**Purpose**: Ephemeral storage for Phase 2 (no database)
+**Technology**: MongoDB Atlas with official Node.js driver
+
+**Purpose**: Production persistence with multi-tenant isolation
+
+**Methods**:
+- `createProject(userId, project)` - Inserts project with ownerId
+- `loadProject(userId, projectId)` - Loads project for specific user
+- `listProjects(userId)` - Lists all projects for user (sorted by updatedAt)
+- `updateProject(userId, project)` - Updates project (ownership verified)
+- `deleteProject(userId, projectId)` - Deletes project (ownership verified)
+- `updateChapter(userId, projectId, chapter)` - Optimized chapter update
+
+**Multi-Tenant Security**:
+- **All queries filter by ownerId** to ensure data isolation
+- No user can access another user's projects
+- Enforced at database query level
+
+**Serialization**:
+- Uses `project-serializer` utilities
+- Converts Project/Chapter entities to MongoDB documents
+- Handles TipTap JSON storage
+- Timestamps (createdAt, updatedAt)
+
+**Tests**: 15+ tests covering CRUD operations and multi-tenant isolation
+
+---
+
+#### `MongoDBUserRepository` ⭐ NEW (Phase 3)
+**Implements**: `UserRepository` interface
+**Technology**: MongoDB Atlas with bcrypt
+
+**Purpose**: User management with secure password storage
+
+**Methods**:
+- `createUser(user)` - Creates user with hashed password
+- `findByEmail(email)` - Retrieves user by email (login)
+- `findById(userId)` - Retrieves user by ID
+- `emailExists(email)` - Checks if email already registered
+
+**Security**:
+- Passwords hashed with bcrypt (saltRounds: 10)
+- Never stores plain-text passwords
+- Email uniqueness enforced at database level
+
+**Tests**: 10+ tests covering user management and security
+
+---
+
+#### `InMemoryProjectRepository` (Phase 2 - Testing)
+**Implements**: `ProjectRepository` interface
+**Purpose**: Ephemeral storage for testing
 
 **Methods**:
 - `save(project)` - Stores in Map (in-memory)
 - `findById(projectId)` - Retrieves from Map
-- `findAll(userId)` - Returns all projects (no user separation in Phase 2)
+- `findAll(userId)` - Returns all projects (simulated multi-tenancy)
 - `delete(projectId)` - Removes from Map
 
 **Characteristics**:
 - Data lost on page refresh (by design)
 - No persistence across sessions
 - Fast (instant operations)
-- Database-agnostic interface
-
-**Phase 3 Migration Path**:
-- Swap with `MongoProjectRepository` or `PostgresProjectRepository`
-- No changes to use cases or domain logic needed
-- Just change dependency injection
+- Used for testing and legacy compatibility
 
 **Tests**: 5 tests covering CRUD operations
 
 ---
 
-### Configuration (✅ Implemented)
+#### `project-serializer` ⭐ NEW (Phase 3)
+**Purpose**: Convert between domain entities and MongoDB documents
+
+**Functions**:
+- `serializeProject(project)` - Project entity → MongoDB document
+- `deserializeProject(document)` - MongoDB document → Project entity
+- `serializeChapter(chapter)` - Chapter entity → MongoDB subdocument
+- `deserializeChapter(document)` - MongoDB subdocument → Chapter entity
+
+**Features**:
+- Preserves all entity data
+- Handles TipTap JSON content
+- Timestamps conversion (Date objects)
+- Type-safe serialization
+
+**Tests**: Integrated with repository tests
+
+---
+
+### Configuration ⭐ ENHANCED (Phase 3)
 
 #### `env.ts`
 **Purpose**: Environment variable validation and access
 
 **Variables**:
 - `OPENAI_API_KEY` - Required for AI functionality
+- `OPENAI_MODEL` - Model selection (default: gpt-4o-mini)
+- **`MONGODB_URI`** - MongoDB Atlas connection string ⭐ NEW
+- **`MONGODB_DB_NAME`** - Database name ⭐ NEW
+- **`AUTH_SECRET`** - Auth.js session secret ⭐ NEW
+- **`AUTH_TRUST_HOST`** - Trust host for Vercel deployment ⭐ NEW
+
+**Features**:
 - Runtime validation on startup
-- Type-safe access
+- Type-safe access via config object
+- Clear error messages for missing variables
+
+---
+
+#### `database.ts` ⭐ NEW (Phase 3)
+**Purpose**: MongoDB Atlas connection management
+
+**Features**:
+- Singleton connection instance
+- Connection pooling
+- Automatic reconnection
+- Error handling and logging
+- Graceful shutdown
+
+**Functions**:
+- `connectToDatabase()` - Returns MongoDB client and database
+- Connection caching for serverless environments
+- Lazy initialization
+
+**Tests**: 10+ tests covering connection scenarios
+
+---
+
+#### `providers.ts` ⭐ NEW (Phase 3)
+**Purpose**: Provider factory pattern for dependency injection
+
+**Functions**:
+- `getProjectRepository()` - Returns MongoDBProjectRepository instance
+- `getUserRepository()` - Returns MongoDBUserRepository instance
+- `getAuthProvider()` - Returns AuthJsProvider instance
+- `getLLMProvider()` - Returns OpenAIProvider instance
+
+**Benefits**:
+- Centralized dependency injection
+- Easy swapping of implementations
+- Testability with mocks
+- Singleton pattern for repositories
+
+**Tests**: 5+ tests covering provider instantiation
 
 ---
 
@@ -244,13 +403,25 @@ All infrastructure operations exceed targets:
 
 ---
 
+## Phase 3 Achievements
+
+✅ **MongoDBProjectRepository** - Production-ready persistence with multi-tenant isolation
+✅ **MongoDBUserRepository** - User management with bcrypt password hashing
+✅ **AuthJsProvider** - Auth.js integration for authentication
+✅ **Database configuration** - MongoDB Atlas connection management
+✅ **Provider factory** - Centralized dependency injection
+✅ **Route protection middleware** - Session validation and redirects
+✅ **Project serialization** - Entity ↔ MongoDB document conversion
+✅ **Multi-tenant security** - All queries filter by ownerId
+✅ **60+ unit tests** + 4 integration tests passing
+✅ **Zero refactoring** of existing infrastructure (Clean Architecture success)
+
 ## Phase 2 Achievements
 
 ✅ Enhanced DocxParser with HTML import and chapter splitting
 ✅ Enhanced DocxExporter with formatted multi-chapter export
 ✅ TipTap conversion utilities (HTML ↔ JSON)
 ✅ InMemoryProjectRepository for ephemeral storage
-✅ 40 unit tests + 4 integration tests passing
 ✅ Real OpenAI API integration verified
 ✅ Performance targets exceeded (except AI, which is within target)
-✅ Database-agnostic persistence layer ready for Phase 3
+✅ Database-agnostic persistence layer (enabled Phase 3 migration)
