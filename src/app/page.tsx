@@ -17,7 +17,9 @@ import { SaveStatus } from '@/components/ui/SaveStatus';
 import { UserMenu } from '@/components/auth/UserMenu';
 import { Button } from '@/components/ui/button';
 import { Editor } from '@tiptap/react';
-import { rewriteText } from './actions';
+import { rewriteText } from './actions/rewrite-text';
+import { listProvidersAction, SafeProvider } from './actions/provider-actions';
+import { updateProjectProviderAction } from './actions/project-actions';
 
 interface Proposal {
   content: string;
@@ -44,9 +46,15 @@ function EditorContent() {
   const [rewriteLoading, setRewriteLoading] = useState(false);
   const [editor, setEditor] = useState<Editor | null>(null);
 
+  // Provider state
+  const [providers, setProviders] = useState<SafeProvider[]>([]);
+  const [providersLoading, setProvidersLoading] = useState(false);
+  const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
+
   // Track initialization to prevent infinite loop
   const initializedRef = useRef(false);
   const currentProjectIdRef = useRef<string | null>(null);
+  const providersLoadedRef = useRef<string | null>(null);
 
   // Load project on mount
   useEffect(() => {
@@ -80,15 +88,58 @@ function EditorContent() {
     }
   }, [error, router]);
 
+  // Load providers when project loads
+  useEffect(() => {
+    async function loadProviders() {
+      setProvidersLoading(true);
+      const result = await listProvidersAction();
+
+      if (result.success && result.data) {
+        setProviders(result.data);
+      }
+      setProvidersLoading(false);
+    }
+
+    // Only load providers once per project
+    if (project?.id && providersLoadedRef.current !== project.id) {
+      providersLoadedRef.current = project.id;
+      // Initialize selected provider from project
+      setSelectedProviderId(project.providerId ?? null);
+      loadProviders();
+    }
+  }, [project?.id, project?.providerId]);
+
   // Selection change handler
   const handleSelectionChange = (from: number, to: number) => {
     setSelection({ from, to });
     setHasSelection(from !== to);
   };
 
+  // Provider change handler
+  const handleProviderChange = async (providerId: string | null) => {
+    if (!project?.id) return;
+
+    // Update local state immediately for responsive UI
+    setSelectedProviderId(providerId);
+
+    // Persist to database
+    const result = await updateProjectProviderAction(project.id, providerId);
+    if (!result.success) {
+      // Revert on error
+      setSelectedProviderId(project.providerId ?? null);
+      alert(`Erreur: ${result.error}`);
+    }
+  };
+
   // Rewrite handler
   const handleRewrite = async () => {
-    if (!project?.activeChapterId) return;
+    if (!project?.id || !project.activeChapterId) return;
+
+    // Check if provider is selected
+    if (!selectedProviderId) {
+      alert('Veuillez sélectionner un fournisseur IA.');
+      return;
+    }
 
     setRewriteLoading(true);
 
@@ -97,27 +148,19 @@ function EditorContent() {
       if (!activeChapter) return;
 
       const result = await rewriteText(
+        project.id,
         activeChapter.content,
         selection.from,
         selection.to
       );
 
-      if ('error' in result) {
+      if (!result.success) {
         alert(`Erreur: ${result.error}`);
         return;
       }
 
-      setProposals(result.proposals);
+      setProposals(result.data?.map(p => ({ content: p.content, styleLabel: p.styleLabel })) || []);
       setShowProposals(true);
-
-      // Performance warning
-      if (result.duration && result.duration > 3000) {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn(
-            `⚠️ Performance target exceeded: ${result.duration.toFixed(0)}ms`
-          );
-        }
-      }
     } catch (error) {
       alert('Une erreur est survenue lors de la réécriture.');
       console.error(error);
@@ -220,6 +263,10 @@ function EditorContent() {
               hasSelection={hasSelection}
               onRewrite={handleRewrite}
               rewriteLoading={rewriteLoading}
+              providers={providers}
+              selectedProviderId={selectedProviderId}
+              onProviderChange={handleProviderChange}
+              providersLoading={providersLoading}
             />
             <DocumentControls />
             <UserMenu />

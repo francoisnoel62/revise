@@ -18,12 +18,14 @@ export function NoProvidersAlert() {
   const [isDismissed, setIsDismissed] = React.useState(false);
 
   React.useEffect(() => {
-    // Check if user has providers
+    // Check if user has valid providers
     const checkProviders = async () => {
       try {
         const result = await listProvidersAction();
         if (result.success) {
-          setHasProviders(result.data.length > 0);
+          // Check if user has at least one VALID provider
+          const validProviders = result.data.filter((p) => p.isValid);
+          setHasProviders(validProviders.length > 0);
         }
       } catch (error) {
         console.error('Failed to check providers:', error);
@@ -42,23 +44,22 @@ export function NoProvidersAlert() {
     <>
       <Alert>
         <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Configure your AI Provider</AlertTitle>
+        <AlertTitle>Configurez votre fournisseur IA</AlertTitle>
         <AlertDescription>
           <p className="mb-3">
-            You haven&apos;t configured an AI provider yet. Add your API key to start using
-            AI-powered text rewrites in your projects.
+            Vous devez configurer au moins un fournisseur IA (OpenAI, Anthropic, etc.) pour créer des projets et utiliser la réécriture de texte. Ajoutez votre clé API pour commencer.
           </p>
           <div className="flex gap-2">
             <Button size="sm" onClick={() => setDialogOpen(true)}>
               <Key className="mr-2 h-4 w-4" />
-              Add AI Provider
+              Ajouter un fournisseur
             </Button>
             <Button
               size="sm"
               variant="ghost"
               onClick={() => setIsDismissed(true)}
             >
-              Dismiss
+              Ignorer
             </Button>
           </div>
         </AlertDescription>

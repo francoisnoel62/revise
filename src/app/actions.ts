@@ -37,6 +37,7 @@ function serializeProject(project: Project): SerializedProject {
       },
     })),
     activeChapterId: project.getActiveChapterId(),
+    providerId: project.getProviderId(),
     createdAt: project.getCreatedAt().toISOString(),
     updatedAt: project.getUpdatedAt().toISOString(),
   };

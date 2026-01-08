@@ -30,6 +30,7 @@ function serializeProject(project: import('@/domain/entities/Project').Project):
       },
     })),
     activeChapterId: project.getActiveChapterId(),
+    providerId: project.getProviderId(),
     createdAt: project.getCreatedAt().toISOString(),
     updatedAt: project.getUpdatedAt().toISOString(),
   };

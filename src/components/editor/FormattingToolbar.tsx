@@ -23,12 +23,18 @@ import {
   AlignJustify,
   IndentIncrease,
 } from 'lucide-react';
+import { ProviderSelect } from './ProviderSelect';
+import { SafeProvider } from '@/app/actions/provider-actions';
 
 interface FormattingToolbarProps {
   editor: Editor | null;
   hasSelection?: boolean;
   onRewrite?: () => void;
   rewriteLoading?: boolean;
+  providers?: SafeProvider[];
+  selectedProviderId?: string | null;
+  onProviderChange?: (providerId: string | null) => void;
+  providersLoading?: boolean;
 }
 
 export function FormattingToolbar({
@@ -36,6 +42,10 @@ export function FormattingToolbar({
   hasSelection = false,
   onRewrite,
   rewriteLoading = false,
+  providers = [],
+  selectedProviderId = null,
+  onProviderChange,
+  providersLoading = false,
 }: FormattingToolbarProps) {
   if (!editor) return null;
 
@@ -190,16 +200,30 @@ export function FormattingToolbar({
       </div>
 
       {onRewrite && (
-        <Button
-          variant={hasSelection ? 'default' : 'ghost'}
-          size="sm"
-          onClick={onRewrite}
-          disabled={!hasSelection || rewriteLoading}
-          title="Réécrire la sélection"
-          className="ml-auto"
-        >
-          {rewriteLoading ? 'Génération...' : 'Réécrire'}
-        </Button>
+        <div className="flex items-center gap-2 ml-auto">
+          <Button
+            variant={hasSelection && selectedProviderId ? 'default' : 'ghost'}
+            size="sm"
+            onClick={onRewrite}
+            disabled={!hasSelection || rewriteLoading || !selectedProviderId}
+            title={
+              !selectedProviderId
+                ? 'Configurez un fournisseur IA dans votre profil'
+                : 'Réécrire la sélection'
+            }
+          >
+            {rewriteLoading ? 'Génération...' : 'Réécrire'}
+          </Button>
+          {onProviderChange && (
+            <ProviderSelect
+              providers={providers}
+              selectedProviderId={selectedProviderId}
+              onSelect={onProviderChange}
+              disabled={rewriteLoading}
+              loading={providersLoading}
+            />
+          )}
+        </div>
       )}
     </div>
   );

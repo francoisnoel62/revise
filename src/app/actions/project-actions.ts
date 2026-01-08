@@ -21,6 +21,7 @@ export interface SerializedProject {
   title: string;
   chapters: SerializedChapter[];
   activeChapterId: string | null;
+  providerId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -56,6 +57,7 @@ function serializeProject(project: Project): SerializedProject {
     title: project.getTitle(),
     chapters: project.getChapters().map(serializeChapter),
     activeChapterId: project.getActiveChapterId(),
+    providerId: project.getProviderId(),
     createdAt: project.getCreatedAt().toISOString(),
     updatedAt: project.getUpdatedAt().toISOString(),
   };
@@ -102,9 +104,20 @@ export async function createProjectAction(
   if ('error' in auth) return auth.error;
 
   return withErrorHandling(async () => {
+    const providerRepo = await getProviderRepository();
+
+    // Check if user has at least one valid provider configured
+    const providers = await providerRepo.listProviders(auth.userId);
+    const validProviders = providers.filter((p) => p.isValidProvider());
+
+    if (validProviders.length === 0) {
+      throw new Error(
+        'Vous devez configurer au moins un fournisseur IA avant de créer un projet. Rendez-vous dans "Mon profil" > "Mes fournisseurs".'
+      );
+    }
+
     // Validate provider if provided
     if (providerId) {
-      const providerRepo = await getProviderRepository();
       const provider = await providerRepo.findById(auth.userId, providerId);
 
       if (!provider) {
