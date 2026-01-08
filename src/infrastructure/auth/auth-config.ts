@@ -95,5 +95,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
   secret: config.auth.secret,
-  trustHost: config.auth.trustHost,
+  // Only pass trustHost if explicitly set; otherwise let Auth.js auto-detect (Vercel)
+  ...(config.auth.trustHost !== undefined && { trustHost: config.auth.trustHost }),
 });

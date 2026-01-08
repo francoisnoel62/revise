@@ -34,7 +34,6 @@ function EditorContent() {
     isLoading,
     error,
     loadProject,
-    createProject,
   } = useProjectStore();
 
   // UI state for proposals
@@ -62,15 +61,11 @@ function EditorContent() {
         currentProjectIdRef.current = projectId;
         initializedRef.current = true;
         await loadProject(projectId);
-      } else if (!project && !initializedRef.current) {
-        // Create new project if none loaded
+      } else if (!initializedRef.current) {
+        // No project ID in URL - redirect to dashboard
+        // Users should select/create projects from dashboard, not auto-create here
         initializedRef.current = true;
-        const newProjectId = await createProject();
-        if (newProjectId) {
-          currentProjectIdRef.current = newProjectId;
-          // Update URL with project ID
-          router.replace(`/?project=${newProjectId}`);
-        }
+        router.replace('/dashboard');
       }
     }
 

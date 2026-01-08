@@ -12,7 +12,8 @@ export const config = {
   },
   auth: {
     secret: process.env.AUTH_SECRET || '',
-    trustHost: process.env.AUTH_TRUST_HOST === 'true',
+    // Let Auth.js auto-detect on Vercel; only override if explicitly set to 'false'
+    trustHost: process.env.AUTH_TRUST_HOST !== 'false' ? undefined : false,
   },
 } as const;
 
