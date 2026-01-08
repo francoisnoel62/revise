@@ -276,7 +276,7 @@ function EditorContent() {
 
       {/* A4 width editor container (794px = 210mm) */}
       <div className="flex justify-center py-8">
-        <div className="w-[794px]">
+        <div className="w-198.5">
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
             <TextEditor
               onSelectionChange={handleSelectionChange}
