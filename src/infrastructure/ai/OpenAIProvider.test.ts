@@ -37,11 +37,11 @@ describe('OpenAIProvider', () => {
           message: {
             content: JSON.stringify({
               proposals: [
-                { content: 'First variant', styleLabel: 'formal' },
-                { content: 'Second variant', styleLabel: 'casual' },
-                { content: 'Third variant', styleLabel: 'concise' },
-                { content: 'Fourth variant', styleLabel: 'elaborate' },
-                { content: 'Fifth variant', styleLabel: 'poetic' },
+                { content: 'First variant', styleLabel: 'épuré' },
+                { content: 'Second variant', styleLabel: 'lyrique' },
+                { content: 'Third variant', styleLabel: 'nerveux' },
+                { content: 'Fourth variant', styleLabel: 'baroque' },
+                { content: 'Fifth variant', styleLabel: 'amplifié' },
               ],
             }),
           },
@@ -55,7 +55,7 @@ describe('OpenAIProvider', () => {
     expect(result).toHaveLength(5);
     expect(result[0]).toBeInstanceOf(RewriteProposal);
     expect(result[0].content).toBe('First variant');
-    expect(result[0].styleLabel).toBe('formal');
+    expect(result[0].styleLabel).toBe('épuré');
   });
 
   it('should pass selected text in prompt', async () => {

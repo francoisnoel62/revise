@@ -22,17 +22,45 @@ vi.mock('./utils', () => ({
   }),
 }));
 
+// Mock the provider repository
+vi.mock('@/infrastructure/config/providers', () => ({
+  getProviderRepository: vi.fn(),
+}));
+
 import { getAuthenticatedUserId, getRepository } from './utils';
+import { getProviderRepository } from '@/infrastructure/config/providers';
 import { InMemoryProjectRepository } from '@/infrastructure/persistence/InMemoryProjectRepository';
 import { Project } from '@/domain/entities/Project';
+import { Provider } from '@/domain/entities/Provider';
 
 describe('project-actions', () => {
   let mockRepository: InMemoryProjectRepository;
+  let mockProviderRepository: {
+    listProviders: ReturnType<typeof vi.fn>;
+    findById: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockRepository = new InMemoryProjectRepository();
     vi.mocked(getRepository).mockResolvedValue(mockRepository);
+
+    // Create a valid provider for tests
+    const validProvider = Provider.create(
+      'user-123',
+      'Test Provider',
+      'openai',
+      'sk-test-key',
+      'gpt-4o'
+    );
+    validProvider.markAsValid();
+
+    // Mock provider repository
+    mockProviderRepository = {
+      listProviders: vi.fn().mockResolvedValue([validProvider]),
+      findById: vi.fn().mockResolvedValue(validProvider),
+    };
+    vi.mocked(getProviderRepository).mockResolvedValue(mockProviderRepository as never);
   });
 
   describe('createProjectAction', () => {

@@ -8,11 +8,11 @@ import { ProposalsPanel } from './ProposalsPanel';
 
 describe('ProposalsPanel', () => {
   const mockProposals = [
-    { content: 'First proposal', styleLabel: 'formal' },
-    { content: 'Second proposal', styleLabel: 'casual' },
-    { content: 'Third proposal', styleLabel: 'concise' },
-    { content: 'Fourth proposal', styleLabel: 'elaborate' },
-    { content: 'Fifth proposal', styleLabel: 'neutral' },
+    { content: 'First proposal', styleLabel: 'épuré' },
+    { content: 'Second proposal', styleLabel: 'lyrique' },
+    { content: 'Third proposal', styleLabel: 'nerveux' },
+    { content: 'Fourth proposal', styleLabel: 'baroque' },
+    { content: 'Fifth proposal', styleLabel: 'amplifié' },
   ];
 
   it('should not render when proposals are empty', () => {
@@ -57,9 +57,9 @@ describe('ProposalsPanel', () => {
       />
     );
 
-    expect(screen.getByText('formal')).toBeInTheDocument();
-    expect(screen.getByText('casual')).toBeInTheDocument();
-    expect(screen.getByText('concise')).toBeInTheDocument();
+    expect(screen.getByText('épuré')).toBeInTheDocument();
+    expect(screen.getByText('lyrique')).toBeInTheDocument();
+    expect(screen.getByText('nerveux')).toBeInTheDocument();
   });
 
   it('should call onInsert when insert button is clicked', async () => {
