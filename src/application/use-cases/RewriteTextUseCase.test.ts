@@ -19,6 +19,18 @@ class MockLLMProvider implements LLMProvider {
   async generateRewrites(_text: string, _context?: string): Promise<RewriteProposal[]> {
     return this.mockProposals;
   }
+
+  async testConnection() {
+    return { valid: true };
+  }
+
+  getProviderName() {
+    return 'Mock';
+  }
+
+  getModel() {
+    return 'mock-model';
+  }
 }
 
 describe('RewriteTextUseCase', () => {
@@ -65,6 +77,15 @@ describe('RewriteTextUseCase', () => {
           new RewriteProposal('Hey!'),
         ];
       },
+      async testConnection() {
+        return { valid: true };
+      },
+      getProviderName() {
+        return 'Custom';
+      },
+      getModel() {
+        return 'custom-model';
+      },
     };
     const customUseCase = new RewriteTextUseCase(customProvider);
 
@@ -88,6 +109,15 @@ describe('RewriteTextUseCase', () => {
           new RewriteProposal('tawny'),
           new RewriteProposal('russet'),
         ];
+      },
+      async testConnection() {
+        return { valid: true };
+      },
+      getProviderName() {
+        return 'Custom';
+      },
+      getModel() {
+        return 'custom-model';
       },
     };
     const customUseCase = new RewriteTextUseCase(customProvider);
@@ -113,6 +143,15 @@ describe('RewriteTextUseCase', () => {
     const failingProvider: LLMProvider = {
       async generateRewrites() {
         throw new Error('API unavailable');
+      },
+      async testConnection() {
+        return { valid: true };
+      },
+      getProviderName() {
+        return 'Failing';
+      },
+      getModel() {
+        return 'failing-model';
       },
     };
     const failingUseCase = new RewriteTextUseCase(failingProvider);

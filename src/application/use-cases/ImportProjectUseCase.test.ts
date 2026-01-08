@@ -33,7 +33,7 @@ describe('ImportProjectUseCase', () => {
 
   beforeEach(() => {
     mockParser = new MockDocumentParser();
-    useCase = new ImportProjectUseCase(mockParser);
+    useCase = new ImportProjectUseCase(mockParser, undefined);
   });
 
   const createMockChapter = (id: string, title: string, order: number): Chapter => {
@@ -105,10 +105,10 @@ describe('ImportProjectUseCase', () => {
         return true;
       },
     };
-    const failingUseCase = new ImportProjectUseCase(failingParser);
+    const failingUseCase = new ImportProjectUseCase(failingParser, undefined);
 
     await expect(async () => {
-      await failingUseCase.execute(Buffer.from('data'), 'file.docx');
+      await failingUseCase.execute(Buffer.from('data'), 'file.docx', undefined);
     }).rejects.toThrow('Corrupted file');
   });
 

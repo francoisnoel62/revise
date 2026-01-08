@@ -2,7 +2,7 @@
 
 An ultra-minimalist AI-assisted writing tool for multi-chapter documents. Focus on one high-value action: instant text rewriting without breaking creative flow.
 
-**Status**: MVP Phase 3 Complete ✅ (Comprehensive test coverage with MongoDB persistence and Auth.js authentication)
+**Status**: MVP Phase 3.5 Complete ✅ (MongoDB persistence, Auth.js authentication, and multi-provider AI management)
 
 ## Core Value Proposition
 
@@ -12,6 +12,17 @@ This is **not** a chat AI or verbose assistant. It's a production tool designed 
 
 ## Key Features
 
+### Phase 3.5: AI Provider Management ✅ (NEW - January 2026)
+
+- **Multiple AI Providers**: Support for OpenAI, Anthropic, Mistral, Cohere, and Google
+- **Encrypted Credentials**: API keys stored with AES-256-GCM encryption in MongoDB
+- **Per-Project Provider**: Select which AI provider to use for each project
+- **Connection Testing**: Test provider credentials before saving with rate limiting
+- **Provider Management UI**: Intuitive dialog for creating, editing, and deleting providers
+- **Dashboard Alerts**: Automatic notification when no providers are configured
+- **Secure Handling**: API keys never sent to client (masked display only)
+- **Centralized Configuration**: Model options managed per provider
+
 ### Phase 3: Persistence & User Authentication ✅
 
 - **User Authentication**: Secure sign-in/sign-up with Auth.js (email/password)
@@ -19,7 +30,7 @@ This is **not** a chat AI or verbose assistant. It's a production tool designed 
 - **Dashboard**: Manage multiple projects - create, rename, delete with intuitive UI
 - **Session Management**: Resume work across sessions with automatic project loading
 - **Auto-Save to Database**: Changes automatically saved to MongoDB after 1 second
-- **User Menu**: Profile management and sign-out functionality
+- **User Menu**: Profile management with provider access and sign-out functionality
 
 ### Phase 2.5: A4 Page Styling & Advanced Typography ✅
 
@@ -51,7 +62,7 @@ This is **not** a chat AI or verbose assistant. It's a production tool designed 
 ### Prerequisites
 
 - Node.js 18+
-- OpenAI API key
+- AI Provider API key (OpenAI, Anthropic, Mistral, Cohere, or Google)
 - MongoDB Atlas account (free tier available)
 
 ### Installation
@@ -65,9 +76,13 @@ npm install
 Create a `.env.local` file:
 
 ```env
-# OpenAI API (required for AI rewriting)
+# AI Provider (OPTIONAL - can be configured via UI after sign-up)
+# If provided, will be used as fallback when user has no providers configured
 OPENAI_API_KEY=sk-your-api-key-here
 OPENAI_MODEL=gpt-4o-mini
+
+# Encryption (required for API key encryption)
+ENCRYPTION_KEY=your-random-32-character-encryption-key-here
 
 # MongoDB Atlas (required for persistence)
 MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/?retryWrites=true&w=majority
@@ -80,15 +95,23 @@ AUTH_TRUST_HOST=true
 
 **Setup Instructions**:
 
-1. **OpenAI API**: Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys)
+1. **AI Provider** (Optional - can be configured via UI):
+   - **Via UI** (Recommended): Sign up, then use "My Providers" in user menu to add your API key
+   - **Via Environment Variable**: Set `OPENAI_API_KEY` as fallback
+   - Get API keys from: [OpenAI](https://platform.openai.com/api-keys), [Anthropic](https://console.anthropic.com/), [Mistral](https://console.mistral.ai/), [Cohere](https://dashboard.cohere.com/), or [Google AI](https://makersuite.google.com/app/apikey)
 
-2. **MongoDB Atlas**:
+2. **Encryption Key** (Required):
+   - Generate a random 32+ character key: `openssl rand -base64 32`
+   - This key encrypts provider API keys in the database
+   - **CRITICAL**: Keep this secure - losing it means losing access to encrypted credentials
+
+3. **MongoDB Atlas**:
    - Create a free account at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
    - Create a new cluster (M0 free tier is sufficient)
    - Get your connection string and replace `user:password` with your credentials
    - Set `MONGODB_DB_NAME` to your preferred database name
 
-3. **Auth.js Secret**:
+4. **Auth.js Secret**:
    - Generate a random 32+ character secret: `openssl rand -base64 32`
    - Or use any random string generator
    - Set `AUTH_TRUST_HOST=true` for Vercel deployments
@@ -120,30 +143,40 @@ npm start
    - Session persists across browser sessions
    - Automatic redirect to dashboard
 
-3. **Dashboard** - Manage your projects
+3. **Configure AI Provider** (first time only)
+   - Dashboard shows alert if no providers configured
+   - Click "Add AI Provider" or use user menu → "My Providers"
+   - Enter provider name, select type (OpenAI/Anthropic/Mistral/Cohere/Google)
+   - Enter your API key and select model
+   - Click "Test Connection" to verify (rate limited: 1 test per 5 seconds)
+   - Save provider - API key encrypted with AES-256-GCM in MongoDB
+
+4. **Dashboard** - Manage your projects
    - View all your projects in card format
    - Click "Créer un projet" to create a new project
    - Click edit icon to rename a project
    - Click delete icon to remove a project (with confirmation)
    - Click a project card to open it in the editor
+   - Alert shown if no AI providers configured
 
-4. **Editor** - Work on your project
+5. **Editor** - Work on your project
    - Project automatically loads from database
    - Changes auto-save to MongoDB after 1 second
    - Visual save status indicator in UI
+   - Project uses configured AI provider (or environment variable fallback)
 
-5. **Import a document** (optional) - Click "Importer" and select your `.docx` file
+6. **Import a document** (optional) - Click "Importer" and select your `.docx` file
    - Documents automatically split by H1 headings
    - Formatting and typography preserved
 
-6. **Navigate chapters** - Toggle the Switch (top left) to open the chapters panel
+7. **Navigate chapters** - Toggle the Switch (top left) to open the chapters panel
    - Add new chapters with "Nouveau chapitre"
    - Drag & drop to reorder
    - Click to switch chapters (auto-saves current content)
    - Double-click chapter title to rename inline
    - Delete chapters (except the last one)
 
-7. **Edit your text** - Use the A4-styled rich text editor with formatting toolbar
+8. **Edit your text** - Use the A4-styled rich text editor with formatting toolbar
    - **Bold**: Ctrl+B
    - **Italic**: Ctrl+I
    - **Underline**: Ctrl+U
@@ -155,25 +188,32 @@ npm start
    - **First-line indent**: Toggle button
    - Undo/redo: Ctrl+Z / Ctrl+Shift+Z
 
-8. **Select text to rewrite** - Highlight any text block
+9. **Select text to rewrite** - Highlight any text block
    - "Réécrire" button in toolbar becomes enabled
 
-9. **Click "Réécrire"** - AI generates 5 distinct, language-preserving proposals
+10. **Click "Réécrire"** - AI generates 5 distinct, language-preserving proposals
    - Proposals appear in right panel
    - Each shows style variation
    - Proposals maintain formatting
 
-10. **Choose a proposal** - Click "Insérer" on your preferred variant
+11. **Choose a proposal** - Click "Insérer" on your preferred variant
     - Selected text is replaced
     - Panel automatically closes
     - Change auto-saved to database
 
-11. **Export when done** - Click "Exporter" to download all chapters as `.docx`
+12. **Export when done** - Click "Exporter" to download all chapters as `.docx`
     - Chapters separated by page breaks
     - Full formatting and typography preserved
     - Works as backup or for external sharing
 
-12. **Sign out** - Click user menu (top right) and select "Sign out"
+13. **Manage Providers** - Access via user menu → "My Providers"
+    - View all configured AI providers
+    - Add new providers
+    - Edit existing providers (update name, model, or API key)
+    - Test connections
+    - Delete providers (if not used by projects)
+
+14. **Sign out** - Click user menu (top right) and select "Sign out"
 
 **Note**: All changes are automatically saved to MongoDB Atlas. Your projects persist across sessions and devices.
 
@@ -183,16 +223,17 @@ npm start
 - **Rendering**: React 19 with Server Components
 - **Database**: MongoDB Atlas with official Node.js driver
 - **Authentication**: Auth.js (NextAuth v5) with email/password credentials
-- **User Management**: bcrypt for secure password hashing
+- **User Management**: bcrypt for secure password hashing (12 rounds)
+- **Encryption**: AES-256-GCM for API key encryption at rest
 - **Editor**: TipTap 3.14.0 with rich text and typography extensions
-- **UI Components**: shadcn/ui + Radix UI (Sheet, Button, ScrollArea, Switch, Card, Dialog, Input, Label)
+- **UI Components**: shadcn/ui + Radix UI (Sheet, Button, ScrollArea, Switch, Card, Dialog, Input, Label, Select, Combobox, PasswordInput)
 - **State Management**: Zustand for project/chapter state (server-backed)
 - **Drag & Drop**: @dnd-kit for chapter reordering
 - **Styling**: Tailwind CSS v4 + A4 page styling
 - **Document Parsing**: mammoth (HTML conversion)
 - **Document Export**: docx library (with full typography support)
-- **AI Provider**: OpenAI API (GPT-4o-mini)
-- **Testing**: Vitest + React Testing Library + Playwright
+- **AI Providers**: OpenAI, Anthropic, Mistral, Cohere, Google (multi-provider support)
+- **Testing**: Vitest + React Testing Library + Playwright (316 passing tests)
 - **Architecture**: Clean Architecture principles with clear layer separation
 
 ## Architecture
@@ -202,10 +243,10 @@ The project follows Clean Architecture adapted to Next.js with complete test cov
 ```
 src/
 ├── domain/              Pure business logic (entities, value objects, interfaces)
-│   ├── entities/        Chapter, Project, User, TextDocument
+│   ├── entities/        Chapter, Project, Provider, User, TextDocument
 │   ├── value-objects/   TextSelection, RewriteProposal
 │   └── interfaces/      LLMProvider, DocumentParser, DocumentExporter,
-│                        ProjectRepository, UserRepository, AuthProvider
+│                        ProjectRepository, ProviderRepository, UserRepository, AuthProvider
 │
 ├── application/         Use cases orchestrating domain logic
 │   └── use-cases/       ImportProject, ExportProject, SwitchChapter, AddChapter,
@@ -216,9 +257,12 @@ src/
 │   ├── ai/             OpenAIProvider (GPT-4o-mini)
 │   ├── auth/           AuthJsProvider, auth-config
 │   ├── document/       DocxParser, DocxExporter, TipTap converters
-│   ├── persistence/    MongoDBProjectRepository, MongoDBUserRepository,
-│                       InMemoryProjectRepository (testing), serialization utils
-│   ├── config/         Environment config, database connection, provider factory
+│   ├── encryption/     AES-256-GCM utilities for API key encryption
+│   ├── persistence/    MongoDBProjectRepository, MongoDBProviderRepository,
+│                       MongoDBUserRepository, InMemoryProjectRepository (testing),
+│                       serialization utils (project, provider)
+│   ├── config/         Environment config, database connection, provider factory,
+│                       centralized AI models configuration
 │   └── middleware.ts   Route protection middleware
 │
 ├── store/              Zustand state management
@@ -228,14 +272,16 @@ src/
     ├── page.tsx        Editor page (main interface)
     ├── dashboard/      Dashboard page for project management
     ├── auth/           Sign-in and sign-up pages
-    ├── actions/        Server Actions (project, chapter, auth, import/export)
+    ├── actions/        Server Actions (project, chapter, auth, provider, rate-limiter, import/export)
     ├── components/     React UI components
-    │   ├── auth/       UserMenu
+    │   ├── auth/       UserMenu (with provider access)
+    │   ├── dashboard/  NoProvidersAlert
     │   ├── editor/     TextEditor, FormattingToolbar (with typography controls)
     │   ├── navigation/ ChaptersSheet (with drag & drop, inline editing)
     │   ├── proposals/  ProposalsSheet
+    │   ├── providers/  ProvidersDialog, ProviderForm, ProviderCard
     │   ├── document/   DocumentControls, ProjectCard, EmptyState, SaveStatus
-    │   └── ui/         shadcn/ui components
+    │   └── ui/         shadcn/ui components (+ PasswordInput)
     ├── hooks/          useAutosave (1-second debounce)
     └── lib/            UI utilities
 ```
@@ -248,7 +294,7 @@ src/
 - **Interface**: Uses Application use cases
 - **Store**: Calls Application use cases (no business logic)
 
-This strict layering enabled Phase 3 to add persistence and authentication without refactoring existing code. The repository pattern allows swapping between `InMemoryProjectRepository` (testing) and `MongoDBProjectRepository` (production) seamlessly.
+This strict layering enabled Phase 3 to add persistence and authentication, and Phase 3.5 to add provider management, without refactoring existing code. The repository pattern allows swapping implementations seamlessly (e.g., `InMemoryProjectRepository` for testing, `MongoDBProjectRepository` for production).
 
 ## Performance
 
@@ -275,38 +321,45 @@ npm run test:e2e             # Run end-to-end tests with Playwright (setup ready
 
 ### Test Coverage
 
-**Comprehensive test coverage** across all layers:
-- **Domain Layer**: 45+ tests - 97%+ coverage
-  - Chapter, Project, User entities
+**Comprehensive test coverage** across all layers (316 passing + 13 skipped):
+- **Domain Layer**: 49 tests - 97%+ coverage
+  - Chapter, Project, Provider, User entities
   - TextSelection, RewriteProposal value objects
-- **Application Layer**: 39+ tests - 100% coverage
+  - Provider entity with encryption validation
+- **Application Layer**: 39 tests - 100% coverage
   - All use cases thoroughly tested
-- **Infrastructure Layer**: 50+ tests
+- **Infrastructure Layer**: 50 tests
   - DocxParser: 4 tests
   - DocxExporter: 7 tests
   - TipTap conversion: 14 tests
-  - OpenAI integration: 4 tests (real API)
-  - MongoDBUserRepository: 10+ tests
-  - AuthJsProvider: 10+ tests
-  - Repository: 5+ tests
-- **Interface Layer**: 70+ tests
-  - TextEditor: 8 tests (A4 styling, typography)
+  - OpenAI integration: 4 tests (real API, 1 conditionally skipped)
+  - Encryption: 6 tests (AES-256-GCM)
+  - MongoDBProviderRepository: 5 tests (CRUD + encryption)
+  - MongoDBUserRepository: 5 tests
+  - Repository: 5 tests
+- **Interface Layer**: 71 tests
+  - TextEditor: 8 tests (3 skipped - TipTap async rendering)
   - FormattingToolbar: 9 tests
-  - ChaptersSheet: 11 tests (drag & drop)
+  - ChaptersSheet: 11 tests (10 skipped - Radix UI portal issues)
   - ProposalsSheet: 10 tests
-  - ProjectCard: 15+ tests (dashboard)
-  - Dashboard page: 12+ tests
-  - Auth pages: 10+ tests
+  - Provider components: 15 tests (ProvidersDialog, ProviderForm, ProviderCard)
+  - Dashboard components: 6 tests (NoProvidersAlert, ProjectCard)
   - DocumentControls: 3 tests
-- **Store**: 12+ tests (server-backed state)
-- **Server Actions**: 30+ tests (mocked dependencies)
-- **Integration**: 2+ tests (full workflow)
+  - Other components: 8 tests
+- **Server Actions**: 13 tests (auth, provider, project operations)
+- **Store**: 12 tests (server-backed state)
+- **Integration**: 2 tests (full workflow)
 - **Performance**: 6 tests (all targets exceeded)
 
 **Overall Coverage**: 68%+
 - Critical paths: 90%+ coverage
 - Domain logic: 97%+ coverage
 - Application logic: 100% coverage
+
+**Skipped Tests** (with documented reasons):
+- 3 TextEditor tests (TipTap async rendering)
+- 10 ChaptersSheet tests (Radix UI Sheet portal issues)
+- 1 OpenAI integration test (conditional skip without API key)
 
 ## AI Prompting
 
@@ -322,11 +375,11 @@ The prompt is a critical product component (see `src/infrastructure/ai/OpenAIPro
 
 ## Project Scope
 
-### Phase 3 Complete ✅
+### Phase 3.5 Complete ✅
 
-**Persistence & User Authentication** is fully implemented with MongoDB Atlas and Auth.js.
+**Persistence, User Authentication & AI Provider Management** are fully implemented with MongoDB Atlas, Auth.js, and encrypted multi-provider configuration.
 
-**Implemented**:
+**Phase 3 Implemented**:
 - MongoDB Atlas persistence with multi-tenant isolation
 - User authentication (email/password with bcrypt)
 - Dashboard for project management (create, rename, delete)
@@ -335,6 +388,16 @@ The prompt is a critical product component (see `src/infrastructure/ai/OpenAIPro
 - Auto-save to database (1-second debounce)
 - Route protection middleware
 - Sign-in/sign-up pages
+
+**Phase 3.5 Implemented** (NEW - January 2026):
+- Multiple AI provider support (OpenAI, Anthropic, Mistral, Cohere, Google)
+- AES-256-GCM encryption for API keys at rest
+- Provider CRUD with multi-tenant isolation
+- Connection testing with rate limiting (1 test per 5 seconds)
+- Per-project provider selection
+- ProvidersDialog UI with create/edit/delete/test capabilities
+- Dashboard alerts for missing providers
+- Centralized model configuration per provider
 
 ### Current Limitations (By Design)
 
@@ -391,4 +454,4 @@ Built with:
 
 ---
 
-**Phase 3 Complete** - Multi-chapter architecture with MongoDB persistence, user authentication, and dashboard project management is production-ready.
+**Phase 3.5 Complete** - Multi-chapter architecture with MongoDB persistence, user authentication, AI provider management, and encrypted credential storage is production-ready.

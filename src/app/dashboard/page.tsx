@@ -9,6 +9,7 @@ import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProjectCard } from '@/components/dashboard/ProjectCard';
 import { EmptyState } from '@/components/dashboard/EmptyState';
+import { NoProvidersAlert } from '@/components/dashboard/NoProvidersAlert';
 import { ProjectListItem, listProjectsAction, createProjectAction } from '@/app/actions/project-actions';
 
 export default function DashboardPage() {
@@ -108,6 +109,11 @@ export default function DashboardPage() {
             {error}
           </div>
         )}
+
+        {/* No Providers Alert */}
+        <div className="mb-6">
+          <NoProvidersAlert />
+        </div>
 
         {projects.length === 0 ? (
           <EmptyState onCreateProject={handleCreateProject} isCreating={isCreating} />

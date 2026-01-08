@@ -43,6 +43,8 @@ describe('FormattingToolbar', () => {
         })
       })),
       chain: vi.fn(() => createMockChain()),
+      view: {}, // Add view property so component renders
+      isDestroyed: false, // Add isDestroyed property
     } as unknown as Editor;
   };
 

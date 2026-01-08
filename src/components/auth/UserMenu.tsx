@@ -3,6 +3,7 @@
 
 'use client';
 
+import * as React from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import {
@@ -14,11 +15,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { LogOut, FolderOpen } from 'lucide-react';
+import { LogOut, FolderOpen, Key } from 'lucide-react';
+import { ProvidersDialog } from '@/components/providers/ProvidersDialog';
 
 export function UserMenu() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [providersDialogOpen, setProvidersDialogOpen] = React.useState(false);
 
   if (status === 'loading') {
     return (
@@ -67,12 +70,20 @@ export function UserMenu() {
           <FolderOpen className="mr-2 h-4 w-4" />
           My Projects
         </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setProvidersDialogOpen(true)}>
+          <Key className="mr-2 h-4 w-4" />
+          My Providers
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
           <LogOut className="mr-2 h-4 w-4" />
           Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>
+      <ProvidersDialog
+        open={providersDialogOpen}
+        onOpenChange={setProvidersDialogOpen}
+      />
     </DropdownMenu>
   );
 }

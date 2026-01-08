@@ -42,6 +42,7 @@ export class ImportProjectUseCase {
           this.extractProjectTitle(filename),
           chapters,
           chapters[0]?.getId() ?? null,
+          null, // providerId
           new Date(),
           new Date()
         );

@@ -18,6 +18,8 @@ describe('TextEditor', () => {
     });
   };
 
+  // Note: Skipping this test because TipTap's text rendering is async and the content
+  // isn't immediately available in the DOM. Would require more complex setup/waiting.
   it.skip('should render editor with initial content', async () => {
     const onContentChange = vi.fn();
     const onSelectionChange = vi.fn();
@@ -71,6 +73,7 @@ describe('TextEditor', () => {
     expect(editor).toHaveAttribute('contenteditable', 'true');
   });
 
+  // Note: Skipping this test because TipTap's text rendering is async
   it.skip('should update content when prop changes', async () => {
     const onContentChange = vi.fn();
     const onSelectionChange = vi.fn();
@@ -133,6 +136,7 @@ describe('TextEditor', () => {
     expect(onEditorReady).toHaveBeenCalled();
   });
 
+  // Note: Skipping this test because TipTap's text rendering is async
   it.skip('should render bold text correctly', async () => {
     const onContentChange = vi.fn();
     const onSelectionChange = vi.fn();

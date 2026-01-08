@@ -150,6 +150,7 @@ export async function exportProjectLegacy(
       'Export',
       chapters,
       projectData.activeChapterId,
+      null, // providerId
       new Date(),
       new Date()
     );

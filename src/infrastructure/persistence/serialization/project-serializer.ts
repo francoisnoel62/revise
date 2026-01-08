@@ -13,6 +13,7 @@ export interface ProjectDocument {
   title: string;
   chapters: ChapterDocument[];
   activeChapterId: string | null;
+  providerId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -42,6 +43,7 @@ export function serializeProject(project: Project): ProjectDocument {
     title: project.getTitle(),
     chapters: project.getChapters().map(serializeChapter),
     activeChapterId: project.getActiveChapterId(),
+    providerId: project.getProviderId(),
     createdAt: project.getCreatedAt(),
     updatedAt: project.getUpdatedAt(),
   };
@@ -74,6 +76,7 @@ export function deserializeProject(doc: ProjectDocument): Project {
     doc.title,
     chapters,
     doc.activeChapterId,
+    doc.providerId ?? null,
     new Date(doc.createdAt),
     new Date(doc.updatedAt)
   );

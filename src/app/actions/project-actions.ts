@@ -5,6 +5,7 @@
 
 import { Project } from '@/domain/entities/Project';
 import { Chapter } from '@/domain/entities/Chapter';
+import { getProviderRepository } from '@/infrastructure/config/providers';
 import {
   ActionResult,
   getAuthenticatedUserId,
@@ -89,16 +90,40 @@ function serializeProjectListItem(project: Project): ProjectListItem {
 
 /**
  * Create a new empty project.
+ *
+ * @param title Optional project title
+ * @param providerId Optional provider ID for AI operations
  */
 export async function createProjectAction(
-  title?: string
+  title?: string,
+  providerId?: string
 ): Promise<ActionResult<SerializedProject>> {
   const auth = await getAuthenticatedUserId();
   if ('error' in auth) return auth.error;
 
   return withErrorHandling(async () => {
+    // Validate provider if provided
+    if (providerId) {
+      const providerRepo = await getProviderRepository();
+      const provider = await providerRepo.findById(auth.userId, providerId);
+
+      if (!provider) {
+        throw new Error('Provider not found');
+      }
+
+      if (!provider.isValidProvider()) {
+        throw new Error('Selected provider is not valid. Please test the connection first.');
+      }
+    }
+
     const repository = await getRepository();
     const project = Project.createEmpty(auth.userId, title || 'Nouveau projet');
+
+    // Set provider if provided
+    if (providerId) {
+      project.setProviderId(providerId);
+    }
+
     await repository.createProject(auth.userId, project);
     return serializeProject(project);
   });
@@ -175,6 +200,52 @@ export async function updateProjectTitleAction(
 
     project.updateTitle(title);
     await repository.updateProject(auth.userId, project);
+    return serializeProject(project);
+  });
+}
+
+/**
+ * Update a project's provider.
+ *
+ * @param projectId The project ID to update
+ * @param providerId The new provider ID (or null to clear)
+ * @returns Action result with updated project or error
+ */
+export async function updateProjectProviderAction(
+  projectId: string,
+  providerId: string | null
+): Promise<ActionResult<SerializedProject>> {
+  const auth = await getAuthenticatedUserId();
+  if ('error' in auth) return auth.error;
+
+  return withErrorHandling(async () => {
+    // 1. Validate provider if provided
+    if (providerId) {
+      const providerRepo = await getProviderRepository();
+      const provider = await providerRepo.findById(auth.userId, providerId);
+
+      if (!provider) {
+        throw new Error('Provider not found');
+      }
+
+      // Note: We don't check isValid here - user can select invalid provider
+      // and fix it later. This provides flexibility.
+    }
+
+    // 2. Load project
+    const repository = await getRepository();
+    const project = await repository.loadProject(auth.userId, projectId);
+
+    if (!project) {
+      throw new Error('Project not found');
+    }
+
+    // 3. Update provider
+    project.setProviderId(providerId);
+
+    // 4. Persist changes
+    await repository.updateProject(auth.userId, project);
+
     return serializeProject(project);
   });
 }

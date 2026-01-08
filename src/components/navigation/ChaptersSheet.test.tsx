@@ -10,6 +10,8 @@ vi.mock('@/store/projectStore', () => ({
   }),
 }));
 
+// Note: Skipping this test suite because Radix UI Sheet doesn't render properly in test environment
+// The Sheet content is portaled and not accessible in the DOM during tests
 describe.skip('ChaptersSheet', () => {
   beforeEach(() => {
     // Create a portal root for Radix UI

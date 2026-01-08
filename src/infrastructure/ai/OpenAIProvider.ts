@@ -2,7 +2,7 @@
 // ABOUTME: Generates 5 stylistically distinct proposals using carefully crafted prompt
 
 import OpenAI from 'openai';
-import { LLMProvider } from '@/domain/interfaces/LLMProvider';
+import { LLMProvider, ConnectionTestResult } from '@/domain/interfaces/LLMProvider';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
 
 interface ProposalResponse {
@@ -106,6 +106,48 @@ Return a JSON object with this exact structure:
     prompt += '\n\nGenerate exactly 5 stylistically distinct proposals as JSON.';
 
     return prompt;
+  }
+
+  /**
+   * Test connection to OpenAI API.
+   * Makes a simple models.list() call to validate the API key.
+   */
+  async testConnection(): Promise<ConnectionTestResult> {
+    try {
+      // Simple API call to validate key
+      await this.client.models.list();
+      return { valid: true };
+    } catch (error) {
+      // Parse OpenAI error
+      if (error instanceof Error) {
+        // OpenAI returns specific error messages
+        if (error.message.includes('Incorrect API key')) {
+          return { valid: false, error: 'Invalid API key' };
+        }
+        if (error.message.includes('Rate limit')) {
+          return { valid: false, error: 'Rate limit exceeded, try again later' };
+        }
+        if (error.message.includes('quota')) {
+          return { valid: false, error: 'API quota exceeded' };
+        }
+        return { valid: false, error: error.message };
+      }
+      return { valid: false, error: 'Connection test failed' };
+    }
+  }
+
+  /**
+   * Get provider name.
+   */
+  getProviderName(): string {
+    return 'OpenAI';
+  }
+
+  /**
+   * Get active model.
+   */
+  getModel(): string {
+    return this.model;
   }
 
   private parseResponse(content: string): RewriteProposal[] {

@@ -3,6 +3,7 @@
 
 import { Db, Collection } from 'mongodb';
 import bcrypt from 'bcryptjs';
+import { randomUUID } from 'node:crypto';
 import { User, UserRegistration, SafeUser } from '@/domain/entities/User';
 import { UserRepository } from '@/domain/interfaces/UserRepository';
 
@@ -70,7 +71,7 @@ export class MongoDBUserRepository implements UserRepository {
 
     const now = new Date();
     const doc: UserDocument = {
-      _id: crypto.randomUUID(), // Use Web Crypto API (Edge Runtime compatible)
+      _id: randomUUID(), // Use Node.js crypto API
       email,
       passwordHash,
       name: registration.name,

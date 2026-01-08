@@ -14,6 +14,7 @@ export class Project {
   private title: string;
   private chapters: Chapter[];
   private activeChapterId: string | null;
+  private providerId: string | null;
   private readonly createdAt: Date;
   private updatedAt: Date;
 
@@ -27,6 +28,7 @@ export class Project {
     title: string,
     chapters: Chapter[],
     activeChapterId: string | null,
+    providerId: string | null,
     createdAt: Date,
     updatedAt: Date
   ) {
@@ -35,6 +37,7 @@ export class Project {
     this.title = title;
     this.chapters = [...chapters];
     this.activeChapterId = activeChapterId ?? (chapters.length > 0 ? chapters[0].getId() : null);
+    this.providerId = providerId;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
   }
@@ -42,7 +45,12 @@ export class Project {
   /**
    * Create a new Project with generated ID and timestamps.
    */
-  static create(ownerId: string, title: string = 'Nouveau projet', chapters: Chapter[] = []): Project {
+  static create(
+    ownerId: string,
+    title: string = 'Nouveau projet',
+    chapters: Chapter[] = [],
+    providerId: string | null = null
+  ): Project {
     const now = new Date();
     return new Project(
       randomUUID(),
@@ -50,6 +58,7 @@ export class Project {
       title,
       chapters,
       chapters.length > 0 ? chapters[0].getId() : null,
+      providerId,
       now,
       now
     );
@@ -109,6 +118,10 @@ export class Project {
     return this.activeChapterId;
   }
 
+  getProviderId(): string | null {
+    return this.providerId;
+  }
+
   getChapterCount(): number {
     return this.chapters.length;
   }
@@ -147,6 +160,11 @@ export class Project {
       throw new Error(`Chapter with id ${chapterId} not found`);
     }
     this.activeChapterId = chapterId;
+    this.touch();
+  }
+
+  setProviderId(providerId: string | null): void {
+    this.providerId = providerId;
     this.touch();
   }
 

@@ -15,15 +15,20 @@ export const config = {
     // Let Auth.js auto-detect on Vercel; only override if explicitly set to 'false'
     trustHost: process.env.AUTH_TRUST_HOST !== 'false' ? undefined : false,
   },
+  encryption: {
+    key: process.env.ENCRYPTION_KEY || '',
+  },
 } as const;
 
 export function validateConfig(): void {
   const warnings: string[] = [];
   const errors: string[] = [];
 
-  // OpenAI (warning only - app works without AI)
+  // OpenAI (warning only - app works without AI, users can configure providers)
   if (!config.openai.apiKey && process.env.NODE_ENV !== 'test') {
-    warnings.push('OPENAI_API_KEY not set. AI features will not work.');
+    warnings.push(
+      'OPENAI_API_KEY not set. Users must configure providers for AI features.'
+    );
   }
 
   // MongoDB (error in production)
@@ -34,6 +39,19 @@ export function validateConfig(): void {
   // Auth (error in production)
   if (!config.auth.secret && process.env.NODE_ENV === 'production') {
     errors.push('AUTH_SECRET is required in production.');
+  }
+
+  if (config.auth.secret && config.auth.secret.length < 32) {
+    errors.push('AUTH_SECRET must be at least 32 characters long.');
+  }
+
+  // Encryption (error in production)
+  if (!config.encryption.key && process.env.NODE_ENV === 'production') {
+    errors.push('ENCRYPTION_KEY is required in production.');
+  }
+
+  if (config.encryption.key && config.encryption.key.length < 32) {
+    errors.push('ENCRYPTION_KEY must be at least 32 characters long.');
   }
 
   warnings.forEach((w) => console.warn(`Warning: ${w}`));
