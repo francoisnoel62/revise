@@ -1,9 +1,3 @@
-// ABOUTME: Next.js middleware for route protection.
-// ABOUTME: Redirects unauthenticated users to sign-in.
-
-// Force Node.js runtime because auth imports MongoDB which uses crypto
-export const runtime = 'nodejs';
-
 import { NextResponse } from 'next/server';
 import { auth } from '@/infrastructure/auth/auth-config';
 
