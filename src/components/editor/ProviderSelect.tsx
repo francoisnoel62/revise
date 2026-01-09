@@ -1,9 +1,16 @@
-// ABOUTME: Native select component for AI provider selection.
+// ABOUTME: Select component for AI provider selection using shadcn/ui.
 // ABOUTME: Compact design for toolbar integration.
 
 'use client';
 
 import { SafeProvider } from '@/app/actions/provider-actions';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface ProviderSelectProps {
   providers: SafeProvider[];
@@ -24,47 +31,51 @@ export function ProviderSelect({
   const validProviders = providers.filter((p) => p.isValid);
   const hasProviders = validProviders.length > 0;
 
-  const handleChange = (e: React.ChangeEvent<globalThis.HTMLSelectElement>) => {
-    const value = e.target.value;
-    onSelect(value === '' ? null : value);
+  const handleValueChange = (value: string) => {
+    onSelect(value === '__none__' ? null : value);
   };
 
   if (loading) {
     return (
-      <select
-        disabled
-        className="h-9 px-2 text-sm bg-slate-100 border border-slate-200 rounded-md text-slate-400 cursor-wait"
-      >
-        <option>Chargement...</option>
-      </select>
+      <Select disabled>
+        <SelectTrigger size="sm" className="w-40 cursor-wait">
+          <SelectValue placeholder="Chargement..." />
+        </SelectTrigger>
+      </Select>
     );
   }
 
   if (!hasProviders) {
     return (
-      <select
-        disabled
-        className="h-9 px-2 text-sm bg-slate-100 border border-slate-200 rounded-md text-slate-400"
-        title="Configurez un fournisseur IA dans votre profil"
-      >
-        <option>Aucun fournisseur</option>
-      </select>
+      <Select disabled>
+        <SelectTrigger
+          size="sm"
+          className="w-40"
+          title="Configurez un fournisseur IA dans votre profil"
+        >
+          <SelectValue placeholder="Aucun fournisseur" />
+        </SelectTrigger>
+      </Select>
     );
   }
 
   return (
-    <select
-      value={selectedProviderId || ''}
-      onChange={handleChange}
+    <Select
+      value={selectedProviderId || '__none__'}
+      onValueChange={handleValueChange}
       disabled={disabled}
-      className="h-9 px-2 text-sm bg-white border border-slate-200 rounded-md hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      <option value="">Sélectionner...</option>
-      {validProviders.map((provider) => (
-        <option key={provider.id} value={provider.id}>
-          {provider.name}
-        </option>
-      ))}
-    </select>
+      <SelectTrigger size="sm" className="w-40">
+        <SelectValue placeholder="Sélectionner..." />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="__none__">Sélectionner...</SelectItem>
+        {validProviders.map((provider) => (
+          <SelectItem key={provider.id} value={provider.id}>
+            {provider.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
