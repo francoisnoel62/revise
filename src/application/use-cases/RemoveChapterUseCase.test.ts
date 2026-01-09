@@ -18,7 +18,7 @@ describe('RemoveChapterUseCase', () => {
       createMockChapter('id-1', 'Chapter 1', 0),
       createMockChapter('id-2', 'Chapter 2', 1),
     ];
-    const project = new Project(chapters);
+    const project = Project.create('test-user', 'Test Project', chapters);
 
     useCase.execute(project, 'id-1');
 
@@ -30,7 +30,7 @@ describe('RemoveChapterUseCase', () => {
   it('should throw error when removing last chapter', () => {
     const useCase = new RemoveChapterUseCase();
     const chapter = createMockChapter('id-1', 'Chapter 1', 0);
-    const project = new Project([chapter]);
+    const project = Project.create('test-user', 'Test Project', [chapter]);
 
     expect(() => {
       useCase.execute(project, 'id-1');
@@ -43,7 +43,7 @@ describe('RemoveChapterUseCase', () => {
       createMockChapter('id-1', 'Chapter 1', 0),
       createMockChapter('id-2', 'Chapter 2', 1),
     ];
-    const project = new Project(chapters);
+    const project = Project.create('test-user', 'Test Project', chapters);
 
     expect(() => {
       useCase.execute(project, 'non-existent');
@@ -57,7 +57,7 @@ describe('RemoveChapterUseCase', () => {
       createMockChapter('id-2', 'Chapter 2', 1),
       createMockChapter('id-3', 'Chapter 3', 2),
     ];
-    const project = new Project(chapters);
+    const project = Project.create('test-user', 'Test Project', chapters);
 
     useCase.execute(project, 'id-1');
     useCase.execute(project, 'id-2');

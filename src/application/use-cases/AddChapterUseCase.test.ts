@@ -14,7 +14,7 @@ describe('AddChapterUseCase', () => {
 
   it('should add new chapter to empty project', () => {
     const useCase = new AddChapterUseCase();
-    const project = new Project();
+    const project = Project.create('test-user', 'Test Project', []);
 
     const chapter = useCase.execute(project);
 
@@ -29,7 +29,7 @@ describe('AddChapterUseCase', () => {
       createMockChapter('id-1', 'Chapter 1', 0),
       createMockChapter('id-2', 'Chapter 2', 1),
     ];
-    const project = new Project(existingChapters);
+    const project = Project.create('test-user', 'Test Project', existingChapters);
 
     const chapter = useCase.execute(project);
 
@@ -40,7 +40,7 @@ describe('AddChapterUseCase', () => {
 
   it('should create chapter with empty TipTap content', () => {
     const useCase = new AddChapterUseCase();
-    const project = new Project();
+    const project = Project.create('test-user', 'Test Project', []);
 
     const chapter = useCase.execute(project);
 
@@ -50,7 +50,7 @@ describe('AddChapterUseCase', () => {
 
   it('should generate unique chapter IDs', () => {
     const useCase = new AddChapterUseCase();
-    const project = new Project();
+    const project = Project.create('test-user', 'Test Project', []);
 
     const chapter1 = useCase.execute(project);
     const chapter2 = useCase.execute(project);
@@ -61,7 +61,7 @@ describe('AddChapterUseCase', () => {
 
   it('should add chapter to project', () => {
     const useCase = new AddChapterUseCase();
-    const project = new Project();
+    const project = Project.createEmpty('test-user', 'Test Project');
 
     const chapter = useCase.execute(project);
 

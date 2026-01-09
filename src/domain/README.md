@@ -2,7 +2,7 @@
 
 Pure business logic with zero framework dependencies.
 
-**Status**: ✅ Phase 2 Complete (45 tests passing, 97.62% coverage)
+**Status**: ✅ Phase 3.5 Complete (50+ tests passing, 97%+ coverage)
 
 ## Rules:
 - No imports from Next.js, React, or any external frameworks
@@ -12,9 +12,27 @@ Pure business logic with zero framework dependencies.
 
 ## Contents:
 
-### Entities (✅ Phase 2 Implemented)
+### Entities (✅ Phase 3 Enhanced)
 
-#### `Chapter` ⭐ NEW
+#### `User` ⭐ NEW (Phase 3)
+**Purpose**: Represents a user account with authentication credentials
+
+**Responsibilities**:
+- Manages user identity (unique ID, email)
+- Stores hashed password (bcrypt)
+- Validates email format
+- Creation timestamp
+
+**Key Methods**:
+- `getId()`, `getEmail()`, `getHashedPassword()`, `getCreatedAt()`
+- `static create(id, email, hashedPassword)` - Factory method
+- Email validation at construction
+
+**Tests**: 5+ tests covering validation and creation
+
+---
+
+#### `Chapter`
 **Purpose**: Represents a single chapter with rich text content (TipTap JSON)
 
 **Responsibilities**:
@@ -35,15 +53,17 @@ Pure business logic with zero framework dependencies.
 
 ---
 
-#### `Project` ⭐ NEW
-**Purpose**: Aggregate managing a collection of chapters
+#### `Project` ⭐ ENHANCED (Phase 3)
+**Purpose**: Aggregate managing a collection of chapters with owner tracking
 
 **Responsibilities**:
 - Manages chapter collection (add, remove, reorder)
 - Enforces business rules (minimum 1 chapter)
 - Tracks active chapter for navigation
+- **Tracks owner ID for multi-tenant isolation** (Phase 3)
 - Calculates project-level metadata
 - Maintains chapter ordering
+- **Timestamps for created/updated dates** (Phase 3)
 
 **Key Methods**:
 - `getChapters()`, `getActiveChapter()`, `getActiveChapterId()`
@@ -98,7 +118,7 @@ Pure business logic with zero framework dependencies.
 
 ---
 
-### Interfaces (✅ Phase 2 Enhanced)
+### Interfaces (✅ Phase 3 Enhanced)
 
 #### `LLMProvider`
 **Contract**: AI text generation service
@@ -138,30 +158,87 @@ Pure business logic with zero framework dependencies.
 
 ---
 
-#### `ProjectRepository` ⭐ NEW
-**Contract**: Project persistence abstraction (database-agnostic)
+#### `ProjectRepository` ⭐ ENHANCED (Phase 3)
+**Contract**: Project persistence abstraction with multi-tenant support
 
 **Methods**:
-- `save(project)` → `Promise<void>`
-- `findById(projectId)` → `Promise<Project | null>`
-- `findAll(userId)` → `Promise<Project[]>`
-- `delete(projectId)` → `Promise<void>`
+- `createProject(userId, project)` → `Promise<Project>`
+- `loadProject(userId, projectId)` → `Promise<Project | null>`
+- `listProjects(userId)` → `Promise<Project[]>`
+- `updateProject(userId, project)` → `Promise<Project>`
+- `deleteProject(userId, projectId)` → `Promise<void>`
+- `updateChapter(userId, projectId, chapter)` → `Promise<void>` (Phase 3 optimization)
 
-**Phase 2 Implementation**: `InMemoryProjectRepository` (ephemeral)
-**Phase 3 Implementation**: `MongoProjectRepository` or `PostgresProjectRepository`
+**Phase 2 Implementation**: `InMemoryProjectRepository` (ephemeral, testing)
+**Phase 3 Implementation**: `MongoDBProjectRepository` ✅ (MongoDB Atlas)
 
-**Note**: Enables Phase 3 persistence without refactoring
+**Multi-Tenant Isolation**: All methods require `userId` to ensure data isolation between users
+
+---
+
+#### `UserRepository` ⭐ NEW (Phase 3)
+**Contract**: User management and authentication
+
+**Methods**:
+- `createUser(user)` → `Promise<User>`
+- `findByEmail(email)` → `Promise<User | null>`
+- `findById(userId)` → `Promise<User | null>`
+- `emailExists(email)` → `Promise<boolean>`
+
+**Implementation**: `MongoDBUserRepository` (MongoDB Atlas with bcrypt)
+
+**Security**: Passwords are hashed with bcrypt before storage
+
+---
+
+#### `AuthProvider` ⭐ NEW (Phase 3)
+**Contract**: Authentication service abstraction
+
+**Methods**:
+- `signIn(email, password)` → `Promise<User>`
+- `signOut()` → `Promise<void>`
+- `getCurrentUser()` → `Promise<User | null>`
+- `createSession(user)` → `Promise<void>`
+
+**Implementation**: `AuthJsProvider` (Auth.js/NextAuth v5)
+
+**Features**: Email/password authentication, JWT sessions, route protection
+
+---
+
+#### `IdGenerator` ⭐ NEW (Phase 3.5)
+**Contract**: UUID generation abstraction
+
+**Methods**:
+- `generate()` → `string` - Returns a unique UUID
+
+**Implementation**: `UUIDGenerator` (crypto.randomUUID())
+
+**Purpose**: Allows Provider entity to accept ID as parameter, keeping crypto dependency in Infrastructure layer
+
+---
+
+#### `LLMProviderFactory` ⭐ NEW (Phase 3.5)
+**Contract**: Factory for creating LLM provider instances
+
+**Methods**:
+- `create(provider: Provider)` → `LLMProvider` - Creates LLM provider from Provider entity
+
+**Implementation**: `LLMProviderFactoryImpl`
+
+**Purpose**: Centralizes LLM provider instantiation for testing provider connections
 
 ---
 
 ## Testing
 
-**Coverage**: 97.62% (excellent)
-**Tests**: 45 tests passing
+**Coverage**: 97%+ (excellent)
+**Tests**: 50+ tests passing
 
 All domain logic has near-perfect test coverage with isolated unit tests:
+- User: 5+ tests (validation, creation) ⭐ NEW
 - Chapter: 15 tests (content management, metadata, validation)
-- Project: 23 tests (collection management, business rules)
+- Project: 25+ tests (collection management, business rules, owner tracking) ⭐ ENHANCED
 - TextDocument: 15 tests (legacy entity)
 - TextSelection: 9 tests (boundary cases)
 - RewriteProposal: 6 tests (validation)
@@ -183,6 +260,25 @@ All domain logic has near-perfect test coverage with isolated unit tests:
 - Enforces invariants (minimum 1 chapter)
 - Transactional boundaries for consistency
 
+## Phase 3.5 Achievements
+
+✅ **IdGenerator interface** for UUID generation abstraction ⭐ NEW
+✅ **LLMProviderFactory interface** for LLM provider creation ⭐ NEW
+✅ **Provider entity** now accepts ID as parameter (cleaner architecture)
+✅ Zero crypto dependency in Domain layer (moved to Infrastructure)
+
+## Phase 3 Achievements
+
+✅ **User entity** for authentication (email, hashed password)
+✅ **Project entity** enhanced with owner tracking and timestamps
+✅ **UserRepository interface** for user management
+✅ **AuthProvider interface** for authentication abstraction
+✅ **ProjectRepository enhanced** with multi-tenant support (all methods require userId)
+✅ **Multi-tenant data isolation** enforced at domain level
+✅ 97%+ test coverage with 50+ passing tests
+✅ Zero framework dependencies maintained
+✅ Clean Architecture principles preserved through Phase 3
+
 ## Phase 2 Achievements
 
 ✅ Multi-chapter architecture with Chapter and Project entities
@@ -190,5 +286,3 @@ All domain logic has near-perfect test coverage with isolated unit tests:
 ✅ Database-agnostic repository pattern
 ✅ Metadata calculations (word/character counts)
 ✅ Business rules enforcement (minimum chapters, ordering)
-✅ 97.62% test coverage with 45 passing tests
-✅ Zero framework dependencies maintained

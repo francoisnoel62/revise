@@ -11,8 +11,9 @@ Revise follows Clean Architecture principles with clear layer separation.
 Pure business logic with no framework dependencies.
 
 **Entities**:
-- `Chapter` - Single chapter with rich text content
-- `Project` - Aggregate managing chapter collection
+- `Chapter` - Single chapter with rich text content (TipTap JSON)
+- `Project` - Aggregate managing chapter collection with owner tracking
+- `User` - User entity with email and hashed password
 - `TextDocument` - Legacy single document (Phase 1)
 
 **Value Objects**:
@@ -23,53 +24,166 @@ Pure business logic with no framework dependencies.
 - `DocumentParser` - Parse documents to entities
 - `DocumentExporter` - Export entities to documents
 - `LLMProvider` - AI rewriting service
-- `ProjectRepository` - Persistence abstraction
+- `ProjectRepository` - Persistence abstraction with multi-tenant support
+- `UserRepository` - User management and authentication
+- `AuthProvider` - Authentication service abstraction
+- `IdGenerator` - UUID generation abstraction ⭐ NEW
+- `LLMProviderFactory` - Factory for creating LLM providers ⭐ NEW
 
 ### Application Layer (`src/application/`)
 
 Use cases orchestrating domain logic.
 
-**Use Cases**:
-- `ImportProjectUseCase`
-- `ExportProjectUseCase`
-- `SwitchChapterUseCase`
-- `AddChapterUseCase`
-- `RemoveChapterUseCase`
-- `ReorderChaptersUseCase`
-- `UpdateChapterContentUseCase`
-- `UpdateChapterTitleUseCase`
-- `RewriteTextUseCase`
+**Project CRUD Use Cases** ⭐ NEW:
+- `CreateProjectUseCase` - Create new project
+- `LoadProjectUseCase` - Load project from repository
+- `ListProjectsUseCase` - List user's projects
+- `DeleteProjectUseCase` - Delete project
+- `UpdateProjectTitleUseCase` - Rename project
+- `UpdateProjectProviderUseCase` - Update project's AI provider
+
+**Chapter Use Cases**:
+- `ImportProjectUseCase` - Multi-chapter import
+- `ExportProjectUseCase` - Multi-chapter export
+- `SwitchChapterUseCase` - Chapter navigation
+- `AddChapterUseCase` - Create new chapter
+- `RemoveChapterUseCase` - Delete chapter
+- `ReorderChaptersUseCase` - Drag & drop reorder
+- `UpdateChapterContentUseCase` - Content updates
+- `UpdateChapterTitleUseCase` - Title updates
+
+**Provider Use Cases** ⭐ NEW:
+- `CreateProviderUseCase` - Provider creation
+- `UpdateProviderUseCase` - Provider updates
+- `DeleteProviderUseCase` - Provider deletion
+- `ListProvidersUseCase` - List providers
+- `TestProviderConnectionUseCase` - Test credentials
+- `ValidateProviderUseCase` - Validate provider
+
+**User Use Cases** ⭐ NEW:
+- `RegisterUserUseCase` - User registration
+
+**Legacy Use Cases**:
+- `RewriteTextUseCase` - AI rewriting
 
 ### Infrastructure Layer (`src/infrastructure/`)
 
 External service implementations.
 
 **Document**:
-- `DocxParser` - Mammoth-based parser
-- `DocxExporter` - docx library exporter
-- TipTap conversion utilities
+- `DocxParser` - Mammoth-based parser with chapter splitting
+- `DocxExporter` - docx library exporter with full typography support
+- TipTap conversion utilities (HTML ↔ JSON)
 
 **AI**:
-- `OpenAIProvider` - GPT-4o-mini integration
+- `OpenAIProvider` - GPT-4o-mini integration with language preservation
+- `LLMProviderFactoryImpl` - Factory for creating LLM providers ⭐ NEW
 
-**Persistence** (Phase 2):
-- `InMemoryProjectRepository` - Ephemeral storage
+**Utils** ⭐ NEW:
+- `UUIDGenerator` - IdGenerator implementation using crypto.randomUUID()
+
+**Authentication** (Phase 3):
+- `AuthJsProvider` - Auth.js implementation
+- `auth-config` - NextAuth v5 configuration
+- Middleware for route protection
+
+**Persistence** (Phase 3):
+- `MongoDBProjectRepository` - MongoDB Atlas persistence with multi-tenant isolation
+- `MongoDBUserRepository` - User management with bcrypt password hashing
+- `InMemoryProjectRepository` - Ephemeral storage (testing/legacy)
+- Project serialization utilities for MongoDB storage
+
+**Configuration**:
+- Environment configuration
+- Database connection management
+- Provider factory pattern
 
 ### Interface Layer (`src/app/`, `src/components/`)
 
 React components and UI.
 
+**Pages**:
+- `page.tsx` - Editor page (improved header with project title, DocumentControls, UserMenu) ⭐ ENHANCED
+- `dashboard/page.tsx` - Project management dashboard (with CreateProjectDialog) ⭐ ENHANCED
+- `auth/signin/page.tsx` - Sign-in page
+- `auth/signup/page.tsx` - Sign-up page
+
 **Components**:
-- `TextEditor` - TipTap editor
-- `FormattingToolbar` - Rich text controls
-- `ChaptersSheet` - Chapter navigation
-- `ProposalsSheet` - AI proposals display
-- `DocumentControls` - Import/export
+- **Auth**: `UserMenu` - User profile dropdown with sign-out and provider access
+- **Dashboard**: `CreateProjectDialog` ⭐ NEW, `ProjectCard`, `EmptyState`, `NoProvidersAlert`
+- **Editor**: `TextEditor` - TipTap editor with A4 styling, `FormattingToolbar` - Rich text and typography controls
+- **Navigation**: `ChaptersSheet` - Chapter navigation with drag & drop
+- **Proposals**: `ProposalsSheet` - AI proposals display
+- **Providers**: `ProvidersDialog`, `ProviderForm`, `ProviderCard`
+- **Document**: `DocumentControls` - Import/export, `SaveStatus` - Auto-save indicator
+- **UI**: shadcn/ui components (Sheet, Button, Card, Dialog, Input, Label, etc.)
 
 **State**:
-- `projectStore` - Zustand store
+- `projectStore` - Zustand store (server-backed)
+
+**Server Actions** (all delegate to Use Cases ⭐ NEW):
+- `project-actions` - Create, load, update, delete, rename (→ Project Use Cases)
+- `chapter-actions` - Add, remove, update, reorder (→ Chapter Use Cases)
+- `auth-actions` - Sign in, sign up, sign out (→ RegisterUserUseCase)
+- `provider-actions` - CRUD + test connections (→ Provider Use Cases)
+
+**Dependency Injection** (`utils.ts`) ⭐ NEW:
+- `getRepository()` - Project repository
+- `getProviderRepo()` - Provider repository
+- `getUserRepo()` - User repository
+- `getLLMProviderFactory()` - LLM provider factory
+- `getIdGenerator()` - UUID generator
+
+**Hooks**:
+- `useAutosave` - Auto-save hook with 1-second debounce
 
 ## Data Flow
+
+### Authentication Flow (Phase 3)
+
+```
+User visits sign-up page
+  → Enters email/password
+  → Server Action (signUpAction)
+  → MongoDBUserRepository.createUser()
+  → Password hashed with bcrypt
+  → User stored in MongoDB
+  → Session created
+  → Redirect to dashboard
+
+User visits sign-in page
+  → Enters credentials
+  → Auth.js validates
+  → MongoDBUserRepository.findByEmail()
+  → Password verified
+  → Session created with JWT
+  → Redirect to dashboard
+
+Middleware on protected routes
+  → Checks session
+  → Redirects to sign-in if unauthenticated
+```
+
+### Dashboard Flow (Phase 3)
+
+```
+User lands on dashboard
+  → Server Action loads projects
+  → MongoDBProjectRepository.listProjects(userId)
+  → Projects displayed as cards
+
+User creates project
+  → Click "Créer un projet"
+  → Server Action (createProjectAction)
+  → Project entity created with ownerId
+  → MongoDBProjectRepository.createProject()
+  → Redirect to editor with project ID
+
+User opens project
+  → Click project card
+  → Navigate to /?project={id}
+  → Editor loads project
+```
 
 ### Import Flow
 
@@ -80,20 +194,24 @@ User selects file
   → mammoth.convertToHtml()
   → htmlToTipTapJSON()
   → Chapter entities created
-  → Project aggregate created
+  → Project aggregate updated
+  → MongoDBProjectRepository.updateProject()
   → Store updated
   → UI renders
 ```
 
-### Edit Flow
+### Edit Flow (Phase 3 - Auto-save)
 
 ```
 User types in editor
   → TipTap onUpdate event
   → editor.getJSON()
   → Store.updateActiveContent()
-  → hasUnsavedChanges = true
-  → UI shows indicator
+  → useAutosave hook triggered
+  → 1-second debounce
+  → Server Action (updateChapterAction)
+  → MongoDBProjectRepository.updateChapter()
+  → SaveStatus shows "Saved"
 ```
 
 ### Export Flow
@@ -143,14 +261,16 @@ We use Zustand instead of Redux or Context.
 - Good TypeScript support
 - No boilerplate
 
-### Database-Agnostic Repository
+### Database-Agnostic Repository (Phase 3 Implemented)
 
-We use Repository pattern for future persistence.
+We use Repository pattern for swappable persistence.
 
 **Phase 2**: InMemoryProjectRepository (ephemeral)
-**Phase 3**: MongoProjectRepository or PostgresProjectRepository
+**Phase 3**: MongoDBProjectRepository (MongoDB Atlas) ✅
 
-**Benefit**: No changes needed to use cases or store when adding persistence.
+**Benefit**: Zero changes needed to use cases or store when swapping implementations. The Clean Architecture design allowed Phase 3 to add MongoDB persistence without refactoring any business logic.
+
+**Multi-Tenant Isolation**: All MongoDB queries filter by `ownerId` to ensure complete data isolation between users. No user can access another user's projects.
 
 ## Performance Optimizations
 
@@ -166,11 +286,30 @@ We use Repository pattern for future persistence.
 - **E2E Tests**: Complete workflows (10+ tests planned)
 - **Coverage Target**: 85%+ for critical paths
 
-## Future Enhancements (Phase 3)
+## Phase 3 Complete ✅
 
-- Real persistence (MongoDB/PostgreSQL)
-- Auto-save
-- Undo per chapter
-- Search across chapters
+**Implemented**:
+- ✅ MongoDB Atlas persistence
+- ✅ User authentication (Auth.js)
+- ✅ Multi-tenant data isolation
+- ✅ Auto-save to database
+- ✅ Dashboard project management
+- ✅ Session management
+
+## Future Enhancements (Phase 4+)
+
+**Phase 4 Candidates**:
+- Search across chapters (full-text)
+- Per-chapter undo/redo (independent history)
+- Chapter templates
+- Writing goals/statistics
 - Export individual chapters
-- Collaborative editing
+- Project sharing between users
+- Version history
+
+**Phase 5+**:
+- Real-time collaboration
+- Comments and annotations
+- Team workspaces
+- Voice memory (AI style learning)
+- Custom AI prompt configuration

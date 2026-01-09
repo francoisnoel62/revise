@@ -15,7 +15,7 @@ describe('UpdateChapterTitleUseCase', () => {
   it('should update chapter title', () => {
     const useCase = new UpdateChapterTitleUseCase();
     const chapter = createMockChapter('id-1', 'Old Title', 0);
-    const project = new Project([chapter]);
+    const project = Project.create('test-user', 'Test Project', [chapter]);
 
     useCase.execute(project, 'id-1', 'New Title');
 
@@ -25,7 +25,7 @@ describe('UpdateChapterTitleUseCase', () => {
   it('should throw error for non-existent chapter', () => {
     const useCase = new UpdateChapterTitleUseCase();
     const chapter = createMockChapter('id-1', 'Chapter 1', 0);
-    const project = new Project([chapter]);
+    const project = Project.create('test-user', 'Test Project', [chapter]);
 
     expect(() => {
       useCase.execute(project, 'non-existent', 'New Title');
@@ -35,7 +35,7 @@ describe('UpdateChapterTitleUseCase', () => {
   it('should throw error for empty title', () => {
     const useCase = new UpdateChapterTitleUseCase();
     const chapter = createMockChapter('id-1', 'Chapter 1', 0);
-    const project = new Project([chapter]);
+    const project = Project.create('test-user', 'Test Project', [chapter]);
 
     expect(() => {
       useCase.execute(project, 'id-1', '');
@@ -45,7 +45,7 @@ describe('UpdateChapterTitleUseCase', () => {
   it('should update metadata timestamp', () => {
     const useCase = new UpdateChapterTitleUseCase();
     const chapter = createMockChapter('id-1', 'Chapter 1', 0);
-    const project = new Project([chapter]);
+    const project = Project.create('test-user', 'Test Project', [chapter]);
 
     const originalTimestamp = chapter.getMetadata().lastEdited;
 

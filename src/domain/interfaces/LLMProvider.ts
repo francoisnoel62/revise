@@ -3,6 +3,14 @@
 
 import { RewriteProposal } from '../value-objects/RewriteProposal';
 
+/**
+ * Test connection result.
+ */
+export interface ConnectionTestResult {
+  valid: boolean;
+  error?: string;
+}
+
 export interface LLMProvider {
   /**
    * Generates multiple rewrite proposals for the given text
@@ -12,4 +20,26 @@ export interface LLMProvider {
    * @throws Error if generation fails or API is unavailable
    */
   generateRewrites(text: string, context?: string): Promise<RewriteProposal[]>;
+
+  /**
+   * Tests the connection to the provider's API.
+   * Used to validate API keys before saving.
+   *
+   * @returns Promise resolving to test result with valid flag and optional error
+   */
+  testConnection(): Promise<ConnectionTestResult>;
+
+  /**
+   * Get the provider name (e.g., "OpenAI", "Anthropic").
+   *
+   * @returns Provider display name
+   */
+  getProviderName(): string;
+
+  /**
+   * Get the model being used (e.g., "gpt-4o-mini").
+   *
+   * @returns Model identifier
+   */
+  getModel(): string;
 }

@@ -1,6 +1,7 @@
-// ABOUTME: Central export for all Server Actions
-// ABOUTME: Provides clean imports for client components
+// ABOUTME: Central export for all Server Actions.
+// ABOUTME: Import from '@/app/actions' for all project operations.
 
-export { importDocument } from './import-document';
-export { exportDocument } from './export-document';
-export { rewriteText } from './rewrite-text';
+export * from './utils';
+export * from './project-actions';
+export * from './chapter-actions';
+export * from './auth-actions';

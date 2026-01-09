@@ -6,6 +6,14 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DocumentControls } from './DocumentControls';
 
+// Mock next/navigation
+const mockPush = vi.fn();
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: mockPush,
+  }),
+}));
+
 // Mock Server Actions
 vi.mock('@/app/actions', () => ({
   importDocument: vi.fn(),

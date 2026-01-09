@@ -59,7 +59,7 @@ describe('ExportProjectUseCase', () => {
         createMockChapter('id-1', 'Chapter 1', 0),
         createMockChapter('id-2', 'Chapter 2', 1),
       ];
-      const project = new Project(chapters);
+      const project = Project.create('test-user', 'Test Project', chapters);
       const filename = 'test.docx';
 
       const result = await useCase.execute(project, filename, 'all');
@@ -71,7 +71,7 @@ describe('ExportProjectUseCase', () => {
 
     it('should default to "all" mode when mode not specified', async () => {
       const chapter = createMockChapter('id-1', 'Chapter 1', 0);
-      const project = new Project([chapter]);
+      const project = Project.create('test-user', 'Test Project', [chapter]);
       const filename = 'test.docx';
 
       const result = await useCase.execute(project, filename);
@@ -87,7 +87,7 @@ describe('ExportProjectUseCase', () => {
         createMockChapter('id-1', 'Chapter 1', 0),
         createMockChapter('id-2', 'Chapter 2', 1),
       ];
-      const project = new Project(chapters);
+      const project = Project.create('test-user', 'Test Project', chapters);
       project.setActiveChapter('id-2');
       const filename = 'test.docx';
 
@@ -99,7 +99,7 @@ describe('ExportProjectUseCase', () => {
     });
 
     it('should throw error when no active chapter in active mode', async () => {
-      const project = new Project(); // Empty project
+      const project = Project.create('test-user', 'Test Project', []); // Truly empty project
       const filename = 'test.docx';
 
       await expect(async () => {
@@ -111,7 +111,7 @@ describe('ExportProjectUseCase', () => {
   describe('format validation', () => {
     it('should throw error for unsupported format', async () => {
       const chapter = createMockChapter('id-1', 'Chapter 1', 0);
-      const project = new Project([chapter]);
+      const project = Project.create('test-user', 'Test Project', [chapter]);
       const filename = 'test.pdf';
 
       await expect(async () => {
@@ -138,7 +138,7 @@ describe('ExportProjectUseCase', () => {
       };
       const failingUseCase = new ExportProjectUseCase(failingExporter);
       const chapter = createMockChapter('id-1', 'Chapter 1', 0);
-      const project = new Project([chapter]);
+      const project = Project.create('test-user', 'Test Project', [chapter]);
 
       await expect(async () => {
         await failingUseCase.execute(project, 'test.docx');

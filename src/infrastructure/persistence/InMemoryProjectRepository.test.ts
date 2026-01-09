@@ -1,3 +1,5 @@
+// ABOUTME: Tests for InMemoryProjectRepository multi-tenant behavior.
+
 import { describe, it, expect, beforeEach } from 'vitest';
 import { InMemoryProjectRepository } from './InMemoryProjectRepository';
 import { Project } from '@/domain/entities/Project';
@@ -10,53 +12,156 @@ describe('InMemoryProjectRepository', () => {
     repository = new InMemoryProjectRepository();
   });
 
-  const createMockChapter = (): Chapter => {
-    const content = JSON.stringify({ type: 'doc', content: [] });
-    return new Chapter('id-1', 'Test Chapter', content, 0);
-  };
+  describe('createProject', () => {
+    it('stores project for user', async () => {
+      const project = Project.create('user-1', 'Test Project', []);
 
-  it('should save and load project', async () => {
-    const chapter = createMockChapter();
-    const project = new Project([chapter]);
+      await repository.createProject('user-1', project);
 
-    await repository.saveProject(project);
-    const loaded = await repository.loadProject('any-id');
+      const loaded = await repository.loadProject('user-1', project.getId());
+      expect(loaded).not.toBeNull();
+      expect(loaded?.getTitle()).toBe('Test Project');
+    });
 
-    expect(loaded).toBe(project);
+    it('throws if ownerId does not match userId', async () => {
+      const project = Project.create('user-1', 'Test', []);
+
+      await expect(
+        repository.createProject('user-2', project)
+      ).rejects.toThrow('ownerId does not match');
+    });
+
+    it('throws if project already exists', async () => {
+      const project = Project.create('user-1', 'Test', []);
+      await repository.createProject('user-1', project);
+
+      await expect(
+        repository.createProject('user-1', project)
+      ).rejects.toThrow('already exists');
+    });
   });
 
-  it('should return null for non-existent project', async () => {
-    const loaded = await repository.loadProject('non-existent');
-    expect(loaded).toBeNull();
+  describe('loadProject', () => {
+    it('returns null for non-existent project', async () => {
+      const result = await repository.loadProject('user-1', 'non-existent');
+
+      expect(result).toBeNull();
+    });
+
+    it('returns null if user does not own project', async () => {
+      const project = Project.create('user-1', 'Test', []);
+      await repository.createProject('user-1', project);
+
+      const result = await repository.loadProject('user-2', project.getId());
+
+      expect(result).toBeNull();
+    });
   });
 
-  it('should delete project', async () => {
-    const project = new Project();
-    await repository.saveProject(project);
-    await repository.deleteProject('any-id');
+  describe('listProjects', () => {
+    it('returns only projects owned by user', async () => {
+      const project1 = Project.create('user-1', 'Project 1', []);
+      const project2 = Project.create('user-1', 'Project 2', []);
+      const project3 = Project.create('user-2', 'Other User', []);
 
-    const loaded = await repository.loadProject('any-id');
-    expect(loaded).toBeNull();
+      await repository.createProject('user-1', project1);
+      await repository.createProject('user-1', project2);
+      await repository.createProject('user-2', project3);
+
+      const user1Projects = await repository.listProjects('user-1');
+      const user2Projects = await repository.listProjects('user-2');
+
+      expect(user1Projects).toHaveLength(2);
+      expect(user2Projects).toHaveLength(1);
+    });
+
+    it('returns empty array for user with no projects', async () => {
+      const result = await repository.listProjects('user-1');
+
+      expect(result).toEqual([]);
+    });
+
+    it('sorts by updatedAt descending', async () => {
+      const project1 = Project.create('user-1', 'Older', []);
+      await repository.createProject('user-1', project1);
+
+      // Ensure different timestamps
+      await new Promise((r) => setTimeout(r, 10));
+
+      const project2 = Project.create('user-1', 'Newer', []);
+      await repository.createProject('user-1', project2);
+
+      const projects = await repository.listProjects('user-1');
+
+      expect(projects[0].getTitle()).toBe('Newer');
+      expect(projects[1].getTitle()).toBe('Older');
+    });
   });
 
-  it('should overwrite previous project when saving new one', async () => {
-    const chapter1 = createMockChapter();
-    const project1 = new Project([chapter1]);
-    await repository.saveProject(project1);
+  describe('updateProject', () => {
+    it('updates existing project', async () => {
+      const project = Project.create('user-1', 'Original', []);
+      await repository.createProject('user-1', project);
 
-    const chapter2 = new Chapter('id-2', 'Chapter 2', JSON.stringify({ type: 'doc', content: [] }), 0);
-    const project2 = new Project([chapter2]);
-    await repository.saveProject(project2);
+      project.updateTitle('Updated');
+      await repository.updateProject('user-1', project);
 
-    const loaded = await repository.loadProject('any-id');
-    expect(loaded).toBe(project2);
-    expect(loaded).not.toBe(project1);
+      const loaded = await repository.loadProject('user-1', project.getId());
+      expect(loaded?.getTitle()).toBe('Updated');
+    });
+
+    it('throws if project not found', async () => {
+      const project = Project.create('user-1', 'Test', []);
+
+      await expect(
+        repository.updateProject('user-1', project)
+      ).rejects.toThrow('not found');
+    });
+
+    it('throws if user does not own project', async () => {
+      const project = Project.create('user-1', 'Test', []);
+      await repository.createProject('user-1', project);
+
+      await expect(
+        repository.updateProject('user-2', project)
+      ).rejects.toThrow('Not authorized');
+    });
   });
 
-  it('should handle saveChapter gracefully', async () => {
-    const chapter = createMockChapter();
+  describe('deleteProject', () => {
+    it('removes project', async () => {
+      const project = Project.create('user-1', 'Test', []);
+      await repository.createProject('user-1', project);
 
-    // Should not throw even though it's a no-op in Phase 2
-    await expect(repository.saveChapter(chapter)).resolves.toBeUndefined();
+      await repository.deleteProject('user-1', project.getId());
+
+      const loaded = await repository.loadProject('user-1', project.getId());
+      expect(loaded).toBeNull();
+    });
+
+    it('throws if user does not own project', async () => {
+      const project = Project.create('user-1', 'Test', []);
+      await repository.createProject('user-1', project);
+
+      await expect(
+        repository.deleteProject('user-2', project.getId())
+      ).rejects.toThrow('Not authorized');
+    });
+  });
+
+  describe('updateChapter', () => {
+    it('updates chapter and touches project', async () => {
+      const chapter = new Chapter('ch-1', 'Chapter 1', JSON.stringify({ type: 'doc', content: [] }), 0);
+      const project = Project.create('user-1', 'Test', [chapter]);
+      await repository.createProject('user-1', project);
+      const initialUpdatedAt = project.getUpdatedAt();
+
+      await new Promise((r) => setTimeout(r, 10));
+      chapter.updateContent(JSON.stringify({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'new content' }] }] }));
+      await repository.updateChapter('user-1', project.getId(), chapter);
+
+      const loaded = await repository.loadProject('user-1', project.getId());
+      expect(loaded?.getUpdatedAt().getTime()).toBeGreaterThan(initialUpdatedAt.getTime());
+    });
   });
 });

@@ -1,177 +1,314 @@
-// ABOUTME: Zustand store for centralized project and chapter state management
-// ABOUTME: Delegates business logic to application use cases
+// ABOUTME: Zustand store for project state management.
+// ABOUTME: All mutations go through Server Actions for persistence.
 
 import { create } from 'zustand';
-import { Project } from '@/domain/entities/Project';
-import { SwitchChapterUseCase } from '@/application/use-cases/SwitchChapterUseCase';
-import { AddChapterUseCase } from '@/application/use-cases/AddChapterUseCase';
-import { RemoveChapterUseCase } from '@/application/use-cases/RemoveChapterUseCase';
-import { ReorderChaptersUseCase } from '@/application/use-cases/ReorderChaptersUseCase';
-import { UpdateChapterContentUseCase } from '@/application/use-cases/UpdateChapterContentUseCase';
-import { UpdateChapterTitleUseCase } from '@/application/use-cases/UpdateChapterTitleUseCase';
+import { ProjectState, SerializedProject } from './types';
+import { createProjectAction, loadProjectAction } from '@/app/actions/project-actions';
+import {
+  updateChapterContentAction,
+  addChapterAction,
+  removeChapterAction,
+  reorderChaptersAction,
+  updateChapterTitleAction,
+  setActiveChapterAction,
+} from '@/app/actions/chapter-actions';
 
-interface ProjectState {
-  // Core state
-  project: Project;
-  activeContent: string; // Current editor content (TipTap JSON)
-  hasUnsavedChanges: boolean;
+/**
+ * Default empty TipTap document.
+ */
+const EMPTY_CONTENT = JSON.stringify({
+  type: 'doc',
+  content: [{ type: 'paragraph' }],
+});
 
-  // UI state
-  isImporting: boolean;
-  isExporting: boolean;
-
-  // Use case instances (client-side only - no server dependencies)
-  switchChapterUseCase: SwitchChapterUseCase;
-  addChapterUseCase: AddChapterUseCase;
-  removeChapterUseCase: RemoveChapterUseCase;
-  reorderChaptersUseCase: ReorderChaptersUseCase;
-  updateChapterContentUseCase: UpdateChapterContentUseCase;
-  updateChapterTitleUseCase: UpdateChapterTitleUseCase;
-
-  // Actions
-  setProject: (project: Project) => void;
-  setActiveChapter: (chapterId: string) => void;
-  updateActiveContent: (content: string) => void;
-  saveCurrentChapter: () => void;
-  addChapter: () => void;
-  removeChapter: (chapterId: string) => void;
-  reorderChapters: (fromIndex: number, toIndex: number) => void;
-  updateChapterTitle: (chapterId: string, title: string) => void;
-  setIsImporting: (isImporting: boolean) => void;
-  setIsExporting: (isExporting: boolean) => void;
+/**
+ * Extract active chapter content from project.
+ */
+function getActiveContent(project: SerializedProject | null): string {
+  if (!project || !project.activeChapterId) return EMPTY_CONTENT;
+  const activeChapter = project.chapters.find((c) => c.id === project.activeChapterId);
+  return activeChapter?.content ?? EMPTY_CONTENT;
 }
 
+/**
+ * Project store with server-backed persistence.
+ */
 export const useProjectStore = create<ProjectState>((set, get) => ({
-  // Initial state
-  project: new Project(),
-  activeContent: JSON.stringify({ type: 'doc', content: [] }),
-  hasUnsavedChanges: false,
+  // === Initial State ===
+  projectId: null,
+  project: null,
+  activeContent: EMPTY_CONTENT,
+  isLoading: false,
+  isSaving: false,
   isImporting: false,
   isExporting: false,
+  error: null,
+  hasUnsavedChanges: false,
+  lastSavedAt: null,
 
-  // Use cases (client-side only)
-  switchChapterUseCase: new SwitchChapterUseCase(),
-  addChapterUseCase: new AddChapterUseCase(),
-  removeChapterUseCase: new RemoveChapterUseCase(),
-  reorderChaptersUseCase: new ReorderChaptersUseCase(),
-  updateChapterContentUseCase: new UpdateChapterContentUseCase(),
-  updateChapterTitleUseCase: new UpdateChapterTitleUseCase(),
+  // === Project Lifecycle ===
 
-  // Set project (after import or load)
-  setProject: (project) => {
-    const activeChapter = project.getActiveChapter();
-    const content = activeChapter
-      ? activeChapter.getContent()
-      : JSON.stringify({ type: 'doc', content: [] });
+  loadProject: async (projectId: string) => {
+    set({ isLoading: true, error: null });
 
-    set({
-      project,
-      activeContent: content,
-      hasUnsavedChanges: false,
-    });
-  },
+    const result = await loadProjectAction(projectId);
 
-  // Switch active chapter
-  setActiveChapter: (chapterId) => {
-    const state = get();
-
-    // Save current chapter if has unsaved changes
-    if (state.hasUnsavedChanges) {
-      state.saveCurrentChapter();
+    if (!result.success) {
+      set({
+        isLoading: false,
+        error: result.error,
+        // Redirect handled by caller if result.redirect exists
+      });
+      return;
     }
 
-    // Switch chapter
-    state.switchChapterUseCase.execute(
-      state.project,
-      chapterId,
-      state.activeContent
-    );
+    set({
+      projectId,
+      project: result.data,
+      activeContent: getActiveContent(result.data),
+      isLoading: false,
+      hasUnsavedChanges: false,
+      lastSavedAt: new Date(result.data.updatedAt),
+    });
+  },
 
-    const newActiveChapter = state.project.getActiveChapter();
-    const newContent = newActiveChapter
-      ? newActiveChapter.getContent()
-      : JSON.stringify({ type: 'doc', content: [] });
+  createProject: async (title?: string) => {
+    set({ isLoading: true, error: null });
+
+    const result = await createProjectAction(title);
+
+    if (!result.success) {
+      set({ isLoading: false, error: result.error });
+      return null;
+    }
 
     set({
-      project: state.project,
-      activeContent: newContent,
+      projectId: result.data.id,
+      project: result.data,
+      activeContent: getActiveContent(result.data),
+      isLoading: false,
+      hasUnsavedChanges: false,
+      lastSavedAt: new Date(),
+    });
+
+    return result.data.id;
+  },
+
+  clearProject: () => {
+    set({
+      projectId: null,
+      project: null,
+      activeContent: EMPTY_CONTENT,
+      hasUnsavedChanges: false,
+      error: null,
+    });
+  },
+
+  // === Chapter Operations ===
+
+  setActiveChapter: async (chapterId: string) => {
+    const { projectId, project, activeContent, hasUnsavedChanges } = get();
+    if (!projectId || !project) return;
+
+    // Don't switch if already active
+    if (project.activeChapterId === chapterId) return;
+
+    set({ isSaving: true });
+
+    const result = await setActiveChapterAction(
+      projectId,
+      chapterId,
+      hasUnsavedChanges ? project.activeChapterId : null,
+      hasUnsavedChanges ? activeContent : null
+    );
+
+    if (!result.success) {
+      set({ isSaving: false, error: result.error });
+      return;
+    }
+
+    set({
+      project: result.data,
+      activeContent: getActiveContent(result.data),
+      isSaving: false,
+      hasUnsavedChanges: false,
+      lastSavedAt: new Date(),
+    });
+  },
+
+  addChapter: async () => {
+    const { projectId } = get();
+    if (!projectId) return;
+
+    set({ isSaving: true });
+
+    const result = await addChapterAction(projectId);
+
+    if (!result.success) {
+      set({ isSaving: false, error: result.error });
+      return;
+    }
+
+    // New chapter is last in array, set it as active
+    const newProject = result.data;
+    const newChapter = newProject.chapters[newProject.chapters.length - 1];
+
+    set({
+      project: {
+        ...newProject,
+        activeChapterId: newChapter.id,
+      },
+      activeContent: newChapter.content,
+      isSaving: false,
       hasUnsavedChanges: false,
     });
   },
 
-  // Update active content (editor typing)
-  updateActiveContent: (content) => {
+  removeChapter: async (chapterId: string) => {
+    const { projectId, project } = get();
+    if (!projectId || !project) return;
+
+    // Prevent removing last chapter
+    if (project.chapters.length <= 1) {
+      set({ error: 'Cannot remove the last chapter' });
+      return;
+    }
+
+    set({ isSaving: true });
+
+    const result = await removeChapterAction(projectId, chapterId);
+
+    if (!result.success) {
+      set({ isSaving: false, error: result.error });
+      return;
+    }
+
+    set({
+      project: result.data,
+      activeContent: getActiveContent(result.data),
+      isSaving: false,
+      hasUnsavedChanges: false,
+    });
+  },
+
+  reorderChapters: async (fromIndex: number, toIndex: number) => {
+    const { projectId, project } = get();
+    if (!projectId || !project) return;
+
+    // Optimistic update for smooth drag-drop
+    const optimisticChapters = [...project.chapters];
+    const [moved] = optimisticChapters.splice(fromIndex, 1);
+    optimisticChapters.splice(toIndex, 0, moved);
+
+    // Update order property
+    optimisticChapters.forEach((ch, idx) => {
+      ch.order = idx;
+    });
+
+    set({
+      project: { ...project, chapters: optimisticChapters },
+      isSaving: true,
+    });
+
+    const result = await reorderChaptersAction(projectId, fromIndex, toIndex);
+
+    if (!result.success) {
+      // Revert optimistic update
+      set({
+        project,
+        isSaving: false,
+        error: result.error,
+      });
+      return;
+    }
+
+    set({
+      project: result.data,
+      isSaving: false,
+    });
+  },
+
+  updateChapterTitle: async (chapterId: string, title: string) => {
+    const { projectId, project } = get();
+    if (!projectId || !project) return;
+
+    // Optimistic update
+    const optimisticProject = {
+      ...project,
+      chapters: project.chapters.map((ch) =>
+        ch.id === chapterId ? { ...ch, title } : ch
+      ),
+    };
+
+    set({ project: optimisticProject, isSaving: true });
+
+    const result = await updateChapterTitleAction(projectId, chapterId, title);
+
+    if (!result.success) {
+      // Revert on error
+      set({ project, isSaving: false, error: result.error });
+      return;
+    }
+
+    // Update with server response
+    set({
+      project: {
+        ...project,
+        chapters: project.chapters.map((ch) =>
+          ch.id === chapterId ? result.data : ch
+        ),
+      },
+      isSaving: false,
+    });
+  },
+
+  // === Content Operations ===
+
+  updateActiveContent: (content: string) => {
     set({
       activeContent: content,
       hasUnsavedChanges: true,
     });
   },
 
-  // Save current chapter content
-  saveCurrentChapter: () => {
-    const state = get();
-    const activeChapter = state.project.getActiveChapter();
+  saveCurrentChapter: async () => {
+    const { projectId, project, activeContent, hasUnsavedChanges } = get();
 
-    if (activeChapter) {
-      state.updateChapterContentUseCase.execute(
-        state.project,
-        activeChapter.getId(),
-        state.activeContent
-      );
-
-      set({ hasUnsavedChanges: false });
+    if (!projectId || !project || !project.activeChapterId || !hasUnsavedChanges) {
+      return;
     }
-  },
 
-  // Add new chapter
-  addChapter: () => {
-    const state = get();
-    state.addChapterUseCase.execute(state.project);
+    set({ isSaving: true });
 
-    set({ project: state.project });
-  },
+    const result = await updateChapterContentAction(
+      projectId,
+      project.activeChapterId,
+      activeContent
+    );
 
-  // Remove chapter
-  removeChapter: (chapterId) => {
-    const state = get();
+    if (!result.success) {
+      set({ isSaving: false, error: result.error });
+      return;
+    }
 
-    state.removeChapterUseCase.execute(state.project, chapterId);
-
-    const newActiveChapter = state.project.getActiveChapter();
-    const newContent = newActiveChapter
-      ? newActiveChapter.getContent()
-      : JSON.stringify({ type: 'doc', content: [] });
+    // Update local chapter content to match saved
+    const updatedChapters = project.chapters.map((ch) =>
+      ch.id === project.activeChapterId
+        ? { ...ch, content: activeContent }
+        : ch
+    );
 
     set({
-      project: state.project,
-      activeContent: newContent,
+      project: { ...project, chapters: updatedChapters },
+      isSaving: false,
       hasUnsavedChanges: false,
+      lastSavedAt: new Date(result.data.updatedAt),
     });
   },
 
-  // Reorder chapters
-  reorderChapters: (fromIndex, toIndex) => {
-    const state = get();
-    state.reorderChaptersUseCase.execute(state.project, fromIndex, toIndex);
+  // === UI State ===
 
-    set({ project: state.project });
-  },
-
-  // Update chapter title
-  updateChapterTitle: (chapterId, title) => {
-    const state = get();
-    state.updateChapterTitleUseCase.execute(state.project, chapterId, title);
-
-    set({ project: state.project });
-  },
-
-  // Set importing state
-  setIsImporting: (isImporting) => {
-    set({ isImporting });
-  },
-
-  // Set exporting state
-  setIsExporting: (isExporting) => {
-    set({ isExporting });
-  },
+  setIsImporting: (isImporting: boolean) => set({ isImporting }),
+  setIsExporting: (isExporting: boolean) => set({ isExporting }),
+  clearError: () => set({ error: null }),
 }));

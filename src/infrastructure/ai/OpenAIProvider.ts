@@ -2,7 +2,7 @@
 // ABOUTME: Generates 5 stylistically distinct proposals using carefully crafted prompt
 
 import OpenAI from 'openai';
-import { LLMProvider } from '@/domain/interfaces/LLMProvider';
+import { LLMProvider, ConnectionTestResult } from '@/domain/interfaces/LLMProvider';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
 
 interface ProposalResponse {
@@ -36,7 +36,10 @@ export class OpenAIProvider implements LLMProvider {
           { role: 'user', content: userPrompt },
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.9, // Higher temperature for more diverse outputs
+        temperature: 0.85, // Balanced creativity with coherence
+        top_p: 0.92, // Nucleus sampling for controlled diversity
+        presence_penalty: 0.3, // Encourage lexical variety
+        frequency_penalty: 0.2, // Reduce repetitions
       });
 
       const content = completion.choices[0]?.message?.content;
@@ -54,58 +57,134 @@ export class OpenAIProvider implements LLMProvider {
   }
 
   private buildSystemPrompt(): string {
-    return `You are a professional writing assistant specialized in rewriting text while preserving meaning and authorial voice.
+    return `Tu es un assistant d'écriture littéraire expert. Ton rôle est de proposer des reformulations qui ÉLÈVENT la qualité littéraire du texte tout en préservant absolument le sens et la voix de l'auteur.
 
-Your task is to generate EXACTLY 5 distinct rewrite proposals for selected text.
+MÉTHODE D'ANALYSE PRÉLIMINAIRE:
+Avant de générer les propositions, analyse silencieusement:
+1. Le rythme des phrases (staccato/coulé, longueur moyenne)
+2. Le registre sensoriel dominant (visuel, auditif, tactile)
+3. Les habitudes de ponctuation (tirets, points-virgules, parenthèses)
+4. La perspective narrative (je/il, présent/passé)
+5. La densité figurative (métaphores, comparaisons, personnifications)
+6. La "température" émotionnelle du passage
 
-CRITICAL REQUIREMENTS:
-- Generate EXACTLY 5 proposals, no more, no less
-- Each proposal must be GENUINELY DIFFERENT in style and tone
-- PRESERVE the original meaning completely
-- MAINTAIN the author's voice and intent
-- PROHIBIT clichés, filler words, and generic expressions
-- Each proposal should feel like it came from a different stylistic approach
+PRÉSERVATION DE LA LANGUE (CRITIQUE):
+- DÉTECTE la langue du texte source
+- Génère TOUTES les propositions dans la MÊME LANGUE que l'entrée
+- Si l'entrée est en français, TOUTES les propositions DOIVENT être en français
+- Si l'entrée est en anglais, TOUTES les propositions DOIVENT être en anglais
+- Ne JAMAIS traduire ou changer de langue
+- Ceci est une EXIGENCE ABSOLUE
 
-LANGUAGE PRESERVATION (CRITICAL):
-- DETECT the language of the input text
-- Generate ALL 5 proposals in the EXACT SAME LANGUAGE as the input
-- If input is French, ALL proposals MUST be in French
-- If input is English, ALL proposals MUST be in English
-- If input is Spanish, ALL proposals MUST be in Spanish
-- NEVER translate or change the language
-- This is a HARD REQUIREMENT - violating this makes all proposals unusable
+GÉNÈRE EXACTEMENT 5 PROPOSITIONS DISTINCTES:
 
-STYLE DIVERSITY (aim for these distinct approaches):
-1. Formal/Professional - Elevated register, precise terminology
-2. Casual/Conversational - Natural, approachable tone
-3. Concise/Direct - Maximum clarity, minimum words
-4. Elaborate/Descriptive - Rich detail, fuller expression
-5. Neutral/Balanced - Clear middle ground
+1. PROSE ÉPURÉE (styleLabel: "épuré")
+   - Chaque mot doit justifier sa présence
+   - Supprimer tout ce qui n'ajoute pas de sens
+   - Verbes d'action précis, adjectifs rares et frappants
+   - Inspiration: Hemingway, Camus, Carver
 
-OUTPUT FORMAT:
-Return a JSON object with this exact structure:
+2. PROSE LYRIQUE (styleLabel: "lyrique")
+   - Travail sur la musicalité et le rythme
+   - Images sensorielles riches et originales
+   - Variations de longueur de phrases pour créer une respiration
+   - Inspiration: Woolf, Proust, Duras
+
+3. PROSE NERVEUSE (styleLabel: "nerveux")
+   - Phrases courtes et percutantes
+   - Tension narrative, énergie cinétique
+   - Coupes franches, sans gras
+   - Inspiration: Ellroy, Manchette, Simenon
+
+4. PROSE BAROQUE (styleLabel: "baroque")
+   - Périodes amples et architecturées
+   - Complexité syntaxique maîtrisée
+   - Subordonnées enchâssées avec élégance
+   - Inspiration: Faulkner, Claude Simon, Proust
+
+5. VOIX AMPLIFIÉE (styleLabel: "amplifié")
+   - Intensifier la voix propre détectée dans le contexte
+   - Pousser les caractéristiques stylistiques déjà présentes
+   - Rester fidèle mais magnifier
+   - Le texte que l'auteur aurait écrit avec plus de temps
+
+QUALITÉS D'EXCELLENCE À RECHERCHER:
+- Spécificité concrète: "la Renault 4 rouillée" plutôt que "la vieille voiture"
+- Images fraîches: éviter les métaphores mortes ("blanc comme neige")
+- Verbes incarnés: "il traversa" plutôt que "il alla de l'autre côté"
+- Subtext par l'action: montrer les états intérieurs par le corps
+- Rythme varié: alterner court/long pour créer une musique
+
+INTERDITS ABSOLUS:
+- Ne JAMAIS changer le sens
+- Ne JAMAIS ajouter d'information absente de l'original
+- Ne JAMAIS remplacer un style authentique par des clichés
+- Ne JAMAIS "corriger" un choix stylistique intentionnel de l'auteur
+
+FORMAT DE SORTIE (JSON):
 {
   "proposals": [
-    { "content": "First rewrite variant", "styleLabel": "formal" },
-    { "content": "Second rewrite variant", "styleLabel": "casual" },
-    { "content": "Third rewrite variant", "styleLabel": "concise" },
-    { "content": "Fourth rewrite variant", "styleLabel": "elaborate" },
-    { "content": "Fifth rewrite variant", "styleLabel": "neutral" }
+    { "content": "...", "styleLabel": "épuré" },
+    { "content": "...", "styleLabel": "lyrique" },
+    { "content": "...", "styleLabel": "nerveux" },
+    { "content": "...", "styleLabel": "baroque" },
+    { "content": "...", "styleLabel": "amplifié" }
   ]
 }`;
   }
 
   private buildUserPrompt(text: string, context?: string): string {
-    let prompt = `Rewrite the following text in 5 distinct ways:\n\n"${text}"`;
+    let prompt = `TEXTE À RÉÉCRIRE:\n\n«${text}»`;
 
     if (context && context !== text) {
-      prompt += `\n\nFull document context (for understanding tone and voice):\n"${context}"`;
+      prompt += `\n\n---\n\nCONTEXTE ÉLARGI (analyse ce passage pour comprendre la voix et le style de l'auteur):\n\n«${context}»`;
     }
 
-    prompt += '\n\nIMPORTANT: Generate all proposals in the SAME LANGUAGE as the selected text above.';
-    prompt += '\n\nGenerate exactly 5 stylistically distinct proposals as JSON.';
+    prompt += `\n\n---\n\nGénère maintenant 5 propositions littérairement distinctes dans la MÊME LANGUE que le texte source. Retourne uniquement le JSON.`;
 
     return prompt;
+  }
+
+  /**
+   * Test connection to OpenAI API.
+   * Makes a simple models.list() call to validate the API key.
+   */
+  async testConnection(): Promise<ConnectionTestResult> {
+    try {
+      // Simple API call to validate key
+      await this.client.models.list();
+      return { valid: true };
+    } catch (error) {
+      // Parse OpenAI error
+      if (error instanceof Error) {
+        // OpenAI returns specific error messages
+        if (error.message.includes('Incorrect API key')) {
+          return { valid: false, error: 'Invalid API key' };
+        }
+        if (error.message.includes('Rate limit')) {
+          return { valid: false, error: 'Rate limit exceeded, try again later' };
+        }
+        if (error.message.includes('quota')) {
+          return { valid: false, error: 'API quota exceeded' };
+        }
+        return { valid: false, error: error.message };
+      }
+      return { valid: false, error: 'Connection test failed' };
+    }
+  }
+
+  /**
+   * Get provider name.
+   */
+  getProviderName(): string {
+    return 'OpenAI';
+  }
+
+  /**
+   * Get active model.
+   */
+  getModel(): string {
+    return this.model;
   }
 
   private parseResponse(content: string): RewriteProposal[] {

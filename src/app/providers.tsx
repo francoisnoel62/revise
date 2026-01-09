@@ -1,0 +1,49 @@
+// ABOUTME: Client-side providers wrapper for the application.
+// ABOUTME: Provides session context for Auth.js and auto-signout on tab close.
+
+'use client';
+
+import { useEffect } from 'react';
+import { SessionProvider, useSession } from 'next-auth/react';
+
+interface ProvidersProps {
+  children: React.ReactNode;
+}
+
+function AutoSignOut() {
+  const { data: session } = useSession();
+
+  useEffect(() => {
+    // Only set up listener if user is authenticated
+    if (!session) return;
+
+    const handlePageHide = () => {
+      // Use sendBeacon for reliable signout even when page is closing
+      // This is more reliable than fetch() which gets cancelled on unload
+      const url = '/api/auth/signout';
+      const data = new FormData();
+      data.append('callbackUrl', '/auth/signin');
+
+      // sendBeacon guarantees the request is sent even as page closes
+      navigator.sendBeacon(url, data);
+    };
+
+    // pagehide is more reliable than beforeunload for cleanup
+    window.addEventListener('pagehide', handlePageHide);
+
+    return () => {
+      window.removeEventListener('pagehide', handlePageHide);
+    };
+  }, [session]);
+
+  return null;
+}
+
+export function Providers({ children }: ProvidersProps) {
+  return (
+    <SessionProvider>
+      <AutoSignOut />
+      {children}
+    </SessionProvider>
+  );
+}

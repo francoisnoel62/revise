@@ -8,6 +8,7 @@ import { DocxExporter } from '@/infrastructure/document/exporters/DocxExporter';
 import { Project } from '@/domain/entities/Project';
 import { Chapter } from '@/domain/entities/Chapter';
 import { useProjectStore } from '@/store/projectStore';
+import { serializeProject } from '@/infrastructure/persistence/serialization/project-serializer';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -44,7 +45,7 @@ function createLargeProject(): Project {
     );
   }
 
-  return new Project(chapters);
+  return Project.create('test-user', 'Test Project', chapters);
 }
 
 /**
@@ -171,7 +172,7 @@ describe('Performance Tests', () => {
         );
       }
 
-      const project = new Project(chapters);
+      const project = Project.create('test-user', 'Test Project', chapters);
       const exporter = new DocxExporter();
 
       const start = performance.now();
@@ -186,7 +187,7 @@ describe('Performance Tests', () => {
   describe('Chapter Switching', () => {
     beforeEach(() => {
       // Reset store before each test
-      const project = new Project();
+      const project = Project.createEmpty('test-user', 'Test Project');
       useProjectStore.setState({
         project,
         activeContent: JSON.stringify({ type: 'doc', content: [] }),
@@ -194,28 +195,34 @@ describe('Performance Tests', () => {
       });
     });
 
-    it('should switch chapters in under 200ms', () => {
+    it('should switch chapters in under 200ms', async () => {
       const project = createLargeProject();
-      useProjectStore.getState().setProject(project);
+      useProjectStore.setState({
+        project: serializeProject(project),
+        activeContent: project.getChapters()[0].getContent(),
+      });
 
       const firstChapterId = project.getChapters()[0].getId();
       const secondChapterId = project.getChapters()[1].getId();
 
       // Switch to first chapter
-      useProjectStore.getState().setActiveChapter(firstChapterId);
+      await useProjectStore.getState().setActiveChapter(firstChapterId);
 
       // Measure switch to second chapter
       const start = performance.now();
-      useProjectStore.getState().setActiveChapter(secondChapterId);
+      await useProjectStore.getState().setActiveChapter(secondChapterId);
       const duration = performance.now() - start;
 
       console.log(`  ✓ Chapter switch duration: ${duration.toFixed(2)}ms`);
       expect(duration).toBeLessThan(200);
     });
 
-    it('should handle rapid chapter switches', () => {
+    it('should handle rapid chapter switches', async () => {
       const project = createLargeProject();
-      useProjectStore.getState().setProject(project);
+      useProjectStore.setState({
+        project: serializeProject(project),
+        activeContent: project.getChapters()[0].getContent(),
+      });
 
       const chapters = project.getChapters();
       const durations: number[] = [];
@@ -225,7 +232,7 @@ describe('Performance Tests', () => {
         const chapterId = chapters[i % chapters.length].getId();
 
         const start = performance.now();
-        useProjectStore.getState().setActiveChapter(chapterId);
+        await useProjectStore.getState().setActiveChapter(chapterId);
         const duration = performance.now() - start;
 
         durations.push(duration);
@@ -245,7 +252,7 @@ describe('Performance Tests', () => {
 
   describe('Content Updates', () => {
     beforeEach(() => {
-      const project = new Project();
+      const project = Project.createEmpty('test-user', 'Test Project');
       useProjectStore.setState({
         project,
         activeContent: JSON.stringify({ type: 'doc', content: [] }),
@@ -255,7 +262,10 @@ describe('Performance Tests', () => {
 
     it('should update content quickly', () => {
       const project = createLargeProject();
-      useProjectStore.getState().setProject(project);
+      useProjectStore.setState({
+        project: serializeProject(project),
+        activeContent: project.getChapters()[0].getContent(),
+      });
 
       const newContent = JSON.stringify({
         type: 'doc',

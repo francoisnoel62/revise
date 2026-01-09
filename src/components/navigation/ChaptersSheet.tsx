@@ -3,16 +3,17 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetTrigger,
 } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, GripVertical } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Menu } from 'lucide-react';
 import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -20,19 +21,8 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Chapter } from '@/domain/entities/Chapter';
-
-interface ChaptersSheetProps {
-  chapters: Chapter[];
-  activeChapterId: string | null;
-  onSelectChapter: (chapterId: string) => void;
-  onAddChapter: () => void;
-  onRemoveChapter: (chapterId: string) => void;
-  onReorderChapters: (fromIndex: number, toIndex: number) => void;
-  onUpdateTitle: (chapterId: string, title: string) => void;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
+import { useProjectStore } from '@/store/projectStore';
+import type { SerializedChapter } from '@/store/types';
 
 function SortableChapterItem({
   chapter,
@@ -41,16 +31,16 @@ function SortableChapterItem({
   onRemove,
   onUpdateTitle,
 }: {
-  chapter: Chapter;
+  chapter: SerializedChapter;
   isActive: boolean;
   onSelect: () => void;
   onRemove: () => void;
   onUpdateTitle: (title: string) => void;
 }) {
   const [isEditing, setIsEditing] = React.useState(false);
-  const [editedTitle, setEditedTitle] = React.useState(chapter.getTitle());
+  const [editedTitle, setEditedTitle] = React.useState(chapter.title);
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
-    id: chapter.getId(),
+    id: chapter.id,
   });
 
   const style = {
@@ -58,15 +48,15 @@ function SortableChapterItem({
     transition,
   };
 
-  const handleSave = () => {
-    if (editedTitle.trim() && editedTitle !== chapter.getTitle()) {
-      onUpdateTitle(editedTitle.trim());
+  const handleSave = async () => {
+    if (editedTitle.trim() && editedTitle !== chapter.title) {
+      await onUpdateTitle(editedTitle.trim());
     }
     setIsEditing(false);
   };
 
   const handleCancel = () => {
-    setEditedTitle(chapter.getTitle());
+    setEditedTitle(chapter.title);
     setIsEditing(false);
   };
 
@@ -105,7 +95,7 @@ function SortableChapterItem({
               onClick={(e) => e.stopPropagation()}
             />
             <div className="text-xs text-slate-500">
-              {chapter.getMetadata().wordCount} mots · {chapter.getMetadata().characterCount} caractères
+              {chapter.metadata.wordCount} mots · {chapter.metadata.characterCount} caractères
             </div>
           </div>
         ) : (
@@ -115,14 +105,14 @@ function SortableChapterItem({
             onDoubleClick={(e) => {
               e.stopPropagation();
               setIsEditing(true);
-              setEditedTitle(chapter.getTitle());
+              setEditedTitle(chapter.title);
             }}
           >
             <div className="font-medium text-sm hover:text-blue-600">
-              {chapter.getTitle()}
+              {chapter.title}
             </div>
             <div className="text-xs text-slate-500">
-              {chapter.getMetadata().wordCount} mots · {chapter.getMetadata().characterCount} caractères
+              {chapter.metadata.wordCount} mots · {chapter.metadata.characterCount} caractères
             </div>
           </div>
         )}
@@ -143,38 +133,72 @@ function SortableChapterItem({
   );
 }
 
-export function ChaptersSheet({
-  chapters,
-  activeChapterId,
-  onSelectChapter,
-  onAddChapter,
-  onRemoveChapter,
-  onReorderChapters,
-  onUpdateTitle,
-  open,
-  onOpenChange,
-}: ChaptersSheetProps) {
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
+export function ChaptersSheet() {
+  const [open, setOpen] = useState(false);
+  const {
+    project,
+    isSaving,
+    setActiveChapter,
+    addChapter,
+    removeChapter,
+    reorderChapters,
+    updateChapterTitle,
+  } = useProjectStore();
 
-    const oldIndex = chapters.findIndex((c) => c.getId() === active.id);
-    const newIndex = chapters.findIndex((c) => c.getId() === over.id);
+  if (!project) return null;
+
+  // Handle chapter click
+  const handleChapterClick = async (chapterId: string) => {
+    await setActiveChapter(chapterId);
+  };
+
+  // Handle add chapter
+  const handleAddChapter = async () => {
+    await addChapter();
+  };
+
+  // Handle delete chapter
+  const handleDeleteChapter = async (chapterId: string) => {
+    await removeChapter(chapterId);
+  };
+
+  // Handle drag end
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !project) return;
+
+    const oldIndex = project.chapters.findIndex((c) => c.id === active.id);
+    const newIndex = project.chapters.findIndex((c) => c.id === over.id);
 
     if (oldIndex !== -1 && newIndex !== -1) {
-      onReorderChapters(oldIndex, newIndex);
+      await reorderChapters(oldIndex, newIndex);
     }
-  }
+  };
+
+  // Handle title update
+  const handleTitleUpdate = async (chapterId: string, title: string) => {
+    await updateChapterTitle(chapterId, title);
+  };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <Button variant="outline" size="sm">
+          <Menu className="h-4 w-4 mr-2" />
+          Chapitres ({project.chapters.length})
+        </Button>
+      </SheetTrigger>
       <SheetContent side="left" className="w-[350px] sm:w-[400px]">
         <SheetHeader>
           <SheetTitle>Chapitres</SheetTitle>
         </SheetHeader>
 
         <div className="mt-6">
-          <Button onClick={onAddChapter} className="w-full mb-4">
+          <Button
+            onClick={handleAddChapter}
+            className="w-full mb-4"
+            disabled={isSaving}
+          >
             <Plus className="h-4 w-4 mr-2" />
             Nouveau chapitre
           </Button>
@@ -185,25 +209,25 @@ export function ChaptersSheet({
               onDragEnd={handleDragEnd}
             >
               <SortableContext
-                items={chapters.map((c) => c.getId())}
+                items={project.chapters.map((c) => c.id)}
                 strategy={verticalListSortingStrategy}
               >
                 <div className="space-y-2">
-                  {chapters.map((chapter) => (
+                  {project.chapters.map((chapter) => (
                     <SortableChapterItem
-                      key={chapter.getId()}
+                      key={chapter.id}
                       chapter={chapter}
-                      isActive={chapter.getId() === activeChapterId}
-                      onSelect={() => onSelectChapter(chapter.getId())}
-                      onRemove={() => onRemoveChapter(chapter.getId())}
-                      onUpdateTitle={(title) => onUpdateTitle(chapter.getId(), title)}
+                      isActive={chapter.id === project.activeChapterId}
+                      onSelect={() => handleChapterClick(chapter.id)}
+                      onRemove={() => handleDeleteChapter(chapter.id)}
+                      onUpdateTitle={(title) => handleTitleUpdate(chapter.id, title)}
                     />
                   ))}
                 </div>
               </SortableContext>
             </DndContext>
 
-            {chapters.length === 0 && (
+            {project.chapters.length === 0 && (
               <div className="text-center py-8 text-slate-500">
                 Aucun chapitre. Cliquez sur &quot;Nouveau chapitre&quot; pour commencer.
               </div>

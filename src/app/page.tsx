@@ -1,224 +1,113 @@
-// ABOUTME: Main application page with multi-chapter document management
-// ABOUTME: Integrates all Phase 2 components with Zustand store
+// ABOUTME: Main editor page with project loading.
+// ABOUTME: Loads project from URL or creates new one.
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 import { useProjectStore } from '@/store/projectStore';
 import { TextEditor } from '@/components/editor/TextEditor';
 import { FormattingToolbar } from '@/components/editor/FormattingToolbar';
 import { ChaptersSheet } from '@/components/navigation/ChaptersSheet';
 import { ProposalsSheet } from '@/components/proposals/ProposalsSheet';
 import { DocumentControls } from '@/components/document/DocumentControls';
-import { Switch } from '@/components/ui/switch';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { importDocument, exportProject, rewriteText } from './actions';
+import { SaveStatus } from '@/components/ui/SaveStatus';
+import { UserMenu } from '@/components/auth/UserMenu';
+import { Button } from '@/components/ui/button';
 import { Editor } from '@tiptap/react';
-import { CheckCircle2, XCircle } from 'lucide-react';
-import { Chapter } from '@/domain/entities/Chapter';
-import { Project } from '@/domain/entities/Project';
+import { rewriteText } from './actions/rewrite-text';
+import { listProvidersAction, SafeProvider } from './actions/provider-actions';
+import { updateProjectProviderAction } from './actions/project-actions';
 
 interface Proposal {
   content: string;
   styleLabel?: string;
 }
 
-interface SerializedChapter {
-  id: string;
-  title: string;
-  content: string;
-  order: number;
-}
+function EditorContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const projectId = searchParams.get('project');
 
-interface Notification {
-  type: 'success' | 'error';
-  title: string;
-  message: string;
-}
-
-export default function HomePage() {
-  // Store state
   const {
     project,
-    activeContent,
-    hasUnsavedChanges,
-    updateActiveContent,
-    setActiveChapter,
-    addChapter,
-    removeChapter,
-    reorderChapters,
-    updateChapterTitle,
-    saveCurrentChapter,
-    setProject,
+    isLoading,
+    error,
+    loadProject,
   } = useProjectStore();
 
-  // UI state
+  // UI state for proposals
   const [selection, setSelection] = useState({ from: 0, to: 0 });
   const [hasSelection, setHasSelection] = useState(false);
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [showProposals, setShowProposals] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [importing, setImporting] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const [chaptersOpen, setChaptersOpen] = useState(false);
-  const [notification, setNotification] = useState<Notification | null>(null);
+  const [rewriteLoading, setRewriteLoading] = useState(false);
   const [editor, setEditor] = useState<Editor | null>(null);
 
-  // Ref for autosave timeout
-  const autosaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Provider state
+  const [providers, setProviders] = useState<SafeProvider[]>([]);
+  const [providersLoading, setProvidersLoading] = useState(false);
+  const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
 
-  // Ref for the actual TextEditor instance (not the toolbar editor)
-  const textEditorRef = useRef<Editor | null>(null);
+  // Track initialization to prevent infinite loop
+  const initializedRef = useRef(false);
+  const currentProjectIdRef = useRef<string | null>(null);
+  const providersLoadedRef = useRef<string | null>(null);
 
-  // Ref for highlight timeout
-  const highlightTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Ref for notification timeout
-  const notificationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Show notification with auto-dismiss
-  const showNotification = (
-    type: 'success' | 'error',
-    title: string,
-    message: string
-  ) => {
-    // Clear existing timeout if any
-    if (notificationTimeoutRef.current) {
-      clearTimeout(notificationTimeoutRef.current);
+  // Load project on mount
+  useEffect(() => {
+    // Skip if already initialized with this projectId
+    if (initializedRef.current && currentProjectIdRef.current === projectId) {
+      return;
     }
 
-    setNotification({ type, title, message });
-
-    // Auto-dismiss after 5 seconds
-    notificationTimeoutRef.current = setTimeout(() => {
-      setNotification(null);
-    }, 5000);
-  };
-
-  // Import handler
-  const handleImport = async (formData: FormData) => {
-    setImporting(true);
-
-    try {
-      const result = await importDocument(formData);
-
-      if ('error' in result) {
-        showNotification(
-          'error',
-          "Erreur d'importation",
-          result.error || "Une erreur est survenue lors de l'importation"
-        );
-        return;
+    async function initProject() {
+      if (projectId) {
+        // Load existing project
+        currentProjectIdRef.current = projectId;
+        initializedRef.current = true;
+        await loadProject(projectId);
+      } else if (!initializedRef.current) {
+        // No project ID in URL - redirect to dashboard
+        // Users should select/create projects from dashboard, not auto-create here
+        initializedRef.current = true;
+        router.replace('/dashboard');
       }
-
-      // Reconstruct project in store
-      const chapters = result.project.chapters.map(
-        (chData: SerializedChapter) =>
-          new Chapter(chData.id, chData.title, chData.content, chData.order)
-      );
-
-      const importedProject = new Project(chapters);
-      if (result.project.activeChapterId) {
-        importedProject.setActiveChapter(result.project.activeChapterId);
-      }
-
-      setProject(importedProject);
-
-      showNotification(
-        'success',
-        'Document importé',
-        `${chapters.length} chapitre${chapters.length > 1 ? 's' : ''} importé${chapters.length > 1 ? 's' : ''} avec succès`
-      );
-    } catch (error) {
-      showNotification(
-        'error',
-        "Erreur d'importation",
-        "Une erreur inattendue est survenue lors de l'import."
-      );
-      console.error(error);
-    } finally {
-      setImporting(false);
-    }
-  };
-
-  // Export handler
-  const handleExport = async () => {
-    setExporting(true);
-
-    try {
-      // Save current chapter first
-      saveCurrentChapter();
-
-      // Serialize project for server action
-      const projectData = {
-        chapters: project.getChapters().map((ch) => ({
-          id: ch.getId(),
-          title: ch.getTitle(),
-          content: ch.getContent(),
-          order: ch.getOrder(),
-        })),
-        activeChapterId: project.getActiveChapterId(),
-      };
-
-      const result = await exportProject(projectData);
-
-      if ('error' in result) {
-        showNotification(
-          'error',
-          "Erreur d'exportation",
-          result.error || "Une erreur est survenue lors de l'exportation"
-        );
-        return;
-      }
-
-      // Trigger download
-      const buffer = new Uint8Array(result.buffer);
-      const blob = new Blob([buffer], {
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `document-${Date.now()}.docx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      showNotification(
-        'success',
-        'Document exporté',
-        'Votre document a été exporté avec succès'
-      );
-    } catch (error) {
-      showNotification(
-        'error',
-        "Erreur d'exportation",
-        "Une erreur inattendue est survenue lors de l'export."
-      );
-      console.error(error);
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  // Content change handler with autosave debounce
-  const handleContentChange = (content: string) => {
-    updateActiveContent(content);
-
-    // Clear existing timeout
-    if (autosaveTimeoutRef.current) {
-      clearTimeout(autosaveTimeoutRef.current);
     }
 
-    // Set new timeout for autosave (1 second)
-    autosaveTimeoutRef.current = setTimeout(() => {
-      saveCurrentChapter();
-      if (process.env.NODE_ENV === 'development') {
-        console.log('✅ Autosave completed');
+    initProject();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]); // Only depend on projectId changes
+
+  // Handle auth redirect
+  useEffect(() => {
+    if (error?.includes('sign in')) {
+      router.push('/auth/signin');
+    }
+  }, [error, router]);
+
+  // Load providers when project loads
+  useEffect(() => {
+    async function loadProviders() {
+      setProvidersLoading(true);
+      const result = await listProvidersAction();
+
+      if (result.success && result.data) {
+        setProviders(result.data);
       }
-    }, 1000);
-  };
+      setProvidersLoading(false);
+    }
+
+    // Only load providers once per project
+    if (project?.id && providersLoadedRef.current !== project.id) {
+      providersLoadedRef.current = project.id;
+      // Initialize selected provider from project
+      setSelectedProviderId(project.providerId ?? null);
+      loadProviders();
+    }
+  }, [project?.id, project?.providerId]);
 
   // Selection change handler
   const handleSelectionChange = (from: number, to: number) => {
@@ -226,49 +115,67 @@ export default function HomePage() {
     setHasSelection(from !== to);
   };
 
+  // Provider change handler
+  const handleProviderChange = async (providerId: string | null) => {
+    if (!project?.id) return;
+
+    // Update local state immediately for responsive UI
+    setSelectedProviderId(providerId);
+
+    // Persist to database
+    const result = await updateProjectProviderAction(project.id, providerId);
+    if (!result.success) {
+      // Revert on error
+      setSelectedProviderId(project.providerId ?? null);
+      alert(`Erreur: ${result.error}`);
+    }
+  };
+
   // Rewrite handler
   const handleRewrite = async () => {
-    setLoading(true);
+    if (!project?.id || !project.activeChapterId) return;
+
+    // Check if provider is selected
+    if (!selectedProviderId) {
+      alert('Veuillez sélectionner un fournisseur IA.');
+      return;
+    }
+
+    setRewriteLoading(true);
 
     try {
+      const activeChapter = project.chapters.find((c) => c.id === project.activeChapterId);
+      if (!activeChapter) return;
+
       const result = await rewriteText(
-        activeContent,
+        project.id,
+        activeChapter.content,
         selection.from,
         selection.to
       );
 
-      if ('error' in result) {
+      if (!result.success) {
         alert(`Erreur: ${result.error}`);
         return;
       }
 
-      setProposals(result.proposals);
+      setProposals(result.data?.map(p => ({ content: p.content, styleLabel: p.styleLabel })) || []);
       setShowProposals(true);
-
-      // Performance warning
-      if (result.duration && result.duration > 3000) {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn(
-            `⚠️ Performance target exceeded: ${result.duration.toFixed(0)}ms`
-          );
-        }
-      }
     } catch (error) {
       alert('Une erreur est survenue lors de la réécriture.');
       console.error(error);
     } finally {
-      setLoading(false);
+      setRewriteLoading(false);
     }
   };
 
   // Insert proposal handler
   const handleInsert = (newText: string) => {
-    // Replace text in TipTap JSON using the actual TextEditor instance
-    if (textEditorRef.current) {
+    if (editor) {
       const { from, to } = selection;
 
       // Insert the new text
-      textEditorRef.current
+      editor
         .chain()
         .focus()
         .setTextSelection({ from, to })
@@ -279,31 +186,20 @@ export default function HomePage() {
       const newTo = from + newText.length;
 
       // Highlight the inserted text with yellow color
-      textEditorRef.current
+      editor
         .chain()
         .setTextSelection({ from, to: newTo })
         .setHighlight({ color: '#fef08a' }) // Tailwind yellow-200
         .run();
 
-      const updatedJson = textEditorRef.current.getJSON();
-      updateActiveContent(JSON.stringify(updatedJson));
-
-      // Clear existing highlight timeout if any
-      if (highlightTimeoutRef.current) {
-        clearTimeout(highlightTimeoutRef.current);
-      }
-
       // Remove highlight after 3 seconds
-      highlightTimeoutRef.current = setTimeout(() => {
-        if (textEditorRef.current) {
-          textEditorRef.current
+      setTimeout(() => {
+        if (editor) {
+          editor
             .chain()
             .setTextSelection({ from, to: newTo })
             .unsetHighlight()
             .run();
-
-          const finalJson = textEditorRef.current.getJSON();
-          updateActiveContent(JSON.stringify(finalJson));
         }
       }, 3000);
     }
@@ -311,143 +207,120 @@ export default function HomePage() {
     setShowProposals(false);
   };
 
-  // Chapter selection handler
-  const handleSelectChapter = (chapterId: string) => {
-    // Cancel pending autosave before switching
-    if (autosaveTimeoutRef.current) {
-      clearTimeout(autosaveTimeoutRef.current);
-    }
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading project...</p>
+        </div>
+      </div>
+    );
+  }
 
-    if (hasUnsavedChanges) {
-      // eslint-disable-next-line no-undef
-      const confirmSwitch = confirm(
-        'Vous avez des modifications non enregistrées. Sauvegarder avant de changer de chapitre ?'
-      );
-      if (confirmSwitch) {
-        saveCurrentChapter();
-      }
-    }
+  if (error && !error.includes('sign in')) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={() => router.push('/')}
+            className="text-primary underline"
+          >
+            Create New Project
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-    setActiveChapter(chapterId);
-  };
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (autosaveTimeoutRef.current) {
-        clearTimeout(autosaveTimeoutRef.current);
-      }
-      if (highlightTimeoutRef.current) {
-        clearTimeout(highlightTimeoutRef.current);
-      }
-      if (notificationTimeoutRef.current) {
-        clearTimeout(notificationTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Cleanup on chapter switch
-  const activeChapterId = project.getActiveChapterId();
-  useEffect(() => {
-    return () => {
-      if (autosaveTimeoutRef.current) {
-        clearTimeout(autosaveTimeoutRef.current);
-      }
-      if (highlightTimeoutRef.current) {
-        clearTimeout(highlightTimeoutRef.current);
-      }
-    };
-  }, [activeChapterId]);
+  if (!project) {
+    return null; // Will redirect or show loading
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Notification */}
-      {notification && (
-        <div className="fixed top-4 right-4 z-50 w-96 animate-in slide-in-from-top-2">
-          <Alert variant={notification.type === 'success' ? 'success' : 'destructive'}>
-            {notification.type === 'success' ? (
-              <CheckCircle2 className="h-4 w-4" />
-            ) : (
-              <XCircle className="h-4 w-4" />
-            )}
-            <AlertTitle>{notification.title}</AlertTitle>
-            <AlertDescription>{notification.message}</AlertDescription>
-          </Alert>
-        </div>
-      )}
-
-      <div className="w-full mx-auto py-8 px-4">
-        {/* Header with navigation and controls */}
-        <header className="flex items-center gap-4 mb-8 max-w-[80%] mx-auto">
+    <main className="min-h-screen bg-slate-50">
+      {/* Header with controls */}
+      <header className="sticky top-0 z-50 bg-white border-b border-slate-200">
+        <div className="grid grid-cols-3 items-center px-4 py-3">
+          {/* Left: navigation */}
           <div className="flex items-center gap-2">
-            <Switch
-              checked={chaptersOpen}
-              onCheckedChange={setChaptersOpen}
-              aria-label="Toggle chapters panel"
-            />
-            <span className="text-sm text-slate-600">Chapitres</span>
+            <Link href="/dashboard">
+              <Button variant="ghost" size="icon" title="Back to projects">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </Link>
+            <ChaptersSheet />
           </div>
-
-          <ChaptersSheet
-            chapters={project.getChapters()}
-            activeChapterId={project.getActiveChapterId()}
-            onSelectChapter={handleSelectChapter}
-            onAddChapter={addChapter}
-            onRemoveChapter={removeChapter}
-            onReorderChapters={reorderChapters}
-            onUpdateTitle={updateChapterTitle}
-            open={chaptersOpen}
-            onOpenChange={setChaptersOpen}
-          />
-
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold text-slate-900 mb-1">Revise</h1>
-            <p className="text-slate-600 text-sm">
-              {project.getActiveChapter()?.getTitle() || 'Aucun chapitre actif'}
-              {hasUnsavedChanges && (
-                <span className="ml-2 text-orange-600">● Non enregistré</span>
-              )}
-            </p>
+          {/* Center: project title */}
+          <div className="text-center">
+            <h1 className="text-lg font-semibold">{project.title}</h1>
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <span>{project.chapters.find((c) => c.id === project.activeChapterId)?.title || 'Untitled'}</span>
+              <span>·</span>
+              <SaveStatus />
+            </div>
           </div>
+          {/* Right: controls */}
+          <div className="flex items-center justify-end gap-2">
+            <DocumentControls />
+            <UserMenu />
+          </div>
+        </div>
+      </header>
 
-          <DocumentControls
-            onImport={handleImport}
-            onExport={handleExport}
-            importing={importing}
-            exporting={exporting}
-          />
-        </header>
-
-        {/* A4 width editor container (794px = 210mm) */}
-        <div className="w-[794px] mx-auto relative">
-          <div className="border border-slate-200 rounded-lg bg-white overflow-hidden">
+      {/* Toolbar sticky centrée au-dessus de l'éditeur */}
+      <div className="sticky top-18.25 z-40 flex justify-center py-2 bg-slate-50">
+        <div className="w-198.5">
+          <div className="bg-white rounded-lg shadow border border-slate-200 px-2 py-1">
             <FormattingToolbar
               editor={editor}
               hasSelection={hasSelection}
               onRewrite={handleRewrite}
-              rewriteLoading={loading}
-            />
-
-            <TextEditor
-              content={activeContent}
-              onContentChange={handleContentChange}
-              onSelectionChange={handleSelectionChange}
-              onEditorReady={(editorInstance) => {
-                textEditorRef.current = editorInstance;
-                setEditor(editorInstance);
-              }}
+              rewriteLoading={rewriteLoading}
+              providers={providers}
+              selectedProviderId={selectedProviderId}
+              onProviderChange={handleProviderChange}
+              providersLoading={providersLoading}
             />
           </div>
         </div>
-
-        {/* Proposals Sheet */}
-        <ProposalsSheet
-          open={showProposals}
-          proposals={proposals}
-          onInsert={handleInsert}
-          onClose={() => setShowProposals(false)}
-        />
       </div>
-    </div>
+
+      {/* A4 width editor container (794px = 210mm) */}
+      <div className="flex justify-center pb-8">
+        <div className="w-198.5">
+          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+            <TextEditor
+              onSelectionChange={handleSelectionChange}
+              onEditorReady={(editorInstance) => setEditor(editorInstance)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Proposals panel */}
+      <ProposalsSheet
+        open={showProposals}
+        proposals={proposals}
+        onInsert={handleInsert}
+        onClose={() => setShowProposals(false)}
+      />
+    </main>
+  );
+}
+
+export default function EditorPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    }>
+      <EditorContent />
+    </Suspense>
   );
 }

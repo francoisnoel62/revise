@@ -18,7 +18,7 @@ describe('SwitchChapterUseCase', () => {
       createMockChapter('id-1', 'Chapter 1', 0),
       createMockChapter('id-2', 'Chapter 2', 1),
     ];
-    const project = new Project(chapters);
+    const project = Project.create('test-user', 'Test Project', chapters);
 
     const newContent = JSON.stringify({
       type: 'doc',
@@ -43,7 +43,7 @@ describe('SwitchChapterUseCase', () => {
       createMockChapter('id-1', 'Chapter 1', 0),
       createMockChapter('id-2', 'Chapter 2', 1),
     ];
-    const project = new Project(chapters);
+    const project = Project.create('test-user', 'Test Project', chapters);
 
     await useCase.execute(project, 'id-2', '');
 
@@ -53,7 +53,7 @@ describe('SwitchChapterUseCase', () => {
   it('should throw error for non-existent chapter', async () => {
     const useCase = new SwitchChapterUseCase();
     const chapter = createMockChapter('id-1', 'Chapter 1', 0);
-    const project = new Project([chapter]);
+    const project = Project.create('test-user', 'Test Project', [chapter]);
 
     await expect(
       useCase.execute(project, 'non-existent', '')
@@ -63,7 +63,7 @@ describe('SwitchChapterUseCase', () => {
   it('should handle switching to same chapter', async () => {
     const useCase = new SwitchChapterUseCase();
     const chapter = createMockChapter('id-1', 'Chapter 1', 0);
-    const project = new Project([chapter]);
+    const project = Project.create('test-user', 'Test Project', [chapter]);
 
     const newContent = JSON.stringify({
       type: 'doc',
@@ -78,7 +78,7 @@ describe('SwitchChapterUseCase', () => {
 
   it('should not save content when no active chapter', async () => {
     const useCase = new SwitchChapterUseCase();
-    const project = new Project(); // Empty project
+    const project = Project.createEmpty('test-user', 'Test Project'); // Empty project
     const chapter = createMockChapter('id-1', 'Chapter 1', 0);
     project.addChapter(chapter);
 
