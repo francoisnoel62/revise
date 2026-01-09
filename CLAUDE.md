@@ -93,10 +93,17 @@ This project MUST follow Clean Architecture principles adapted to Next.js:
    - Pure business logic, no framework dependencies
    - Entities: `Chapter`, `Project`, `Provider`, `User`, `TextDocument` (legacy)
    - Value Objects: `TextSelection`, `RewriteProposal`
-   - Interfaces: `LLMProvider`, `DocumentParser`, `DocumentExporter`, `ProjectRepository`, `ProviderRepository`, `UserRepository`
+   - Interfaces: `LLMProvider`, `DocumentParser`, `DocumentExporter`, `ProjectRepository`, `ProviderRepository`, `UserRepository`, `IdGenerator`, `LLMProviderFactory`
 
 2. **Application Layer** (`src/application`)
    - Use cases orchestrating domain logic
+   - **Project CRUD Use Cases** ⭐ NEW:
+     - `CreateProjectUseCase` - Create new project with validation
+     - `LoadProjectUseCase` - Load project from repository
+     - `ListProjectsUseCase` - List user's projects
+     - `DeleteProjectUseCase` - Delete project
+     - `UpdateProjectTitleUseCase` - Rename project
+     - `UpdateProjectProviderUseCase` - Update project's AI provider
    - **Multi-Chapter Use Cases**:
      - `ImportProjectUseCase` - Multi-chapter .docx import
      - `ExportProjectUseCase` - Multi-chapter .docx export
@@ -106,6 +113,15 @@ This project MUST follow Clean Architecture principles adapted to Next.js:
      - `ReorderChaptersUseCase` - Drag & drop reordering
      - `UpdateChapterContentUseCase` - Content updates
      - `UpdateChapterTitleUseCase` - Title updates
+   - **Provider Use Cases** ⭐ NEW:
+     - `CreateProviderUseCase` - Provider creation with optional connection testing
+     - `UpdateProviderUseCase` - Provider updates with validation
+     - `DeleteProviderUseCase` - Provider deletion with project usage check
+     - `ListProvidersUseCase` - List user's providers
+     - `TestProviderConnectionUseCase` - Test provider credentials
+     - `ValidateProviderUseCase` - Validate existing provider
+   - **User Use Cases** ⭐ NEW:
+     - `RegisterUserUseCase` - User registration with validation
    - **Legacy Use Cases** (Phase 1):
      - `ImportDocumentUseCase` - Single document import
      - `ExportDocumentUseCase` - Single document export
@@ -114,6 +130,7 @@ This project MUST follow Clean Architecture principles adapted to Next.js:
 3. **Infrastructure Layer** (`src/infrastructure`)
    - External service implementations
    - `OpenAIProvider` - LLMProvider implementation with GPT-4o-mini
+   - **`LLMProviderFactoryImpl`** - Factory for creating LLM providers ⭐ NEW
    - `DocxParser` - Enhanced parser with HTML import and chapter splitting
    - `DocxExporter` - Enhanced exporter with formatted output
    - **`MongoDBProjectRepository`** - MongoDB Atlas persistence (Phase 3)
@@ -121,6 +138,7 @@ This project MUST follow Clean Architecture principles adapted to Next.js:
    - **`MongoDBProviderRepository`** - Provider storage with encrypted credentials (Phase 3.5)
    - **`AuthJsProvider`** - Auth.js authentication provider (Phase 3)
    - `InMemoryProjectRepository` - Ephemeral storage (legacy/testing)
+   - **`UUIDGenerator`** - IdGenerator implementation using crypto.randomUUID() ⭐ NEW
    - **Encryption utilities** - AES-256-GCM for API key encryption (Phase 3.5)
    - **Centralized AI models configuration** - Multi-provider model definitions (Phase 3.5)
    - TipTap conversion utilities (HTML ↔ JSON)
@@ -132,8 +150,8 @@ This project MUST follow Clean Architecture principles adapted to Next.js:
 4. **Interface Layer** (`src/app`, `src/components`)
    - React components and UI
    - **Pages**:
-     - `Dashboard` - Project management page with create/rename/delete
-     - `Editor` (page.tsx) - Main editing interface with project loading
+     - `Dashboard` - Project management page with create/rename/delete and CreateProjectDialog
+     - `Editor` (page.tsx) - Main editing interface with improved header layout (project title visibility, DocumentControls, UserMenu) ⭐ ENHANCED
      - `Sign In` - Email/password authentication page
      - `Sign Up` - User registration page
    - **Editor Components**:
@@ -144,27 +162,35 @@ This project MUST follow Clean Architecture principles adapted to Next.js:
      - `ChaptersSheet` - Left panel with Switch toggle, scrollable list, drag & drop, inline title editing
      - `ProposalsSheet` - Right panel for AI proposals
      - `UserMenu` - User profile dropdown with sign-out option and provider access
+   - **Dashboard Components** ⭐ ENHANCED:
+     - `CreateProjectDialog` - Dialog for creating new projects with title input ⭐ NEW
+     - `ProjectCard` - Dashboard project card with actions
+     - `EmptyState` - Dashboard empty state for new users
+     - `NoProvidersAlert` - Dashboard alert when no providers configured
    - **Provider Management Components** (Phase 3.5):
      - `ProvidersDialog` - Main dialog for managing AI providers
      - `ProviderForm` - Create/edit provider form with connection testing
      - `ProviderCard` - Individual provider card with status and actions
-     - `NoProvidersAlert` - Dashboard alert when no providers configured
    - **Document Components**:
      - `DocumentControls` - Import/export with loading states
-     - `ProjectCard` - Dashboard project card with actions
-     - `EmptyState` - Dashboard empty state for new users
      - `SaveStatus` - Auto-save indicator
    - **State Management**:
      - Zustand store for project and chapter state (server-backed)
-   - **Server Actions**:
-     - `project-actions` - Create, load, update, delete, rename projects
-     - `chapter-actions` - Add, remove, update, reorder chapters
-     - `auth-actions` - Sign in, sign up, sign out
-     - `provider-actions` - Create, list, update, delete providers; test connections (Phase 3.5)
+   - **Server Actions** (all delegate to Use Cases ⭐):
+     - `project-actions` - Create, load, update, delete, rename projects (delegates to Project Use Cases)
+     - `chapter-actions` - Add, remove, update, reorder chapters (delegates to Chapter Use Cases)
+     - `auth-actions` - Sign in, sign up, sign out (delegates to RegisterUserUseCase)
+     - `provider-actions` - Create, list, update, delete providers; test connections (delegates to Provider Use Cases)
      - `rate-limiter` - Rate limiting utility for provider testing (Phase 3.5)
      - `importDocument` - Multi-chapter import
      - `exportProject` - Multi-chapter export
      - `rewriteText` - AI rewriting with language preservation
+   - **Dependency Injection** (`utils.ts`) ⭐ NEW:
+     - `getRepository()` - Project repository
+     - `getProviderRepo()` - Provider repository
+     - `getUserRepo()` - User repository
+     - `getLLMProviderFactory()` - LLM provider factory
+     - `getIdGenerator()` - UUID generator
    - **Hooks**:
      - `useAutosave` - Auto-save hook with 1-second debounce
 
@@ -450,6 +476,7 @@ Created all missing Use Cases in `src/application/use-cases/`:
 - `RegisterUserUseCase.ts` - User registration with validation
 
 Server Actions now delegate to Use Cases:
+- `project-actions.ts` → Uses all Project CRUD Use Cases (CreateProject, LoadProject, ListProjects, DeleteProject, UpdateProjectTitle, UpdateProjectProvider) ⭐ NEW
 - `provider-actions.ts` → Uses all Provider Use Cases
 - `auth-actions.ts` → Uses `RegisterUserUseCase`
 - `chapter-actions.ts` → Uses existing Chapter Use Cases

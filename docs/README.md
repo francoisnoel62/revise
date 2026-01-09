@@ -125,7 +125,20 @@ High-level project information.
 
 ## 🆕 What's New
 
-### Phase 3.5 - AI Provider Management (January 2026)
+### Phase 3.5 - Clean Architecture Completion (January 2026)
+
+**Latest Updates**:
+- **CreateProjectDialog** - New project creation with title input
+- **Improved header layout** - Better project title visibility and navigation
+- **Server Actions delegate to Use Cases** - Full Clean Architecture compliance
+- **6 new Project CRUD Use Cases** - CreateProject, LoadProject, ListProjects, DeleteProject, UpdateProjectTitle, UpdateProjectProvider
+- **6 new Provider Use Cases** - CreateProvider, UpdateProvider, DeleteProvider, ListProviders, TestProviderConnection, ValidateProvider
+- **RegisterUserUseCase** - User registration with validation
+- **IdGenerator/LLMProviderFactory interfaces** - Domain abstractions
+- **UUIDGenerator/LLMProviderFactoryImpl** - Infrastructure implementations
+- **Dependency injection via utils.ts** - Centralized repository access
+
+**AI Provider Management**:
 - **Multiple AI providers** supported
 - **Encrypted credential storage** with AES-256-GCM
 - **Per-project provider selection**
@@ -202,5 +215,5 @@ docs/
 ---
 
 **Documentation Version**: Phase 3.5 (January 2026)
-**Last Updated**: January 8, 2026
-**Status**: Complete
+**Last Updated**: January 9, 2026
+**Status**: Complete - Clean Architecture Audit Resolved

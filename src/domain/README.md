@@ -2,7 +2,7 @@
 
 Pure business logic with zero framework dependencies.
 
-**Status**: ✅ Phase 3 Complete (50+ tests passing, 97%+ coverage)
+**Status**: ✅ Phase 3.5 Complete (50+ tests passing, 97%+ coverage)
 
 ## Rules:
 - No imports from Next.js, React, or any external frameworks
@@ -206,6 +206,30 @@ Pure business logic with zero framework dependencies.
 
 ---
 
+#### `IdGenerator` ⭐ NEW (Phase 3.5)
+**Contract**: UUID generation abstraction
+
+**Methods**:
+- `generate()` → `string` - Returns a unique UUID
+
+**Implementation**: `UUIDGenerator` (crypto.randomUUID())
+
+**Purpose**: Allows Provider entity to accept ID as parameter, keeping crypto dependency in Infrastructure layer
+
+---
+
+#### `LLMProviderFactory` ⭐ NEW (Phase 3.5)
+**Contract**: Factory for creating LLM provider instances
+
+**Methods**:
+- `create(provider: Provider)` → `LLMProvider` - Creates LLM provider from Provider entity
+
+**Implementation**: `LLMProviderFactoryImpl`
+
+**Purpose**: Centralizes LLM provider instantiation for testing provider connections
+
+---
+
 ## Testing
 
 **Coverage**: 97%+ (excellent)
@@ -235,6 +259,13 @@ All domain logic has near-perfect test coverage with isolated unit tests:
 - `Project` is aggregate root managing `Chapter` collection
 - Enforces invariants (minimum 1 chapter)
 - Transactional boundaries for consistency
+
+## Phase 3.5 Achievements
+
+✅ **IdGenerator interface** for UUID generation abstraction ⭐ NEW
+✅ **LLMProviderFactory interface** for LLM provider creation ⭐ NEW
+✅ **Provider entity** now accepts ID as parameter (cleaner architecture)
+✅ Zero crypto dependency in Domain layer (moved to Infrastructure)
 
 ## Phase 3 Achievements
 

@@ -2,7 +2,7 @@
 
 Next.js App Router pages, layouts, UI components, and state management.
 
-**Status**: ✅ Phase 3 Complete (80+ component tests + 15+ store tests + 30+ server action tests)
+**Status**: ✅ Phase 3.5 Complete (100+ component tests + 15+ store tests + 40+ server action tests)
 
 ## Rules:
 - Depends on Application and Domain layers
@@ -13,35 +13,38 @@ Next.js App Router pages, layouts, UI components, and state management.
 
 ## Contents:
 
-### App Router ⭐ ENHANCED (Phase 3)
+### App Router ⭐ ENHANCED (Phase 3.5)
 
 ---
 
-#### `app/dashboard/page.tsx` ⭐ NEW (Phase 3)
+#### `app/dashboard/page.tsx` ⭐ ENHANCED (Phase 3.5)
 **Purpose**: Project management dashboard
 
 **Features**:
 - Lists all projects for authenticated user
-- Create new project button
+- **CreateProjectDialog** for new project creation with title input ⭐ NEW
 - Project cards with metadata (title, last updated, chapter count)
 - Rename project (inline editing)
 - Delete project (with confirmation dialog)
 - Empty state for new users
 - Auto-redirect to editor on project click
+- **NoProvidersAlert** when no AI providers configured
 
 **Components Used**:
+- `CreateProjectDialog` ⭐ NEW - Modal dialog for project creation
 - `ProjectCard` - Individual project card with actions
 - `EmptyState` - Welcome message for new users
 - `AlertDialog` - Delete confirmation
 - `Dialog` - Rename dialog
+- `NoProvidersAlert` - Provider configuration warning
 
-**Server Actions**:
-- `loadProjectsAction` - Fetches user's projects
-- `createProjectAction` - Creates new project, redirects to editor
-- `renameProjectAction` - Updates project title
-- `deleteProjectAction` - Deletes project
+**Server Actions** (delegate to Use Cases):
+- `loadProjectsAction` → `ListProjectsUseCase`
+- `createProjectAction` → `CreateProjectUseCase` ⭐ NEW
+- `renameProjectAction` → `UpdateProjectTitleUseCase` ⭐ NEW
+- `deleteProjectAction` → `DeleteProjectUseCase` ⭐ NEW
 
-**Tests**: 12+ tests covering project management flows
+**Tests**: 20+ tests covering project management and CreateProjectDialog
 
 ---
 
@@ -80,15 +83,19 @@ Next.js App Router pages, layouts, UI components, and state management.
 
 ---
 
-#### `app/page.tsx` ⭐ ENHANCED (Phase 3)
+#### `app/page.tsx` ⭐ ENHANCED (Phase 3.5)
 **Purpose**: Main editor page with project loading from database
 
-**Phase 3 Enhancements**:
+**Phase 3.5 Enhancements**:
+- **Improved header layout** - Better project title visibility and navigation ⭐ NEW
+- **DocumentControls in header** - Import/export accessible from header ⭐ NEW
+- **UserMenu in header** - Profile dropdown with provider access ⭐ NEW
+
+**Phase 3 Features**:
 - **Project loading from database** - URL param `?project={id}` loads project from MongoDB
 - **Auto-redirect to dashboard** - Redirects if no project ID provided
 - **Session-based project access** - Only loads projects owned by authenticated user
 - **SaveStatus indicator** - Shows auto-save progress ("Saving...", "Saved")
-- **UserMenu** - Profile dropdown with sign-out option
 
 **Phase 2 Features**:
 - A4 page width editor (794px, realistic writing experience)
@@ -123,26 +130,43 @@ Next.js App Router pages, layouts, UI components, and state management.
 
 ---
 
-#### Server Actions ⭐ REORGANIZED (Phase 3)
+#### Server Actions ⭐ ENHANCED (Phase 3.5 - All delegate to Use Cases)
 
-**`app/actions/project-actions.ts`** ⭐ NEW:
-- `createProjectAction(userId, title)` - Creates new project in MongoDB
-- `loadProjectAction(userId, projectId)` - Loads project from MongoDB
-- `updateProjectAction(userId, project)` - Updates project in MongoDB
-- `deleteProjectAction(userId, projectId)` - Deletes project from MongoDB
-- `renameProjectAction(userId, projectId, newTitle)` - Renames project
+**`app/actions/project-actions.ts`** (delegates to Project Use Cases ⭐ NEW):
+- `createProjectAction` → `CreateProjectUseCase`
+- `loadProjectAction` → `LoadProjectUseCase`
+- `listProjectsAction` → `ListProjectsUseCase`
+- `deleteProjectAction` → `DeleteProjectUseCase`
+- `renameProjectAction` → `UpdateProjectTitleUseCase`
+- `updateProjectProviderAction` → `UpdateProjectProviderUseCase`
 
-**`app/actions/chapter-actions.ts`** ⭐ NEW:
-- `addChapterAction(userId, projectId, title)` - Adds chapter to project
-- `removeChapterAction(userId, projectId, chapterId)` - Removes chapter
-- `updateChapterContentAction(userId, projectId, chapterId, content)` - Auto-save content
-- `updateChapterTitleAction(userId, projectId, chapterId, title)` - Renames chapter
-- `reorderChaptersAction(userId, projectId, fromIndex, toIndex)` - Reorders chapters
+**`app/actions/chapter-actions.ts`** (delegates to Chapter Use Cases):
+- `addChapterAction` → `AddChapterUseCase`
+- `removeChapterAction` → `RemoveChapterUseCase`
+- `updateChapterContentAction` → `UpdateChapterContentUseCase`
+- `updateChapterTitleAction` → `UpdateChapterTitleUseCase`
+- `reorderChaptersAction` → `ReorderChaptersUseCase`
+- `switchChapterAction` → `SwitchChapterUseCase`
 
-**`app/actions/auth-actions.ts`** ⭐ NEW:
-- `signInAction(email, password)` - Authenticates user, creates session
-- `signUpAction(email, password)` - Registers user, hashes password, creates session
+**`app/actions/auth-actions.ts`** (delegates to User Use Cases ⭐ NEW):
+- `signInAction` - Authenticates user, creates session
+- `signUpAction` → `RegisterUserUseCase`
 - `signOutAction()` - Terminates session
+
+**`app/actions/provider-actions.ts`** (delegates to Provider Use Cases ⭐ NEW):
+- `createProviderAction` → `CreateProviderUseCase`
+- `listProvidersAction` → `ListProvidersUseCase`
+- `updateProviderAction` → `UpdateProviderUseCase`
+- `deleteProviderAction` → `DeleteProviderUseCase`
+- `testProviderConnectionAction` → `TestProviderConnectionUseCase`
+- `validateProviderAction` → `ValidateProviderUseCase`
+
+**`app/actions/utils.ts`** (Dependency Injection ⭐ NEW):
+- `getRepository()` - Project repository
+- `getProviderRepo()` - Provider repository
+- `getUserRepo()` - User repository
+- `getLLMProviderFactory()` - LLM provider factory
+- `getIdGenerator()` - UUID generator
 
 **`app/actions/index.ts`** (Legacy - Phase 1/2):
 - `importDocument` - Uses `ImportProjectUseCase` via `DocxParser.parseToChapters()`
@@ -206,7 +230,22 @@ Next.js App Router pages, layouts, UI components, and state management.
 
 ---
 
-#### Dashboard Components ⭐ NEW (`components/dashboard/`)
+#### Dashboard Components ⭐ ENHANCED (`components/dashboard/`)
+
+**`CreateProjectDialog`** ⭐ NEW (Phase 3.5)
+**Purpose**: Dialog for creating new projects with title input
+
+**Features**:
+- Modal dialog with title input field
+- Form validation (required title)
+- Cancel and Create buttons
+- Delegates to CreateProjectUseCase via server action
+- Auto-redirect to editor on success
+- Accessible, keyboard navigable
+
+**Tests**: 10+ tests covering dialog interactions and form validation
+
+---
 
 **`ProjectCard`** ⭐ NEW (Phase 3)
 **Purpose**: Individual project card with management actions
@@ -554,11 +593,19 @@ Next.js App Router pages, layouts, UI components, and state management.
 ✅ **UserMenu component** - User profile and sign-out
 ✅ **ProjectCard component** - Rich project management UI
 ✅ **SaveStatus indicator** - Visual auto-save feedback
-✅ **30+ server action tests** - Complete server action coverage
 ✅ **Route protection** - Middleware ensures authenticated access
 ✅ **Session management** - JWT-based sessions with Auth.js
 ✅ **Multi-tenant support** - All actions filter by userId
-✅ **125+ tests passing** - 80+ component + 15+ store + 30+ server action tests
+
+## Phase 3.5 Achievements
+
+✅ **CreateProjectDialog** - New project creation with title input ⭐ NEW
+✅ **Improved header layout** - Better project title visibility and navigation ⭐ NEW
+✅ **DocumentControls in header** - Import/export accessible from header ⭐ NEW
+✅ **UserMenu in header** - Profile dropdown integrated into header ⭐ NEW
+✅ **Server Actions delegate to Use Cases** - Clean Architecture compliance ⭐ NEW
+✅ **Dependency injection** via utils.ts - Centralized repository access ⭐ NEW
+✅ **155+ tests passing** - 100+ component + 15+ store + 40+ server action tests
 
 ## Phase 2 Achievements
 

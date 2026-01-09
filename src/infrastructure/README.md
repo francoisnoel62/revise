@@ -2,7 +2,7 @@
 
 Implements domain interfaces with concrete external services.
 
-**Status**: ✅ Phase 3 Complete (60+ unit tests + 4 integration tests)
+**Status**: ✅ Phase 3.5 Complete (70+ unit tests + 4 integration tests)
 
 ## Rules:
 - Implements interfaces defined in Domain layer
@@ -11,11 +11,30 @@ Implements domain interfaces with concrete external services.
 
 ## Contents:
 
-### AI Provider (✅ Phase 2 Enhanced)
+### AI Provider (✅ Phase 3.5 Enhanced)
 
 #### `OpenAIProvider`
 **Implements**: `LLMProvider` interface
 **Technology**: OpenAI SDK with GPT-4o-mini
+
+---
+
+#### `LLMProviderFactoryImpl` ⭐ NEW (Phase 3.5)
+**Implements**: `LLMProviderFactory` interface
+**Purpose**: Factory for creating LLM provider instances
+
+**Features**:
+- Creates LLM providers from Provider entities
+- Supports all provider types (OpenAI, Anthropic, Mistral, Cohere, Google)
+- Decrypts API keys before instantiation
+- Used by TestProviderConnectionUseCase and ValidateProviderUseCase
+
+**Methods**:
+- `create(provider: Provider)` → `LLMProvider` - Creates provider instance
+
+**Tests**: 5+ tests covering factory creation for all provider types
+
+---
 
 **Features**:
 - Carefully crafted system prompt for text rewriting
@@ -276,6 +295,24 @@ Implements domain interfaces with concrete external services.
 
 ---
 
+### Utils ⭐ NEW (Phase 3.5)
+
+#### `UUIDGenerator`
+**Implements**: `IdGenerator` interface
+**Purpose**: UUID generation for entity IDs
+
+**Features**:
+- Uses `crypto.randomUUID()` for secure UUID generation
+- Stateless, no external dependencies
+- Used by CreateProjectUseCase and CreateProviderUseCase
+
+**Methods**:
+- `generate()` → `string` - Returns a new UUID v4
+
+**Tests**: 3+ tests covering UUID generation
+
+---
+
 ### Configuration ⭐ ENHANCED (Phase 3)
 
 #### `env.ts`
@@ -403,6 +440,13 @@ All infrastructure operations exceed targets:
 
 ---
 
+## Phase 3.5 Achievements
+
+✅ **LLMProviderFactoryImpl** - Factory for creating LLM providers ⭐ NEW
+✅ **UUIDGenerator** - IdGenerator implementation ⭐ NEW
+✅ **70+ unit tests** + 4 integration tests passing
+✅ **Clean Architecture** - Domain has zero crypto dependency
+
 ## Phase 3 Achievements
 
 ✅ **MongoDBProjectRepository** - Production-ready persistence with multi-tenant isolation
@@ -413,7 +457,6 @@ All infrastructure operations exceed targets:
 ✅ **Route protection middleware** - Session validation and redirects
 ✅ **Project serialization** - Entity ↔ MongoDB document conversion
 ✅ **Multi-tenant security** - All queries filter by ownerId
-✅ **60+ unit tests** + 4 integration tests passing
 ✅ **Zero refactoring** of existing infrastructure (Clean Architecture success)
 
 ## Phase 2 Achievements

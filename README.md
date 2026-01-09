@@ -246,16 +246,19 @@ src/
 │   ├── entities/        Chapter, Project, Provider, User, TextDocument
 │   ├── value-objects/   TextSelection, RewriteProposal
 │   └── interfaces/      LLMProvider, DocumentParser, DocumentExporter,
-│                        ProjectRepository, ProviderRepository, UserRepository, AuthProvider
+│                        ProjectRepository, ProviderRepository, UserRepository, AuthProvider,
+│                        IdGenerator, LLMProviderFactory
 │
 ├── application/         Use cases orchestrating domain logic
-│   └── use-cases/       ImportProject, ExportProject, SwitchChapter, AddChapter,
-│                        RemoveChapter, ReorderChapters, UpdateChapterContent,
-│                        UpdateChapterTitle, RewriteText
+│   └── use-cases/       Project CRUD (Create, Load, List, Delete, UpdateTitle, UpdateProvider),
+│                        Chapter (Import, Export, Switch, Add, Remove, Reorder, UpdateContent, UpdateTitle),
+│                        Provider (Create, Update, Delete, List, TestConnection, Validate),
+│                        User (Register), RewriteText
 │
 ├── infrastructure/      External service implementations
-│   ├── ai/             OpenAIProvider (GPT-4o-mini)
+│   ├── ai/             OpenAIProvider (GPT-4o-mini), LLMProviderFactoryImpl
 │   ├── auth/           AuthJsProvider, auth-config
+│   ├── utils/          UUIDGenerator
 │   ├── document/       DocxParser, DocxExporter, TipTap converters
 │   ├── encryption/     AES-256-GCM utilities for API key encryption
 │   ├── persistence/    MongoDBProjectRepository, MongoDBProviderRepository,
@@ -269,18 +272,18 @@ src/
 │   └── projectStore.ts Project and chapter state (server-backed)
 │
 └── app/                Next.js interface layer
-    ├── page.tsx        Editor page (main interface)
-    ├── dashboard/      Dashboard page for project management
+    ├── page.tsx        Editor page (improved header with project title, DocumentControls, UserMenu)
+    ├── dashboard/      Dashboard page for project management (with CreateProjectDialog)
     ├── auth/           Sign-in and sign-up pages
     ├── actions/        Server Actions (project, chapter, auth, provider, rate-limiter, import/export)
     ├── components/     React UI components
     │   ├── auth/       UserMenu (with provider access)
-    │   ├── dashboard/  NoProvidersAlert
+    │   ├── dashboard/  CreateProjectDialog, ProjectCard, EmptyState, NoProvidersAlert
     │   ├── editor/     TextEditor, FormattingToolbar (with typography controls)
     │   ├── navigation/ ChaptersSheet (with drag & drop, inline editing)
     │   ├── proposals/  ProposalsSheet
     │   ├── providers/  ProvidersDialog, ProviderForm, ProviderCard
-    │   ├── document/   DocumentControls, ProjectCard, EmptyState, SaveStatus
+    │   ├── document/   DocumentControls, SaveStatus
     │   └── ui/         shadcn/ui components (+ PasswordInput)
     ├── hooks/          useAutosave (1-second debounce)
     └── lib/            UI utilities

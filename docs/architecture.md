@@ -27,21 +27,44 @@ Pure business logic with no framework dependencies.
 - `ProjectRepository` - Persistence abstraction with multi-tenant support
 - `UserRepository` - User management and authentication
 - `AuthProvider` - Authentication service abstraction
+- `IdGenerator` - UUID generation abstraction ⭐ NEW
+- `LLMProviderFactory` - Factory for creating LLM providers ⭐ NEW
 
 ### Application Layer (`src/application/`)
 
 Use cases orchestrating domain logic.
 
-**Use Cases**:
-- `ImportProjectUseCase`
-- `ExportProjectUseCase`
-- `SwitchChapterUseCase`
-- `AddChapterUseCase`
-- `RemoveChapterUseCase`
-- `ReorderChaptersUseCase`
-- `UpdateChapterContentUseCase`
-- `UpdateChapterTitleUseCase`
-- `RewriteTextUseCase`
+**Project CRUD Use Cases** ⭐ NEW:
+- `CreateProjectUseCase` - Create new project
+- `LoadProjectUseCase` - Load project from repository
+- `ListProjectsUseCase` - List user's projects
+- `DeleteProjectUseCase` - Delete project
+- `UpdateProjectTitleUseCase` - Rename project
+- `UpdateProjectProviderUseCase` - Update project's AI provider
+
+**Chapter Use Cases**:
+- `ImportProjectUseCase` - Multi-chapter import
+- `ExportProjectUseCase` - Multi-chapter export
+- `SwitchChapterUseCase` - Chapter navigation
+- `AddChapterUseCase` - Create new chapter
+- `RemoveChapterUseCase` - Delete chapter
+- `ReorderChaptersUseCase` - Drag & drop reorder
+- `UpdateChapterContentUseCase` - Content updates
+- `UpdateChapterTitleUseCase` - Title updates
+
+**Provider Use Cases** ⭐ NEW:
+- `CreateProviderUseCase` - Provider creation
+- `UpdateProviderUseCase` - Provider updates
+- `DeleteProviderUseCase` - Provider deletion
+- `ListProvidersUseCase` - List providers
+- `TestProviderConnectionUseCase` - Test credentials
+- `ValidateProviderUseCase` - Validate provider
+
+**User Use Cases** ⭐ NEW:
+- `RegisterUserUseCase` - User registration
+
+**Legacy Use Cases**:
+- `RewriteTextUseCase` - AI rewriting
 
 ### Infrastructure Layer (`src/infrastructure/`)
 
@@ -54,6 +77,10 @@ External service implementations.
 
 **AI**:
 - `OpenAIProvider` - GPT-4o-mini integration with language preservation
+- `LLMProviderFactoryImpl` - Factory for creating LLM providers ⭐ NEW
+
+**Utils** ⭐ NEW:
+- `UUIDGenerator` - IdGenerator implementation using crypto.randomUUID()
 
 **Authentication** (Phase 3):
 - `AuthJsProvider` - Auth.js implementation
@@ -76,27 +103,36 @@ External service implementations.
 React components and UI.
 
 **Pages**:
-- `page.tsx` - Editor page (main interface)
-- `dashboard/page.tsx` - Project management dashboard
+- `page.tsx` - Editor page (improved header with project title, DocumentControls, UserMenu) ⭐ ENHANCED
+- `dashboard/page.tsx` - Project management dashboard (with CreateProjectDialog) ⭐ ENHANCED
 - `auth/signin/page.tsx` - Sign-in page
 - `auth/signup/page.tsx` - Sign-up page
 
 **Components**:
-- **Auth**: `UserMenu` - User profile dropdown with sign-out
+- **Auth**: `UserMenu` - User profile dropdown with sign-out and provider access
+- **Dashboard**: `CreateProjectDialog` ⭐ NEW, `ProjectCard`, `EmptyState`, `NoProvidersAlert`
 - **Editor**: `TextEditor` - TipTap editor with A4 styling, `FormattingToolbar` - Rich text and typography controls
 - **Navigation**: `ChaptersSheet` - Chapter navigation with drag & drop
 - **Proposals**: `ProposalsSheet` - AI proposals display
-- **Document**: `DocumentControls` - Import/export, `ProjectCard` - Dashboard card, `EmptyState` - Empty dashboard, `SaveStatus` - Auto-save indicator
+- **Providers**: `ProvidersDialog`, `ProviderForm`, `ProviderCard`
+- **Document**: `DocumentControls` - Import/export, `SaveStatus` - Auto-save indicator
 - **UI**: shadcn/ui components (Sheet, Button, Card, Dialog, Input, Label, etc.)
 
 **State**:
 - `projectStore` - Zustand store (server-backed)
 
-**Server Actions**:
-- `project-actions` - Create, load, update, delete, rename projects
-- `chapter-actions` - Add, remove, update, reorder chapters
-- `auth-actions` - Sign in, sign up, sign out
-- Import/export actions
+**Server Actions** (all delegate to Use Cases ⭐ NEW):
+- `project-actions` - Create, load, update, delete, rename (→ Project Use Cases)
+- `chapter-actions` - Add, remove, update, reorder (→ Chapter Use Cases)
+- `auth-actions` - Sign in, sign up, sign out (→ RegisterUserUseCase)
+- `provider-actions` - CRUD + test connections (→ Provider Use Cases)
+
+**Dependency Injection** (`utils.ts`) ⭐ NEW:
+- `getRepository()` - Project repository
+- `getProviderRepo()` - Provider repository
+- `getUserRepo()` - User repository
+- `getLLMProviderFactory()` - LLM provider factory
+- `getIdGenerator()` - UUID generator
 
 **Hooks**:
 - `useAutosave` - Auto-save hook with 1-second debounce
