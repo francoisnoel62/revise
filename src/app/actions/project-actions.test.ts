@@ -47,6 +47,7 @@ describe('project-actions', () => {
 
     // Create a valid provider for tests
     const validProvider = Provider.create(
+      'provider-123',
       'user-123',
       'Test Provider',
       'openai',

@@ -1,14 +1,15 @@
 // ABOUTME: Server Actions for user authentication.
-// ABOUTME: Handles registration and auth-related operations.
+// ABOUTME: Delegates to Application layer Use Cases for business logic.
 
 'use server';
 
-import { getUserRepository } from '@/infrastructure/config/providers';
+import { RegisterUserUseCase, EmailAlreadyExistsError } from '@/application/use-cases/RegisterUserUseCase';
 import { SafeUser } from '@/domain/entities/User';
-import { ActionResult } from './utils';
+import { ActionResult, getUserRepo } from './utils';
 
 /**
  * Register a new user.
+ * Delegates to RegisterUserUseCase for business logic.
  */
 export async function registerUserAction(
   email: string,
@@ -16,24 +17,9 @@ export async function registerUserAction(
   name?: string
 ): Promise<ActionResult<SafeUser>> {
   try {
-    // Validate input
-    if (!email || !email.includes('@')) {
-      return { success: false, error: 'Invalid email address' };
-    }
+    const useCase = new RegisterUserUseCase(await getUserRepo());
 
-    if (!password || password.length < 8) {
-      return { success: false, error: 'Password must be at least 8 characters' };
-    }
-
-    const userRepo = await getUserRepository();
-
-    // Check if email exists
-    if (await userRepo.emailExists(email)) {
-      return { success: false, error: 'Email already registered' };
-    }
-
-    // Create user
-    const user = await userRepo.create({
+    const user = await useCase.execute({
       email,
       password,
       name,
@@ -42,6 +28,11 @@ export async function registerUserAction(
     return { success: true, data: user };
   } catch (error) {
     console.error('Registration error:', error);
+
+    if (error instanceof EmailAlreadyExistsError) {
+      return { success: false, error: 'Email already registered' };
+    }
+
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Registration failed',
@@ -56,7 +47,7 @@ export async function checkEmailAvailableAction(
   email: string
 ): Promise<ActionResult<{ available: boolean }>> {
   try {
-    const userRepo = await getUserRepository();
+    const userRepo = await getUserRepo();
     const exists = await userRepo.emailExists(email);
     return { success: true, data: { available: !exists } };
   } catch {

@@ -1,15 +1,23 @@
 // ABOUTME: Server Actions for AI Provider CRUD operations.
-// ABOUTME: All operations require authentication and use encrypted MongoDB persistence.
+// ABOUTME: Delegates to Application layer Use Cases for business logic.
 
 'use server';
 
 import { Provider, ProviderType } from '@/domain/entities/Provider';
-import { getProviderRepository, createLLMProvider } from '@/infrastructure/config/providers';
+import { CreateProviderUseCase } from '@/application/use-cases/CreateProviderUseCase';
+import { UpdateProviderUseCase } from '@/application/use-cases/UpdateProviderUseCase';
+import { DeleteProviderUseCase } from '@/application/use-cases/DeleteProviderUseCase';
+import { ListProvidersUseCase } from '@/application/use-cases/ListProvidersUseCase';
+import { TestProviderConnectionUseCase } from '@/application/use-cases/TestProviderConnectionUseCase';
+import { ValidateProviderUseCase } from '@/application/use-cases/ValidateProviderUseCase';
 import { maskApiKey } from '@/infrastructure/encryption/crypto';
 import {
   ActionResult,
   getAuthenticatedUserId,
   withErrorHandling,
+  getProviderRepo,
+  getLLMProviderFactory,
+  getIdGenerator,
 } from './utils';
 import { canTestConnection, recordTestConnection } from './rate-limiter';
 
@@ -49,9 +57,10 @@ function toSafeProvider(provider: Provider): SafeProvider {
 
 /**
  * Create a new provider.
+ * Delegates to CreateProviderUseCase for business logic.
  *
  * @param data Provider creation data
- * @param markAsValid If true, marks the provider as valid immediately (bypasses validation)
+ * @param markAsValid If true, tests connection and marks valid if successful
  * @returns Action result with SafeProvider or error
  */
 export async function createProviderAction(
@@ -63,89 +72,53 @@ export async function createProviderAction(
   },
   markAsValid?: boolean
 ): Promise<ActionResult<SafeProvider>> {
-  // 1. Authenticate
   const auth = await getAuthenticatedUserId();
-  if ('error' in auth) {
-    return auth.error;
-  }
-  const { userId } = auth;
-
-  // 2. Validate input
-  if (!data.name || data.name.trim().length === 0) {
-    return { success: false, error: 'Provider name is required' };
-  }
-
-  if (!data.apiKey || data.apiKey.trim().length === 0) {
-    return { success: false, error: 'API key is required' };
-  }
-
-  if (!data.model || data.model.trim().length === 0) {
-    return { success: false, error: 'Model is required' };
-  }
-
-  // Valid provider types
-  const validTypes: ProviderType[] = ['openai', 'anthropic', 'mistral', 'cohere', 'google'];
-  if (!validTypes.includes(data.type)) {
-    return { success: false, error: 'Invalid provider type' };
-  }
+  if ('error' in auth) return auth.error;
 
   return withErrorHandling(async () => {
-    // 3. Get repository
-    const providerRepo = await getProviderRepository();
-
-    // 4. Create provider entity
-    const provider = Provider.create(
-      userId,
-      data.name.trim(),
-      data.type,
-      data.apiKey.trim(),
-      data.model.trim()
+    const useCase = new CreateProviderUseCase(
+      await getProviderRepo(),
+      getLLMProviderFactory(),
+      getIdGenerator()
     );
 
-    // 5. Mark as valid if requested (e.g., after successful test connection)
-    if (markAsValid) {
-      provider.markAsValid();
-    }
+    const provider = await useCase.execute({
+      ownerId: auth.userId,
+      name: data.name,
+      type: data.type,
+      apiKey: data.apiKey,
+      model: data.model,
+      testConnection: markAsValid,
+    });
 
-    // 6. Persist to database (encrypted)
-    await providerRepo.create(userId, provider);
-
-    // 7. Return safe version
     return toSafeProvider(provider);
   });
 }
 
 /**
  * List all providers for the current user.
+ * Delegates to ListProvidersUseCase.
  *
  * @returns Action result with array of SafeProvider or error
  */
 export async function listProvidersAction(): Promise<ActionResult<SafeProvider[]>> {
-  // 1. Authenticate
   const auth = await getAuthenticatedUserId();
-  if ('error' in auth) {
-    return auth.error;
-  }
-  const { userId } = auth;
+  if ('error' in auth) return auth.error;
 
   return withErrorHandling(async () => {
-    // 2. Get repository
-    const providerRepo = await getProviderRepository();
-
-    // 3. List providers (multi-tenant filtered)
-    const providers = await providerRepo.listProviders(userId);
-
-    // 4. Convert to safe versions
+    const useCase = new ListProvidersUseCase(await getProviderRepo());
+    const providers = await useCase.execute({ userId: auth.userId });
     return providers.map(toSafeProvider);
   });
 }
 
 /**
  * Update an existing provider.
+ * Delegates to UpdateProviderUseCase for business logic.
  *
  * @param providerId The provider ID to update
  * @param updates Partial updates to apply
- * @param markAsValid If true, marks the provider as valid immediately (bypasses validation)
+ * @param markAsValid If true, tests connection and marks valid if successful
  * @returns Action result with updated SafeProvider or error
  */
 export async function updateProviderAction(
@@ -157,56 +130,31 @@ export async function updateProviderAction(
   },
   markAsValid?: boolean
 ): Promise<ActionResult<SafeProvider>> {
-  // 1. Authenticate
   const auth = await getAuthenticatedUserId();
-  if ('error' in auth) {
-    return auth.error;
-  }
-  const { userId } = auth;
-
-  // 2. Validate provider ID
-  if (!providerId) {
-    return { success: false, error: 'Provider ID is required' };
-  }
+  if ('error' in auth) return auth.error;
 
   return withErrorHandling(async () => {
-    // 3. Get repository
-    const providerRepo = await getProviderRepository();
+    const useCase = new UpdateProviderUseCase(
+      await getProviderRepo(),
+      getLLMProviderFactory()
+    );
 
-    // 4. Load existing provider
-    const provider = await providerRepo.findById(userId, providerId);
-    if (!provider) {
-      throw new Error('Provider not found');
-    }
+    const provider = await useCase.execute({
+      userId: auth.userId,
+      providerId,
+      ...updates,
+      testConnection: markAsValid,
+    });
 
-    // 5. Apply updates
-    if (updates.name !== undefined) {
-      provider.updateName(updates.name);
-    }
-    if (updates.apiKey !== undefined) {
-      provider.updateApiKey(updates.apiKey);
-    }
-    if (updates.model !== undefined) {
-      provider.updateModel(updates.model);
-    }
-
-    // 6. Mark as valid if requested (e.g., after successful test connection)
-    if (markAsValid) {
-      provider.markAsValid();
-    }
-
-    // 7. Persist changes
-    await providerRepo.update(userId, provider);
-
-    // 8. Return safe version
     return toSafeProvider(provider);
   });
 }
 
 /**
  * Delete a provider.
+ * Delegates to DeleteProviderUseCase for business logic.
  *
- * IMPORTANT: This enforces Phase 1 Decision - Block deletion if provider is used by projects.
+ * IMPORTANT: Business rule enforced by Use Case - blocks deletion if provider is used by projects.
  *
  * @param providerId The provider ID to delete
  * @returns Action result with void or error
@@ -214,39 +162,22 @@ export async function updateProviderAction(
 export async function deleteProviderAction(
   providerId: string
 ): Promise<ActionResult<void>> {
-  // 1. Authenticate
   const auth = await getAuthenticatedUserId();
-  if ('error' in auth) {
-    return auth.error;
-  }
-  const { userId } = auth;
-
-  // 2. Validate provider ID
-  if (!providerId) {
-    return { success: false, error: 'Provider ID is required' };
-  }
+  if ('error' in auth) return auth.error;
 
   return withErrorHandling(async () => {
-    // 3. Get repository
-    const providerRepo = await getProviderRepository();
-
-    // 4. Check if provider is used by projects
-    const isUsed = await providerRepo.isUsedByProjects(userId, providerId);
-
-    if (isUsed) {
-      throw new Error(
-        'Cannot delete provider that is used by projects. Please change the provider for those projects first.'
-      );
-    }
-
-    // 5. Delete provider
-    await providerRepo.delete(userId, providerId);
+    const useCase = new DeleteProviderUseCase(await getProviderRepo());
+    await useCase.execute({
+      userId: auth.userId,
+      providerId,
+    });
   });
 }
 
 /**
  * Test connection to a provider.
  * Rate limited to 1 test per 5 seconds per user.
+ * Delegates to TestProviderConnectionUseCase for business logic.
  *
  * @param data Provider credentials to test
  * @returns Action result with test result or error
@@ -261,15 +192,11 @@ export async function testProviderConnectionAction(data: {
     message: string;
   }>
 > {
-  // 1. Authenticate
   const auth = await getAuthenticatedUserId();
-  if ('error' in auth) {
-    return auth.error;
-  }
-  const { userId } = auth;
+  if ('error' in auth) return auth.error;
 
-  // 2. Rate limiting
-  const rateLimitCheck = canTestConnection(userId);
+  // Rate limiting (infrastructure concern, stays in Server Action)
+  const rateLimitCheck = canTestConnection(auth.userId);
   if (!rateLimitCheck.allowed) {
     return {
       success: false,
@@ -277,41 +204,19 @@ export async function testProviderConnectionAction(data: {
     };
   }
 
-  // 3. Validate input
-  if (!data.apiKey || data.apiKey.trim().length === 0) {
-    return { success: false, error: 'API key is required' };
-  }
-
-  if (!data.model || data.model.trim().length === 0) {
-    return { success: false, error: 'Model is required' };
-  }
-
   return withErrorHandling(async () => {
-    // 4. Record test attempt (rate limiting)
-    recordTestConnection(userId);
+    recordTestConnection(auth.userId);
 
-    // 5. Create temporary provider entity
-    const tempProvider = Provider.create(
-      userId,
-      'Test Provider',
-      data.type,
-      data.apiKey.trim(),
-      data.model.trim()
+    const useCase = new TestProviderConnectionUseCase(
+      getLLMProviderFactory(),
+      getIdGenerator()
     );
-
-    // 6. Create LLM provider instance
-    const llmProvider = createLLMProvider(tempProvider);
-
-    // 7. Test connection
-    const result = await llmProvider.testConnection();
-
-    // 8. Return result
-    return {
-      valid: result.valid,
-      message: result.valid
-        ? 'Connection successful'
-        : result.error || 'Connection failed',
-    };
+    return useCase.execute({
+      userId: auth.userId,
+      type: data.type,
+      apiKey: data.apiKey,
+      model: data.model,
+    });
   });
 }
 
@@ -319,6 +224,7 @@ export async function testProviderConnectionAction(data: {
  * Validate an existing provider by testing its connection.
  * Updates the provider's isValid status in the database.
  * Rate limited to 1 test per 5 seconds per user.
+ * Delegates to ValidateProviderUseCase for business logic.
  *
  * @param providerId The provider ID to validate
  * @returns Action result with validation result or error
@@ -326,15 +232,11 @@ export async function testProviderConnectionAction(data: {
 export async function validateProviderAction(
   providerId: string
 ): Promise<ActionResult<SafeProvider>> {
-  // 1. Authenticate
   const auth = await getAuthenticatedUserId();
-  if ('error' in auth) {
-    return auth.error;
-  }
-  const { userId } = auth;
+  if ('error' in auth) return auth.error;
 
-  // 2. Rate limiting
-  const rateLimitCheck = canTestConnection(userId);
+  // Rate limiting (infrastructure concern, stays in Server Action)
+  const rateLimitCheck = canTestConnection(auth.userId);
   if (!rateLimitCheck.allowed) {
     return {
       success: false,
@@ -342,41 +244,19 @@ export async function validateProviderAction(
     };
   }
 
-  // 3. Validate provider ID
-  if (!providerId) {
-    return { success: false, error: 'Provider ID is required' };
-  }
-
   return withErrorHandling(async () => {
-    // 4. Record test attempt (rate limiting)
-    recordTestConnection(userId);
+    recordTestConnection(auth.userId);
 
-    // 5. Get repository
-    const providerRepo = await getProviderRepository();
+    const useCase = new ValidateProviderUseCase(
+      await getProviderRepo(),
+      getLLMProviderFactory()
+    );
 
-    // 6. Load existing provider
-    const provider = await providerRepo.findById(userId, providerId);
-    if (!provider) {
-      throw new Error('Provider not found');
-    }
+    const provider = await useCase.execute({
+      userId: auth.userId,
+      providerId,
+    });
 
-    // 7. Create LLM provider instance
-    const llmProvider = createLLMProvider(provider);
-
-    // 8. Test connection
-    const result = await llmProvider.testConnection();
-
-    // 9. Update validation status
-    if (result.valid) {
-      provider.markAsValid();
-    } else {
-      provider.markAsInvalid();
-    }
-
-    // 10. Persist changes
-    await providerRepo.update(userId, provider);
-
-    // 11. Return updated safe provider
     return toSafeProvider(provider);
   });
 }

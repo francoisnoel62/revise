@@ -1,11 +1,23 @@
 // ABOUTME: Shared utilities for Server Actions.
 // ABOUTME: Provides authentication, repository access, and error handling.
+// ABOUTME: Centralizes dependency injection to reduce coupling to Infrastructure layer.
 
 'use server';
 
-import { getAuthProvider, getProjectRepository } from '@/infrastructure/config/providers';
+import {
+  getAuthProvider,
+  getProjectRepository,
+  getProviderRepository,
+  getUserRepository,
+} from '@/infrastructure/config/providers';
+import { LLMProviderFactoryImpl } from '@/infrastructure/ai/LLMProviderFactoryImpl';
+import { uuidGenerator } from '@/infrastructure/utils/UUIDGenerator';
 import { UnauthorizedError } from '@/domain/interfaces/AuthProvider';
 import { ProjectRepository } from '@/domain/interfaces/ProjectRepository';
+import { ProviderRepository } from '@/domain/interfaces/ProviderRepository';
+import { UserRepository } from '@/domain/interfaces/UserRepository';
+import { LLMProviderFactory } from '@/domain/interfaces/LLMProviderFactory';
+import { IdGenerator } from '@/domain/interfaces/IdGenerator';
 
 /**
  * Result type for Server Actions.
@@ -45,10 +57,38 @@ export async function getAuthenticatedUserId(): Promise<
 }
 
 /**
- * Get repository instance.
+ * Get project repository instance.
  */
 export async function getRepository(): Promise<ProjectRepository> {
   return await getProjectRepository();
+}
+
+/**
+ * Get provider repository instance.
+ */
+export async function getProviderRepo(): Promise<ProviderRepository> {
+  return await getProviderRepository();
+}
+
+/**
+ * Get user repository instance.
+ */
+export async function getUserRepo(): Promise<UserRepository> {
+  return await getUserRepository();
+}
+
+/**
+ * Get LLM provider factory instance.
+ */
+export function getLLMProviderFactory(): LLMProviderFactory {
+  return new LLMProviderFactoryImpl();
+}
+
+/**
+ * Get ID generator instance.
+ */
+export function getIdGenerator(): IdGenerator {
+  return uuidGenerator;
 }
 
 /**

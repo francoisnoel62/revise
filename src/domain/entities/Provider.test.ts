@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { Provider} from './Provider';
+import { Provider } from './Provider';
 
 describe('Provider Entity', () => {
   const validData = {
+    id: 'provider-123',
     ownerId: 'user-123',
     name: 'OpenAI Production',
     type: 'openai' as const,
@@ -13,6 +14,7 @@ describe('Provider Entity', () => {
   describe('create', () => {
     it('should create a new provider with valid data', () => {
       const provider = Provider.create(
+        validData.id,
         validData.ownerId,
         validData.name,
         validData.type,
@@ -20,7 +22,7 @@ describe('Provider Entity', () => {
         validData.model
       );
 
-      expect(provider.getId()).toBeDefined();
+      expect(provider.getId()).toBe(validData.id);
       expect(provider.getOwnerId()).toBe(validData.ownerId);
       expect(provider.getName()).toBe(validData.name);
       expect(provider.getType()).toBe(validData.type);
@@ -35,6 +37,7 @@ describe('Provider Entity', () => {
     it('should throw error for empty name', () => {
       expect(() =>
         Provider.create(
+          validData.id,
           validData.ownerId,
           '',
           validData.type,
@@ -47,6 +50,7 @@ describe('Provider Entity', () => {
     it('should throw error for empty API key', () => {
       expect(() =>
         Provider.create(
+          validData.id,
           validData.ownerId,
           validData.name,
           validData.type,
@@ -59,6 +63,7 @@ describe('Provider Entity', () => {
     it('should throw error for empty model', () => {
       expect(() =>
         Provider.create(
+          validData.id,
           validData.ownerId,
           validData.name,
           validData.type,
@@ -70,6 +75,7 @@ describe('Provider Entity', () => {
 
     it('should trim whitespace from name', () => {
       const provider = Provider.create(
+        validData.id,
         validData.ownerId,
         '  Test Provider  ',
         validData.type,
@@ -83,6 +89,7 @@ describe('Provider Entity', () => {
   describe('updateName', () => {
     it('should update name and timestamp', () => {
       const provider = Provider.create(
+        validData.id,
         validData.ownerId,
         validData.name,
         validData.type,
@@ -104,6 +111,7 @@ describe('Provider Entity', () => {
 
     it('should throw error for empty name', () => {
       const provider = Provider.create(
+        validData.id,
         validData.ownerId,
         validData.name,
         validData.type,
@@ -120,6 +128,7 @@ describe('Provider Entity', () => {
   describe('updateApiKey', () => {
     it('should update API key and mark as invalid', () => {
       const provider = Provider.create(
+        validData.id,
         validData.ownerId,
         validData.name,
         validData.type,
@@ -139,6 +148,7 @@ describe('Provider Entity', () => {
   describe('markAsValid / markAsInvalid', () => {
     it('should mark provider as valid', () => {
       const provider = Provider.create(
+        validData.id,
         validData.ownerId,
         validData.name,
         validData.type,
@@ -154,6 +164,7 @@ describe('Provider Entity', () => {
 
     it('should mark provider as invalid', () => {
       const provider = Provider.create(
+        validData.id,
         validData.ownerId,
         validData.name,
         validData.type,

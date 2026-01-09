@@ -1,10 +1,16 @@
 // ABOUTME: Server Actions for Chapter operations within a Project.
-// ABOUTME: All operations load project, modify, and persist.
+// ABOUTME: Delegates to Application layer Use Cases for business logic.
 
 'use server';
 
-import { randomUUID } from 'crypto';
+import { Project } from '@/domain/entities/Project';
 import { Chapter } from '@/domain/entities/Chapter';
+import { AddChapterUseCase } from '@/application/use-cases/AddChapterUseCase';
+import { RemoveChapterUseCase } from '@/application/use-cases/RemoveChapterUseCase';
+import { ReorderChaptersUseCase } from '@/application/use-cases/ReorderChaptersUseCase';
+import { UpdateChapterTitleUseCase } from '@/application/use-cases/UpdateChapterTitleUseCase';
+import { UpdateChapterContentUseCase } from '@/application/use-cases/UpdateChapterContentUseCase';
+import { SwitchChapterUseCase } from '@/application/use-cases/SwitchChapterUseCase';
 import {
   ActionResult,
   getAuthenticatedUserId,
@@ -14,7 +20,7 @@ import {
 import { SerializedProject, SerializedChapter } from './project-actions';
 
 // Re-use serialization from project-actions
-function serializeProject(project: import('@/domain/entities/Project').Project): SerializedProject {
+function serializeProject(project: Project): SerializedProject {
   return {
     id: project.getId(),
     title: project.getTitle(),
@@ -36,8 +42,24 @@ function serializeProject(project: import('@/domain/entities/Project').Project):
   };
 }
 
+function serializeChapter(chapter: Chapter): SerializedChapter {
+  const metadata = chapter.getMetadata();
+  return {
+    id: chapter.getId(),
+    title: chapter.getTitle(),
+    content: chapter.getContent(),
+    order: chapter.getOrder(),
+    metadata: {
+      wordCount: metadata.wordCount,
+      characterCount: metadata.characterCount,
+      lastEdited: metadata.lastEdited.toISOString(),
+    },
+  };
+}
+
 /**
  * Add a new chapter to a project.
+ * Delegates to AddChapterUseCase for business logic.
  */
 export async function addChapterAction(
   projectId: string
@@ -53,24 +75,18 @@ export async function addChapterAction(
       throw new Error('Project not found');
     }
 
-    // Create new chapter
-    const chapterCount = project.getChapterCount();
-    const newChapter = new Chapter(
-      randomUUID(),
-      `Chapitre ${chapterCount + 1}`,
-      JSON.stringify({ type: 'doc', content: [{ type: 'paragraph' }] }),
-      chapterCount
-    );
+    // Delegate to Use Case
+    const useCase = new AddChapterUseCase();
+    useCase.execute(project);
 
-    project.addChapter(newChapter);
     await repository.updateProject(auth.userId, project);
-
     return serializeProject(project);
   });
 }
 
 /**
  * Remove a chapter from a project.
+ * Delegates to RemoveChapterUseCase for business logic.
  */
 export async function removeChapterAction(
   projectId: string,
@@ -87,15 +103,18 @@ export async function removeChapterAction(
       throw new Error('Project not found');
     }
 
-    project.removeChapter(chapterId);
-    await repository.updateProject(auth.userId, project);
+    // Delegate to Use Case
+    const useCase = new RemoveChapterUseCase();
+    useCase.execute(project, chapterId);
 
+    await repository.updateProject(auth.userId, project);
     return serializeProject(project);
   });
 }
 
 /**
  * Reorder chapters within a project.
+ * Delegates to ReorderChaptersUseCase for business logic.
  */
 export async function reorderChaptersAction(
   projectId: string,
@@ -113,15 +132,18 @@ export async function reorderChaptersAction(
       throw new Error('Project not found');
     }
 
-    project.reorderChapters(fromIndex, toIndex);
-    await repository.updateProject(auth.userId, project);
+    // Delegate to Use Case
+    const useCase = new ReorderChaptersUseCase();
+    useCase.execute(project, fromIndex, toIndex);
 
+    await repository.updateProject(auth.userId, project);
     return serializeProject(project);
   });
 }
 
 /**
  * Update a chapter's title.
+ * Delegates to UpdateChapterTitleUseCase for business logic.
  */
 export async function updateChapterTitleAction(
   projectId: string,
@@ -139,32 +161,21 @@ export async function updateChapterTitleAction(
       throw new Error('Project not found');
     }
 
-    const chapter = project.getChapter(chapterId);
-    if (!chapter) {
-      throw new Error('Chapter not found');
-    }
+    // Delegate to Use Case
+    const useCase = new UpdateChapterTitleUseCase();
+    useCase.execute(project, chapterId, title);
 
-    chapter.updateTitle(title);
+    const chapter = project.getChapter(chapterId)!;
     await repository.updateChapter(auth.userId, projectId, chapter);
 
-    const metadata = chapter.getMetadata();
-    return {
-      id: chapter.getId(),
-      title: chapter.getTitle(),
-      content: chapter.getContent(),
-      order: chapter.getOrder(),
-      metadata: {
-        wordCount: metadata.wordCount,
-        characterCount: metadata.characterCount,
-        lastEdited: metadata.lastEdited.toISOString(),
-      },
-    };
+    return serializeChapter(chapter);
   });
 }
 
 /**
  * Update a chapter's content.
  * Used for autosave and manual saves.
+ * Delegates to UpdateChapterContentUseCase for business logic.
  */
 export async function updateChapterContentAction(
   projectId: string,
@@ -182,12 +193,11 @@ export async function updateChapterContentAction(
       throw new Error('Project not found');
     }
 
-    const chapter = project.getChapter(chapterId);
-    if (!chapter) {
-      throw new Error('Chapter not found');
-    }
+    // Delegate to Use Case
+    const useCase = new UpdateChapterContentUseCase();
+    useCase.execute(project, chapterId, content);
 
-    chapter.updateContent(content);
+    const chapter = project.getChapter(chapterId)!;
     await repository.updateChapter(auth.userId, projectId, chapter);
 
     return {
@@ -200,6 +210,7 @@ export async function updateChapterContentAction(
 /**
  * Set active chapter for a project.
  * Saves current chapter content before switching.
+ * Delegates to SwitchChapterUseCase for business logic.
  */
 export async function setActiveChapterAction(
   projectId: string,
@@ -218,7 +229,7 @@ export async function setActiveChapterAction(
       throw new Error('Project not found');
     }
 
-    // Save current chapter content if provided
+    // Save current chapter content if provided (before switching)
     if (currentChapterId && currentContent !== null) {
       const currentChapter = project.getChapter(currentChapterId);
       if (currentChapter) {
@@ -227,10 +238,11 @@ export async function setActiveChapterAction(
       }
     }
 
-    // Switch active chapter
-    project.setActiveChapter(chapterId);
-    await repository.updateProject(auth.userId, project);
+    // Delegate to Use Case for switching
+    const useCase = new SwitchChapterUseCase();
+    await useCase.execute(project, chapterId, currentContent || '');
 
+    await repository.updateProject(auth.userId, project);
     return serializeProject(project);
   });
 }

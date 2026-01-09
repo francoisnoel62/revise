@@ -1,8 +1,6 @@
 // ABOUTME: Domain entity representing an AI provider configuration.
 // ABOUTME: Stores user-configured API credentials and provider settings.
 
-import { randomUUID } from 'crypto';
-
 /**
  * Supported AI provider types.
  */
@@ -72,6 +70,7 @@ export class Provider {
   /**
    * Factory method to create a new provider.
    *
+   * @param id Unique identifier for the provider
    * @param ownerId User ID who owns this provider
    * @param name User-friendly name (e.g., "OpenAI Production")
    * @param type Provider type (openai, anthropic, etc.)
@@ -80,6 +79,7 @@ export class Provider {
    * @returns New Provider instance
    */
   static create(
+    id: string,
     ownerId: string,
     name: string,
     type: ProviderType,
@@ -88,7 +88,7 @@ export class Provider {
   ): Provider {
     const now = new Date();
     return new Provider(
-      randomUUID(),
+      id,
       ownerId,
       name,
       type,
