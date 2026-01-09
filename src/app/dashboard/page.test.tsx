@@ -23,6 +23,10 @@ vi.mock('@/app/actions/project-actions', () => ({
   updateProjectTitleAction: vi.fn(),
 }));
 
+vi.mock('@/app/actions', () => ({
+  importDocument: vi.fn(),
+}));
+
 import { listProjectsAction, createProjectAction } from '@/app/actions/project-actions';
 
 const mockProjects = [
@@ -84,24 +88,12 @@ describe('DashboardPage', () => {
     });
   });
 
-  it('creates new project on button click', async () => {
+  it('opens dialog when clicking create button', async () => {
     const user = userEvent.setup();
 
     vi.mocked(listProjectsAction).mockResolvedValue({
       success: true,
       data: [],
-    });
-
-    vi.mocked(createProjectAction).mockResolvedValue({
-      success: true,
-      data: {
-        id: 'new-proj',
-        title: 'Nouveau projet',
-        chapters: [],
-        activeChapterId: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
     });
 
     render(<DashboardPage />);
@@ -115,6 +107,52 @@ describe('DashboardPage', () => {
     });
     await user.click(createButton);
 
-    expect(createProjectAction).toHaveBeenCalled();
+    // Dialog should be open
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByLabelText(/title/i)).toBeInTheDocument();
+  });
+
+  it('creates project with title from dialog', async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(listProjectsAction).mockResolvedValue({
+      success: true,
+      data: [],
+    });
+
+    vi.mocked(createProjectAction).mockResolvedValue({
+      success: true,
+      data: {
+        id: 'new-proj',
+        title: 'My Novel',
+        chapters: [],
+        activeChapterId: null,
+        providerId: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    });
+
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No projects yet')).toBeInTheDocument();
+    });
+
+    // Open dialog
+    const createButton = screen.getByRole('button', {
+      name: /create your first project/i,
+    });
+    await user.click(createButton);
+
+    // Fill in title
+    const titleInput = screen.getByLabelText(/title/i);
+    await user.type(titleInput, 'My Novel');
+
+    // Submit
+    const submitButton = screen.getByRole('button', { name: /^create$/i });
+    await user.click(submitButton);
+
+    expect(createProjectAction).toHaveBeenCalledWith('My Novel');
   });
 });

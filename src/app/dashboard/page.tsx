@@ -10,7 +10,9 @@ import { Button } from '@/components/ui/button';
 import { ProjectCard } from '@/components/dashboard/ProjectCard';
 import { EmptyState } from '@/components/dashboard/EmptyState';
 import { NoProvidersAlert } from '@/components/dashboard/NoProvidersAlert';
+import { CreateProjectDialog } from '@/components/dashboard/CreateProjectDialog';
 import { ProjectListItem, listProjectsAction, createProjectAction } from '@/app/actions/project-actions';
+import { importDocument } from '@/app/actions';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -18,6 +20,7 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Load projects on mount
   useEffect(() => {
@@ -41,20 +44,55 @@ export default function DashboardPage() {
     loadProjects();
   }, [router]);
 
-  const handleCreateProject = async () => {
+  const handleCreateProject = async (title: string, file: File | null) => {
     setIsCreating(true);
     setError(null);
 
-    const result = await createProjectAction();
+    try {
+      let projectId: string;
 
-    if (!result.success) {
-      setError(result.error);
+      if (file) {
+        // Import file and create project from it
+        const formData = new FormData();
+        formData.append('file', file);
+        const result = await importDocument(formData);
+
+        if (!result.success) {
+          if (result.redirect) {
+            router.push(result.redirect);
+            return;
+          }
+          throw new Error(result.error);
+        }
+
+        projectId = result.data.id;
+      } else {
+        // Create empty project with title
+        const result = await createProjectAction(title);
+
+        if (!result.success) {
+          if (result.redirect) {
+            router.push(result.redirect);
+            return;
+          }
+          throw new Error(result.error);
+        }
+
+        projectId = result.data.id;
+      }
+
+      // Close dialog and navigate to new project
+      setIsDialogOpen(false);
+      router.push(`/?project=${projectId}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create project');
+    } finally {
       setIsCreating(false);
-      return;
     }
+  };
 
-    // Navigate to new project
-    router.push(`/?project=${result.data.id}`);
+  const handleOpenDialog = () => {
+    setIsDialogOpen(true);
   };
 
   const handleOpenProject = (projectId: string) => {
@@ -94,9 +132,9 @@ export default function DashboardPage() {
                 {projects.length} project{projects.length !== 1 ? 's' : ''}
               </p>
             </div>
-            <Button onClick={handleCreateProject} disabled={isCreating}>
+            <Button onClick={handleOpenDialog}>
               <Plus className="h-4 w-4 mr-2" />
-              {isCreating ? 'Creating...' : 'New Project'}
+              New Project
             </Button>
           </div>
         </div>
@@ -116,7 +154,7 @@ export default function DashboardPage() {
         </div>
 
         {projects.length === 0 ? (
-          <EmptyState onCreateProject={handleCreateProject} isCreating={isCreating} />
+          <EmptyState onCreateProject={handleOpenDialog} />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
@@ -131,6 +169,14 @@ export default function DashboardPage() {
           </div>
         )}
       </main>
+
+      {/* Create Project Dialog */}
+      <CreateProjectDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onCreateProject={handleCreateProject}
+        isCreating={isCreating}
+      />
     </div>
   );
 }
