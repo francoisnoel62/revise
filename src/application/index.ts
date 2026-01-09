@@ -10,6 +10,23 @@ export { ExportDocumentUseCase } from './use-cases/ExportDocumentUseCase';
 export { ImportProjectUseCase } from './use-cases/ImportProjectUseCase';
 export { ExportProjectUseCase } from './use-cases/ExportProjectUseCase';
 
+// Project CRUD Use Cases (Phase 3)
+export { CreateProjectUseCase } from './use-cases/CreateProjectUseCase';
+export type { CreateProjectInput } from './use-cases/CreateProjectUseCase';
+export { NoValidProvidersError, InvalidProviderError } from './use-cases/CreateProjectUseCase';
+export { LoadProjectUseCase } from './use-cases/LoadProjectUseCase';
+export type { LoadProjectInput } from './use-cases/LoadProjectUseCase';
+export { ProjectNotFoundError } from './use-cases/LoadProjectUseCase';
+export { ListProjectsUseCase } from './use-cases/ListProjectsUseCase';
+export type { ListProjectsInput } from './use-cases/ListProjectsUseCase';
+export { DeleteProjectUseCase } from './use-cases/DeleteProjectUseCase';
+export type { DeleteProjectInput } from './use-cases/DeleteProjectUseCase';
+export { UpdateProjectTitleUseCase } from './use-cases/UpdateProjectTitleUseCase';
+export type { UpdateProjectTitleInput } from './use-cases/UpdateProjectTitleUseCase';
+export { UpdateProjectProviderUseCase } from './use-cases/UpdateProjectProviderUseCase';
+export type { UpdateProjectProviderInput } from './use-cases/UpdateProjectProviderUseCase';
+export { ProviderNotFoundError } from './use-cases/UpdateProjectProviderUseCase';
+
 // Chapter Use Cases (Phase 2)
 export { AddChapterUseCase } from './use-cases/AddChapterUseCase';
 export { RemoveChapterUseCase } from './use-cases/RemoveChapterUseCase';

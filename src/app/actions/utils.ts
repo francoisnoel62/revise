@@ -80,14 +80,14 @@ export async function getUserRepo(): Promise<UserRepository> {
 /**
  * Get LLM provider factory instance.
  */
-export function getLLMProviderFactory(): LLMProviderFactory {
+export async function getLLMProviderFactory(): Promise<LLMProviderFactory> {
   return new LLMProviderFactoryImpl();
 }
 
 /**
  * Get ID generator instance.
  */
-export function getIdGenerator(): IdGenerator {
+export async function getIdGenerator(): Promise<IdGenerator> {
   return uuidGenerator;
 }
 

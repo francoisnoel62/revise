@@ -78,8 +78,8 @@ export async function createProviderAction(
   return withErrorHandling(async () => {
     const useCase = new CreateProviderUseCase(
       await getProviderRepo(),
-      getLLMProviderFactory(),
-      getIdGenerator()
+      await getLLMProviderFactory(),
+      await getIdGenerator()
     );
 
     const provider = await useCase.execute({
@@ -136,7 +136,7 @@ export async function updateProviderAction(
   return withErrorHandling(async () => {
     const useCase = new UpdateProviderUseCase(
       await getProviderRepo(),
-      getLLMProviderFactory()
+      await getLLMProviderFactory()
     );
 
     const provider = await useCase.execute({
@@ -208,8 +208,8 @@ export async function testProviderConnectionAction(data: {
     recordTestConnection(auth.userId);
 
     const useCase = new TestProviderConnectionUseCase(
-      getLLMProviderFactory(),
-      getIdGenerator()
+      await getLLMProviderFactory(),
+      await getIdGenerator()
     );
     return useCase.execute({
       userId: auth.userId,
@@ -249,7 +249,7 @@ export async function validateProviderAction(
 
     const useCase = new ValidateProviderUseCase(
       await getProviderRepo(),
-      getLLMProviderFactory()
+      await getLLMProviderFactory()
     );
 
     const provider = await useCase.execute({

@@ -1,15 +1,21 @@
 // ABOUTME: Server Actions for Project CRUD operations.
-// ABOUTME: All operations require authentication and use MongoDB persistence.
+// ABOUTME: Delegates to Application layer Use Cases for business logic.
 
 'use server';
 
 import { Project } from '@/domain/entities/Project';
 import { Chapter } from '@/domain/entities/Chapter';
-import { getProviderRepository } from '@/infrastructure/config/providers';
+import { CreateProjectUseCase } from '@/application/use-cases/CreateProjectUseCase';
+import { LoadProjectUseCase } from '@/application/use-cases/LoadProjectUseCase';
+import { ListProjectsUseCase } from '@/application/use-cases/ListProjectsUseCase';
+import { DeleteProjectUseCase } from '@/application/use-cases/DeleteProjectUseCase';
+import { UpdateProjectTitleUseCase } from '@/application/use-cases/UpdateProjectTitleUseCase';
+import { UpdateProjectProviderUseCase } from '@/application/use-cases/UpdateProjectProviderUseCase';
 import {
   ActionResult,
   getAuthenticatedUserId,
   getRepository,
+  getProviderRepo,
   withErrorHandling,
 } from './utils';
 
@@ -92,6 +98,7 @@ function serializeProjectListItem(project: Project): ProjectListItem {
 
 /**
  * Create a new empty project.
+ * Delegates to CreateProjectUseCase for business logic.
  *
  * @param title Optional project title
  * @param providerId Optional provider ID for AI operations
@@ -104,46 +111,24 @@ export async function createProjectAction(
   if ('error' in auth) return auth.error;
 
   return withErrorHandling(async () => {
-    const providerRepo = await getProviderRepository();
+    const useCase = new CreateProjectUseCase(
+      await getRepository(),
+      await getProviderRepo()
+    );
 
-    // Check if user has at least one valid provider configured
-    const providers = await providerRepo.listProviders(auth.userId);
-    const validProviders = providers.filter((p) => p.isValidProvider());
+    const project = await useCase.execute({
+      ownerId: auth.userId,
+      title,
+      providerId,
+    });
 
-    if (validProviders.length === 0) {
-      throw new Error(
-        'Vous devez configurer au moins un fournisseur IA avant de créer un projet. Rendez-vous dans "Mon profil" > "Mes fournisseurs".'
-      );
-    }
-
-    // Validate provider if provided
-    if (providerId) {
-      const provider = await providerRepo.findById(auth.userId, providerId);
-
-      if (!provider) {
-        throw new Error('Provider not found');
-      }
-
-      if (!provider.isValidProvider()) {
-        throw new Error('Selected provider is not valid. Please test the connection first.');
-      }
-    }
-
-    const repository = await getRepository();
-    const project = Project.createEmpty(auth.userId, title || 'Nouveau projet');
-
-    // Set provider if provided
-    if (providerId) {
-      project.setProviderId(providerId);
-    }
-
-    await repository.createProject(auth.userId, project);
     return serializeProject(project);
   });
 }
 
 /**
  * Load a project by ID.
+ * Delegates to LoadProjectUseCase for business logic.
  */
 export async function loadProjectAction(
   projectId: string
@@ -152,12 +137,12 @@ export async function loadProjectAction(
   if ('error' in auth) return auth.error;
 
   return withErrorHandling(async () => {
-    const repository = await getRepository();
-    const project = await repository.loadProject(auth.userId, projectId);
+    const useCase = new LoadProjectUseCase(await getRepository());
 
-    if (!project) {
-      throw new Error('Project not found');
-    }
+    const project = await useCase.execute({
+      ownerId: auth.userId,
+      projectId,
+    });
 
     return serializeProject(project);
   });
@@ -165,20 +150,26 @@ export async function loadProjectAction(
 
 /**
  * List all projects for current user.
+ * Delegates to ListProjectsUseCase for business logic.
  */
 export async function listProjectsAction(): Promise<ActionResult<ProjectListItem[]>> {
   const auth = await getAuthenticatedUserId();
   if ('error' in auth) return auth.error;
 
   return withErrorHandling(async () => {
-    const repository = await getRepository();
-    const projects = await repository.listProjects(auth.userId);
+    const useCase = new ListProjectsUseCase(await getRepository());
+
+    const projects = await useCase.execute({
+      ownerId: auth.userId,
+    });
+
     return projects.map(serializeProjectListItem);
   });
 }
 
 /**
  * Delete a project.
+ * Delegates to DeleteProjectUseCase for business logic.
  */
 export async function deleteProjectAction(
   projectId: string
@@ -187,14 +178,20 @@ export async function deleteProjectAction(
   if ('error' in auth) return auth.error;
 
   return withErrorHandling(async () => {
-    const repository = await getRepository();
-    await repository.deleteProject(auth.userId, projectId);
+    const useCase = new DeleteProjectUseCase(await getRepository());
+
+    await useCase.execute({
+      ownerId: auth.userId,
+      projectId,
+    });
+
     return { deleted: true };
   });
 }
 
 /**
  * Update project title.
+ * Delegates to UpdateProjectTitleUseCase for business logic.
  */
 export async function updateProjectTitleAction(
   projectId: string,
@@ -204,21 +201,21 @@ export async function updateProjectTitleAction(
   if ('error' in auth) return auth.error;
 
   return withErrorHandling(async () => {
-    const repository = await getRepository();
-    const project = await repository.loadProject(auth.userId, projectId);
+    const useCase = new UpdateProjectTitleUseCase(await getRepository());
 
-    if (!project) {
-      throw new Error('Project not found');
-    }
+    const project = await useCase.execute({
+      ownerId: auth.userId,
+      projectId,
+      title,
+    });
 
-    project.updateTitle(title);
-    await repository.updateProject(auth.userId, project);
     return serializeProject(project);
   });
 }
 
 /**
  * Update a project's provider.
+ * Delegates to UpdateProjectProviderUseCase for business logic.
  *
  * @param projectId The project ID to update
  * @param providerId The new provider ID (or null to clear)
@@ -232,32 +229,16 @@ export async function updateProjectProviderAction(
   if ('error' in auth) return auth.error;
 
   return withErrorHandling(async () => {
-    // 1. Validate provider if provided
-    if (providerId) {
-      const providerRepo = await getProviderRepository();
-      const provider = await providerRepo.findById(auth.userId, providerId);
+    const useCase = new UpdateProjectProviderUseCase(
+      await getRepository(),
+      await getProviderRepo()
+    );
 
-      if (!provider) {
-        throw new Error('Provider not found');
-      }
-
-      // Note: We don't check isValid here - user can select invalid provider
-      // and fix it later. This provides flexibility.
-    }
-
-    // 2. Load project
-    const repository = await getRepository();
-    const project = await repository.loadProject(auth.userId, projectId);
-
-    if (!project) {
-      throw new Error('Project not found');
-    }
-
-    // 3. Update provider
-    project.setProviderId(providerId);
-
-    // 4. Persist changes
-    await repository.updateProject(auth.userId, project);
+    const project = await useCase.execute({
+      ownerId: auth.userId,
+      projectId,
+      providerId,
+    });
 
     return serializeProject(project);
   });

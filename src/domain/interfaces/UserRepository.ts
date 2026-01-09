@@ -2,6 +2,8 @@
 
 import { User, UserRegistration, SafeUser } from '../entities/User';
 
+export type { SafeUser };
+
 export interface UserRepository {
   /**
    * Find user by email address.

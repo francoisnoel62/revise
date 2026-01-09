@@ -12,6 +12,7 @@ import {
 vi.mock('./utils', () => ({
   getAuthenticatedUserId: vi.fn(),
   getRepository: vi.fn(),
+  getProviderRepo: vi.fn(),
   withErrorHandling: vi.fn(async (fn) => {
     try {
       const data = await fn();
@@ -22,13 +23,7 @@ vi.mock('./utils', () => ({
   }),
 }));
 
-// Mock the provider repository
-vi.mock('@/infrastructure/config/providers', () => ({
-  getProviderRepository: vi.fn(),
-}));
-
-import { getAuthenticatedUserId, getRepository } from './utils';
-import { getProviderRepository } from '@/infrastructure/config/providers';
+import { getAuthenticatedUserId, getRepository, getProviderRepo } from './utils';
 import { InMemoryProjectRepository } from '@/infrastructure/persistence/InMemoryProjectRepository';
 import { Project } from '@/domain/entities/Project';
 import { Provider } from '@/domain/entities/Provider';
@@ -61,7 +56,7 @@ describe('project-actions', () => {
       listProviders: vi.fn().mockResolvedValue([validProvider]),
       findById: vi.fn().mockResolvedValue(validProvider),
     };
-    vi.mocked(getProviderRepository).mockResolvedValue(mockProviderRepository as never);
+    vi.mocked(getProviderRepo).mockResolvedValue(mockProviderRepository as never);
   });
 
   describe('createProjectAction', () => {
