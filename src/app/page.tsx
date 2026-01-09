@@ -242,22 +242,27 @@ function EditorContent() {
     <main className="min-h-screen bg-slate-50">
       {/* Header with controls */}
       <header className="sticky top-0 z-50 bg-white border-b border-slate-200">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-4">
+        <div className="grid grid-cols-3 items-center px-4 py-3">
+          {/* Left: navigation */}
+          <div className="flex items-center gap-2">
             <Link href="/dashboard">
               <Button variant="ghost" size="icon" title="Back to projects">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
             <ChaptersSheet />
-            <div>
-              <h1 className="text-lg font-semibold">
-                {project.chapters.find((c) => c.id === project.activeChapterId)?.title || 'Untitled'}
-              </h1>
+          </div>
+          {/* Center: project title */}
+          <div className="text-center">
+            <h1 className="text-lg font-semibold">{project.title}</h1>
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <span>{project.chapters.find((c) => c.id === project.activeChapterId)?.title || 'Untitled'}</span>
+              <span>·</span>
               <SaveStatus />
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          {/* Right: controls */}
+          <div className="flex items-center justify-end gap-2">
             <DocumentControls />
             <UserMenu />
           </div>
@@ -265,7 +270,7 @@ function EditorContent() {
       </header>
 
       {/* Toolbar sticky centrée au-dessus de l'éditeur */}
-      <div className="sticky top-[73px] z-40 flex justify-center py-2 bg-slate-50">
+      <div className="sticky top-18.25 z-40 flex justify-center py-2 bg-slate-50">
         <div className="w-198.5">
           <div className="bg-white rounded-lg shadow border border-slate-200 px-2 py-1">
             <FormattingToolbar
