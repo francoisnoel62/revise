@@ -6,7 +6,6 @@
 import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import { Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
-import Underline from '@tiptap/extension-underline';
 import Highlight from '@tiptap/extension-highlight';
 import Placeholder from '@tiptap/extension-placeholder';
 import { TextStyle } from '@tiptap/extension-text-style';
@@ -53,11 +52,10 @@ export function TextEditor({
     shouldRerenderOnTransaction: false, // Performance optimization
     extensions: [
       StarterKit.configure({
-        // StarterKit includes bold and italic by default, but not underline or highlight
+        // StarterKit v3 includes bold, italic, and underline by default
         paragraph: false, // Disable default paragraph - use our custom IndentParagraph
       }),
       IndentParagraph, // Custom paragraph with indent support
-      Underline,
       Highlight.configure({ multicolor: true }),
       TextStyle, // Required for FontFamily and FontSize
       FontFamily.configure({
