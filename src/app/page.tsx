@@ -258,6 +258,16 @@ function EditorContent() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <DocumentControls />
+            <UserMenu />
+          </div>
+        </div>
+      </header>
+
+      {/* Toolbar sticky centrée au-dessus de l'éditeur */}
+      <div className="sticky top-[73px] z-40 flex justify-center py-2 bg-slate-50">
+        <div className="w-198.5">
+          <div className="bg-white rounded-lg shadow border border-slate-200 px-2 py-1">
             <FormattingToolbar
               editor={editor}
               hasSelection={hasSelection}
@@ -268,14 +278,12 @@ function EditorContent() {
               onProviderChange={handleProviderChange}
               providersLoading={providersLoading}
             />
-            <DocumentControls />
-            <UserMenu />
           </div>
         </div>
-      </header>
+      </div>
 
       {/* A4 width editor container (794px = 210mm) */}
-      <div className="flex justify-center py-8">
+      <div className="flex justify-center pb-8">
         <div className="w-198.5">
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
             <TextEditor
