@@ -12,6 +12,7 @@ import { MongoDBUserRepository } from '@/infrastructure/persistence/MongoDBUserR
 import { MongoDBProviderRepository } from '@/infrastructure/persistence/MongoDBProviderRepository';
 import { InMemoryProjectRepository } from '@/infrastructure/persistence/InMemoryProjectRepository';
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
+import { AnthropicProvider } from '@/infrastructure/ai/AnthropicProvider';
 import { Provider } from '@/domain/entities/Provider';
 import { getDatabase } from './database';
 import { config } from './env';
@@ -75,8 +76,7 @@ export function createLLMProvider(provider: Provider): LLMProvider {
       return new OpenAIProvider(apiKey, model);
 
     case 'anthropic':
-      // TODO Phase 2: Implement AnthropicProvider
-      throw new Error('Anthropic provider not yet implemented');
+      return new AnthropicProvider(apiKey, model);
 
     case 'mistral':
       // TODO Phase 2: Implement MistralProvider

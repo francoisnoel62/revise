@@ -5,6 +5,7 @@ import { Provider } from '@/domain/entities/Provider';
 import { LLMProvider } from '@/domain/interfaces/LLMProvider';
 import { LLMProviderFactory } from '@/domain/interfaces/LLMProviderFactory';
 import { OpenAIProvider } from './OpenAIProvider';
+import { AnthropicProvider } from './AnthropicProvider';
 
 /**
  * Factory implementation for creating LLM providers.
@@ -20,8 +21,7 @@ export class LLMProviderFactoryImpl implements LLMProviderFactory {
         return new OpenAIProvider(apiKey, model);
 
       case 'anthropic':
-        // TODO Phase 2: Implement AnthropicProvider
-        throw new Error('Anthropic provider not yet implemented');
+        return new AnthropicProvider(apiKey, model);
 
       case 'mistral':
         // TODO Phase 2: Implement MistralProvider
