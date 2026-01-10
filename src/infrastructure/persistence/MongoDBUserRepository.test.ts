@@ -23,13 +23,14 @@ const mockDb = {
 };
 
 import { MongoDBUserRepository } from './MongoDBUserRepository';
+import type { Db } from 'mongodb';
 
 describe('MongoDBUserRepository', () => {
   let repository: MongoDBUserRepository;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    repository = new MongoDBUserRepository(mockDb as any);
+    repository = new MongoDBUserRepository(mockDb as unknown as Db);
   });
 
   describe('findByEmail', () => {

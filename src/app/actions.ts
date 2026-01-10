@@ -11,6 +11,7 @@ import { TextDocument } from '@/domain/entities/TextDocument';
 import { TextSelection } from '@/domain/value-objects/TextSelection';
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
 import { RewriteTextUseCase } from '@/application/use-cases/RewriteTextUseCase';
+import { getPromptRepository } from '@/infrastructure/config/providers';
 import {
   type ActionResult,
   getAuthenticatedUserId,
@@ -198,7 +199,8 @@ export async function rewriteText(
       throw new Error('OpenAI API key not configured');
     }
 
-    const provider = new OpenAIProvider(apiKey);
+    const promptRepo = getPromptRepository();
+    const provider = new OpenAIProvider(apiKey, promptRepo);
     const useCase = new RewriteTextUseCase(provider);
 
     const proposals = await useCase.execute(document, selection);

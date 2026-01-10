@@ -3,7 +3,9 @@
 
 import OpenAI from 'openai';
 import { LLMProvider, ConnectionTestResult } from '@/domain/interfaces/LLMProvider';
+import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
+import { NarrativeAnalysis } from '@/domain/value-objects/NarrativeAnalysis';
 
 interface ProposalResponse {
   proposals: Array<{
@@ -12,13 +14,28 @@ interface ProposalResponse {
   }>;
 }
 
+interface NarrativeAnalysisResponse {
+  narratorType: string;
+  focalization: string;
+  temporality: string;
+  chapterStructure: string;
+  narrativeVoice: string[];
+  summary: string;
+}
+
 export class OpenAIProvider implements LLMProvider {
   private client: OpenAI;
   private model: string;
+  private promptRepository: PromptRepository;
 
-  constructor(apiKey: string, model: string = 'gpt-4o') {
+  constructor(
+    apiKey: string,
+    promptRepository: PromptRepository,
+    model: string = 'gpt-4o'
+  ) {
     this.client = new OpenAI({ apiKey });
     this.model = model;
+    this.promptRepository = promptRepository;
   }
 
   async generateRewrites(
@@ -185,6 +202,114 @@ FORMAT DE SORTIE (JSON):
    */
   getModel(): string {
     return this.model;
+  }
+
+  /**
+   * Generate narrative analysis for the given text.
+   * Analyzes narrator type, focalization, temporality, chapter structure,
+   * and distinctive narrative voice.
+   */
+  async generateNarrativeAnalysis(fullText: string): Promise<NarrativeAnalysis> {
+    // Load base prompt from repository
+    const basePrompt = await this.promptRepository.getNarrativeAnalysisPrompt();
+
+    // Enhance with JSON output instructions for OpenAI
+    const systemPrompt = this.enhancePromptForOpenAI(basePrompt);
+    const userPrompt = fullText;
+
+    try {
+      const completion = await this.client.chat.completions.create({
+        model: this.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.3, // Lower for more consistent analysis
+        max_tokens: 4096,
+      });
+
+      const content = completion.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('Empty response from OpenAI');
+      }
+
+      return this.parseNarrativeAnalysisResponse(content);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error during narrative analysis');
+    }
+  }
+
+  /**
+   * Enhance the base narrative analysis prompt with JSON output instructions.
+   * The base prompt provides the analysis guidelines, this adds the JSON structure.
+   */
+  private enhancePromptForOpenAI(basePrompt: string): string {
+    return `${basePrompt}
+
+---
+
+IMPORTANT - FORMAT DE SORTIE JSON:
+
+Produis une analyse structurée en JSON avec les clés suivantes:
+
+{
+  "narratorType": "Description du type de narrateur et de sa fiabilité (2-3 phrases)",
+  "focalization": "Description de la focalisation et de l'accès aux pensées (2-3 phrases)",
+  "temporality": "Description de la gestion du temps, analepses, prolepses (2-3 phrases)",
+  "chapterStructure": "Description de la structure des chapitres, patterns d'ouverture/clôture (2-3 phrases)",
+  "narrativeVoice": ["Point 1", "Point 2", "Point 3", "Point 4", "Point 5"],
+  "summary": "Synthèse de l'analyse en 2-3 phrases"
+}
+
+INSTRUCTIONS FINALES:
+- Détecte la langue du texte et réponds dans la MÊME LANGUE
+- Sois précis et concis
+- Base ton analyse uniquement sur ce qui est présent dans le texte
+- narrativeVoice doit contenir EXACTEMENT 5 points distincts
+- Retourne UNIQUEMENT le JSON, sans commentaires`;
+  }
+
+  private parseNarrativeAnalysisResponse(content: string): NarrativeAnalysis {
+    let parsed: NarrativeAnalysisResponse;
+
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      throw new Error('Failed to parse narrative analysis response');
+    }
+
+    // Validate required fields
+    if (!parsed.narratorType || typeof parsed.narratorType !== 'string') {
+      throw new Error('Invalid response: missing narratorType');
+    }
+    if (!parsed.focalization || typeof parsed.focalization !== 'string') {
+      throw new Error('Invalid response: missing focalization');
+    }
+    if (!parsed.temporality || typeof parsed.temporality !== 'string') {
+      throw new Error('Invalid response: missing temporality');
+    }
+    if (!parsed.chapterStructure || typeof parsed.chapterStructure !== 'string') {
+      throw new Error('Invalid response: missing chapterStructure');
+    }
+    if (!Array.isArray(parsed.narrativeVoice) || parsed.narrativeVoice.length === 0) {
+      throw new Error('Invalid response: narrativeVoice must be a non-empty array');
+    }
+    if (!parsed.summary || typeof parsed.summary !== 'string') {
+      throw new Error('Invalid response: missing summary');
+    }
+
+    return {
+      narratorType: parsed.narratorType,
+      focalization: parsed.focalization,
+      temporality: parsed.temporality,
+      chapterStructure: parsed.chapterStructure,
+      narrativeVoice: parsed.narrativeVoice,
+      summary: parsed.summary,
+    };
   }
 
   private parseResponse(content: string): RewriteProposal[] {

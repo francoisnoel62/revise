@@ -2,6 +2,7 @@
 // ABOUTME: Abstracts text generation to allow swappable implementations (OpenAI, Anthropic, etc.)
 
 import { RewriteProposal } from '../value-objects/RewriteProposal';
+import { NarrativeAnalysis } from '../value-objects/NarrativeAnalysis';
 
 /**
  * Test connection result.
@@ -42,4 +43,15 @@ export interface LLMProvider {
    * @returns Model identifier
    */
   getModel(): string;
+
+  /**
+   * Generates a narrative analysis for the given text.
+   * Analyzes narrator type, focalization, temporality, chapter structure,
+   * and distinctive narrative voice.
+   *
+   * @param fullText The complete text to analyze (all chapters combined)
+   * @returns Promise resolving to structured NarrativeAnalysis
+   * @throws Error if generation fails or API is unavailable
+   */
+  generateNarrativeAnalysis(fullText: string): Promise<NarrativeAnalysis>;
 }

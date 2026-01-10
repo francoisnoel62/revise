@@ -4,24 +4,28 @@
 import { Provider } from '@/domain/entities/Provider';
 import { LLMProvider } from '@/domain/interfaces/LLMProvider';
 import { LLMProviderFactory } from '@/domain/interfaces/LLMProviderFactory';
+import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import { OpenAIProvider } from './OpenAIProvider';
 import { AnthropicProvider } from './AnthropicProvider';
 
 /**
  * Factory implementation for creating LLM providers.
  * Maps Provider entity types to their concrete implementations.
+ * Injects PromptRepository for accessing AI prompts.
  */
 export class LLMProviderFactoryImpl implements LLMProviderFactory {
+  constructor(private readonly promptRepository: PromptRepository) {}
+
   create(provider: Provider): LLMProvider {
     const apiKey = provider.getApiKey();
     const model = provider.getModel();
 
     switch (provider.getType()) {
       case 'openai':
-        return new OpenAIProvider(apiKey, model);
+        return new OpenAIProvider(apiKey, this.promptRepository, model);
 
       case 'anthropic':
-        return new AnthropicProvider(apiKey, model);
+        return new AnthropicProvider(apiKey, this.promptRepository, model);
 
       case 'mistral':
         // TODO Phase 2: Implement MistralProvider

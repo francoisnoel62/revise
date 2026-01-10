@@ -5,12 +5,16 @@ import { AuthProvider } from '@/domain/interfaces/AuthProvider';
 import { ProjectRepository } from '@/domain/interfaces/ProjectRepository';
 import { UserRepository } from '@/domain/interfaces/UserRepository';
 import { ProviderRepository } from '@/domain/interfaces/ProviderRepository';
+import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
+import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import { LLMProvider } from '@/domain/interfaces/LLMProvider';
 import { AuthJsProvider } from '@/infrastructure/auth/AuthJsProvider';
 import { MongoDBProjectRepository } from '@/infrastructure/persistence/MongoDBProjectRepository';
 import { MongoDBUserRepository } from '@/infrastructure/persistence/MongoDBUserRepository';
 import { MongoDBProviderRepository } from '@/infrastructure/persistence/MongoDBProviderRepository';
+import { MongoDBMetadataRepository } from '@/infrastructure/persistence/MongoDBMetadataRepository';
 import { InMemoryProjectRepository } from '@/infrastructure/persistence/InMemoryProjectRepository';
+import { FilePromptRepository } from '@/infrastructure/prompts/FilePromptRepository';
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
 import { AnthropicProvider } from '@/infrastructure/ai/AnthropicProvider';
 import { Provider } from '@/domain/entities/Provider';
@@ -61,6 +65,34 @@ export async function getProviderRepository(): Promise<ProviderRepository> {
 }
 
 /**
+ * Get the metadata repository.
+ */
+let metadataRepoInstance: MongoDBMetadataRepository | null = null;
+
+export async function getMetadataRepository(): Promise<MetadataRepository> {
+  if (!metadataRepoInstance) {
+    const db = await getDatabase();
+    metadataRepoInstance = new MongoDBMetadataRepository(db);
+    // Ensure indexes on first use
+    await metadataRepoInstance.ensureIndexes();
+  }
+  return metadataRepoInstance;
+}
+
+/**
+ * Get the prompt repository.
+ * Singleton instance for accessing AI prompts from files.
+ */
+let promptRepoInstance: PromptRepository | null = null;
+
+export function getPromptRepository(): PromptRepository {
+  if (!promptRepoInstance) {
+    promptRepoInstance = new FilePromptRepository();
+  }
+  return promptRepoInstance;
+}
+
+/**
  * Create an LLM provider instance from a Provider entity.
  *
  * @param provider The provider entity with configuration
@@ -70,13 +102,14 @@ export async function getProviderRepository(): Promise<ProviderRepository> {
 export function createLLMProvider(provider: Provider): LLMProvider {
   const apiKey = provider.getApiKey(); // Already decrypted by repository
   const model = provider.getModel();
+  const promptRepo = getPromptRepository();
 
   switch (provider.getType()) {
     case 'openai':
-      return new OpenAIProvider(apiKey, model);
+      return new OpenAIProvider(apiKey, promptRepo, model);
 
     case 'anthropic':
-      return new AnthropicProvider(apiKey, model);
+      return new AnthropicProvider(apiKey, promptRepo, model);
 
     case 'mistral':
       // TODO Phase 2: Implement MistralProvider
@@ -109,5 +142,6 @@ export function getDefaultLLMProvider(): LLMProvider {
     );
   }
 
-  return new OpenAIProvider(apiKey, model);
+  const promptRepo = getPromptRepository();
+  return new OpenAIProvider(apiKey, promptRepo, model);
 }

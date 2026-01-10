@@ -3,7 +3,9 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { LLMProvider, ConnectionTestResult } from '@/domain/interfaces/LLMProvider';
+import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
+import { NarrativeAnalysis } from '@/domain/value-objects/NarrativeAnalysis';
 
 interface ProposalResponse {
   proposals: Array<{
@@ -12,13 +14,28 @@ interface ProposalResponse {
   }>;
 }
 
+interface NarrativeAnalysisResponse {
+  narratorType: string;
+  focalization: string;
+  temporality: string;
+  chapterStructure: string;
+  narrativeVoice: string[];
+  summary: string;
+}
+
 export class AnthropicProvider implements LLMProvider {
   private client: Anthropic;
   private model: string;
+  private promptRepository: PromptRepository;
 
-  constructor(apiKey: string, model: string = 'claude-sonnet-4-5-20250929') {
+  constructor(
+    apiKey: string,
+    promptRepository: PromptRepository,
+    model: string = 'claude-sonnet-4-5-20250929'
+  ) {
     this.client = new Anthropic({ apiKey });
     this.model = model;
+    this.promptRepository = promptRepository;
   }
 
   async generateRewrites(
@@ -202,6 +219,129 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans aucun texte avant ou après.
    */
   getModel(): string {
     return this.model;
+  }
+
+  /**
+   * Generate narrative analysis for the given text.
+   * Analyzes narrator type, focalization, temporality, chapter structure,
+   * and distinctive narrative voice using Claude.
+   */
+  async generateNarrativeAnalysis(fullText: string): Promise<NarrativeAnalysis> {
+    // Load base prompt from repository
+    const basePrompt = await this.promptRepository.getNarrativeAnalysisPrompt();
+
+    // Enhance with JSON output instructions for Anthropic
+    const systemPrompt = this.enhancePromptForAnthropic(basePrompt);
+
+    try {
+      const message = await this.client.messages.create({
+        model: this.model,
+        max_tokens: 4096,
+        temperature: 0.3, // Lower for more consistent analysis
+        system: systemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: fullText,
+          },
+        ],
+      });
+
+      // Extract text content from response
+      const content = message.content[0];
+      if (content.type !== 'text') {
+        throw new Error('Unexpected response type from Anthropic');
+      }
+
+      return this.parseNarrativeAnalysisResponse(content.text);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error during narrative analysis');
+    }
+  }
+
+  /**
+   * Enhance the base narrative analysis prompt with JSON output instructions.
+   * The base prompt provides the analysis guidelines, this adds the JSON structure.
+   */
+  private enhancePromptForAnthropic(basePrompt: string): string {
+    return `${basePrompt}
+
+---
+
+IMPORTANT - FORMAT DE SORTIE JSON:
+
+Produis une analyse structurée en JSON avec les clés suivantes:
+
+{
+  "narratorType": "Description du type de narrateur et de sa fiabilité (2-3 phrases)",
+  "focalization": "Description de la focalisation et de l'accès aux pensées (2-3 phrases)",
+  "temporality": "Description de la gestion du temps, analepses, prolepses (2-3 phrases)",
+  "chapterStructure": "Description de la structure des chapitres, patterns d'ouverture/clôture (2-3 phrases)",
+  "narrativeVoice": ["Point 1", "Point 2", "Point 3", "Point 4", "Point 5"],
+  "summary": "Synthèse de l'analyse en 2-3 phrases"
+}
+
+INSTRUCTIONS FINALES:
+- Détecte la langue du texte et réponds dans la MÊME LANGUE
+- Sois précis et concis
+- Base ton analyse uniquement sur ce qui est présent dans le texte
+- narrativeVoice doit contenir EXACTEMENT 5 points distincts
+- Retourne UNIQUEMENT le JSON, sans commentaires ni code blocks markdown`;
+  }
+
+  /**
+   * Parse Anthropic's narrative analysis response.
+   */
+  private parseNarrativeAnalysisResponse(content: string): NarrativeAnalysis {
+    let parsed: NarrativeAnalysisResponse;
+
+    try {
+      // Claude sometimes wraps JSON in markdown code blocks
+      let jsonContent = content.trim();
+
+      // Remove markdown code blocks if present
+      if (jsonContent.startsWith('```json')) {
+        jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (jsonContent.startsWith('```')) {
+        jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+
+      parsed = JSON.parse(jsonContent);
+    } catch {
+      throw new Error('Failed to parse narrative analysis response from Anthropic');
+    }
+
+    // Validate required fields
+    if (!parsed.narratorType || typeof parsed.narratorType !== 'string') {
+      throw new Error('Invalid response: missing narratorType');
+    }
+    if (!parsed.focalization || typeof parsed.focalization !== 'string') {
+      throw new Error('Invalid response: missing focalization');
+    }
+    if (!parsed.temporality || typeof parsed.temporality !== 'string') {
+      throw new Error('Invalid response: missing temporality');
+    }
+    if (!parsed.chapterStructure || typeof parsed.chapterStructure !== 'string') {
+      throw new Error('Invalid response: missing chapterStructure');
+    }
+    if (!Array.isArray(parsed.narrativeVoice) || parsed.narrativeVoice.length === 0) {
+      throw new Error('Invalid response: narrativeVoice must be a non-empty array');
+    }
+    if (!parsed.summary || typeof parsed.summary !== 'string') {
+      throw new Error('Invalid response: missing summary');
+    }
+
+    return {
+      narratorType: parsed.narratorType,
+      focalization: parsed.focalization,
+      temporality: parsed.temporality,
+      chapterStructure: parsed.chapterStructure,
+      narrativeVoice: parsed.narrativeVoice,
+      summary: parsed.summary,
+    };
   }
 
   private parseResponse(content: string): RewriteProposal[] {

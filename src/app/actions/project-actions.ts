@@ -16,6 +16,7 @@ import {
   getAuthenticatedUserId,
   getRepository,
   getProviderRepo,
+  getMetadataRepo,
   withErrorHandling,
 } from './utils';
 
@@ -170,6 +171,7 @@ export async function listProjectsAction(): Promise<ActionResult<ProjectListItem
 /**
  * Delete a project.
  * Delegates to DeleteProjectUseCase for business logic.
+ * Cascades to delete all project metadata.
  */
 export async function deleteProjectAction(
   projectId: string
@@ -178,7 +180,10 @@ export async function deleteProjectAction(
   if ('error' in auth) return auth.error;
 
   return withErrorHandling(async () => {
-    const useCase = new DeleteProjectUseCase(await getRepository());
+    const useCase = new DeleteProjectUseCase(
+      await getRepository(),
+      await getMetadataRepo() // Add metadata repository for cascade delete
+    );
 
     await useCase.execute({
       ownerId: auth.userId,
