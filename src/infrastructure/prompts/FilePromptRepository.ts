@@ -25,48 +25,48 @@ export class FilePromptRepository implements PromptRepository {
    * Read the narrative analysis prompt from markdown file.
    */
   async getNarrativeAnalysisPrompt(): Promise<string> {
-    return this.readPromptFile('narrative-analysis.md');
+    return this.readPromptFile('narrative-analysis.md', 'narrative analysis');
   }
 
   /**
    * Read the stylistic DNA prompt from markdown file.
    */
   async getStylisticDNAPrompt(): Promise<string> {
-    return this.readPromptFile('stylistic-dna.md');
+    return this.readPromptFile('stylistic-dna.md', 'stylistic DNA');
   }
 
   /**
    * Read the characters prompt from markdown file.
    */
   async getCharactersPrompt(): Promise<string> {
-    return this.readPromptFile('characters.md');
+    return this.readPromptFile('characters.md', 'characters');
   }
 
   /**
    * Read the plot prompt from markdown file.
    */
   async getPlotPrompt(): Promise<string> {
-    return this.readPromptFile('plot.md');
+    return this.readPromptFile('plot.md', 'plot');
   }
 
   /**
    * Read the worldbuilding prompt from markdown file.
    */
   async getWorldbuildingPrompt(): Promise<string> {
-    return this.readPromptFile('worldbuilding.md');
+    return this.readPromptFile('worldbuilding.md', 'worldbuilding');
   }
 
   /**
    * Read the synthesis prompt from markdown file.
    */
   async getSynthesisPrompt(): Promise<string> {
-    return this.readPromptFile('synthesis.md');
+    return this.readPromptFile('synthesis.md', 'synthesis');
   }
 
   /**
    * Helper method to read a prompt file from the metadata directory.
    */
-  private async readPromptFile(filename: string): Promise<string> {
+  private async readPromptFile(filename: string, promptType?: string): Promise<string> {
     const filePath = join(this.promptsDir, 'metadata', filename);
 
     try {
@@ -74,8 +74,9 @@ export class FilePromptRepository implements PromptRepository {
       return content.trim();
     } catch (error) {
       if (error instanceof Error) {
+        const typeName = promptType || filename;
         throw new Error(
-          `Failed to read prompt from ${filePath}: ${error.message}`
+          `Failed to read ${typeName} prompt from ${filePath}: ${error.message}`
         );
       }
       throw new Error(`Failed to read prompt: ${filename}`);

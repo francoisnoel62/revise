@@ -19,6 +19,7 @@ export interface MetadataDocument {
     lastEdited: Date;
     generatedAt: Date | null;
     isGenerated: boolean;
+    contentHash: string | null; // SHA-256 hash of source text when generated
   };
   createdAt: Date;
   updatedAt: Date;
@@ -46,6 +47,7 @@ export function serializeMetadata(
       lastEdited: props.lastEdited,
       generatedAt: props.generatedAt,
       isGenerated: props.isGenerated,
+      contentHash: props.contentHash,
     },
     createdAt: new Date(), // Set on first insert
     updatedAt: new Date(),
@@ -64,6 +66,7 @@ export function deserializeMetadata(doc: MetadataDocument): ProjectMetadata {
       ? new Date(doc.properties.generatedAt)
       : null,
     isGenerated: doc.properties.isGenerated,
+    contentHash: doc.properties.contentHash ?? null, // Handle legacy documents without hash
   };
 
   return new ProjectMetadata(

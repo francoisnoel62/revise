@@ -168,8 +168,11 @@ export default function MetadataListPage() {
   // Generic handler for all metadata generation types
   const createGenerateHandler = (
     typeKey: string,
-    generateAction: (projectId: string, providerId: string) => Promise<any>,
-    hasExisting: boolean
+    generateAction: (
+      projectId: string,
+      providerId: string
+    ) => Promise<{ success: boolean; error?: string }>,
+    _hasExisting: boolean
   ) => {
     return async (providerId: string) => {
       if (!providerId) {
@@ -184,7 +187,7 @@ export default function MetadataListPage() {
         const result = await generateAction(projectId, providerId);
 
         if (!result.success) {
-          setError(result.error);
+          setError(result.error || 'Une erreur est survenue');
           return;
         }
 

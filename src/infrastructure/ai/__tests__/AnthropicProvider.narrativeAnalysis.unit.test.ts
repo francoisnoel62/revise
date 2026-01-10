@@ -45,9 +45,9 @@ describe('AnthropicProvider.generateNarrativeAnalysis (Unit)', () => {
     };
 
     // Mock the Anthropic constructor to return our mock client
-    vi.mocked(Anthropic).mockImplementation(function(this: any) {
-      return mockClient as any;
-    } as any);
+    vi.mocked(Anthropic).mockImplementation(function(this: unknown) {
+      return mockClient as unknown as InstanceType<typeof Anthropic>;
+    } as unknown as typeof Anthropic);
 
     // Mock prompt repository
     mockPromptRepo = {

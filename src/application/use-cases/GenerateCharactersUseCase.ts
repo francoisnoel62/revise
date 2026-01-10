@@ -1,5 +1,6 @@
 // ABOUTME: Use case for generating character analysis using AI
 // ABOUTME: Extracts all chapter content, sends to LLM, creates/updates metadata
+// ABOUTME: Implements intelligent caching based on content hash
 
 import {
   ProjectMetadata,
@@ -9,16 +10,19 @@ import {
   IdGenerator,
   Characters,
 } from '../../domain';
+import { hashText } from '../../infrastructure/utils/text-hash';
 
 export interface GenerateCharactersInput {
   ownerId: string;
   projectId: string;
+  forceRegenerate?: boolean;
 }
 
 export interface GenerateCharactersResult {
   metadata: ProjectMetadata;
-  analysis: Characters;
+  analysis: Characters | null;
   wasUpdated: boolean;
+  wasCached: boolean;
 }
 
 export class GenerateCharactersUseCase {
@@ -64,40 +68,51 @@ export class GenerateCharactersUseCase {
       throw new Error('Project chapters have no content to analyze');
     }
 
-    // 4. Generate analysis using LLM
-    const analysis = await this.llmProvider.generateCharacters(fullText);
+    // 4. Hash the full text for caching
+    const contentHash = hashText(fullText);
 
-    // 5. Format analysis as TipTap JSON
-    const contentJson = this.formatAnalysisAsTipTapJSON(analysis);
-
-    // 6. Check if metadata already exists
+    // 5. Check if metadata already exists
     let metadata = await this.metadataRepository.findByProjectAndType(
       input.ownerId,
       input.projectId,
       GenerateCharactersUseCase.TYPE_KEY
     );
 
+    // 6. Check if we can use cached metadata
+    if (metadata && !input.forceRegenerate && !metadata.needsRegeneration(contentHash)) {
+      return {
+        metadata,
+        analysis: null,
+        wasUpdated: false,
+        wasCached: true,
+      };
+    }
+
+    // 7. Generate analysis using LLM
+    const analysis = await this.llmProvider.generateCharacters(fullText);
+
+    // 8. Format analysis as TipTap JSON
+    const contentJson = this.formatAnalysisAsTipTapJSON(analysis);
+
     const wasUpdated = metadata !== null;
 
     if (metadata) {
-      // Update existing metadata
-      metadata.updateContent(contentJson);
+      metadata.updateContent(contentJson, contentHash);
       metadata.markAsGenerated();
       await this.metadataRepository.update(input.ownerId, metadata);
     } else {
-      // Create new metadata
-      metadata = new ProjectMetadata(
+      metadata = ProjectMetadata.createGenerated(
         this.idGenerator.generate(),
         input.projectId,
         GenerateCharactersUseCase.TYPE_KEY,
         GenerateCharactersUseCase.TITLE,
-        contentJson
+        contentJson,
+        contentHash
       );
-      metadata.markAsGenerated();
       await this.metadataRepository.create(input.ownerId, metadata);
     }
 
-    return { metadata, analysis, wasUpdated };
+    return { metadata, analysis, wasUpdated, wasCached: false };
   }
 
   private extractFullText(chapters: { getContent(): string; getTitle(): string }[]): string {

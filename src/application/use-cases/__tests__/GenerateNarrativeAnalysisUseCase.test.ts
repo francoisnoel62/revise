@@ -93,6 +93,7 @@ describe('GenerateNarrativeAnalysisUseCase', () => {
       updateContent: vi.fn(),
       markAsGenerated: vi.fn(),
       isGenerated: () => true,
+      needsRegeneration: vi.fn().mockReturnValue(true),
     };
 
     mockProjectRepository.loadProject.mockResolvedValue(mockProject);

@@ -68,7 +68,7 @@ export function GenerateCard({
           <Select
             value={selectedProviderId}
             onValueChange={setSelectedProviderId}
-            disabled={isAnyGenerating || providers.length === 0}
+            disabled={isGenerating || isAnyGenerating || providers.length === 0}
           >
             <SelectTrigger id="provider-select">
               <SelectValue placeholder="Sélectionner un provider" />
@@ -86,7 +86,7 @@ export function GenerateCard({
         <Button
           className="w-full"
           onClick={handleGenerate}
-          disabled={isAnyGenerating || !selectedProviderId || providers.length === 0}
+          disabled={isGenerating || isAnyGenerating || !selectedProviderId || providers.length === 0}
         >
           {isGenerating ? (
             <>

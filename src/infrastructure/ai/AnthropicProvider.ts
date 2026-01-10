@@ -454,7 +454,7 @@ INSTRUCTIONS:
       jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
     }
 
-    let parsed: any;
+    let parsed: unknown;
     try {
       parsed = JSON.parse(jsonContent);
     } catch {
@@ -574,7 +574,7 @@ INSTRUCTIONS:
       jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
     }
 
-    let parsed: any;
+    let parsed: unknown;
     try {
       parsed = JSON.parse(jsonContent);
     } catch {
@@ -719,7 +719,7 @@ INSTRUCTIONS:
       jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
     }
 
-    let parsed: any;
+    let parsed: unknown;
     try {
       parsed = JSON.parse(jsonContent);
     } catch {
@@ -877,7 +877,7 @@ INSTRUCTIONS:
       jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
     }
 
-    let parsed: any;
+    let parsed: unknown;
     try {
       parsed = JSON.parse(jsonContent);
     } catch {
@@ -1061,7 +1061,7 @@ INSTRUCTIONS:
       jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
     }
 
-    let parsed: any;
+    let parsed: unknown;
     try {
       parsed = JSON.parse(jsonContent);
     } catch {

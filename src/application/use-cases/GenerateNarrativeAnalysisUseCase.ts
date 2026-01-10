@@ -1,5 +1,6 @@
 // ABOUTME: Use case for generating narrative analysis using AI
 // ABOUTME: Extracts all chapter content, sends to LLM, creates/updates metadata
+// ABOUTME: Implements intelligent caching based on content hash
 
 import {
   ProjectMetadata,
@@ -9,16 +10,19 @@ import {
   IdGenerator,
   NarrativeAnalysis,
 } from '../../domain';
+import { hashText } from '../../infrastructure/utils/text-hash';
 
 export interface GenerateNarrativeAnalysisInput {
   ownerId: string;
   projectId: string;
+  forceRegenerate?: boolean; // Optional flag to bypass cache
 }
 
 export interface GenerateNarrativeAnalysisResult {
   metadata: ProjectMetadata;
-  analysis: NarrativeAnalysis;
+  analysis: NarrativeAnalysis | null; // null when using cache
   wasUpdated: boolean; // true if existing metadata was overwritten
+  wasCached: boolean; // true if cache was used (no API call)
 }
 
 export class GenerateNarrativeAnalysisUseCase {
@@ -64,40 +68,54 @@ export class GenerateNarrativeAnalysisUseCase {
       throw new Error('Project chapters have no content to analyze');
     }
 
-    // 4. Generate analysis using LLM
-    const analysis = await this.llmProvider.generateNarrativeAnalysis(fullText);
+    // 4. Hash the full text for caching
+    const contentHash = hashText(fullText);
 
-    // 5. Format analysis as TipTap JSON
-    const contentJson = this.formatAnalysisAsTipTapJSON(analysis);
-
-    // 6. Check if metadata already exists
+    // 5. Check if metadata already exists
     let metadata = await this.metadataRepository.findByProjectAndType(
       input.ownerId,
       input.projectId,
       GenerateNarrativeAnalysisUseCase.TYPE_KEY
     );
 
+    // 6. Check if we can use cached metadata
+    if (metadata && !input.forceRegenerate && !metadata.needsRegeneration(contentHash)) {
+      // Content unchanged - return cached metadata
+      return {
+        metadata,
+        analysis: null, // No new analysis generated
+        wasUpdated: false,
+        wasCached: true,
+      };
+    }
+
+    // 7. Generate analysis using LLM (content changed or forced)
+    const analysis = await this.llmProvider.generateNarrativeAnalysis(fullText);
+
+    // 8. Format analysis as TipTap JSON
+    const contentJson = this.formatAnalysisAsTipTapJSON(analysis);
+
     const wasUpdated = metadata !== null;
 
     if (metadata) {
-      // Update existing metadata
-      metadata.updateContent(contentJson);
+      // Update existing metadata with new content and hash
+      metadata.updateContent(contentJson, contentHash);
       metadata.markAsGenerated();
       await this.metadataRepository.update(input.ownerId, metadata);
     } else {
-      // Create new metadata
-      metadata = new ProjectMetadata(
+      // Create new metadata with hash
+      metadata = ProjectMetadata.createGenerated(
         this.idGenerator.generate(),
         input.projectId,
         GenerateNarrativeAnalysisUseCase.TYPE_KEY,
         GenerateNarrativeAnalysisUseCase.TITLE,
-        contentJson
+        contentJson,
+        contentHash
       );
-      metadata.markAsGenerated();
       await this.metadataRepository.create(input.ownerId, metadata);
     }
 
-    return { metadata, analysis, wasUpdated };
+    return { metadata, analysis, wasUpdated, wasCached: false };
   }
 
   /**

@@ -1,5 +1,6 @@
 // ABOUTME: Use case for generating synthesis analysis using AI
 // ABOUTME: Aggregates all previous metadata analyses and provides editorial feedback
+// ABOUTME: Implements intelligent caching based on content hash
 
 import {
   ProjectMetadata,
@@ -14,16 +15,19 @@ import {
   Plot,
   Worldbuilding,
 } from '../../domain';
+import { hashText } from '../../infrastructure/utils/text-hash';
 
 export interface GenerateSynthesisInput {
   ownerId: string;
   projectId: string;
+  forceRegenerate?: boolean;
 }
 
 export interface GenerateSynthesisResult {
   metadata: ProjectMetadata;
-  analysis: Synthesis;
+  analysis: Synthesis | null;
   wasUpdated: boolean;
+  wasCached: boolean;
 }
 
 export class GenerateSynthesisUseCase {
@@ -69,49 +73,60 @@ export class GenerateSynthesisUseCase {
       throw new Error('Project chapters have no content to analyze');
     }
 
-    // 4. Load existing metadata analyses
-    const existingMetadata = await this.metadataRepository.findByProjectId(
-      input.ownerId,
-      input.projectId
-    );
+    // 4. Hash the full text for caching
+    const contentHash = hashText(fullText);
 
-    // 5. Parse existing analyses into value objects
-    const previousAnalyses = this.parsePreviousAnalyses(existingMetadata);
-
-    // 6. Generate synthesis using LLM
-    const analysis = await this.llmProvider.generateSynthesis(fullText, previousAnalyses);
-
-    // 7. Format analysis as TipTap JSON
-    const contentJson = this.formatAnalysisAsTipTapJSON(analysis);
-
-    // 8. Check if metadata already exists
+    // 5. Check if synthesis metadata already exists
     let metadata = await this.metadataRepository.findByProjectAndType(
       input.ownerId,
       input.projectId,
       GenerateSynthesisUseCase.TYPE_KEY
     );
 
+    // 6. Check if we can use cached metadata
+    if (metadata && !input.forceRegenerate && !metadata.needsRegeneration(contentHash)) {
+      return {
+        metadata,
+        analysis: null,
+        wasUpdated: false,
+        wasCached: true,
+      };
+    }
+
+    // 7. Load existing metadata analyses
+    const existingMetadata = await this.metadataRepository.findByProjectId(
+      input.ownerId,
+      input.projectId
+    );
+
+    // 8. Parse existing analyses into value objects
+    const previousAnalyses = this.parsePreviousAnalyses(existingMetadata);
+
+    // 9. Generate synthesis using LLM
+    const analysis = await this.llmProvider.generateSynthesis(fullText, previousAnalyses);
+
+    // 10. Format analysis as TipTap JSON
+    const contentJson = this.formatAnalysisAsTipTapJSON(analysis);
+
     const wasUpdated = metadata !== null;
 
     if (metadata) {
-      // Update existing metadata
-      metadata.updateContent(contentJson);
+      metadata.updateContent(contentJson, contentHash);
       metadata.markAsGenerated();
       await this.metadataRepository.update(input.ownerId, metadata);
     } else {
-      // Create new metadata
-      metadata = new ProjectMetadata(
+      metadata = ProjectMetadata.createGenerated(
         this.idGenerator.generate(),
         input.projectId,
         GenerateSynthesisUseCase.TYPE_KEY,
         GenerateSynthesisUseCase.TITLE,
-        contentJson
+        contentJson,
+        contentHash
       );
-      metadata.markAsGenerated();
       await this.metadataRepository.create(input.ownerId, metadata);
     }
 
-    return { metadata, analysis, wasUpdated };
+    return { metadata, analysis, wasUpdated, wasCached: false };
   }
 
   private extractFullText(chapters: { getContent(): string; getTitle(): string }[]): string {
@@ -174,7 +189,6 @@ export class GenerateSynthesisUseCase {
 
     for (const meta of metadata) {
       const typeKey = meta.getTypeKey();
-      const content = meta.getContent();
 
       try {
         // For now, we just include basic info

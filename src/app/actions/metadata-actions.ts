@@ -26,6 +26,7 @@ import {
   getLLMProviderById,
   withErrorHandling,
 } from './utils';
+import { canGenerateMetadata, recordMetadataGeneration } from './rate-limiter';
 
 /**
  * Serialized metadata for client transport.
@@ -241,11 +242,25 @@ export async function deleteMetadataAction(
 export async function generateNarrativeAnalysisAction(
   projectId: string,
   providerId?: string
-): Promise<ActionResult<{ metadata: SerializedMetadata; wasUpdated: boolean }>> {
+): Promise<
+  ActionResult<{ metadata: SerializedMetadata; wasUpdated: boolean; wasCached: boolean }>
+> {
   const auth = await getAuthenticatedUserId();
   if ('error' in auth) return auth.error;
 
+  // Check rate limit
+  const rateCheck = canGenerateMetadata(auth.userId, 'narrative-analysis');
+  if (!rateCheck.allowed) {
+    return {
+      success: false,
+      error: `Veuillez attendre ${rateCheck.waitSeconds} secondes avant de régénérer cette analyse.`,
+    };
+  }
+
   return withErrorHandling(async () => {
+    // Record generation attempt
+    recordMetadataGeneration(auth.userId, 'narrative-analysis');
+
     // Get LLM provider: use specified provider or project's default
     const llmProvider = providerId
       ? await getLLMProviderById(auth.userId, providerId)
@@ -266,6 +281,7 @@ export async function generateNarrativeAnalysisAction(
     return {
       metadata: serializeMetadata(result.metadata),
       wasUpdated: result.wasUpdated,
+      wasCached: result.wasCached,
     };
   });
 }
@@ -279,12 +295,23 @@ export async function generateNarrativeAnalysisAction(
 export async function generateStylisticDNAAction(
   projectId: string,
   providerId?: string
-): Promise<ActionResult<{ metadata: SerializedMetadata; wasUpdated: boolean }>> {
+): Promise<
+  ActionResult<{ metadata: SerializedMetadata; wasUpdated: boolean; wasCached: boolean }>
+> {
   const auth = await getAuthenticatedUserId();
   if ('error' in auth) return auth.error;
 
+  const rateCheck = canGenerateMetadata(auth.userId, 'stylistic-dna');
+  if (!rateCheck.allowed) {
+    return {
+      success: false,
+      error: `Veuillez attendre ${rateCheck.waitSeconds} secondes avant de régénérer cette analyse.`,
+    };
+  }
+
   return withErrorHandling(async () => {
-    // Get LLM provider: use specified provider or project's default
+    recordMetadataGeneration(auth.userId, 'stylistic-dna');
+
     const llmProvider = providerId
       ? await getLLMProviderById(auth.userId, providerId)
       : await getLLMProviderForProject(auth.userId, projectId);
@@ -304,6 +331,7 @@ export async function generateStylisticDNAAction(
     return {
       metadata: serializeMetadata(result.metadata),
       wasUpdated: result.wasUpdated,
+      wasCached: result.wasCached,
     };
   });
 }
@@ -317,11 +345,23 @@ export async function generateStylisticDNAAction(
 export async function generateCharactersAction(
   projectId: string,
   providerId?: string
-): Promise<ActionResult<{ metadata: SerializedMetadata; wasUpdated: boolean }>> {
+): Promise<
+  ActionResult<{ metadata: SerializedMetadata; wasUpdated: boolean; wasCached: boolean }>
+> {
   const auth = await getAuthenticatedUserId();
   if ('error' in auth) return auth.error;
 
+  const rateCheck = canGenerateMetadata(auth.userId, 'characters');
+  if (!rateCheck.allowed) {
+    return {
+      success: false,
+      error: `Veuillez attendre ${rateCheck.waitSeconds} secondes avant de régénérer cette analyse.`,
+    };
+  }
+
   return withErrorHandling(async () => {
+    recordMetadataGeneration(auth.userId, 'characters');
+
     const llmProvider = providerId
       ? await getLLMProviderById(auth.userId, providerId)
       : await getLLMProviderForProject(auth.userId, projectId);
@@ -341,6 +381,7 @@ export async function generateCharactersAction(
     return {
       metadata: serializeMetadata(result.metadata),
       wasUpdated: result.wasUpdated,
+      wasCached: result.wasCached,
     };
   });
 }
@@ -354,11 +395,23 @@ export async function generateCharactersAction(
 export async function generatePlotAction(
   projectId: string,
   providerId?: string
-): Promise<ActionResult<{ metadata: SerializedMetadata; wasUpdated: boolean }>> {
+): Promise<
+  ActionResult<{ metadata: SerializedMetadata; wasUpdated: boolean; wasCached: boolean }>
+> {
   const auth = await getAuthenticatedUserId();
   if ('error' in auth) return auth.error;
 
+  const rateCheck = canGenerateMetadata(auth.userId, 'plot');
+  if (!rateCheck.allowed) {
+    return {
+      success: false,
+      error: `Veuillez attendre ${rateCheck.waitSeconds} secondes avant de régénérer cette analyse.`,
+    };
+  }
+
   return withErrorHandling(async () => {
+    recordMetadataGeneration(auth.userId, 'plot');
+
     const llmProvider = providerId
       ? await getLLMProviderById(auth.userId, providerId)
       : await getLLMProviderForProject(auth.userId, projectId);
@@ -378,6 +431,7 @@ export async function generatePlotAction(
     return {
       metadata: serializeMetadata(result.metadata),
       wasUpdated: result.wasUpdated,
+      wasCached: result.wasCached,
     };
   });
 }
@@ -391,11 +445,23 @@ export async function generatePlotAction(
 export async function generateWorldbuildingAction(
   projectId: string,
   providerId?: string
-): Promise<ActionResult<{ metadata: SerializedMetadata; wasUpdated: boolean }>> {
+): Promise<
+  ActionResult<{ metadata: SerializedMetadata; wasUpdated: boolean; wasCached: boolean }>
+> {
   const auth = await getAuthenticatedUserId();
   if ('error' in auth) return auth.error;
 
+  const rateCheck = canGenerateMetadata(auth.userId, 'worldbuilding');
+  if (!rateCheck.allowed) {
+    return {
+      success: false,
+      error: `Veuillez attendre ${rateCheck.waitSeconds} secondes avant de régénérer cette analyse.`,
+    };
+  }
+
   return withErrorHandling(async () => {
+    recordMetadataGeneration(auth.userId, 'worldbuilding');
+
     const llmProvider = providerId
       ? await getLLMProviderById(auth.userId, providerId)
       : await getLLMProviderForProject(auth.userId, projectId);
@@ -415,6 +481,7 @@ export async function generateWorldbuildingAction(
     return {
       metadata: serializeMetadata(result.metadata),
       wasUpdated: result.wasUpdated,
+      wasCached: result.wasCached,
     };
   });
 }
@@ -428,11 +495,23 @@ export async function generateWorldbuildingAction(
 export async function generateSynthesisAction(
   projectId: string,
   providerId?: string
-): Promise<ActionResult<{ metadata: SerializedMetadata; wasUpdated: boolean }>> {
+): Promise<
+  ActionResult<{ metadata: SerializedMetadata; wasUpdated: boolean; wasCached: boolean }>
+> {
   const auth = await getAuthenticatedUserId();
   if ('error' in auth) return auth.error;
 
+  const rateCheck = canGenerateMetadata(auth.userId, 'synthesis');
+  if (!rateCheck.allowed) {
+    return {
+      success: false,
+      error: `Veuillez attendre ${rateCheck.waitSeconds} secondes avant de régénérer cette analyse.`,
+    };
+  }
+
   return withErrorHandling(async () => {
+    recordMetadataGeneration(auth.userId, 'synthesis');
+
     const llmProvider = providerId
       ? await getLLMProviderById(auth.userId, providerId)
       : await getLLMProviderForProject(auth.userId, projectId);
@@ -452,6 +531,7 @@ export async function generateSynthesisAction(
     return {
       metadata: serializeMetadata(result.metadata),
       wasUpdated: result.wasUpdated,
+      wasCached: result.wasCached,
     };
   });
 }

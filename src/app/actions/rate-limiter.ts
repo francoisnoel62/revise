@@ -62,3 +62,88 @@ export function cleanupOldEntries(): void {
     }
   }
 }
+
+/**
+ * Rate limiting for metadata generation.
+ * Prevents API abuse by limiting generation frequency per metadata type.
+ */
+
+const metadataGenerationLimits = new Map<string, Map<string, number>>();
+const METADATA_COOLDOWN_MS = 30000; // 30 seconds
+
+/**
+ * Check if user can generate metadata for a specific type now.
+ *
+ * @param userId The user ID to check
+ * @param metadataType The metadata type (e.g., 'narrative-analysis', 'stylistic-dna')
+ * @returns Object with allowed flag and optional wait time
+ */
+export function canGenerateMetadata(
+  userId: string,
+  metadataType: string
+): {
+  allowed: boolean;
+  waitSeconds?: number;
+} {
+  const userLimits = metadataGenerationLimits.get(userId);
+
+  if (!userLimits) {
+    return { allowed: true };
+  }
+
+  const lastGeneration = userLimits.get(metadataType);
+
+  if (!lastGeneration) {
+    return { allowed: true };
+  }
+
+  const now = Date.now();
+  const elapsed = now - lastGeneration;
+
+  if (elapsed < METADATA_COOLDOWN_MS) {
+    const waitMs = METADATA_COOLDOWN_MS - elapsed;
+    const waitSeconds = Math.ceil(waitMs / 1000);
+    return { allowed: false, waitSeconds };
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Record a metadata generation attempt.
+ *
+ * @param userId The user ID performing the generation
+ * @param metadataType The metadata type being generated
+ */
+export function recordMetadataGeneration(userId: string, metadataType: string): void {
+  let userLimits = metadataGenerationLimits.get(userId);
+
+  if (!userLimits) {
+    userLimits = new Map();
+    metadataGenerationLimits.set(userId, userLimits);
+  }
+
+  userLimits.set(metadataType, Date.now());
+}
+
+/**
+ * Clean up old metadata generation entries (optional, for memory management).
+ * Call this periodically in production.
+ */
+export function cleanupMetadataGenerationEntries(): void {
+  const now = Date.now();
+  const expiry = METADATA_COOLDOWN_MS * 2; // Keep 2x cooldown period
+
+  for (const [userId, userLimits] of metadataGenerationLimits.entries()) {
+    for (const [metadataType, timestamp] of userLimits.entries()) {
+      if (now - timestamp > expiry) {
+        userLimits.delete(metadataType);
+      }
+    }
+
+    // Remove user entry if no types remain
+    if (userLimits.size === 0) {
+      metadataGenerationLimits.delete(userId);
+    }
+  }
+}

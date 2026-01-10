@@ -9,6 +9,7 @@ export interface ProjectMetadataProperties {
   lastEdited: Date;
   generatedAt: Date | null;
   isGenerated: boolean;
+  contentHash: string | null; // SHA-256 hash of source text when generated
 }
 
 export class ProjectMetadata {
@@ -64,6 +65,7 @@ export class ProjectMetadata {
       lastEdited: properties?.lastEdited ?? new Date(),
       generatedAt: properties?.generatedAt ?? null,
       isGenerated: properties?.isGenerated ?? false,
+      contentHash: properties?.contentHash ?? null,
     };
 
     // Update word/character counts from content
@@ -108,17 +110,47 @@ export class ProjectMetadata {
     this.properties.lastEdited = new Date();
   }
 
-  updateContent(newContent: string): void {
+  updateContent(newContent: string, contentHash?: string): void {
     this.validateTipTapJSON(newContent);
     this.content = newContent;
     this.updateContentMetrics();
     this.properties.lastEdited = new Date();
+
+    // Update content hash if provided (for AI-generated content)
+    if (contentHash !== undefined) {
+      this.properties.contentHash = contentHash;
+    }
   }
 
   markAsGenerated(): void {
     this.properties.generatedAt = new Date();
     this.properties.isGenerated = true;
     this.properties.lastEdited = new Date();
+  }
+
+  /**
+   * Check if metadata needs regeneration based on content hash.
+   * Returns true if:
+   * - Metadata was never generated
+   * - Content hash is missing (legacy data)
+   * - Current text hash differs from stored hash
+   *
+   * @param currentTextHash - SHA-256 hash of current project text
+   * @returns true if regeneration is needed, false if cache can be used
+   */
+  needsRegeneration(currentTextHash: string): boolean {
+    // Never generated - needs generation
+    if (!this.properties.isGenerated) {
+      return true;
+    }
+
+    // No hash stored (legacy data) - needs regeneration to store hash
+    if (!this.properties.contentHash) {
+      return true;
+    }
+
+    // Content changed - needs regeneration
+    return this.properties.contentHash !== currentTextHash;
   }
 
   // Static factory for creating empty metadata
@@ -134,6 +166,24 @@ export class ProjectMetadata {
     });
 
     return new ProjectMetadata(id, projectId, typeKey, title, emptyContent);
+  }
+
+  // Static factory for creating generated metadata with content hash
+  static createGenerated(
+    id: string,
+    projectId: string,
+    typeKey: string,
+    title: string,
+    content: string,
+    contentHash: string
+  ): ProjectMetadata {
+    const metadata = new ProjectMetadata(id, projectId, typeKey, title, content, {
+      contentHash,
+      isGenerated: true,
+      generatedAt: new Date(),
+    });
+
+    return metadata;
   }
 
   // Private helpers
