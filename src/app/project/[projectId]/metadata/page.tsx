@@ -171,7 +171,7 @@ export default function MetadataListPage() {
     generateAction: (
       projectId: string,
       providerId: string
-    ) => Promise<{ success: boolean; error?: string }>,
+    ) => Promise<{ success: boolean; error?: string; data?: { metadata: { id: string } } }>,
     _hasExisting: boolean
   ) => {
     return async (providerId: string) => {
@@ -198,7 +198,9 @@ export default function MetadataListPage() {
         }
 
         // Navigate to the generated metadata
-        router.push(`/project/${projectId}/metadata/${result.data.metadata.id}`);
+        if (result.data?.metadata?.id) {
+          router.push(`/project/${projectId}/metadata/${result.data.metadata.id}`);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erreur lors de la génération');
       } finally {

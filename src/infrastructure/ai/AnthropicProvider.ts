@@ -454,7 +454,8 @@ INSTRUCTIONS:
       jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
     }
 
-    let parsed: unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let parsed: any;
     try {
       parsed = JSON.parse(jsonContent);
     } catch {
@@ -574,7 +575,8 @@ INSTRUCTIONS:
       jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
     }
 
-    let parsed: unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let parsed: any;
     try {
       parsed = JSON.parse(jsonContent);
     } catch {
@@ -719,7 +721,8 @@ INSTRUCTIONS:
       jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
     }
 
-    let parsed: unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let parsed: any;
     try {
       parsed = JSON.parse(jsonContent);
     } catch {
@@ -877,7 +880,8 @@ INSTRUCTIONS:
       jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
     }
 
-    let parsed: unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let parsed: any;
     try {
       parsed = JSON.parse(jsonContent);
     } catch {
@@ -1061,7 +1065,8 @@ INSTRUCTIONS:
       jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
     }
 
-    let parsed: unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let parsed: any;
     try {
       parsed = JSON.parse(jsonContent);
     } catch {
