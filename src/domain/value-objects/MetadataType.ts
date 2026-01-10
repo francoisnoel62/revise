@@ -19,12 +19,36 @@ export const METADATA_TYPES: Record<string, MetadataTypeDefinition> = {
     description: 'Point de vue, structure narrative, temporalité, voix',
     isBuiltIn: true,
   },
-  // Future types (not implemented in MVP):
-  // 'stylistic-dna': { key: 'stylistic-dna', name: 'ADN Stylistique', ... },
-  // 'characters': { key: 'characters', name: 'Personnages', ... },
-  // 'plot': { key: 'plot', name: 'Intrigue', ... },
-  // 'worldbuilding': { key: 'worldbuilding', name: 'Worldbuilding', ... },
-  // 'synthesis': { key: 'synthesis', name: 'Synthèse', ... },
+  'stylistic-dna': {
+    key: 'stylistic-dna',
+    name: 'ADN Stylistique',
+    description: 'Registre, syntaxe, figures, tics, rythme, règles d\'écriture',
+    isBuiltIn: true,
+  },
+  'characters': {
+    key: 'characters',
+    name: 'Personnages',
+    description: 'Fiches personnages, relations, hiérarchie narrative',
+    isBuiltIn: true,
+  },
+  'plot': {
+    key: 'plot',
+    name: 'Intrigue',
+    description: 'Structure, enjeux, conflits, scène par scène',
+    isBuiltIn: true,
+  },
+  'worldbuilding': {
+    key: 'worldbuilding',
+    name: 'Univers',
+    description: 'Thèmes, symbolique, worldbuilding, contexte social',
+    isBuiltIn: true,
+  },
+  'synthesis': {
+    key: 'synthesis',
+    name: 'Synthèse',
+    description: 'Analyse éditoriale globale et recommandations',
+    isBuiltIn: true,
+  },
 } as const;
 
 export function isValidMetadataType(key: string): boolean {

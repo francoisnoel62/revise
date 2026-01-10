@@ -27,7 +27,8 @@ interface GenerateCardProps {
   typeKey: string;
   title: string;
   description: string;
-  isGenerating: boolean;
+  isGenerating: boolean; // Is THIS specific card generating?
+  isAnyGenerating: boolean; // Is ANY card generating?
   providers: SafeProvider[];
   defaultProviderId?: string;
   onGenerate: (providerId: string) => void;
@@ -37,6 +38,7 @@ export function GenerateCard({
   title,
   description,
   isGenerating,
+  isAnyGenerating,
   providers,
   defaultProviderId,
   onGenerate,
@@ -66,7 +68,7 @@ export function GenerateCard({
           <Select
             value={selectedProviderId}
             onValueChange={setSelectedProviderId}
-            disabled={isGenerating || providers.length === 0}
+            disabled={isAnyGenerating || providers.length === 0}
           >
             <SelectTrigger id="provider-select">
               <SelectValue placeholder="Sélectionner un provider" />
@@ -84,7 +86,7 @@ export function GenerateCard({
         <Button
           className="w-full"
           onClick={handleGenerate}
-          disabled={isGenerating || !selectedProviderId || providers.length === 0}
+          disabled={isAnyGenerating || !selectedProviderId || providers.length === 0}
         >
           {isGenerating ? (
             <>

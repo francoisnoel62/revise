@@ -11,6 +11,11 @@ import { UpdateMetadataContentUseCase } from '@/application/use-cases/UpdateMeta
 import { UpdateMetadataTitleUseCase } from '@/application/use-cases/UpdateMetadataTitleUseCase';
 import { DeleteMetadataUseCase } from '@/application/use-cases/DeleteMetadataUseCase';
 import { GenerateNarrativeAnalysisUseCase } from '@/application/use-cases/GenerateNarrativeAnalysisUseCase';
+import { GenerateStylisticDNAUseCase } from '@/application/use-cases/GenerateStylisticDNAUseCase';
+import { GenerateCharactersUseCase } from '@/application/use-cases/GenerateCharactersUseCase';
+import { GeneratePlotUseCase } from '@/application/use-cases/GeneratePlotUseCase';
+import { GenerateWorldbuildingUseCase } from '@/application/use-cases/GenerateWorldbuildingUseCase';
+import { GenerateSynthesisUseCase } from '@/application/use-cases/GenerateSynthesisUseCase';
 import {
   ActionResult,
   getAuthenticatedUserId,
@@ -247,6 +252,192 @@ export async function generateNarrativeAnalysisAction(
       : await getLLMProviderForProject(auth.userId, projectId);
 
     const useCase = new GenerateNarrativeAnalysisUseCase(
+      await getMetadataRepo(),
+      await getRepository(),
+      llmProvider,
+      await getIdGenerator()
+    );
+
+    const result = await useCase.execute({
+      ownerId: auth.userId,
+      projectId,
+    });
+
+    return {
+      metadata: serializeMetadata(result.metadata),
+      wasUpdated: result.wasUpdated,
+    };
+  });
+}
+
+/**
+ * Generate stylistic DNA analysis for a project.
+ * Creates new metadata or updates existing.
+ * @param projectId - The project ID
+ * @param providerId - Optional provider ID to use for generation. If not provided, uses project's default provider.
+ */
+export async function generateStylisticDNAAction(
+  projectId: string,
+  providerId?: string
+): Promise<ActionResult<{ metadata: SerializedMetadata; wasUpdated: boolean }>> {
+  const auth = await getAuthenticatedUserId();
+  if ('error' in auth) return auth.error;
+
+  return withErrorHandling(async () => {
+    // Get LLM provider: use specified provider or project's default
+    const llmProvider = providerId
+      ? await getLLMProviderById(auth.userId, providerId)
+      : await getLLMProviderForProject(auth.userId, projectId);
+
+    const useCase = new GenerateStylisticDNAUseCase(
+      await getMetadataRepo(),
+      await getRepository(),
+      llmProvider,
+      await getIdGenerator()
+    );
+
+    const result = await useCase.execute({
+      ownerId: auth.userId,
+      projectId,
+    });
+
+    return {
+      metadata: serializeMetadata(result.metadata),
+      wasUpdated: result.wasUpdated,
+    };
+  });
+}
+
+/**
+ * Generate character analysis for a project.
+ * Creates new metadata or updates existing.
+ * @param projectId - The project ID
+ * @param providerId - Optional provider ID to use for generation. If not provided, uses project's default provider.
+ */
+export async function generateCharactersAction(
+  projectId: string,
+  providerId?: string
+): Promise<ActionResult<{ metadata: SerializedMetadata; wasUpdated: boolean }>> {
+  const auth = await getAuthenticatedUserId();
+  if ('error' in auth) return auth.error;
+
+  return withErrorHandling(async () => {
+    const llmProvider = providerId
+      ? await getLLMProviderById(auth.userId, providerId)
+      : await getLLMProviderForProject(auth.userId, projectId);
+
+    const useCase = new GenerateCharactersUseCase(
+      await getMetadataRepo(),
+      await getRepository(),
+      llmProvider,
+      await getIdGenerator()
+    );
+
+    const result = await useCase.execute({
+      ownerId: auth.userId,
+      projectId,
+    });
+
+    return {
+      metadata: serializeMetadata(result.metadata),
+      wasUpdated: result.wasUpdated,
+    };
+  });
+}
+
+/**
+ * Generate plot analysis for a project.
+ * Creates new metadata or updates existing.
+ * @param projectId - The project ID
+ * @param providerId - Optional provider ID to use for generation. If not provided, uses project's default provider.
+ */
+export async function generatePlotAction(
+  projectId: string,
+  providerId?: string
+): Promise<ActionResult<{ metadata: SerializedMetadata; wasUpdated: boolean }>> {
+  const auth = await getAuthenticatedUserId();
+  if ('error' in auth) return auth.error;
+
+  return withErrorHandling(async () => {
+    const llmProvider = providerId
+      ? await getLLMProviderById(auth.userId, providerId)
+      : await getLLMProviderForProject(auth.userId, projectId);
+
+    const useCase = new GeneratePlotUseCase(
+      await getMetadataRepo(),
+      await getRepository(),
+      llmProvider,
+      await getIdGenerator()
+    );
+
+    const result = await useCase.execute({
+      ownerId: auth.userId,
+      projectId,
+    });
+
+    return {
+      metadata: serializeMetadata(result.metadata),
+      wasUpdated: result.wasUpdated,
+    };
+  });
+}
+
+/**
+ * Generate worldbuilding analysis for a project.
+ * Creates new metadata or updates existing.
+ * @param projectId - The project ID
+ * @param providerId - Optional provider ID to use for generation. If not provided, uses project's default provider.
+ */
+export async function generateWorldbuildingAction(
+  projectId: string,
+  providerId?: string
+): Promise<ActionResult<{ metadata: SerializedMetadata; wasUpdated: boolean }>> {
+  const auth = await getAuthenticatedUserId();
+  if ('error' in auth) return auth.error;
+
+  return withErrorHandling(async () => {
+    const llmProvider = providerId
+      ? await getLLMProviderById(auth.userId, providerId)
+      : await getLLMProviderForProject(auth.userId, projectId);
+
+    const useCase = new GenerateWorldbuildingUseCase(
+      await getMetadataRepo(),
+      await getRepository(),
+      llmProvider,
+      await getIdGenerator()
+    );
+
+    const result = await useCase.execute({
+      ownerId: auth.userId,
+      projectId,
+    });
+
+    return {
+      metadata: serializeMetadata(result.metadata),
+      wasUpdated: result.wasUpdated,
+    };
+  });
+}
+
+/**
+ * Generate synthesis analysis for a project.
+ * Creates new metadata or updates existing.
+ * @param projectId - The project ID
+ * @param providerId - Optional provider ID to use for generation. If not provided, uses project's default provider.
+ */
+export async function generateSynthesisAction(
+  projectId: string,
+  providerId?: string
+): Promise<ActionResult<{ metadata: SerializedMetadata; wasUpdated: boolean }>> {
+  const auth = await getAuthenticatedUserId();
+  if ('error' in auth) return auth.error;
+
+  return withErrorHandling(async () => {
+    const llmProvider = providerId
+      ? await getLLMProviderById(auth.userId, providerId)
+      : await getLLMProviderForProject(auth.userId, projectId);
+
+    const useCase = new GenerateSynthesisUseCase(
       await getMetadataRepo(),
       await getRepository(),
       llmProvider,

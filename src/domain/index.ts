@@ -20,6 +20,15 @@ export {
   getMetadataType
 } from './value-objects/MetadataType';
 export { type NarrativeAnalysis } from './value-objects/NarrativeAnalysis';
+export { type StylisticDNA } from './value-objects/StylisticDNA';
+export { type Characters, type CharacterProfile } from './value-objects/Characters';
+export { type Plot, type SceneBreakdown } from './value-objects/Plot';
+export { type Worldbuilding } from './value-objects/Worldbuilding';
+export {
+  type Synthesis,
+  type CharacterSummary,
+  type NarrativeDirection,
+} from './value-objects/Synthesis';
 
 // Interfaces
 export type { LLMProvider, ConnectionTestResult } from './interfaces/LLMProvider';

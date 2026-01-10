@@ -6,6 +6,11 @@ import { LLMProvider, ConnectionTestResult } from '@/domain/interfaces/LLMProvid
 import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
 import { NarrativeAnalysis } from '@/domain/value-objects/NarrativeAnalysis';
+import { StylisticDNA } from '@/domain/value-objects/StylisticDNA';
+import { Characters } from '@/domain/value-objects/Characters';
+import { Plot } from '@/domain/value-objects/Plot';
+import { Worldbuilding } from '@/domain/value-objects/Worldbuilding';
+import { Synthesis } from '@/domain/value-objects/Synthesis';
 
 interface ProposalResponse {
   proposals: Array<{
@@ -376,5 +381,781 @@ INSTRUCTIONS FINALES:
     return parsed.proposals.map(
       (p) => new RewriteProposal(p.content, p.styleLabel)
     );
+  }
+
+  // ===========================
+  // STYLISTIC DNA ANALYSIS
+  // ===========================
+
+  async generateStylisticDNA(fullText: string): Promise<StylisticDNA> {
+    const basePrompt = await this.promptRepository.getStylisticDNAPrompt();
+    const systemPrompt = this.enhanceStylisticDNAPromptForAnthropic(basePrompt);
+
+    try {
+      const message = await this.client.messages.create({
+        model: this.model,
+        max_tokens: 4096,
+        temperature: 0.3,
+        system: systemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: fullText,
+          },
+        ],
+      });
+
+      const content = message.content[0];
+      if (content.type !== 'text') {
+        throw new Error('Unexpected response type from Anthropic');
+      }
+
+      return this.parseStylisticDNAResponse(content.text);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error during stylistic DNA analysis');
+    }
+  }
+
+  private enhanceStylisticDNAPromptForAnthropic(basePrompt: string): string {
+    return `${basePrompt}
+
+---
+
+FORMAT DE SORTIE JSON:
+
+Retourne UNIQUEMENT un JSON structuré avec les clés suivantes:
+
+{
+  "registerAndLexicon": "Analyse du registre et lexique (2-4 phrases)",
+  "syntax": "Analyse de la syntaxe (2-4 phrases)",
+  "figuresOfStyle": "Analyse des figures de style (2-4 phrases)",
+  "ticsAndSignatures": "Tics et signatures stylistiques (2-4 phrases)",
+  "rhythmAndBreathing": "Rythme et respiration du texte (2-4 phrases)",
+  "writingRules": ["FAIRE: règle 1", "ÉVITER: anti-règle 1", "FAIRE: règle 2", ...],
+  "summary": "Synthèse de l'ADN stylistique (2-3 phrases)"
+}
+
+INSTRUCTIONS:
+- Détecte la langue du texte et réponds dans la MÊME LANGUE
+- writingRules: tableau de règles DO/DON'T (10 maximum)
+- Retourne UNIQUEMENT le JSON, sans markdown code blocks`;
+  }
+
+  private parseStylisticDNAResponse(content: string): StylisticDNA {
+    let jsonContent = content.trim();
+
+    // Remove markdown code blocks if present
+    if (jsonContent.startsWith('```json')) {
+      jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (jsonContent.startsWith('```')) {
+      jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(jsonContent);
+    } catch {
+      throw new Error('Failed to parse stylistic DNA response from Anthropic');
+    }
+
+    if (!parsed.registerAndLexicon || typeof parsed.registerAndLexicon !== 'string') {
+      throw new Error('Invalid response: missing registerAndLexicon');
+    }
+    if (!parsed.syntax || typeof parsed.syntax !== 'string') {
+      throw new Error('Invalid response: missing syntax');
+    }
+    if (!parsed.figuresOfStyle || typeof parsed.figuresOfStyle !== 'string') {
+      throw new Error('Invalid response: missing figuresOfStyle');
+    }
+    if (!parsed.ticsAndSignatures || typeof parsed.ticsAndSignatures !== 'string') {
+      throw new Error('Invalid response: missing ticsAndSignatures');
+    }
+    if (!parsed.rhythmAndBreathing || typeof parsed.rhythmAndBreathing !== 'string') {
+      throw new Error('Invalid response: missing rhythmAndBreathing');
+    }
+    if (!Array.isArray(parsed.writingRules) || parsed.writingRules.length === 0) {
+      throw new Error('Invalid response: writingRules must be a non-empty array');
+    }
+    if (!parsed.summary || typeof parsed.summary !== 'string') {
+      throw new Error('Invalid response: missing summary');
+    }
+
+    return {
+      registerAndLexicon: parsed.registerAndLexicon,
+      syntax: parsed.syntax,
+      figuresOfStyle: parsed.figuresOfStyle,
+      ticsAndSignatures: parsed.ticsAndSignatures,
+      rhythmAndBreathing: parsed.rhythmAndBreathing,
+      writingRules: parsed.writingRules,
+      summary: parsed.summary,
+    };
+  }
+
+  // ===========================
+  // CHARACTERS ANALYSIS
+  // ===========================
+
+  async generateCharacters(fullText: string): Promise<Characters> {
+    const basePrompt = await this.promptRepository.getCharactersPrompt();
+    const systemPrompt = this.enhanceCharactersPromptForAnthropic(basePrompt);
+
+    try {
+      const message = await this.client.messages.create({
+        model: this.model,
+        max_tokens: 8192, // More tokens for detailed character profiles
+        temperature: 0.3,
+        system: systemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: fullText,
+          },
+        ],
+      });
+
+      const content = message.content[0];
+      if (content.type !== 'text') {
+        throw new Error('Unexpected response type from Anthropic');
+      }
+
+      return this.parseCharactersResponse(content.text);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error during characters analysis');
+    }
+  }
+
+  private enhanceCharactersPromptForAnthropic(basePrompt: string): string {
+    return `${basePrompt}
+
+---
+
+FORMAT DE SORTIE JSON:
+
+Retourne UNIQUEMENT un JSON structuré avec les clés suivantes:
+
+{
+  "characterProfiles": [
+    {
+      "name": "Nom du personnage",
+      "identity": "Identité (âge, statut, rôle)",
+      "appearance": "Description physique",
+      "psychology": "Psychologie et traits",
+      "voiceAndLanguage": "Voix et langage",
+      "backstory": "Histoire personnelle",
+      "relationships": "Relations avec autres personnages",
+      "narrativeFunction": "Fonction narrative",
+      "openQuestions": "Questions ouvertes"
+    }
+  ],
+  "relationalMap": "Cartographie des relations (description textuelle)",
+  "narrativeHierarchy": "Hiérarchie narrative (ordre d'importance)",
+  "summary": "Synthèse de l'analyse des personnages (2-3 phrases)"
+}
+
+INSTRUCTIONS:
+- Détecte la langue du texte et réponds dans la MÊME LANGUE
+- characterProfiles: tableau avec tous les personnages identifiés
+- Retourne UNIQUEMENT le JSON, sans markdown code blocks`;
+  }
+
+  private parseCharactersResponse(content: string): Characters {
+    let jsonContent = content.trim();
+
+    // Remove markdown code blocks if present
+    if (jsonContent.startsWith('```json')) {
+      jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (jsonContent.startsWith('```')) {
+      jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(jsonContent);
+    } catch {
+      throw new Error('Failed to parse characters response from Anthropic');
+    }
+
+    if (!Array.isArray(parsed.characterProfiles) || parsed.characterProfiles.length === 0) {
+      throw new Error('Invalid response: characterProfiles must be a non-empty array');
+    }
+
+    // Validate each character profile
+    for (const profile of parsed.characterProfiles) {
+      if (!profile.name || typeof profile.name !== 'string') {
+        throw new Error('Invalid character profile: missing name');
+      }
+      if (!profile.identity || typeof profile.identity !== 'string') {
+        throw new Error('Invalid character profile: missing identity');
+      }
+      if (!profile.appearance || typeof profile.appearance !== 'string') {
+        throw new Error('Invalid character profile: missing appearance');
+      }
+      if (!profile.psychology || typeof profile.psychology !== 'string') {
+        throw new Error('Invalid character profile: missing psychology');
+      }
+      if (!profile.voiceAndLanguage || typeof profile.voiceAndLanguage !== 'string') {
+        throw new Error('Invalid character profile: missing voiceAndLanguage');
+      }
+      if (!profile.backstory || typeof profile.backstory !== 'string') {
+        throw new Error('Invalid character profile: missing backstory');
+      }
+      if (!profile.relationships || typeof profile.relationships !== 'string') {
+        throw new Error('Invalid character profile: missing relationships');
+      }
+      if (!profile.narrativeFunction || typeof profile.narrativeFunction !== 'string') {
+        throw new Error('Invalid character profile: missing narrativeFunction');
+      }
+      if (!profile.openQuestions || typeof profile.openQuestions !== 'string') {
+        throw new Error('Invalid character profile: missing openQuestions');
+      }
+    }
+
+    if (!parsed.relationalMap || typeof parsed.relationalMap !== 'string') {
+      throw new Error('Invalid response: missing relationalMap');
+    }
+    if (!parsed.narrativeHierarchy || typeof parsed.narrativeHierarchy !== 'string') {
+      throw new Error('Invalid response: missing narrativeHierarchy');
+    }
+    if (!parsed.summary || typeof parsed.summary !== 'string') {
+      throw new Error('Invalid response: missing summary');
+    }
+
+    return {
+      characterProfiles: parsed.characterProfiles,
+      relationalMap: parsed.relationalMap,
+      narrativeHierarchy: parsed.narrativeHierarchy,
+      summary: parsed.summary,
+    };
+  }
+
+  // ===========================
+  // PLOT ANALYSIS
+  // ===========================
+
+  async generatePlot(fullText: string): Promise<Plot> {
+    const basePrompt = await this.promptRepository.getPlotPrompt();
+    const systemPrompt = this.enhancePlotPromptForAnthropic(basePrompt);
+
+    try {
+      const message = await this.client.messages.create({
+        model: this.model,
+        max_tokens: 8192, // More tokens for scene breakdown
+        temperature: 0.3,
+        system: systemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: fullText,
+          },
+        ],
+      });
+
+      const content = message.content[0];
+      if (content.type !== 'text') {
+        throw new Error('Unexpected response type from Anthropic');
+      }
+
+      return this.parsePlotResponse(content.text);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error during plot analysis');
+    }
+  }
+
+  private enhancePlotPromptForAnthropic(basePrompt: string): string {
+    return `${basePrompt}
+
+---
+
+FORMAT DE SORTIE JSON:
+
+Retourne UNIQUEMENT un JSON structuré avec les clés suivantes:
+
+{
+  "initialSituation": "Situation initiale",
+  "incitingIncident": "Élément déclencheur",
+  "stakes": "Enjeux",
+  "dramaticQuestions": "Questions dramatiques",
+  "conflicts": "Conflits identifiés",
+  "narrativeThreads": "Fils narratifs (intrigue A, B, C)",
+  "detectedStructure": "Structure détectée",
+  "sceneBreakdown": [
+    {
+      "chapter": "Chapitre X",
+      "location": "Lieu",
+      "characters": "Personnages présents",
+      "objective": "Objectif de la scène",
+      "conflict": "Conflit",
+      "outcome": "Issue",
+      "function": "Fonction narrative"
+    }
+  ],
+  "plotState": "État actuel de l'intrigue",
+  "possibleDirections": "Directions possibles pour la suite",
+  "summary": "Synthèse de l'analyse de l'intrigue (2-3 phrases)"
+}
+
+INSTRUCTIONS:
+- Détecte la langue du texte et réponds dans la MÊME LANGUE
+- sceneBreakdown: tableau avec toutes les scènes identifiées
+- Retourne UNIQUEMENT le JSON, sans markdown code blocks`;
+  }
+
+  private parsePlotResponse(content: string): Plot {
+    let jsonContent = content.trim();
+
+    // Remove markdown code blocks if present
+    if (jsonContent.startsWith('```json')) {
+      jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (jsonContent.startsWith('```')) {
+      jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(jsonContent);
+    } catch {
+      throw new Error('Failed to parse plot response from Anthropic');
+    }
+
+    if (!parsed.initialSituation || typeof parsed.initialSituation !== 'string') {
+      throw new Error('Invalid response: missing initialSituation');
+    }
+    if (!parsed.incitingIncident || typeof parsed.incitingIncident !== 'string') {
+      throw new Error('Invalid response: missing incitingIncident');
+    }
+    if (!parsed.stakes || typeof parsed.stakes !== 'string') {
+      throw new Error('Invalid response: missing stakes');
+    }
+    if (!parsed.dramaticQuestions || typeof parsed.dramaticQuestions !== 'string') {
+      throw new Error('Invalid response: missing dramaticQuestions');
+    }
+    if (!parsed.conflicts || typeof parsed.conflicts !== 'string') {
+      throw new Error('Invalid response: missing conflicts');
+    }
+    if (!parsed.narrativeThreads || typeof parsed.narrativeThreads !== 'string') {
+      throw new Error('Invalid response: missing narrativeThreads');
+    }
+    if (!parsed.detectedStructure || typeof parsed.detectedStructure !== 'string') {
+      throw new Error('Invalid response: missing detectedStructure');
+    }
+    if (!Array.isArray(parsed.sceneBreakdown)) {
+      throw new Error('Invalid response: sceneBreakdown must be an array');
+    }
+
+    // Validate scene breakdown entries
+    for (const scene of parsed.sceneBreakdown) {
+      if (!scene.chapter || typeof scene.chapter !== 'string') {
+        throw new Error('Invalid scene: missing chapter');
+      }
+      if (!scene.location || typeof scene.location !== 'string') {
+        throw new Error('Invalid scene: missing location');
+      }
+      if (!scene.characters || typeof scene.characters !== 'string') {
+        throw new Error('Invalid scene: missing characters');
+      }
+      if (!scene.objective || typeof scene.objective !== 'string') {
+        throw new Error('Invalid scene: missing objective');
+      }
+      if (!scene.conflict || typeof scene.conflict !== 'string') {
+        throw new Error('Invalid scene: missing conflict');
+      }
+      if (!scene.outcome || typeof scene.outcome !== 'string') {
+        throw new Error('Invalid scene: missing outcome');
+      }
+      if (!scene.function || typeof scene.function !== 'string') {
+        throw new Error('Invalid scene: missing function');
+      }
+    }
+
+    if (!parsed.plotState || typeof parsed.plotState !== 'string') {
+      throw new Error('Invalid response: missing plotState');
+    }
+    if (!parsed.possibleDirections || typeof parsed.possibleDirections !== 'string') {
+      throw new Error('Invalid response: missing possibleDirections');
+    }
+    if (!parsed.summary || typeof parsed.summary !== 'string') {
+      throw new Error('Invalid response: missing summary');
+    }
+
+    return {
+      initialSituation: parsed.initialSituation,
+      incitingIncident: parsed.incitingIncident,
+      stakes: parsed.stakes,
+      dramaticQuestions: parsed.dramaticQuestions,
+      conflicts: parsed.conflicts,
+      narrativeThreads: parsed.narrativeThreads,
+      detectedStructure: parsed.detectedStructure,
+      sceneBreakdown: parsed.sceneBreakdown,
+      plotState: parsed.plotState,
+      possibleDirections: parsed.possibleDirections,
+      summary: parsed.summary,
+    };
+  }
+
+  // ===========================
+  // WORLDBUILDING ANALYSIS
+  // ===========================
+
+  async generateWorldbuilding(fullText: string): Promise<Worldbuilding> {
+    const basePrompt = await this.promptRepository.getWorldbuildingPrompt();
+    const systemPrompt = this.enhanceWorldbuildingPromptForAnthropic(basePrompt);
+
+    try {
+      const message = await this.client.messages.create({
+        model: this.model,
+        max_tokens: 6144,
+        temperature: 0.3,
+        system: systemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: fullText,
+          },
+        ],
+      });
+
+      const content = message.content[0];
+      if (content.type !== 'text') {
+        throw new Error('Unexpected response type from Anthropic');
+      }
+
+      return this.parseWorldbuildingResponse(content.text);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error during worldbuilding analysis');
+    }
+  }
+
+  private enhanceWorldbuildingPromptForAnthropic(basePrompt: string): string {
+    return `${basePrompt}
+
+---
+
+FORMAT DE SORTIE JSON:
+
+Retourne UNIQUEMENT un JSON structuré avec les clés suivantes:
+
+{
+  "explicitThemes": "Thèmes explicites",
+  "implicitThemes": "Thèmes implicites",
+  "symbolism": "Symbolique",
+  "subtext": "Sous-texte",
+  "worldview": "Vision du monde et valeurs",
+  "intertextuality": "Intertextualité",
+  "spatiotemporalSetting": "Cadre spatio-temporel",
+  "atmosphere": "Atmosphère et palette sensorielle",
+  "worldRules": "Règles du monde (fantastique/SF)",
+  "socialContext": "Contexte social",
+  "immersionDetails": "Détails d'immersion",
+  "coherence": "Cohérence du worldbuilding",
+  "summary": "Synthèse de l'analyse de l'univers (2-3 phrases)"
+}
+
+INSTRUCTIONS:
+- Détecte la langue du texte et réponds dans la MÊME LANGUE
+- Retourne UNIQUEMENT le JSON, sans markdown code blocks`;
+  }
+
+  private parseWorldbuildingResponse(content: string): Worldbuilding {
+    let jsonContent = content.trim();
+
+    // Remove markdown code blocks if present
+    if (jsonContent.startsWith('```json')) {
+      jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (jsonContent.startsWith('```')) {
+      jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(jsonContent);
+    } catch {
+      throw new Error('Failed to parse worldbuilding response from Anthropic');
+    }
+
+    if (!parsed.explicitThemes || typeof parsed.explicitThemes !== 'string') {
+      throw new Error('Invalid response: missing explicitThemes');
+    }
+    if (!parsed.implicitThemes || typeof parsed.implicitThemes !== 'string') {
+      throw new Error('Invalid response: missing implicitThemes');
+    }
+    if (!parsed.symbolism || typeof parsed.symbolism !== 'string') {
+      throw new Error('Invalid response: missing symbolism');
+    }
+    if (!parsed.subtext || typeof parsed.subtext !== 'string') {
+      throw new Error('Invalid response: missing subtext');
+    }
+    if (!parsed.worldview || typeof parsed.worldview !== 'string') {
+      throw new Error('Invalid response: missing worldview');
+    }
+    if (!parsed.intertextuality || typeof parsed.intertextuality !== 'string') {
+      throw new Error('Invalid response: missing intertextuality');
+    }
+    if (!parsed.spatiotemporalSetting || typeof parsed.spatiotemporalSetting !== 'string') {
+      throw new Error('Invalid response: missing spatiotemporalSetting');
+    }
+    if (!parsed.atmosphere || typeof parsed.atmosphere !== 'string') {
+      throw new Error('Invalid response: missing atmosphere');
+    }
+    if (!parsed.worldRules || typeof parsed.worldRules !== 'string') {
+      throw new Error('Invalid response: missing worldRules');
+    }
+    if (!parsed.socialContext || typeof parsed.socialContext !== 'string') {
+      throw new Error('Invalid response: missing socialContext');
+    }
+    if (!parsed.immersionDetails || typeof parsed.immersionDetails !== 'string') {
+      throw new Error('Invalid response: missing immersionDetails');
+    }
+    if (!parsed.coherence || typeof parsed.coherence !== 'string') {
+      throw new Error('Invalid response: missing coherence');
+    }
+    if (!parsed.summary || typeof parsed.summary !== 'string') {
+      throw new Error('Invalid response: missing summary');
+    }
+
+    return {
+      explicitThemes: parsed.explicitThemes,
+      implicitThemes: parsed.implicitThemes,
+      symbolism: parsed.symbolism,
+      subtext: parsed.subtext,
+      worldview: parsed.worldview,
+      intertextuality: parsed.intertextuality,
+      spatiotemporalSetting: parsed.spatiotemporalSetting,
+      atmosphere: parsed.atmosphere,
+      worldRules: parsed.worldRules,
+      socialContext: parsed.socialContext,
+      immersionDetails: parsed.immersionDetails,
+      coherence: parsed.coherence,
+      summary: parsed.summary,
+    };
+  }
+
+  // ===========================
+  // SYNTHESIS ANALYSIS
+  // ===========================
+
+  async generateSynthesis(
+    fullText: string,
+    previousAnalyses: {
+      narrative?: NarrativeAnalysis;
+      stylisticDNA?: StylisticDNA;
+      characters?: Characters;
+      plot?: Plot;
+      worldbuilding?: Worldbuilding;
+    }
+  ): Promise<Synthesis> {
+    const basePrompt = await this.promptRepository.getSynthesisPrompt();
+    const systemPrompt = this.enhanceSynthesisPromptForAnthropic(basePrompt);
+
+    // Build context from previous analyses
+    let contextInfo = '';
+    if (previousAnalyses.narrative) {
+      contextInfo += '\n\n--- ANALYSE NARRATIVE ---\n' + JSON.stringify(previousAnalyses.narrative, null, 2);
+    }
+    if (previousAnalyses.stylisticDNA) {
+      contextInfo += '\n\n--- ADN STYLISTIQUE ---\n' + JSON.stringify(previousAnalyses.stylisticDNA, null, 2);
+    }
+    if (previousAnalyses.characters) {
+      contextInfo += '\n\n--- PERSONNAGES ---\n' + JSON.stringify(previousAnalyses.characters, null, 2);
+    }
+    if (previousAnalyses.plot) {
+      contextInfo += '\n\n--- INTRIGUE ---\n' + JSON.stringify(previousAnalyses.plot, null, 2);
+    }
+    if (previousAnalyses.worldbuilding) {
+      contextInfo += '\n\n--- UNIVERS ---\n' + JSON.stringify(previousAnalyses.worldbuilding, null, 2);
+    }
+
+    const userPrompt = `TEXTE:\n\n${fullText}${contextInfo}`;
+
+    try {
+      const message = await this.client.messages.create({
+        model: this.model,
+        max_tokens: 8192, // Large output for comprehensive synthesis
+        temperature: 0.3,
+        system: systemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: userPrompt,
+          },
+        ],
+      });
+
+      const content = message.content[0];
+      if (content.type !== 'text') {
+        throw new Error('Unexpected response type from Anthropic');
+      }
+
+      return this.parseSynthesisResponse(content.text);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error during synthesis analysis');
+    }
+  }
+
+  private enhanceSynthesisPromptForAnthropic(basePrompt: string): string {
+    return `${basePrompt}
+
+---
+
+FORMAT DE SORTIE JSON:
+
+Retourne UNIQUEMENT un JSON structuré avec les clés suivantes:
+
+{
+  "textIdentity": "Identité du texte (5 lignes max)",
+  "strengths": ["Point fort 1", "Point fort 2", "Point fort 3", "Point fort 4", "Point fort 5"],
+  "improvements": ["Axe 1", "Axe 2", "Axe 3", "Axe 4", "Axe 5"],
+  "internalCoherence": "Analyse de la cohérence interne",
+  "stylisticCharter": ["FAIRE: règle 1", "ÉVITER: anti-règle 1", ...],
+  "plotSummary": "Résumé de l'intrigue",
+  "openQuestions": ["Question 1", "Question 2", ...],
+  "characterSummaries": [
+    {
+      "name": "Nom",
+      "role": "Rôle",
+      "motivation": "Motivation",
+      "flaw": "Faille",
+      "lastSituation": "Dernière situation"
+    }
+  ],
+  "readerPromises": ["Promesse 1", "Promesse 2", ...],
+  "narrativeDirections": [
+    {
+      "direction": "Direction narrative",
+      "advantages": "Avantages",
+      "risks": "Risques"
+    }
+  ],
+  "suggestedScenes": ["Scène 1", "Scène 2", ...],
+  "charactersToDevelop": "Personnages à développer",
+  "alerts": ["Alerte 1", "Alerte 2", ...]
+}
+
+INSTRUCTIONS:
+- Détecte la langue du texte et réponds dans la MÊME LANGUE
+- Utilise les analyses précédentes fournies en contexte
+- Retourne UNIQUEMENT le JSON, sans markdown code blocks`;
+  }
+
+  private parseSynthesisResponse(content: string): Synthesis {
+    let jsonContent = content.trim();
+
+    // Remove markdown code blocks if present
+    if (jsonContent.startsWith('```json')) {
+      jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (jsonContent.startsWith('```')) {
+      jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(jsonContent);
+    } catch {
+      throw new Error('Failed to parse synthesis response from Anthropic');
+    }
+
+    if (!parsed.textIdentity || typeof parsed.textIdentity !== 'string') {
+      throw new Error('Invalid response: missing textIdentity');
+    }
+    if (!Array.isArray(parsed.strengths) || parsed.strengths.length === 0) {
+      throw new Error('Invalid response: strengths must be a non-empty array');
+    }
+    if (!Array.isArray(parsed.improvements) || parsed.improvements.length === 0) {
+      throw new Error('Invalid response: improvements must be a non-empty array');
+    }
+    if (!parsed.internalCoherence || typeof parsed.internalCoherence !== 'string') {
+      throw new Error('Invalid response: missing internalCoherence');
+    }
+    if (!Array.isArray(parsed.stylisticCharter) || parsed.stylisticCharter.length === 0) {
+      throw new Error('Invalid response: stylisticCharter must be a non-empty array');
+    }
+    if (!parsed.plotSummary || typeof parsed.plotSummary !== 'string') {
+      throw new Error('Invalid response: missing plotSummary');
+    }
+    if (!Array.isArray(parsed.openQuestions)) {
+      throw new Error('Invalid response: openQuestions must be an array');
+    }
+    if (!Array.isArray(parsed.characterSummaries)) {
+      throw new Error('Invalid response: characterSummaries must be an array');
+    }
+
+    // Validate character summaries
+    for (const char of parsed.characterSummaries) {
+      if (!char.name || typeof char.name !== 'string') {
+        throw new Error('Invalid character summary: missing name');
+      }
+      if (!char.role || typeof char.role !== 'string') {
+        throw new Error('Invalid character summary: missing role');
+      }
+      if (!char.motivation || typeof char.motivation !== 'string') {
+        throw new Error('Invalid character summary: missing motivation');
+      }
+      if (!char.flaw || typeof char.flaw !== 'string') {
+        throw new Error('Invalid character summary: missing flaw');
+      }
+      if (!char.lastSituation || typeof char.lastSituation !== 'string') {
+        throw new Error('Invalid character summary: missing lastSituation');
+      }
+    }
+
+    if (!Array.isArray(parsed.readerPromises)) {
+      throw new Error('Invalid response: readerPromises must be an array');
+    }
+    if (!Array.isArray(parsed.narrativeDirections)) {
+      throw new Error('Invalid response: narrativeDirections must be an array');
+    }
+
+    // Validate narrative directions
+    for (const dir of parsed.narrativeDirections) {
+      if (!dir.direction || typeof dir.direction !== 'string') {
+        throw new Error('Invalid narrative direction: missing direction');
+      }
+      if (!dir.advantages || typeof dir.advantages !== 'string') {
+        throw new Error('Invalid narrative direction: missing advantages');
+      }
+      if (!dir.risks || typeof dir.risks !== 'string') {
+        throw new Error('Invalid narrative direction: missing risks');
+      }
+    }
+
+    if (!Array.isArray(parsed.suggestedScenes)) {
+      throw new Error('Invalid response: suggestedScenes must be an array');
+    }
+    if (!parsed.charactersToDevelop || typeof parsed.charactersToDevelop !== 'string') {
+      throw new Error('Invalid response: missing charactersToDevelop');
+    }
+    if (!Array.isArray(parsed.alerts)) {
+      throw new Error('Invalid response: alerts must be an array');
+    }
+
+    return {
+      textIdentity: parsed.textIdentity,
+      strengths: parsed.strengths,
+      improvements: parsed.improvements,
+      internalCoherence: parsed.internalCoherence,
+      stylisticCharter: parsed.stylisticCharter,
+      plotSummary: parsed.plotSummary,
+      openQuestions: parsed.openQuestions,
+      characterSummaries: parsed.characterSummaries,
+      readerPromises: parsed.readerPromises,
+      narrativeDirections: parsed.narrativeDirections,
+      suggestedScenes: parsed.suggestedScenes,
+      charactersToDevelop: parsed.charactersToDevelop,
+      alerts: parsed.alerts,
+    };
   }
 }

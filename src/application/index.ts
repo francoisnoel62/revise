@@ -96,3 +96,33 @@ export {
   type GenerateNarrativeAnalysisInput,
   type GenerateNarrativeAnalysisResult,
 } from './use-cases/GenerateNarrativeAnalysisUseCase';
+
+export {
+  GenerateStylisticDNAUseCase,
+  type GenerateStylisticDNAInput,
+  type GenerateStylisticDNAResult,
+} from './use-cases/GenerateStylisticDNAUseCase';
+
+export {
+  GenerateCharactersUseCase,
+  type GenerateCharactersInput,
+  type GenerateCharactersResult,
+} from './use-cases/GenerateCharactersUseCase';
+
+export {
+  GeneratePlotUseCase,
+  type GeneratePlotInput,
+  type GeneratePlotResult,
+} from './use-cases/GeneratePlotUseCase';
+
+export {
+  GenerateWorldbuildingUseCase,
+  type GenerateWorldbuildingInput,
+  type GenerateWorldbuildingResult,
+} from './use-cases/GenerateWorldbuildingUseCase';
+
+export {
+  GenerateSynthesisUseCase,
+  type GenerateSynthesisInput,
+  type GenerateSynthesisResult,
+} from './use-cases/GenerateSynthesisUseCase';

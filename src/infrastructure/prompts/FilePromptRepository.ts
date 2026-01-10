@@ -25,7 +25,49 @@ export class FilePromptRepository implements PromptRepository {
    * Read the narrative analysis prompt from markdown file.
    */
   async getNarrativeAnalysisPrompt(): Promise<string> {
-    const filePath = join(this.promptsDir, 'metadata', 'narrative-analysis.md');
+    return this.readPromptFile('narrative-analysis.md');
+  }
+
+  /**
+   * Read the stylistic DNA prompt from markdown file.
+   */
+  async getStylisticDNAPrompt(): Promise<string> {
+    return this.readPromptFile('stylistic-dna.md');
+  }
+
+  /**
+   * Read the characters prompt from markdown file.
+   */
+  async getCharactersPrompt(): Promise<string> {
+    return this.readPromptFile('characters.md');
+  }
+
+  /**
+   * Read the plot prompt from markdown file.
+   */
+  async getPlotPrompt(): Promise<string> {
+    return this.readPromptFile('plot.md');
+  }
+
+  /**
+   * Read the worldbuilding prompt from markdown file.
+   */
+  async getWorldbuildingPrompt(): Promise<string> {
+    return this.readPromptFile('worldbuilding.md');
+  }
+
+  /**
+   * Read the synthesis prompt from markdown file.
+   */
+  async getSynthesisPrompt(): Promise<string> {
+    return this.readPromptFile('synthesis.md');
+  }
+
+  /**
+   * Helper method to read a prompt file from the metadata directory.
+   */
+  private async readPromptFile(filename: string): Promise<string> {
+    const filePath = join(this.promptsDir, 'metadata', filename);
 
     try {
       const content = await readFile(filePath, 'utf-8');
@@ -33,10 +75,10 @@ export class FilePromptRepository implements PromptRepository {
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(
-          `Failed to read narrative analysis prompt from ${filePath}: ${error.message}`
+          `Failed to read prompt from ${filePath}: ${error.message}`
         );
       }
-      throw new Error('Failed to read narrative analysis prompt');
+      throw new Error(`Failed to read prompt: ${filename}`);
     }
   }
 }
