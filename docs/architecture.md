@@ -13,22 +13,29 @@ Pure business logic with no framework dependencies.
 **Entities**:
 - `Chapter` - Single chapter with rich text content (TipTap JSON)
 - `Project` - Aggregate managing chapter collection with owner tracking
+- `ProjectMetadata` - Metadata document with TipTap JSON content and content hash ⭐ NEW (Phase 3.6)
+- `Provider` - AI provider configuration with encrypted credentials (Phase 3.5)
 - `User` - User entity with email and hashed password
 - `TextDocument` - Legacy single document (Phase 1)
 
 **Value Objects**:
 - `TextSelection` - Selection range
 - `RewriteProposal` - AI-generated proposal
+- `MetadataType` - Enum for 6 analysis types ⭐ NEW (Phase 3.6)
+- `NarrativeAnalysis`, `Characters`, `Plot`, `StylisticDNA`, `Worldbuilding`, `Synthesis` ⭐ NEW (Phase 3.6)
 
 **Interfaces**:
 - `DocumentParser` - Parse documents to entities
 - `DocumentExporter` - Export entities to documents
-- `LLMProvider` - AI rewriting service
+- `LLMProvider` - AI rewriting + 6 metadata analysis methods ⭐ ENHANCED (Phase 3.6)
 - `ProjectRepository` - Persistence abstraction with multi-tenant support
+- `ProviderRepository` - Provider storage with encryption (Phase 3.5)
+- `MetadataRepository` - Metadata storage with multi-tenant isolation ⭐ NEW (Phase 3.6)
+- `PromptRepository` - Load AI prompts from markdown files ⭐ NEW (Phase 3.6)
 - `UserRepository` - User management and authentication
 - `AuthProvider` - Authentication service abstraction
-- `IdGenerator` - UUID generation abstraction ⭐ NEW
-- `LLMProviderFactory` - Factory for creating LLM providers ⭐ NEW
+- `IdGenerator` - UUID generation abstraction (Phase 3.5)
+- `LLMProviderFactory` - Factory for creating LLM providers (Phase 3.5)
 
 ### Application Layer (`src/application/`)
 
@@ -60,8 +67,12 @@ Use cases orchestrating domain logic.
 - `TestProviderConnectionUseCase` - Test credentials
 - `ValidateProviderUseCase` - Validate provider
 
-**User Use Cases** ⭐ NEW:
+**User Use Cases**:
 - `RegisterUserUseCase` - User registration
+
+**Metadata Use Cases** ⭐ NEW (Phase 3.6):
+- **CRUD**: `CreateMetadata`, `LoadMetadata`, `ListMetadata`, `UpdateMetadataContent`, `UpdateMetadataTitle`, `DeleteMetadata`
+- **Generation**: `GenerateNarrativeAnalysis`, `GenerateCharacters`, `GeneratePlot`, `GenerateStylisticDNA`, `GenerateWorldbuilding`, `GenerateSynthesis` (all with intelligent caching)
 
 **Legacy Use Cases**:
 - `RewriteTextUseCase` - AI rewriting
@@ -76,27 +87,41 @@ External service implementations.
 - TipTap conversion utilities (HTML ↔ JSON)
 
 **AI**:
-- `OpenAIProvider` - GPT-4o-mini integration with language preservation
-- `LLMProviderFactoryImpl` - Factory for creating LLM providers ⭐ NEW
+- `OpenAIProvider` - GPT-4o-mini + 6 metadata analysis types ⭐ ENHANCED (Phase 3.6)
+- `AnthropicProvider` - Claude + 6 metadata analysis types ⭐ NEW (Phase 3.6)
+- `LLMProviderFactoryImpl` - Factory for creating LLM providers (Phase 3.5)
 
-**Utils** ⭐ NEW:
-- `UUIDGenerator` - IdGenerator implementation using crypto.randomUUID()
+**Utils**:
+- `UUIDGenerator` - IdGenerator implementation using crypto.randomUUID() (Phase 3.5)
+- `text-hash` - SHA-256 content hashing for cache invalidation ⭐ NEW (Phase 3.6)
+
+**Encryption** ⭐ NEW (Phase 3.5):
+- AES-256-GCM utilities - API key encryption/decryption
+- Key masking utilities - Client-safe API key display
 
 **Authentication** (Phase 3):
 - `AuthJsProvider` - Auth.js implementation
 - `auth-config` - NextAuth v5 configuration
 - Middleware for route protection
 
-**Persistence** (Phase 3):
+**Persistence** (Phase 3, 3.5 & 3.6):
 - `MongoDBProjectRepository` - MongoDB Atlas persistence with multi-tenant isolation
+- `MongoDBProviderRepository` - Provider storage with encrypted credentials (Phase 3.5)
+- `MongoDBMetadataRepository` - Metadata storage with multi-tenant isolation ⭐ NEW (Phase 3.6)
 - `MongoDBUserRepository` - User management with bcrypt password hashing
 - `InMemoryProjectRepository` - Ephemeral storage (testing/legacy)
 - Project serialization utilities for MongoDB storage
+- Provider serialization utilities for MongoDB storage (Phase 3.5)
+- Metadata serialization utilities for MongoDB storage ⭐ NEW (Phase 3.6)
+
+**Prompts** ⭐ NEW (Phase 3.6):
+- `FilePromptRepository` - Load AI prompts from markdown files in `/docs/prompt/metadata/`
 
 **Configuration**:
-- Environment configuration
+- Environment configuration (including ENCRYPTION_KEY ⭐ NEW)
 - Database connection management
 - Provider factory pattern
+- Centralized AI models configuration ⭐ NEW (Phase 3.5)
 
 ### Interface Layer (`src/app/`, `src/components/`)
 
@@ -105,32 +130,38 @@ React components and UI.
 **Pages**:
 - `page.tsx` - Editor page (improved header with project title, DocumentControls, UserMenu) ⭐ ENHANCED
 - `dashboard/page.tsx` - Project management dashboard (with CreateProjectDialog) ⭐ ENHANCED
+- `project/[projectId]/metadata/page.tsx` - Metadata list page ⭐ NEW (Phase 3.6)
+- `project/[projectId]/metadata/[metadataId]/page.tsx` - Metadata editor ⭐ NEW (Phase 3.6)
 - `auth/signin/page.tsx` - Sign-in page
 - `auth/signup/page.tsx` - Sign-up page
 
 **Components**:
 - **Auth**: `UserMenu` - User profile dropdown with sign-out and provider access
-- **Dashboard**: `CreateProjectDialog` ⭐ NEW, `ProjectCard`, `EmptyState`, `NoProvidersAlert`
+- **Dashboard**: `CreateProjectDialog` (Phase 3.5), `ProjectCard`, `EmptyState`, `NoProvidersAlert`
 - **Editor**: `TextEditor` - TipTap editor with A4 styling, `FormattingToolbar` - Rich text and typography controls
 - **Navigation**: `ChaptersSheet` - Chapter navigation with drag & drop
 - **Proposals**: `ProposalsSheet` - AI proposals display
-- **Providers**: `ProvidersDialog`, `ProviderForm`, `ProviderCard`
+- **Providers**: `ProvidersDialog`, `ProviderForm`, `ProviderCard` (Phase 3.5)
+- **Metadata**: `GenerateCard`, `MetadataCard` ⭐ NEW (Phase 3.6)
 - **Document**: `DocumentControls` - Import/export, `SaveStatus` - Auto-save indicator
-- **UI**: shadcn/ui components (Sheet, Button, Card, Dialog, Input, Label, etc.)
+- **UI**: shadcn/ui components (Sheet, Button, Card, Dialog, Input, Label, PasswordInput, etc.)
 
 **State**:
 - `projectStore` - Zustand store (server-backed)
 
-**Server Actions** (all delegate to Use Cases ⭐ NEW):
+**Server Actions** (all delegate to Use Cases):
 - `project-actions` - Create, load, update, delete, rename (→ Project Use Cases)
 - `chapter-actions` - Add, remove, update, reorder (→ Chapter Use Cases)
 - `auth-actions` - Sign in, sign up, sign out (→ RegisterUserUseCase)
 - `provider-actions` - CRUD + test connections (→ Provider Use Cases)
+- `metadata-actions` - CRUD + generate analyses (→ Metadata Use Cases) ⭐ NEW (Phase 3.6)
 
-**Dependency Injection** (`utils.ts`) ⭐ NEW:
+**Dependency Injection** (`utils.ts`):
 - `getRepository()` - Project repository
 - `getProviderRepo()` - Provider repository
 - `getUserRepo()` - User repository
+- `getMetadataRepo()` - Metadata repository ⭐ NEW (Phase 3.6)
+- `getPromptRepo()` - Prompt repository ⭐ NEW (Phase 3.6)
 - `getLLMProviderFactory()` - LLM provider factory
 - `getIdGenerator()` - UUID generator
 
@@ -281,14 +312,49 @@ We use Repository pattern for swappable persistence.
 
 ## Testing Strategy
 
-- **Unit Tests**: Domain and application layers (150+ tests)
-- **Integration Tests**: Infrastructure and store (30+ tests)
+- **Unit Tests**: Domain and application layers (250+ tests) ⭐ ENHANCED
+- **Integration Tests**: Infrastructure and store (50+ tests) ⭐ ENHANCED
 - **E2E Tests**: Complete workflows (10+ tests planned)
 - **Coverage Target**: 85%+ for critical paths
+- **Total Tests**: 400+ passing ⭐ ENHANCED
+
+## Phase 3.6 Complete ✅
+
+**Metadata Analysis System**:
+- ✅ **6 AI-Powered Analysis Types** - Narrative Analysis, Characters, Plot, Stylistic DNA, Worldbuilding, Synthesis
+- ✅ **Intelligent Caching** - SHA-256 content hashing with automatic regeneration detection
+- ✅ **Dual Provider Support** - OpenAI (GPT-4o-mini) and Anthropic (Claude) for all analyses
+- ✅ **12 New Use Cases** - 6 CRUD + 6 Generation use cases with caching logic
+- ✅ **ProjectMetadata Entity** - TipTap JSON storage with content hash tracking
+- ✅ **MongoDBMetadataRepository** - Multi-tenant metadata storage with serialization
+- ✅ **FilePromptRepository** - Load AI prompts from markdown files
+- ✅ **Text Hashing Utility** - SHA-256 hashing for cache invalidation
+- ✅ **Metadata UI Pages** - List view and rich text editor
+- ✅ **Metadata Components** - GenerateCard, MetadataCard with loading states
+- ✅ **Enhanced AI Providers** - OpenAI & Anthropic support all 6 analysis types
+- ✅ **7 Value Objects** - MetadataType + 6 analysis-specific value objects
+- ✅ **Rate Limiting** - 5-second cooldown for metadata generation
+- ✅ **Comprehensive Testing** - 400+ tests with integration tests for both providers
+- ✅ **Clean Architecture Maintained** - All new code follows established patterns
+
+## Phase 3.5 Complete ✅
+
+**Clean Architecture Finalized**:
+- ✅ **AI Provider Management** - Multiple providers with encrypted credentials
+- ✅ **All Use Cases Created** - Complete separation of concerns (Project, Provider, User)
+- ✅ **Dependency Injection** - Centralized via utils.ts (getRepository, getProviderRepo, etc.)
+- ✅ **Domain Abstractions** - IdGenerator, LLMProviderFactory interfaces
+- ✅ **Infrastructure Implementations** - UUIDGenerator, LLMProviderFactoryImpl
+- ✅ **Provider Components** - ProvidersDialog, ProviderForm, ProviderCard
+- ✅ **CreateProjectDialog** - New project creation with title input
+- ✅ **Improved Header Layout** - Better project visibility and navigation
+- ✅ **Encryption System** - AES-256-GCM for API keys
+- ✅ **Rate Limiting** - Connection testing (1 per 5 seconds)
+- ✅ **MongoDBProviderRepository** - Encrypted provider storage
 
 ## Phase 3 Complete ✅
 
-**Implemented**:
+**Persistence & Authentication**:
 - ✅ MongoDB Atlas persistence
 - ✅ User authentication (Auth.js)
 - ✅ Multi-tenant data isolation

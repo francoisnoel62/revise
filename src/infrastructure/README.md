@@ -2,7 +2,7 @@
 
 Implements domain interfaces with concrete external services.
 
-**Status**: ✅ Phase 3.5 Complete (70+ unit tests + 4 integration tests)
+**Status**: ✅ Phase 3.6 Complete (100+ unit tests + 20+ integration tests)
 
 ## Rules:
 - Implements interfaces defined in Domain layer
@@ -13,13 +13,36 @@ Implements domain interfaces with concrete external services.
 
 ### AI Provider (✅ Phase 3.5 Enhanced)
 
-#### `OpenAIProvider`
+#### `OpenAIProvider` ⭐ ENHANCED (Phase 3.6)
 **Implements**: `LLMProvider` interface
 **Technology**: OpenAI SDK with GPT-4o-mini
 
+**Phase 3.6 Enhancements**:
+- ✅ `generateNarrativeAnalysis()` - POV, structure, temporality, voice analysis
+- ✅ `generateCharacters()` - Character profiles and relationships
+- ✅ `generatePlot()` - Plot structure and conflicts
+- ✅ `generateStylisticDNA()` - Register and syntax patterns
+- ✅ `generateWorldbuilding()` - Themes and symbolism
+- ✅ `generateSynthesis()` - Meta-analysis with editorial feedback
+
+**Tests**: 20+ tests (unit + integration) covering all 6 metadata analysis types + text rewriting
+
 ---
 
-#### `LLMProviderFactoryImpl` ⭐ NEW (Phase 3.5)
+#### `AnthropicProvider` ⭐ NEW (Phase 3.6)
+**Implements**: `LLMProvider` interface
+**Technology**: Anthropic SDK with Claude
+
+**Capabilities**:
+- ✅ All 6 metadata analysis types (same as OpenAI)
+- ✅ JSON-structured responses
+- ✅ Error handling and retry logic
+
+**Tests**: 20+ tests (unit + integration) for all analysis types
+
+---
+
+#### `LLMProviderFactoryImpl` (Phase 3.5)
 **Implements**: `LLMProviderFactory` interface
 **Purpose**: Factory for creating LLM provider instances
 
@@ -256,6 +279,34 @@ Implements domain interfaces with concrete external services.
 
 ---
 
+#### `MongoDBMetadataRepository` ⭐ NEW (Phase 3.6)
+**Implements**: `MetadataRepository` interface
+**Technology**: MongoDB Atlas with official Node.js driver
+
+**Purpose**: Metadata storage with multi-tenant isolation
+
+**Methods**:
+- `create(userId, metadata)` - Creates metadata document
+- `findById(userId, metadataId)` - Loads metadata (ownership verified)
+- `findByProjectId(userId, projectId)` - Lists all metadata for project
+- `update(userId, metadata)` - Updates metadata
+- `delete(userId, metadataId)` - Deletes metadata
+- `findByProjectAndType(userId, projectId, type)` - Find specific analysis type
+
+**Multi-Tenant Security**:
+- All queries filter by `ownerId`
+- Enforced at database query level
+
+**Serialization**:
+- Uses `metadata-serializer` utilities
+- Handles TipTap JSON storage
+- Stores content hash for cache invalidation
+- Timestamps (createdAt, updatedAt)
+
+**Tests**: 15+ tests covering CRUD operations and multi-tenant isolation
+
+---
+
 #### `InMemoryProjectRepository` (Phase 2 - Testing)
 **Implements**: `ProjectRepository` interface
 **Purpose**: Ephemeral storage for testing
@@ -295,7 +346,56 @@ Implements domain interfaces with concrete external services.
 
 ---
 
-### Utils ⭐ NEW (Phase 3.5)
+#### `metadata-serializer` ⭐ NEW (Phase 3.6)
+**Purpose**: Convert between ProjectMetadata entities and MongoDB documents
+
+**Functions**:
+- `serializeMetadata(metadata)` - ProjectMetadata entity → MongoDB document
+- `deserializeMetadata(document)` - MongoDB document → ProjectMetadata entity
+
+**Features**:
+- Preserves all entity data including content hash
+- Handles TipTap JSON content
+- Metadata type conversion (enum → string)
+- Timestamps conversion (Date objects)
+- Type-safe serialization
+
+**Tests**: Integrated with MongoDBMetadataRepository tests
+
+---
+
+### Prompts ⭐ NEW (Phase 3.6)
+
+#### `FilePromptRepository`
+**Implements**: `PromptRepository` interface
+**Purpose**: Load AI prompts from markdown files
+
+**Features**:
+- Loads prompts from `/docs/prompt/metadata/` directory
+- Version-controlled prompts (tracked in Git)
+- Supports all 6 metadata analysis types
+- File-based prompt management
+- Error handling for missing prompts
+
+**Methods**:
+- `getPrompt(type: MetadataType)` → `Promise<string>`
+
+**File Structure**:
+```
+docs/prompt/metadata/
+├── narrative_analysis.md
+├── characters.md
+├── plot.md
+├── stylistic_dna.md
+├── worldbuilding.md
+└── synthesis.md
+```
+
+**Tests**: 5+ tests covering prompt loading and error handling
+
+---
+
+### Utils ⭐ ENHANCED (Phase 3.6)
 
 #### `UUIDGenerator`
 **Implements**: `IdGenerator` interface
@@ -310,6 +410,29 @@ Implements domain interfaces with concrete external services.
 - `generate()` → `string` - Returns a new UUID v4
 
 **Tests**: 3+ tests covering UUID generation
+
+---
+
+#### `text-hasher` ⭐ NEW (Phase 3.6)
+**Purpose**: SHA-256 content hashing for cache invalidation
+
+**Features**:
+- Calculates SHA-256 hash of text content
+- Used to detect project content changes
+- Enables intelligent metadata caching
+- Deterministic hashing (same content → same hash)
+
+**Functions**:
+- `hashText(text: string)` → `string` - Returns hex-encoded SHA-256 hash
+
+**Usage**:
+```typescript
+const hash1 = hashText("Chapter 1 content...");
+const hash2 = hashText("Chapter 1 content..."); // Same
+const hash3 = hashText("Chapter 1 UPDATED..."); // Different
+```
+
+**Tests**: Integrated with generation use case tests
 
 ---
 
@@ -440,10 +563,22 @@ All infrastructure operations exceed targets:
 
 ---
 
+## Phase 3.6 Achievements
+
+✅ **AnthropicProvider** - Full Claude integration with all 6 analysis types
+✅ **OpenAIProvider Enhanced** - Added 6 metadata analysis methods
+✅ **MongoDBMetadataRepository** - Metadata storage with multi-tenant isolation
+✅ **FilePromptRepository** - Version-controlled AI prompts from markdown files
+✅ **Text Hashing Utility** - SHA-256 content hashing for cache invalidation
+✅ **Metadata Serialization** - ProjectMetadata ↔ MongoDB document conversion
+✅ **120+ unit tests** + 24 integration tests (up from 70+ and 4)
+✅ **Dual Provider Testing** - Comprehensive tests for both OpenAI and Anthropic
+✅ **Clean Architecture Maintained** - All new infrastructure follows established patterns
+
 ## Phase 3.5 Achievements
 
-✅ **LLMProviderFactoryImpl** - Factory for creating LLM providers ⭐ NEW
-✅ **UUIDGenerator** - IdGenerator implementation ⭐ NEW
+✅ **LLMProviderFactoryImpl** - Factory for creating LLM providers
+✅ **UUIDGenerator** - IdGenerator implementation
 ✅ **70+ unit tests** + 4 integration tests passing
 ✅ **Clean Architecture** - Domain has zero crypto dependency
 
