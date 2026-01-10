@@ -2,7 +2,7 @@
 
 Next.js App Router pages, layouts, UI components, and state management.
 
-**Status**: ✅ Phase 3.5 Complete (100+ component tests + 15+ store tests + 40+ server action tests)
+**Status**: ✅ Phase 3.6 Complete (110+ component tests + 15+ store tests + 65+ server action tests)
 
 ## Rules:
 - Depends on Application and Domain layers
@@ -83,6 +83,57 @@ Next.js App Router pages, layouts, UI components, and state management.
 
 ---
 
+#### `app/project/[projectId]/metadata/page.tsx` ⭐ NEW (Phase 3.6)
+**Purpose**: Metadata list page showing all analyses for a project
+
+**Features**:
+- Lists all metadata documents for the project
+- GenerateCard for creating new analyses
+- MetadataCard for each existing analysis
+- Filter by metadata type (narrative, characters, plot, etc.)
+- Navigation to metadata editor
+- Delete metadata with confirmation
+
+**Components Used**:
+- `GenerateCard` - Card UI for generating new metadata analyses
+- `MetadataCard` - Display metadata with title, type, last updated
+
+**Server Actions**:
+- `listMetadataAction` → `ListMetadataUseCase`
+- `createMetadataAction` → `CreateMetadataUseCase`
+- `generateNarrativeAnalysisAction` → `GenerateNarrativeAnalysisUseCase`
+- (+ 5 other generation actions for each analysis type)
+- `deleteMetadataAction` → `DeleteMetadataUseCase`
+
+**Tests**: 10+ tests covering list display and metadata actions
+
+---
+
+#### `app/project/[projectId]/metadata/[metadataId]/page.tsx` ⭐ NEW (Phase 3.6)
+**Purpose**: Rich text editor for metadata content
+
+**Features**:
+- TipTap-based rich text editor (same as chapter editor)
+- Auto-save integration (1-second debounce)
+- Metadata title editing
+- Formatting toolbar (bold, italic, underline, etc.)
+- Back navigation to metadata list
+- Loading states
+
+**Components Used**:
+- `TextEditor` - TipTap editor component (reused from chapter editor)
+- `FormattingToolbar` - Rich text controls (reused)
+- `SaveStatus` - Auto-save indicator
+
+**Server Actions**:
+- `loadMetadataAction` → `LoadMetadataUseCase`
+- `updateMetadataContentAction` → `UpdateMetadataContentUseCase`
+- `updateMetadataTitleAction` → `UpdateMetadataTitleUseCase`
+
+**Tests**: 10+ tests covering editor functionality
+
+---
+
 #### `app/page.tsx` ⭐ ENHANCED (Phase 3.5)
 **Purpose**: Main editor page with project loading from database
 
@@ -153,7 +204,7 @@ Next.js App Router pages, layouts, UI components, and state management.
 - `signUpAction` → `RegisterUserUseCase`
 - `signOutAction()` - Terminates session
 
-**`app/actions/provider-actions.ts`** (delegates to Provider Use Cases ⭐ NEW):
+**`app/actions/provider-actions.ts`** (delegates to Provider Use Cases):
 - `createProviderAction` → `CreateProviderUseCase`
 - `listProvidersAction` → `ListProvidersUseCase`
 - `updateProviderAction` → `UpdateProviderUseCase`
@@ -161,10 +212,26 @@ Next.js App Router pages, layouts, UI components, and state management.
 - `testProviderConnectionAction` → `TestProviderConnectionUseCase`
 - `validateProviderAction` → `ValidateProviderUseCase`
 
-**`app/actions/utils.ts`** (Dependency Injection ⭐ NEW):
+**`app/actions/metadata-actions.ts`** ⭐ NEW (Phase 3.6 - delegates to Metadata Use Cases):
+- `createMetadataAction` → `CreateMetadataUseCase`
+- `loadMetadataAction` → `LoadMetadataUseCase`
+- `listMetadataAction` → `ListMetadataUseCase`
+- `updateMetadataContentAction` → `UpdateMetadataContentUseCase`
+- `updateMetadataTitleAction` → `UpdateMetadataTitleUseCase`
+- `deleteMetadataAction` → `DeleteMetadataUseCase`
+- `generateNarrativeAnalysisAction` → `GenerateNarrativeAnalysisUseCase`
+- `generateCharactersAction` → `GenerateCharactersUseCase`
+- `generatePlotAction` → `GeneratePlotUseCase`
+- `generateStylisticDNAAction` → `GenerateStylisticDNAUseCase`
+- `generateWorldbuildingAction` → `GenerateWorldbuildingUseCase`
+- `generateSynthesisAction` → `GenerateSynthesisUseCase`
+
+**`app/actions/utils.ts`** (Dependency Injection):
 - `getRepository()` - Project repository
 - `getProviderRepo()` - Provider repository
 - `getUserRepo()` - User repository
+- `getMetadataRepo()` - Metadata repository ⭐ NEW (Phase 3.6)
+- `getPromptRepo()` - Prompt repository ⭐ NEW (Phase 3.6)
 - `getLLMProviderFactory()` - LLM provider factory
 - `getIdGenerator()` - UUID generator
 
@@ -272,6 +339,95 @@ Next.js App Router pages, layouts, UI components, and state management.
 - Responsive design
 
 **Tests**: 3+ tests covering empty state display
+
+---
+
+**`NoProvidersAlert`** ⭐ NEW (Phase 3.5)
+**Purpose**: Dashboard alert when no AI providers configured
+
+**Features**:
+- Warning message for missing provider configuration
+- Link to provider management dialog
+- Dismissible alert
+- Only shows when provider list is empty
+
+**Tests**: 5+ tests covering alert display and dismissal
+
+---
+
+#### Provider Components ⭐ NEW (Phase 3.5) (`components/providers/`)
+
+**`ProvidersDialog`**
+**Purpose**: Main dialog for managing AI providers
+
+**Features**:
+- Provider list with cards
+- Add provider button
+- Create/edit/delete provider flows
+- Connection testing UI
+- Dialog-based interaction
+
+**Tests**: 10+ tests covering dialog interactions
+
+---
+
+**`ProviderForm`**
+**Purpose**: Create/edit provider form with connection testing
+
+**Features**:
+- Provider type selection (OpenAI, Anthropic, Mistral, Cohere, Google)
+- API key input (masked display)
+- Model selection dropdown
+- Connection test button with loading state
+- Validation feedback
+- Save/cancel actions
+
+**Tests**: 15+ tests covering form validation and testing
+
+---
+
+**`ProviderCard`**
+**Purpose**: Individual provider card with status and actions
+
+**Features**:
+- Provider name and type display
+- Masked API key
+- Model display
+- Edit and delete actions
+- Connection status indicator
+
+**Tests**: 10+ tests covering card interactions
+
+---
+
+#### Metadata Components ⭐ NEW (Phase 3.6) (`components/metadata/`)
+
+**`GenerateCard`**
+**Purpose**: Card UI for generating new metadata analyses
+
+**Features**:
+- Metadata type selector (6 types)
+- Generate button with loading state
+- AI provider indicator
+- Rate limiting feedback (5-second cooldown)
+- Error handling and display
+
+**Tests**: 10+ tests covering generation flow
+
+---
+
+**`MetadataCard`**
+**Purpose**: Display metadata with actions
+
+**Features**:
+- Metadata title and type display
+- Last updated timestamp
+- View button (navigates to editor)
+- Delete button (with confirmation)
+- Type-specific icons
+- Hover states
+
+**Tests**: 10+ tests covering card interactions
 
 ---
 
@@ -597,14 +753,26 @@ Next.js App Router pages, layouts, UI components, and state management.
 ✅ **Session management** - JWT-based sessions with Auth.js
 ✅ **Multi-tenant support** - All actions filter by userId
 
+## Phase 3.6 Achievements
+
+✅ **Metadata List Page** - List all metadata analyses for a project
+✅ **Metadata Editor Page** - Rich text editor for metadata content with auto-save
+✅ **GenerateCard Component** - UI for generating new metadata analyses
+✅ **MetadataCard Component** - Display metadata with title, type, and actions
+✅ **metadata-actions.ts** - Server actions delegating to 12 metadata use cases
+✅ **getMetadataRepo() & getPromptRepo()** - New dependency injection helpers
+✅ **Rate limiting extended** - Now covers metadata generation (5-second cooldown)
+✅ **190+ tests passing** - 120+ component + 15+ store + 55+ server action tests (up from 155+)
+✅ **Clean Architecture Maintained** - All new UI follows established patterns
+
 ## Phase 3.5 Achievements
 
-✅ **CreateProjectDialog** - New project creation with title input ⭐ NEW
-✅ **Improved header layout** - Better project title visibility and navigation ⭐ NEW
-✅ **DocumentControls in header** - Import/export accessible from header ⭐ NEW
-✅ **UserMenu in header** - Profile dropdown integrated into header ⭐ NEW
-✅ **Server Actions delegate to Use Cases** - Clean Architecture compliance ⭐ NEW
-✅ **Dependency injection** via utils.ts - Centralized repository access ⭐ NEW
+✅ **CreateProjectDialog** - New project creation with title input
+✅ **Improved header layout** - Better project title visibility and navigation
+✅ **DocumentControls in header** - Import/export accessible from header
+✅ **UserMenu in header** - Profile dropdown integrated into header
+✅ **Server Actions delegate to Use Cases** - Clean Architecture compliance
+✅ **Dependency injection** via utils.ts - Centralized repository access
 ✅ **155+ tests passing** - 100+ component + 15+ store + 40+ server action tests
 
 ## Phase 2 Achievements

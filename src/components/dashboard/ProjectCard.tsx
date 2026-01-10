@@ -4,7 +4,8 @@
 'use client';
 
 import { useState } from 'react';
-import { MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { MoreVertical, Pencil, Trash2, FileText } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -48,6 +49,7 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, onOpen, onDeleted, onRenamed }: ProjectCardProps) {
+  const router = useRouter();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [newTitle, setNewTitle] = useState(project.title);
@@ -83,6 +85,11 @@ export function ProjectCard({ project, onOpen, onDeleted, onRenamed }: ProjectCa
 
     setIsRenaming(false);
     setShowRenameDialog(false);
+  };
+
+  const handleOpenMetadata = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    router.push(`/project/${project.id}/metadata`);
   };
 
   const formatDate = (dateString: string) => {
@@ -138,6 +145,10 @@ export function ProjectCard({ project, onOpen, onDeleted, onRenamed }: ProjectCa
               >
                 <Pencil className="h-4 w-4 mr-2" />
                 Rename
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleOpenMetadata}>
+                <FileText className="h-4 w-4 mr-2" />
+                Métadonnées
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem

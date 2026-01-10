@@ -5,6 +5,19 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ProjectCard } from './ProjectCard';
 
+// Mock Next.js navigation
+const mockPush = vi.fn();
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: mockPush,
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    refresh: vi.fn(),
+  }),
+}));
+
 // Mock server actions
 vi.mock('@/app/actions/project-actions', () => ({
   deleteProjectAction: vi.fn(),
@@ -28,6 +41,7 @@ describe('ProjectCard', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPush.mockClear();
   });
 
   it('displays project information', () => {
@@ -122,7 +136,7 @@ describe('ProjectCard', () => {
 
     vi.mocked(updateProjectTitleAction).mockResolvedValue({
       success: true,
-      data: { ...mockProject, title: 'New Title' } as any,
+      data: { ...mockProject, title: 'New Title' },
     });
 
     render(

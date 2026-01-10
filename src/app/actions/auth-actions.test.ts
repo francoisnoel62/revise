@@ -20,7 +20,7 @@ describe('auth-actions', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(getUserRepository).mockResolvedValue(mockUserRepo as any);
+    vi.mocked(getUserRepository).mockResolvedValue(mockUserRepo);
   });
 
   describe('registerUserAction', () => {

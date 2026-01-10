@@ -53,3 +53,76 @@ export type { ValidateProviderInput } from './use-cases/ValidateProviderUseCase'
 export { RegisterUserUseCase } from './use-cases/RegisterUserUseCase';
 export type { RegisterUserInput } from './use-cases/RegisterUserUseCase';
 export { EmailAlreadyExistsError, ValidationError } from './use-cases/RegisterUserUseCase';
+
+// Metadata Use Cases (Phase 3.6 - Project Metadata Feature)
+export {
+  CreateMetadataUseCase,
+  type CreateMetadataInput,
+  type CreateMetadataResult,
+} from './use-cases/CreateMetadataUseCase';
+
+export {
+  UpdateMetadataContentUseCase,
+  type UpdateMetadataContentInput,
+  type UpdateMetadataContentResult,
+} from './use-cases/UpdateMetadataContentUseCase';
+
+export {
+  UpdateMetadataTitleUseCase,
+  type UpdateMetadataTitleInput,
+  type UpdateMetadataTitleResult,
+} from './use-cases/UpdateMetadataTitleUseCase';
+
+export {
+  DeleteMetadataUseCase,
+  type DeleteMetadataInput,
+  type DeleteMetadataResult,
+} from './use-cases/DeleteMetadataUseCase';
+
+export {
+  ListMetadataUseCase,
+  type ListMetadataInput,
+  type ListMetadataResult,
+} from './use-cases/ListMetadataUseCase';
+
+export {
+  LoadMetadataUseCase,
+  type LoadMetadataInput,
+  type LoadMetadataResult,
+} from './use-cases/LoadMetadataUseCase';
+
+export {
+  GenerateNarrativeAnalysisUseCase,
+  type GenerateNarrativeAnalysisInput,
+  type GenerateNarrativeAnalysisResult,
+} from './use-cases/GenerateNarrativeAnalysisUseCase';
+
+export {
+  GenerateStylisticDNAUseCase,
+  type GenerateStylisticDNAInput,
+  type GenerateStylisticDNAResult,
+} from './use-cases/GenerateStylisticDNAUseCase';
+
+export {
+  GenerateCharactersUseCase,
+  type GenerateCharactersInput,
+  type GenerateCharactersResult,
+} from './use-cases/GenerateCharactersUseCase';
+
+export {
+  GeneratePlotUseCase,
+  type GeneratePlotInput,
+  type GeneratePlotResult,
+} from './use-cases/GeneratePlotUseCase';
+
+export {
+  GenerateWorldbuildingUseCase,
+  type GenerateWorldbuildingInput,
+  type GenerateWorldbuildingResult,
+} from './use-cases/GenerateWorldbuildingUseCase';
+
+export {
+  GenerateSynthesisUseCase,
+  type GenerateSynthesisInput,
+  type GenerateSynthesisResult,
+} from './use-cases/GenerateSynthesisUseCase';

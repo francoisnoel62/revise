@@ -13,6 +13,7 @@ vi.mock('./utils', () => ({
   getAuthenticatedUserId: vi.fn(),
   getRepository: vi.fn(),
   getProviderRepo: vi.fn(),
+  getMetadataRepo: vi.fn(),
   withErrorHandling: vi.fn(async (fn) => {
     try {
       const data = await fn();
@@ -23,7 +24,7 @@ vi.mock('./utils', () => ({
   }),
 }));
 
-import { getAuthenticatedUserId, getRepository, getProviderRepo } from './utils';
+import { getAuthenticatedUserId, getRepository, getProviderRepo, getMetadataRepo } from './utils';
 import { InMemoryProjectRepository } from '@/infrastructure/persistence/InMemoryProjectRepository';
 import { Project } from '@/domain/entities/Project';
 import { Provider } from '@/domain/entities/Provider';
@@ -33,6 +34,9 @@ describe('project-actions', () => {
   let mockProviderRepository: {
     listProviders: ReturnType<typeof vi.fn>;
     findById: ReturnType<typeof vi.fn>;
+  };
+  let mockMetadataRepository: {
+    deleteByProjectId: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -57,6 +61,12 @@ describe('project-actions', () => {
       findById: vi.fn().mockResolvedValue(validProvider),
     };
     vi.mocked(getProviderRepo).mockResolvedValue(mockProviderRepository as never);
+
+    // Mock metadata repository
+    mockMetadataRepository = {
+      deleteByProjectId: vi.fn().mockResolvedValue(undefined),
+    };
+    vi.mocked(getMetadataRepo).mockResolvedValue(mockMetadataRepository as never);
   });
 
   describe('createProjectAction', () => {
