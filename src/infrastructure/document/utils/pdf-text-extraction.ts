@@ -77,7 +77,7 @@ export async function extractPdfText(buffer: Buffer): Promise<PdfTextPage[]> {
         x: textItem.transform[4],
         y: textItem.transform[5],
         width: textItem.width,
-        height: textItem.height,
+        height: textItem.height || 12,
       });
     }
 
