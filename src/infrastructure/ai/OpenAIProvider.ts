@@ -1201,7 +1201,7 @@ INSTRUCTIONS:
           limit = subscriptionResponse.hard_limit_usd;
         }
         // billing_cycle_anchor or access_until for renewal date
-        if (subscriptionResponse.access_until) {
+        if (typeof subscriptionResponse.access_until === 'number') {
           renewalDate = new Date(subscriptionResponse.access_until * 1000);
         }
       }
