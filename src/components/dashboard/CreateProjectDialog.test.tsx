@@ -62,7 +62,7 @@ describe('CreateProjectDialog', () => {
     const submitButton = screen.getByRole('button', { name: /^create$/i });
     await user.click(submitButton);
 
-    expect(mockOnCreateProject).toHaveBeenCalledWith('My Great Novel', null);
+    expect(mockOnCreateProject).toHaveBeenCalledWith('My Great Novel', null, undefined);
   });
 
   it('uses default title when empty', async () => {
@@ -72,7 +72,7 @@ describe('CreateProjectDialog', () => {
     const submitButton = screen.getByRole('button', { name: /^create$/i });
     await user.click(submitButton);
 
-    expect(mockOnCreateProject).toHaveBeenCalledWith('Nouveau projet', null);
+    expect(mockOnCreateProject).toHaveBeenCalledWith('Nouveau projet', null, undefined);
   });
 
   it('shows selected file name', async () => {
@@ -123,7 +123,7 @@ describe('CreateProjectDialog', () => {
     const submitButton = screen.getByRole('button', { name: /^create$/i });
     await user.click(submitButton);
 
-    expect(mockOnCreateProject).toHaveBeenCalledWith('Nouveau projet', file);
+    expect(mockOnCreateProject).toHaveBeenCalledWith('Nouveau projet', file, undefined);
   });
 
   it('disables inputs when creating', () => {

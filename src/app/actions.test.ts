@@ -10,6 +10,7 @@ vi.mock('./actions/utils', () => ({
   getRepository: vi.fn(),
   getDocumentParser: vi.fn(),
   getAnyAvailableLLMProvider: vi.fn().mockResolvedValue(undefined), // No LLM for tests
+  getLLMProviderById: vi.fn().mockResolvedValue(undefined), // No LLM for tests
   withErrorHandling: vi.fn(async (fn) => {
     try {
       const data = await fn();

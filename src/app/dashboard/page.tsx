@@ -44,7 +44,7 @@ export default function DashboardPage() {
     loadProjects();
   }, [router]);
 
-  const handleCreateProject = async (title: string, file: File | null) => {
+  const handleCreateProject = async (title: string, file: File | null, providerId?: string) => {
     setIsCreating(true);
     setError(null);
 
@@ -55,6 +55,9 @@ export default function DashboardPage() {
         // Import file and create project from it
         const formData = new FormData();
         formData.append('file', file);
+        if (providerId) {
+          formData.append('providerId', providerId);
+        }
         const result = await importDocument(formData);
 
         if (!result.success) {

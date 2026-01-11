@@ -1,14 +1,22 @@
 // ABOUTME: Dialog for creating a new project with title and optional draft file.
-// ABOUTME: Includes PDF warning dialog and progress indicator for AI-based import.
+// ABOUTME: Includes PDF warning dialog, provider selector, and progress indicator for AI-based import.
 
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Upload, X, AlertTriangle, FileText, Sparkles, Save } from 'lucide-react';
+import { Upload, X, AlertTriangle, FileText, Sparkles, Bot } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { listProvidersAction, SafeProvider } from '@/app/actions/provider-actions';
 import {
   Dialog,
   DialogContent,
@@ -31,7 +39,7 @@ import {
 interface CreateProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreateProject: (title: string, file: File | null) => Promise<void>;
+  onCreateProject: (title: string, file: File | null, providerId?: string) => Promise<void>;
   isCreating: boolean;
 }
 
@@ -47,10 +55,31 @@ export function CreateProjectDialog({
   const [pendingPdfFile, setPendingPdfFile] = useState<File | null>(null);
   const [importProgress, setImportProgress] = useState(0);
   const [importStatus, setImportStatus] = useState('');
+  const [providers, setProviders] = useState<SafeProvider[]>([]);
+  const [selectedProviderId, setSelectedProviderId] = useState<string>('');
+  const [loadingProviders, setLoadingProviders] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Progress simulation for PDF import
   const isPdfImport = selectedFile?.name.toLowerCase().endsWith('.pdf');
+
+  // Load providers when dialog opens
+  useEffect(() => {
+    if (open && providers.length === 0) {
+      setLoadingProviders(true);
+      listProvidersAction().then((result) => {
+        if (result.success) {
+          const validProviders = result.data.filter((p) => p.isValid);
+          setProviders(validProviders);
+          // Auto-select first provider if available
+          if (validProviders.length > 0 && !selectedProviderId) {
+            setSelectedProviderId(validProviders[0].id);
+          }
+        }
+        setLoadingProviders(false);
+      });
+    }
+  }, [open, providers.length, selectedProviderId]);
 
   useEffect(() => {
     if (!isCreating || !isPdfImport) {
@@ -127,11 +156,14 @@ export function CreateProjectDialog({
     e.preventDefault();
 
     const projectTitle = title.trim() || 'Nouveau projet';
-    await onCreateProject(projectTitle, selectedFile);
+    // Pass providerId only for PDF imports
+    const providerId = isPdfImport ? selectedProviderId : undefined;
+    await onCreateProject(projectTitle, selectedFile, providerId);
 
     // Reset form on success (dialog will close via parent)
     setTitle('');
     setSelectedFile(null);
+    setSelectedProviderId('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -270,6 +302,48 @@ export function CreateProjectDialog({
                     </Button>
                   )}
                 </div>
+
+                {/* Provider selector for PDF import */}
+                {isPdfImport && (
+                  <div className="grid gap-2">
+                    <Label htmlFor="provider" className="flex items-center gap-2">
+                      <Bot className="h-4 w-4" />
+                      Provider IA
+                    </Label>
+                    {loadingProviders ? (
+                      <div className="text-sm text-muted-foreground">
+                        Chargement des providers...
+                      </div>
+                    ) : providers.length === 0 ? (
+                      <div className="text-sm text-amber-600 p-2 bg-amber-50 rounded-md">
+                        Aucun provider configuré. Veuillez configurer un provider IA dans
+                        &quot;My Providers&quot; pour importer des fichiers PDF.
+                      </div>
+                    ) : (
+                      <Select
+                        value={selectedProviderId}
+                        onValueChange={setSelectedProviderId}
+                        disabled={isCreating}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Sélectionner un provider" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {providers.map((provider) => (
+                            <SelectItem key={provider.id} value={provider.id}>
+                              <div className="flex items-center gap-2">
+                                <span>{provider.name}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  ({provider.type} - {provider.model})
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                )}
               </div>
 
               <DialogFooter>
@@ -281,7 +355,10 @@ export function CreateProjectDialog({
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isCreating}>
+                <Button
+                  type="submit"
+                  disabled={isCreating || (isPdfImport && !selectedProviderId)}
+                >
                   {isCreating ? 'Creating...' : 'Create'}
                 </Button>
               </DialogFooter>

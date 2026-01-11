@@ -20,6 +20,7 @@ import {
   getDocumentExporter,
   withErrorHandling,
   getAnyAvailableLLMProvider,
+  getLLMProviderById,
 } from './actions/utils';
 import { type SerializedProject } from './actions/project-actions';
 
@@ -65,9 +66,18 @@ export async function importDocument(
       throw new Error('No file provided');
     }
 
-    // Get LLM provider for AI-powered PDF text structuring (optional)
-    // Tries: env default first, then user's configured providers
-    const llmProvider = await getAnyAvailableLLMProvider(auth.userId);
+    // Get providerId if specified (for PDF imports)
+    const providerId = formData.get('providerId') as string | null;
+
+    // Get LLM provider for AI-powered PDF text structuring
+    let llmProvider;
+    if (providerId) {
+      // Use specified provider
+      llmProvider = await getLLMProviderById(auth.userId, providerId);
+    } else {
+      // Fallback: try env default, then user's first valid provider
+      llmProvider = await getAnyAvailableLLMProvider(auth.userId);
+    }
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const parser = await getDocumentParser(llmProvider);
