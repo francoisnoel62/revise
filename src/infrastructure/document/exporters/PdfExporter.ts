@@ -34,6 +34,122 @@ const PDF_CONFIG = {
   },
 };
 
+// Character mapping for non-WinAnsi characters to ASCII equivalents
+// WinAnsi encoding only supports a subset of Unicode (Latin-1 + some extras)
+const CHAR_REPLACEMENTS: Record<string, string> = {
+  // Turkish characters
+  'ı': 'i', // dotless i
+  'İ': 'I', // dotted I
+  'ş': 's',
+  'Ş': 'S',
+  'ğ': 'g',
+  'Ğ': 'G',
+  // Polish characters
+  'ł': 'l',
+  'Ł': 'L',
+  'ą': 'a',
+  'Ą': 'A',
+  'ę': 'e',
+  'Ę': 'E',
+  'ć': 'c',
+  'Ć': 'C',
+  'ń': 'n',
+  'Ń': 'N',
+  'ś': 's',
+  'Ś': 'S',
+  'ź': 'z',
+  'Ź': 'Z',
+  'ż': 'z',
+  'Ż': 'Z',
+  // Czech/Slovak characters
+  'ř': 'r',
+  'Ř': 'R',
+  'ě': 'e',
+  'Ě': 'E',
+  'ů': 'u',
+  'Ů': 'U',
+  'ď': 'd',
+  'Ď': 'D',
+  'ť': 't',
+  'Ť': 'T',
+  'ň': 'n',
+  'Ň': 'N',
+  // Romanian characters
+  'ț': 't',
+  'Ț': 'T',
+  'ă': 'a',
+  'Ă': 'A',
+  // Hungarian characters
+  'ő': 'o',
+  'Ő': 'O',
+  'ű': 'u',
+  'Ű': 'U',
+  // Icelandic/Nordic
+  'ð': 'd',
+  'Ð': 'D',
+  'þ': 'th',
+  'Þ': 'Th',
+  // Greek (common letters)
+  'α': 'a',
+  'β': 'b',
+  'γ': 'g',
+  'δ': 'd',
+  'ε': 'e',
+  'π': 'pi',
+  'Ω': 'O',
+  // Special punctuation (using Unicode escapes for problematic characters)
+  '\u2013': '-', // en dash
+  '\u2014': '--', // em dash
+  '\u2018': "'", // left single quote
+  '\u2019': "'", // right single quote
+  '\u201C': '"', // left double quote
+  '\u201D': '"', // right double quote
+  '\u2026': '...', // ellipsis
+  '\u2022': '*', // bullet
+  '\u2192': '->', // right arrow
+  '\u2190': '<-', // left arrow
+  '\u2194': '<->', // left-right arrow
+  '\u2260': '!=', // not equal
+  '\u2264': '<=', // less than or equal
+  '\u2265': '>=', // greater than or equal
+  '\u00B1': '+/-', // plus-minus
+  '\u00D7': 'x', // multiplication sign
+  '\u00F7': '/', // division sign
+  '\u221A': 'sqrt', // square root
+  '\u221E': 'inf', // infinity
+  '\u00B0': 'deg', // degree
+  '\u00A9': '(c)', // copyright
+  '\u00AE': '(R)', // registered
+  '\u2122': '(TM)', // trademark
+  '\u20AC': 'EUR', // euro
+  '\u00A3': 'GBP', // pound
+  '\u00A5': 'JPY', // yen
+};
+
+/**
+ * Normalize text to WinAnsi-compatible characters.
+ * Replaces unsupported Unicode characters with ASCII equivalents.
+ */
+function normalizeForWinAnsi(text: string): string {
+  let result = '';
+  for (const char of text) {
+    if (CHAR_REPLACEMENTS[char]) {
+      result += CHAR_REPLACEMENTS[char];
+    } else {
+      // Check if character is in WinAnsi range (basic Latin + Latin-1 Supplement)
+      const code = char.charCodeAt(0);
+      if (code <= 255 || (code >= 0x2018 && code <= 0x201e)) {
+        // Basic Latin, Latin-1, or smart quotes (handled by pdf-lib)
+        result += char;
+      } else {
+        // Unknown character - replace with placeholder or skip
+        result += '?';
+      }
+    }
+  }
+  return result;
+}
+
 // Highlight color mapping from Tailwind to RGB
 const HIGHLIGHT_COLORS: Record<string, RGB> = {
   '#fbbf24': rgb(0.98, 0.75, 0.14), // Yellow (Tailwind amber-400)
@@ -288,12 +404,13 @@ export class PdfExporter implements DocumentExporter {
     this.ensureSpace(context, fontSize * 2);
 
     const font = context.fonts.bold;
-    const textWidth = font.widthOfTextAtSize(text, fontSize);
+    const normalizedText = normalizeForWinAnsi(text);
+    const textWidth = font.widthOfTextAtSize(normalizedText, fontSize);
 
     // Center headings
     const x = PDF_CONFIG.margins.left + (context.contentWidth - textWidth) / 2;
 
-    context.currentPage.drawText(text, {
+    context.currentPage.drawText(normalizedText, {
       x,
       y: context.yPosition,
       size: fontSize,
@@ -338,7 +455,7 @@ export class PdfExporter implements DocumentExporter {
       }
 
       // Adjust x for alignment
-      const lineWidth = this.measureText(context, line, fontSize);
+      const lineWidth = this.measureText(context, normalizeForWinAnsi(line), fontSize);
       const availableWidth =
         context.contentWidth - (isFirstLine && hasIndent ? PDF_CONFIG.typography.firstLineIndent : 0);
 
@@ -367,10 +484,11 @@ export class PdfExporter implements DocumentExporter {
 
         const font = this.getFont(context.fonts, run.bold, run.italic);
         const effectiveFontSize = run.fontSize || fontSize;
+        const normalizedText = normalizeForWinAnsi(textToRender);
 
         // Draw highlight background if present
         if (run.highlightColor) {
-          const textWidth = font.widthOfTextAtSize(textToRender, effectiveFontSize);
+          const textWidth = font.widthOfTextAtSize(normalizedText, effectiveFontSize);
           context.currentPage.drawRectangle({
             x,
             y: context.yPosition - effectiveFontSize * 0.2,
@@ -381,7 +499,7 @@ export class PdfExporter implements DocumentExporter {
         }
 
         // Draw text
-        context.currentPage.drawText(textToRender, {
+        context.currentPage.drawText(normalizedText, {
           x,
           y: context.yPosition,
           size: effectiveFontSize,
@@ -391,7 +509,7 @@ export class PdfExporter implements DocumentExporter {
 
         // Draw underline if present
         if (run.underline) {
-          const textWidth = font.widthOfTextAtSize(textToRender, effectiveFontSize);
+          const textWidth = font.widthOfTextAtSize(normalizedText, effectiveFontSize);
           context.currentPage.drawLine({
             start: { x, y: context.yPosition - 2 },
             end: { x: x + textWidth, y: context.yPosition - 2 },
@@ -400,7 +518,7 @@ export class PdfExporter implements DocumentExporter {
           });
         }
 
-        x += font.widthOfTextAtSize(textToRender, effectiveFontSize);
+        x += font.widthOfTextAtSize(normalizedText, effectiveFontSize);
         charIndex += charsToRender;
         runCharOffset += charsToRender;
       }
@@ -486,7 +604,8 @@ export class PdfExporter implements DocumentExporter {
         (isFirstLine && hasFirstLineIndent ? PDF_CONFIG.typography.firstLineIndent : 0);
 
       const testLine = currentLine ? `${currentLine} ${word}` : word;
-      const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+      // Normalize for width calculation to avoid WinAnsi encoding errors
+      const testWidth = font.widthOfTextAtSize(normalizeForWinAnsi(testLine), fontSize);
 
       if (testWidth > maxWidth && currentLine) {
         lines.push(currentLine);

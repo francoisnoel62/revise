@@ -391,5 +391,61 @@ describe('PdfExporter', () => {
       expect(buffer).toBeInstanceOf(Buffer);
       expect(buffer.length).toBeGreaterThan(0);
     });
+
+    it('should handle non-WinAnsi characters (Turkish, Polish, etc.)', async () => {
+      const contentWithSpecialChars = JSON.stringify({
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [
+              {
+                type: 'text',
+                text: 'Turkish: İstanbul, kapı, ışık',
+              },
+            ],
+          },
+          {
+            type: 'paragraph',
+            content: [
+              {
+                type: 'text',
+                text: 'Polish: Łódź, żółć, gęś',
+              },
+            ],
+          },
+          {
+            type: 'paragraph',
+            content: [
+              {
+                type: 'text',
+                text: 'Smart quotes: "Hello" and 'World'',
+              },
+            ],
+          },
+        ],
+      });
+
+      const chapters = [new Chapter('ch-1', 'Special Characters', contentWithSpecialChars, 0)];
+      const project = new Project(
+        'proj-1',
+        'user-1',
+        'Special Chars Project',
+        chapters,
+        'ch-1',
+        null,
+        new Date(),
+        new Date()
+      );
+
+      // Should not throw an error - characters are normalized
+      const buffer = await exporter.exportProject(project, 'special-chars.pdf');
+
+      expect(buffer).toBeInstanceOf(Buffer);
+      expect(buffer[0]).toBe(0x25); // '%'
+      expect(buffer[1]).toBe(0x50); // 'P'
+      expect(buffer[2]).toBe(0x44); // 'D'
+      expect(buffer[3]).toBe(0x46); // 'F'
+    });
   });
 });
