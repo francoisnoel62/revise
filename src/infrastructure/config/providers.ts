@@ -21,6 +21,7 @@ import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
 import { AnthropicProvider } from '@/infrastructure/ai/AnthropicProvider';
 import { DocxParser } from '@/infrastructure/document/parsers/DocxParser';
 import { DocxExporter } from '@/infrastructure/document/exporters/DocxExporter';
+import { PdfExporter } from '@/infrastructure/document/exporters/PdfExporter';
 import { Provider } from '@/domain/entities/Provider';
 import { getDatabase } from './database';
 import { config } from './env';
@@ -159,9 +160,18 @@ export function getDocxParser(): DocumentParser {
 }
 
 /**
- * Get the document exporter.
- * Returns DocxExporter implementation for .docx file support.
+ * Export format type for document exports.
  */
-export function getDocumentExporter(): DocumentExporter {
+export type ExportFormat = 'docx' | 'pdf';
+
+/**
+ * Get the document exporter for the specified format.
+ * Returns appropriate exporter implementation based on format.
+ * @param format - Export format ('docx' or 'pdf'), defaults to 'docx'
+ */
+export function getDocumentExporter(format: ExportFormat = 'docx'): DocumentExporter {
+  if (format === 'pdf') {
+    return new PdfExporter();
+  }
   return new DocxExporter();
 }

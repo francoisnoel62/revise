@@ -1,26 +1,50 @@
-// ABOUTME: Export controls using server-backed actions.
-// ABOUTME: Export loads project from database and downloads as .docx file.
+// ABOUTME: Export controls with format selection dropdown.
+// ABOUTME: Supports DOCX and PDF export via server actions.
 
 'use client';
 
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useProjectStore } from '@/store/projectStore';
-import { exportProject } from '@/app/actions';
-import { Download, Loader2 } from 'lucide-react';
+import { exportProject, exportProjectPdf } from '@/app/actions';
+import { Download, Loader2, ChevronDown, FileText, File } from 'lucide-react';
+
+type ExportFormat = 'docx' | 'pdf';
+
+const FORMAT_CONFIG = {
+  docx: {
+    label: 'DOCX (Word)',
+    icon: FileText,
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    action: exportProject,
+  },
+  pdf: {
+    label: 'PDF',
+    icon: File,
+    mimeType: 'application/pdf',
+    action: exportProjectPdf,
+  },
+} as const;
 
 export function DocumentControls() {
   const router = useRouter();
 
   const { projectId, project, isExporting, setIsExporting } = useProjectStore();
 
-  const handleExport = async () => {
+  const handleExport = async (format: ExportFormat) => {
     if (!projectId) return;
 
     setIsExporting(true);
 
     try {
-      const result = await exportProject(projectId);
+      const config = FORMAT_CONFIG[format];
+      const result = await config.action(projectId);
 
       if (!result.success) {
         if (result.redirect) {
@@ -32,7 +56,7 @@ export function DocumentControls() {
 
       // Create blob and download
       const blob = new Blob([new Uint8Array(result.data.buffer)], {
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        type: config.mimeType,
       });
 
       const url = URL.createObjectURL(blob);
@@ -52,23 +76,33 @@ export function DocumentControls() {
   };
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={handleExport}
-      disabled={isExporting || !project}
-    >
-      {isExporting ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Exporting...
-        </>
-      ) : (
-        <>
-          <Download className="mr-2 h-4 w-4" />
-          Exporter
-        </>
-      )}
-    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" disabled={isExporting || !project}>
+          {isExporting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Exporting...
+            </>
+          ) : (
+            <>
+              <Download className="mr-2 h-4 w-4" />
+              Exporter
+              <ChevronDown className="ml-2 h-4 w-4" />
+            </>
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => handleExport('docx')}>
+          <FileText className="mr-2 h-4 w-4" />
+          DOCX (Word)
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleExport('pdf')}>
+          <File className="mr-2 h-4 w-4" />
+          PDF
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
