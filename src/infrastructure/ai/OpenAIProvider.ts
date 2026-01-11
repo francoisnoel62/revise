@@ -142,7 +142,7 @@ export class OpenAIProvider implements LLMProvider {
     const userPrompt = this.buildUserPrompt(text, context);
 
     try {
-      // GPT-5 models don't support presence_penalty and frequency_penalty
+      // GPT-5 models don't support temperature, top_p, presence_penalty, frequency_penalty
       const isGpt5 = this.model.startsWith('gpt-5');
       const completion = await this.client.chat.completions.create({
         model: this.model,
@@ -151,11 +151,11 @@ export class OpenAIProvider implements LLMProvider {
           { role: 'user', content: userPrompt },
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.85, // Balanced creativity with coherence
-        top_p: 0.92, // Nucleus sampling for controlled diversity
         ...(isGpt5
           ? {}
           : {
+              temperature: 0.85, // Balanced creativity with coherence
+              top_p: 0.92, // Nucleus sampling for controlled diversity
               presence_penalty: 0.3, // Encourage lexical variety
               frequency_penalty: 0.2, // Reduce repetitions
             }),
