@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Revise** is an ultra-minimalist AI-assisted writing tool focused on a single, high-value action: rewriting selected text blocks without breaking creative flow. This is NOT a chat AI or verbose assistant - it's a production tool designed for demanding writers.
+**Revise** is an AI-powered writing tool, designed specifically for fiction writers. It helps overcome writer’s block, continue scenes, and enrich descriptions, emotions, and pacing. Unlike general AI tools, it understands narrative concepts like conflict, scenes, and story arcs. It favors creativity over factual accuracy, which is intentional. It works best as an inspiring co-author, not as an autopilot that writes the book for you.
 
 ### Core Value Proposition
 - Select text → Trigger rewrite → Receive 5 stylistically distinct proposals → Insert chosen version instantly
@@ -105,149 +105,49 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Critical rule**: If a feature isn't essential to the multi-chapter writing and selection → replacement loop, it's out of scope.
 
+**For detailed product information**, see:
+- [README.md](README.md) - Product overview, features, value proposition, user workflows
+- [docs/architecture.md](docs/architecture.md) - Complete architecture documentation
+
 ## Architecture Principles
 
 This project MUST follow Clean Architecture principles adapted to Next.js:
 
 ### Layer Separation (✅ Fully Implemented)
 
-1. **Domain Layer** (`src/domain`)
-   - Pure business logic, no framework dependencies
-   - Entities: `Chapter`, `Project`, `Provider`, `User`, `TextDocument` (legacy)
-   - Value Objects: `TextSelection`, `RewriteProposal`
-   - Interfaces: `LLMProvider`, `DocumentParser`, `DocumentExporter`, `ProjectRepository`, `ProviderRepository`, `UserRepository`, `IdGenerator`, `LLMProviderFactory`
+**For complete layer details**, see [docs/architecture.md](docs/architecture.md)
 
-2. **Application Layer** (`src/application`)
-   - Use cases orchestrating domain logic
-   - **Project CRUD Use Cases** ⭐ NEW:
-     - `CreateProjectUseCase` - Create new project with validation
-     - `LoadProjectUseCase` - Load project from repository
-     - `ListProjectsUseCase` - List user's projects
-     - `DeleteProjectUseCase` - Delete project
-     - `UpdateProjectTitleUseCase` - Rename project
-     - `UpdateProjectProviderUseCase` - Update project's AI provider
-   - **Multi-Chapter Use Cases**:
-     - `ImportProjectUseCase` - Multi-chapter .docx import
-     - `ExportProjectUseCase` - Multi-chapter .docx export
-     - `SwitchChapterUseCase` - Chapter navigation with auto-save
-     - `AddChapterUseCase` - Create new chapters
-     - `RemoveChapterUseCase` - Delete chapters
-     - `ReorderChaptersUseCase` - Drag & drop reordering
-     - `UpdateChapterContentUseCase` - Content updates
-     - `UpdateChapterTitleUseCase` - Title updates
-   - **Provider Use Cases** ⭐ NEW:
-     - `CreateProviderUseCase` - Provider creation with optional connection testing
-     - `UpdateProviderUseCase` - Provider updates with validation
-     - `DeleteProviderUseCase` - Provider deletion with project usage check
-     - `ListProvidersUseCase` - List user's providers
-     - `TestProviderConnectionUseCase` - Test provider credentials
-     - `ValidateProviderUseCase` - Validate existing provider
-   - **User Use Cases** ⭐ NEW:
-     - `RegisterUserUseCase` - User registration with validation
-   - **Metadata Use Cases** ⭐ NEW (Phase 3.6):
-     - `CreateMetadataUseCase` - Create metadata document
-     - `LoadMetadataUseCase` - Load metadata by ID
-     - `ListMetadataUseCase` - List all metadata for project
-     - `UpdateMetadataContentUseCase` - Update metadata content
-     - `UpdateMetadataTitleUseCase` - Update metadata title
-     - `DeleteMetadataUseCase` - Delete metadata
-     - `GenerateNarrativeAnalysisUseCase` - Generate narrative analysis with caching
-     - `GenerateCharactersUseCase` - Generate character analysis with caching
-     - `GeneratePlotUseCase` - Generate plot analysis with caching
-     - `GenerateStylisticDNAUseCase` - Generate stylistic DNA with caching
-     - `GenerateWorldbuildingUseCase` - Generate worldbuilding analysis with caching
-     - `GenerateSynthesisUseCase` - Generate synthesis analysis with caching
-   - **Legacy Use Cases** (Phase 1):
-     - `ImportDocumentUseCase` - Single document import
-     - `ExportDocumentUseCase` - Single document export
-     - `RewriteTextUseCase` - Core rewriting logic with OpenAI
+1. **Domain Layer** (`src/domain`)
+   - Pure business logic, zero framework dependencies
+   - Entities: `Chapter`, `Project`, `ProjectMetadata`, `Provider`, `User`
+   - Value Objects: `TextSelection`, `RewriteProposal`, `MetadataType` + 6 analysis types
+   - Interfaces: All external contracts (repositories, providers, parsers, exporters)
+
+2. **Application Layer** (`src/application/use-cases`)
+   - **37 Use Cases** orchestrating domain logic:
+     - **Project CRUD** (6): Create, Load, List, Delete, UpdateTitle, UpdateProvider
+     - **Chapter Operations** (8): Import, Export, Switch, Add, Remove, Reorder, UpdateContent, UpdateTitle
+     - **Provider Management** (6): Create, Update, Delete, List, TestConnection, Validate
+     - **Metadata CRUD** (6): Create, Load, List, UpdateContent, UpdateTitle, Delete
+     - **Metadata Generation** (6): Generate each of 6 analysis types with caching
+     - **User Registration** (1): RegisterUser with validation
+     - **Legacy** (4): RewriteText, ImportDocument, ExportDocument, SwitchChapter
 
 3. **Infrastructure Layer** (`src/infrastructure`)
-   - External service implementations
-   - **AI Providers**:
-     - `OpenAIProvider` - LLMProvider implementation with GPT-4o-mini + all 6 metadata analysis types ⭐ ENHANCED
-     - `AnthropicProvider` - LLMProvider implementation with Claude + all 6 metadata analysis types ⭐ ENHANCED
-     - **`LLMProviderFactoryImpl`** - Factory for creating LLM providers
-   - **Document Processing**:
-     - `DocxParser` - Enhanced parser with HTML import and chapter splitting
-     - `DocxExporter` - Enhanced exporter with formatted output
-     - TipTap conversion utilities (HTML ↔ JSON)
-   - **Persistence**:
-     - **`MongoDBProjectRepository`** - MongoDB Atlas persistence (Phase 3)
-     - **`MongoDBUserRepository`** - User management with bcrypt password hashing (Phase 3)
-     - **`MongoDBProviderRepository`** - Provider storage with encrypted credentials (Phase 3.5)
-     - **`MongoDBMetadataRepository`** - Metadata storage with multi-tenant isolation ⭐ NEW (Phase 3.6)
-     - `InMemoryProjectRepository` - Ephemeral storage (legacy/testing)
-     - **Project serialization** utilities for MongoDB storage
-     - **Provider serialization** utilities for MongoDB storage (Phase 3.5)
-     - **Metadata serialization** utilities for MongoDB storage ⭐ NEW (Phase 3.6)
-   - **Prompts**:
-     - **`FilePromptRepository`** - Load AI prompts from markdown files ⭐ NEW (Phase 3.6)
-   - **Utilities**:
-     - **`UUIDGenerator`** - IdGenerator implementation using crypto.randomUUID()
-     - **Encryption utilities** - AES-256-GCM for API key encryption (Phase 3.5)
-     - **Text hashing utility** - SHA-256 hashing for content change detection ⭐ NEW (Phase 3.6)
-   - **Authentication**:
-     - **`AuthJsProvider`** - Auth.js authentication provider (Phase 3)
-     - **Middleware** for route protection
-   - **Configuration**:
-     - **Centralized AI models configuration** - Multi-provider model definitions (Phase 3.5)
-     - **Database configuration** and connection management
+   - **AI Providers**: OpenAIProvider, AnthropicProvider (both support 6 metadata analysis types)
+   - **Persistence**: 4 MongoDB repositories (Project, User, Provider, Metadata) + InMemory (legacy)
+   - **Document**: DocxParser, DocxExporter, TipTap conversion utilities
+   - **Security**: Encryption (AES-256-GCM), Auth.js provider, bcrypt password hashing
+   - **Prompts**: FilePromptRepository (load from `/docs/prompt/metadata/*.md`)
+   - **Utilities**: UUIDGenerator, text hashing (SHA-256), serialization
 
 4. **Interface Layer** (`src/app`, `src/components`)
-   - React components and UI
-   - **Pages**:
-     - `Dashboard` - Project management page with create/rename/delete and CreateProjectDialog
-     - `Editor` (page.tsx) - Main editing interface with improved header layout (project title visibility, DocumentControls, UserMenu) ⭐ ENHANCED
-     - `Metadata List` (`/project/[id]/metadata/page.tsx`) - List all metadata for project with generation cards ⭐ NEW (Phase 3.6)
-     - `Metadata Editor` (`/project/[id]/metadata/[metadataId]/page.tsx`) - Rich text editor for metadata content ⭐ NEW (Phase 3.6)
-     - `Sign In` - Email/password authentication page
-     - `Sign Up` - User registration page
-   - **Editor Components**:
-     - `TextEditor` - TipTap-based rich text editor with A4 styling, JSON storage, and custom extensions
-     - `FormattingToolbar` - Bold, italic, underline, highlight + typography controls (font family toggle, font size dropdown, alignment cycle, indent toggle) + rewrite button
-     - Custom TipTap Extensions: `IndentParagraph` (first-line indent support), `FontFamily`, `FontSize`, `TextAlign`
-   - **Navigation Components**:
-     - `ChaptersSheet` - Left panel with Switch toggle, scrollable list, drag & drop, inline title editing
-     - `ProposalsSheet` - Right panel for AI proposals
-     - `UserMenu` - User profile dropdown with sign-out option and provider access
-   - **Dashboard Components** ⭐ ENHANCED:
-     - `CreateProjectDialog` - Dialog for creating new projects with title input ⭐ NEW
-     - `ProjectCard` - Dashboard project card with actions
-     - `EmptyState` - Dashboard empty state for new users
-     - `NoProvidersAlert` - Dashboard alert when no providers configured
-   - **Provider Management Components** (Phase 3.5):
-     - `ProvidersDialog` - Main dialog for managing AI providers
-     - `ProviderForm` - Create/edit provider form with connection testing
-     - `ProviderCard` - Individual provider card with status and actions
-   - **Metadata Components** ⭐ NEW (Phase 3.6):
-     - `GenerateCard` - Card for generating new metadata analysis with type selection
-     - `MetadataCard` - Card displaying metadata with title, type, and actions
-   - **Document Components**:
-     - `DocumentControls` - Import/export with loading states
-     - `SaveStatus` - Auto-save indicator
-   - **State Management**:
-     - Zustand store for project and chapter state (server-backed)
-   - **Server Actions** (all delegate to Use Cases ⭐):
-     - `project-actions` - Create, load, update, delete, rename projects (delegates to Project Use Cases)
-     - `chapter-actions` - Add, remove, update, reorder chapters (delegates to Chapter Use Cases)
-     - `auth-actions` - Sign in, sign up, sign out (delegates to RegisterUserUseCase)
-     - `provider-actions` - Create, list, update, delete providers; test connections (delegates to Provider Use Cases)
-     - `metadata-actions` - Create, load, list, update, delete, generate metadata (delegates to Metadata Use Cases) ⭐ NEW (Phase 3.6)
-     - `rate-limiter` - Rate limiting utility for provider testing and metadata generation (Phase 3.5 & 3.6)
-     - `importDocument` - Multi-chapter import
-     - `exportProject` - Multi-chapter export
-     - `rewriteText` - AI rewriting with language preservation
-   - **Dependency Injection** (`utils.ts`) ⭐ NEW:
-     - `getRepository()` - Project repository
-     - `getProviderRepo()` - Provider repository
-     - `getUserRepo()` - User repository
-     - `getMetadataRepo()` - Metadata repository ⭐ NEW (Phase 3.6)
-     - `getPromptRepo()` - Prompt repository ⭐ NEW (Phase 3.6)
-     - `getLLMProviderFactory()` - LLM provider factory
-     - `getIdGenerator()` - UUID generator
-   - **Hooks**:
-     - `useAutosave` - Auto-save hook with 1-second debounce
+   - **Pages** (6): Dashboard, Editor, Metadata List, Metadata Editor, Sign In, Sign Up
+   - **Components** (~30): Organized by feature (editor, navigation, proposals, providers, metadata, dashboard, document)
+   - **Server Actions** (7): All delegate to Use Cases (project, chapter, auth, provider, metadata, import, export, rewrite)
+   - **Dependency Injection**: `utils.ts` centralizes all repository/factory getters
+   - **State**: Zustand store (server-backed)
+   - **Hooks**: useAutosave (1s debounce)
 
 ### Dependency Rules
 - Domain depends on nothing
@@ -260,137 +160,56 @@ This project MUST follow Clean Architecture principles adapted to Next.js:
 
 This architecture enables future evolution (persistence, projects, memory) without refactoring.
 
-## Technical Stack (Phase 3 Implementation)
+## Technical Stack
 
-- **Framework**: Next.js 16.1.1 (App Router)
-- **Rendering**: React 19 with Server Components
-- **Database**: MongoDB Atlas with official Node.js driver
-  - Multi-tenant data isolation via ownerId filtering
-  - Project serialization/deserialization utilities
-  - Connection pooling and error handling
-- **Authentication**: Auth.js (NextAuth v5)
-  - Email/password credentials provider
-  - Session management with JWT
-  - Route protection middleware
-  - TypeScript type extensions
-- **User Management**: bcrypt for password hashing
-- **Editor**: TipTap 3.14.0 with advanced typography extensions
-  - StarterKit, Bold, Italic, Underline, Highlight, Heading
-  - TextStyle, FontFamily, FontSize, TextAlign (official extensions)
-  - IndentParagraph (custom extension for first-line indent)
-  - Document, Text, BulletList, OrderedList, HardBreak
-  - EmDash extension (Ctrl+K)
-- **UI Components**: shadcn/ui + Radix UI
-  - Sheet, Button, ScrollArea, DropdownMenu, Card, Dialog, Input, Label
-  - Alert dialogs for confirmations
-- **State Management**: Zustand for global project/chapter state (server-backed)
-- **Drag & Drop**: @dnd-kit for chapter reordering
-- **Styling**: Tailwind CSS v4 + tailwind-merge + A4 page styling
-- **Document Parsing**: mammoth with HTML conversion
-- **Document Export**: docx library with full typography support (font family, size, alignment, indent)
-- **AI Provider**: OpenAI API (GPT-4o-mini)
+**For full technical details**, see [docs/architecture.md](docs/architecture.md)
+
+- **Framework**: Next.js 16.1.1 (App Router) + React 19 Server Components
+- **Database**: MongoDB Atlas (multi-tenant via ownerId filtering)
+- **Authentication**: Auth.js (NextAuth v5) + bcrypt password hashing
+- **Editor**: TipTap 3.14.0 (StarterKit + custom extensions: IndentParagraph, FontFamily, FontSize, TextAlign, EmDash)
+- **UI**: shadcn/ui + Radix UI (Sheet, Dialog, Card, Button, ScrollArea, DropdownMenu)
+- **State**: Zustand (server-backed)
+- **Styling**: Tailwind CSS v4 + A4 page styling
+- **Document**: mammoth (import) + docx library (export with full typography)
+- **AI**: OpenAI GPT-4o-mini + Anthropic Claude (dual provider support)
 - **Testing**: Vitest + React Testing Library + Playwright
-  - Comprehensive test coverage across all layers
-  - Integration tests with real OpenAI API
-  - Performance tests validating targets
-  - Server Action tests with mocked dependencies
+- **Other**: @dnd-kit (drag & drop), AES-256-GCM encryption
 
 ## Key Features & Constraints
 
-### Document Import/Export (✅ Phase 2.5 Enhanced)
-- **Import format**: .docx only
-- **Export format**: .docx only
-- **Import capabilities**:
-  - Preserves rich text formatting (bold, italic, underline, highlight)
-  - Automatic chapter splitting by H1 headings
-  - Best-effort typography import (mammoth limitations accepted)
-  - Converts to TipTap JSON for rich text editing
-  - Falls back to single chapter if no H1 found
-- **Export capabilities**:
-  - Multi-chapter export with page breaks
-  - Preserves rich text formatting (bold, italic, underline, highlight)
-  - Full typography export (font family, font size, text alignment, first-line indent)
-  - Chapter titles as H1 headings
-  - Single-chapter or full project export
-- File handling via browser file input (no server upload)
-- Server Actions for async import/export operations
+### Document Import/Export
+- **Format**: .docx only (import & export)
+- **Import**: Auto chapter splitting by H1, converts to TipTap JSON, preserves formatting
+- **Export**: Multi-chapter with page breaks, full typography (font, size, alignment, indent)
+- **Handling**: Browser file input, server actions for async operations
 
 ### Multi-Chapter Workflow (✅ Phase 3 Implemented)
-1. **Sign Up/Sign In**: User creates account or signs in via email/password
-2. **Dashboard**: User sees list of all their projects
-   - Create new project via "Créer un projet" button
-   - Rename project by clicking edit icon
-   - Delete project via delete icon (with confirmation)
-   - Click project card to open in editor
-3. **Editor Page**: URL format `/?project={projectId}`
-   - Project automatically loaded from database
-   - If no project ID, redirects to dashboard
-4. **Import**: User imports .docx → document split into chapters by H1
-5. **Navigate**: Toggle Switch (top left) → ChaptersSheet opens with scrollable chapter list
-6. **Manage Chapters**:
-   - Add new chapters via "Nouveau chapitre" button
-   - Delete chapters (except last one)
-   - Drag & drop to reorder chapters
-   - Click chapter to switch (auto-saves current content to database)
-   - Double-click chapter title to rename inline (Enter/Blur to save, Escape to cancel)
-7. **Edit**: User types in A4-styled editor with formatting toolbar (auto-saves to database after 1 second)
-8. **Format**: Use toolbar or keyboard shortcuts (Ctrl+B, I, U, Shift+H, Ctrl+K for em dash)
-9. **Rewrite**: Select text → Click "Réécrire" button in toolbar → 5 language-preserving proposals in right Sheet
-10. **Insert**: Click "Insérer" on chosen proposal → text replaced and saved
-11. **Undo/Redo**: Ctrl+Z / Ctrl+Shift+Z available
-12. **Export**: Click "Exporter" → all chapters exported to single .docx file
-13. **Sign Out**: User menu (top right) → Sign out option
 
-### Text Rewriting Flow (✅ Enhanced for Rich Text)
-1. User selects formatted or plain text block in TipTap editor
-2. "Réécrire" button in toolbar becomes enabled (disabled when no selection)
-3. User clicks button, AI generates exactly 5 language-preserving proposals
-4. Proposals displayed in dismissible ProposalsSheet (right panel)
-5. Each proposal has "Insérer" button
-6. Clicking "Insérer" replaces selected text and closes sheet
-7. Full undo/redo available (Ctrl+Z / Ctrl+Shift+Z)
-8. Formatting preserved throughout rewrite process
+**For complete workflow details**, see [README.md](README.md#workflow)
 
-No chat, no discussion, no configuration, no onboarding.
+**Core user flow**:
+1. Sign up/Sign in → Dashboard → Create/Import project
+2. Edit in A4-styled TipTap editor (auto-save to MongoDB after 1s)
+3. Select text → Click "Réécrire" → Choose from 5 proposals → Insert
+4. Manage chapters via ChaptersSheet (add, delete, reorder, rename)
+5. Export all chapters to .docx with full typography preservation
 
-### AI Prompting Strategy (✅ Implemented)
-- Single, fixed, carefully crafted system prompt in `OpenAIProvider`
-- Generates exactly 5 stylistically distinct variants
-- **Language preservation**: Detects input language and generates all proposals in the same language (FR → FR, EN → EN)
-- Strict preservation of original meaning and length
-- Maintains author's voice and intent
-- Uses GPT-4o-mini for balance of quality and speed
-- Context-aware: uses surrounding text for better understanding
-- Prohibits clichés, filler, and generic improvements
-- Returns JSON array of 5 proposals
-- **The prompt is a critical product component** - see `src/infrastructure/ai/OpenAIProvider.ts`
+**Key shortcuts**: Ctrl+B/I/U (format), Ctrl+K (em dash), Ctrl+Z (undo) - [See README.md for full list](README.md)
 
-### UX Non-Negotiables
-- No full-screen modals (using dismissible Sheets instead)
-- No persistent sidebar (Sheets are toggleable)
-- No chat interface
-- No AI jargon
-- Maximum 2 clicks after selection
-- Silent, fast, discreet interface
-- A4 page width (794px) for realistic writing experience
-- Visual unsaved changes indicator (non-intrusive)
+### AI Rewriting Constraints
+- **Core Flow**: Select text → Click "Réécrire" → Choose from 5 proposals → Insert (max 2 clicks)
+- **AI Strategy**: Single fixed prompt, generates 5 stylistically distinct variants, language-preserving (FR→FR, EN→EN)
+- **Quality**: Maintains author's voice, prohibits clichés/filler, uses GPT-4o-mini for speed/quality balance
+- **UX Rules**: No chat, no modals, no configuration, no onboarding - silent and fast
+- **Prompt Location**: `src/infrastructure/ai/OpenAIProvider.ts` (critical product component)
 
-### Explicitly Excluded (Future Phases)
-- **Phase 4 Candidates**:
-  - Version control and document history
-  - Collaborative editing with real-time sync
-  - Advanced layout management
-  - PDF export
-  - User settings/preferences (theme, editor preferences)
-  - Streaming responses for AI rewrites
-  - Search across chapters
-  - Per-chapter undo/redo (currently shared history)
-  - Chapter templates
-  - Writing goals/statistics
-  - Project sharing and permissions
-  - Comments and annotations
-  - Custom AI prompt configuration
-  - Voice memory and style learning
+### Out of Scope
+If a feature isn't essential to the **selection → replacement loop**, it's excluded.
+
+**Currently excluded**: PDF export, streaming responses, custom AI prompts, search, per-chapter undo/redo, version control, real-time collaboration, comments/annotations, voice memory, chapter templates, writing statistics.
+
+**Principle**: Ship minimum viable features. Add complexity only when proven necessary.
 
 ## Performance Targets & Results
 
@@ -408,7 +227,7 @@ No chat, no discussion, no configuration, no onboarding.
 - ✅ Content Update: < 100ms → **0.10ms** (1000x faster than target)
 - ✅ Keystroke Latency: < 100ms → **< 100ms** (immediate)
 
-**Test Results**: 316/329 tests passing + 13 skipped (with documented reasons)
+**Test Results**: 481 passed + 32 skipped (513 total, 94% pass rate) | 63 test files passed + 14 skipped (77 total)
 
 ## Development Guidelines
 
@@ -424,192 +243,181 @@ No chat, no discussion, no configuration, no onboarding.
 - Keep domain logic framework-agnostic
 - Abstract all external dependencies behind interfaces
 
-### Testing Status (✅ Phase 3.6 Complete)
+## Development Rules
 
-**Test Coverage**: 400+ tests passing + 13 skipped (413+ total, 97% pass rate)
-- **Domain Layer**: 60+ tests (Chapter, Project, Provider, User, ProjectMetadata, TextDocument, Value Objects)
-  - Provider entity: 4 tests (validation, encryption status)
-  - ProjectMetadata entity: 10+ tests (CRUD, caching, content hash validation) ⭐ NEW
-  - MetadataType value object: 3+ tests ⭐ NEW
-  - Coverage: 97%+ (excellent)
-- **Application Layer**: 70+ tests (all use cases including metadata analysis)
-  - Metadata CRUD use cases: 25+ tests ⭐ NEW
-  - Metadata generation use cases: 35+ tests (all 6 analysis types with caching) ⭐ NEW
-  - Coverage: 100% (perfect)
-- **Infrastructure Layer**: 100+ tests (parsers, exporters, AI, encryption, utilities, prompts, metadata)
-  - DocxParser: 4 tests (enhanced with chapter splitting)
-  - DocxExporter: 7 tests (enhanced with formatting + typography export)
-  - TipTap conversion: 14 tests (HTML ↔ JSON with new extensions)
-  - OpenAI integration: 20+ tests (rewrite + 6 metadata analysis types) ⭐ ENHANCED
-  - Anthropic integration: 20+ tests (6 metadata analysis types) ⭐ NEW
-  - Encryption: 6 tests (AES-256-GCM encryption/decryption/masking)
-  - Provider repository: 5 tests (CRUD, encryption integration)
-  - User repository: 5 tests (creation, authentication)
-  - Metadata repository: 15+ tests (CRUD, multi-tenant, serialization) ⭐ NEW
-  - FilePromptRepository: 5+ tests (prompt loading, error handling) ⭐ NEW
-  - Repository: 5 tests (persistence abstraction)
-- **Interface Layer**: 90+ tests (all React components + custom extensions)
-  - TextEditor: 8 tests (A4 styling + rich text support, 3 skipped - async rendering)
-  - FormattingToolbar: 9 tests (formatting + typography controls)
-  - IndentParagraph extension: 11 tests (custom first-line indent)
-  - ChaptersSheet: 11 tests (10 skipped - Radix UI portal issues)
-  - ProposalsSheet: 10 tests (dismissible panel)
-  - Provider components: 15 tests (ProvidersDialog, ProviderForm, ProviderCard)
-  - Metadata components: 10+ tests (GenerateCard, MetadataCard) ⭐ NEW
-  - Dashboard components: 6 tests (NoProvidersAlert, ProjectCard)
-  - DocumentControls: 3 tests (loading states)
-  - Other components: 8 tests
-- **Server Actions**: 25+ tests (auth, provider, project, metadata operations) ⭐ ENHANCED
-- **Store**: 12 tests (Zustand project/chapter state)
-- **Integration**: 20+ tests (document pipeline + all 6 metadata analysis types with both providers) ⭐ ENHANCED
-- **Performance**: 6 tests (all targets exceeded)
+These rules are **MANDATORY** for all code contributions. They ensure code quality, maintainability, and consistency across the codebase.
 
-**Skipped Tests** (documented reasons):
-- 3 TextEditor tests (TipTap async rendering - content not immediately in DOM)
-- 10 ChaptersSheet tests (Radix UI Sheet portal not accessible in test environment)
-- 1 OpenAI integration test (conditional skip when API key not present)
+### Test-Driven Development (TDD)
 
-**Overall Coverage**: 72%+ (improved)
-- Critical paths: 90%+ coverage
-- Domain logic: 97%+ coverage
-- Application logic: 100% coverage
+**REQUIRED for all new features and bugfixes:**
+
+1. Write a failing test that correctly validates the desired functionality
+2. Run the test to confirm it fails as expected
+3. Write ONLY enough code to make the failing test pass
+4. Run the test to confirm success
+5. Refactor if needed while keeping tests green
+
+**Testing Principles:**
+- ALL test failures are YOUR responsibility, even if not your fault
+- NEVER delete a test because it's failing - investigate and fix
+- Tests MUST comprehensively cover ALL functionality
+- NEVER write tests that "test" mocked behavior only
+- NEVER implement mocks in end-to-end tests - use real data and real APIs
+- Test output MUST BE PRISTINE to pass - if logs contain expected errors, capture and validate them
+
+### Naming Conventions
+
+**Names MUST tell WHAT code does, NOT HOW or its HISTORY**
+
+❌ **NEVER use**:
+- Implementation details: `ZodValidator`, `MCPWrapper`, `JSONParser`
+- Temporal/historical context: `NewAPI`, `LegacyHandler`, `UnifiedTool`, `ImprovedInterface`, `EnhancedParser`
+- Pattern names without clarity: `AbstractToolInterface` (prefer `Tool`)
+
+✅ **Good names tell a story about the domain**:
+- `Tool` not `AbstractToolInterface`
+- `RemoteTool` not `MCPToolWrapper`
+- `Registry` not `ToolRegistryManager`
+- `execute()` not `executeToolWithValidation()`
+
+### Code Comments
+
+**ABOUTME Comments (MANDATORY):**
+- ALL code files MUST start with a brief 2-line comment explaining what the file does
+- Each line MUST start with `// ABOUTME: ` to make them easily greppable
+- Example:
+  ```typescript
+  // ABOUTME: Generates AI-powered narrative analysis from project content
+  // ABOUTME: Uses LLM provider to extract POV, structure, temporality, and voice
+  ```
+
+**Other Comments:**
+- NEVER add comments explaining that something is "improved", "better", "new", "enhanced"
+- NEVER add comments about what used to be there or how something has changed
+- NEVER add instructional comments telling developers what to do
+- Comments should explain WHAT the code does or WHY it exists, not how it's better
+- NEVER remove code comments unless you can PROVE they are actively false
+- Comments are evergreen - they describe the code as it is now
+
+❌ **BAD Comments**:
+```typescript
+// This uses Zod for validation instead of manual checking
+// Refactored from the old validation system
+// Wrapper around MCP tool protocol
+```
+
+✅ **GOOD Comments**:
+```typescript
+// Executes tools with validated arguments
+// Validates user input to prevent SQL injection
+```
+
+### Git Workflow
+
+- **Commits**: Commit frequently throughout development, even if tasks aren't done
+- **Hooks**: NEVER skip, evade, or disable a pre-commit hook
+- **Staging**: NEVER use `git add -A` unless you've just done `git status`
+- **Branches**: Create a WIP branch when starting work without a clear branch
+- **Changes**: Track all non-trivial changes in git
+- **Commit messages**: Write clear, concise messages describing WHAT changed, not WHY (that's in code comments)
+
+### Systematic Debugging
+
+**YOU MUST ALWAYS find the root cause of any issue**
+**NEVER fix a symptom or add a workaround instead of finding the root cause**
+
+**Debugging Framework:**
+
+**Phase 1: Root Cause Investigation** (BEFORE attempting fixes)
+- Read error messages carefully - they often contain the exact solution
+- Reproduce consistently before investigating
+- Check recent changes: git diff, recent commits
+
+**Phase 2: Pattern Analysis**
+- Find working examples in the same codebase
+- Compare against reference implementations
+- Identify differences between working and broken code
+- Understand dependencies: what else does this pattern require?
+
+**Phase 3: Hypothesis and Testing**
+1. Form single hypothesis: what do you think is the root cause?
+2. Test minimally: make the smallest possible change
+3. Verify before continuing: did it work? If not, form new hypothesis
+4. When you don't know: say "I don't understand X" rather than pretending
+
+**Phase 4: Implementation Rules**
+- ALWAYS have the simplest possible failing test case
+- NEVER add multiple fixes at once
+- NEVER claim to implement a pattern without reading it completely first
+- ALWAYS test after each change
+- IF your first fix doesn't work, STOP and re-analyze rather than adding more fixes
+
+### Code Quality
+
+- **Simplicity**: Prefer simple, clean, maintainable solutions over clever ones
+- **Readability**: Readability and maintainability are PRIMARY concerns
+- **Duplication**: Work hard to reduce code duplication through refactoring
+- **No Rewrites**: NEVER throw away or rewrite implementations without EXPLICIT permission
+- **Consistency**: Match the style and formatting of surrounding code
+- **Whitespace**: Don't manually change whitespace that doesn't affect execution
+- **Fix Immediately**: Fix broken things immediately when you find them - don't ask permission
+
+### Size of Changes
+
+- Make the SMALLEST reasonable changes to achieve the desired outcome
+- Prefer editing existing files over creating new ones
+- Prefer editing existing code over adding new code
+- Break large changes into smaller, testable increments
+
+### Testing Requirements
+
+**Current Status**: 481 passed + 32 skipped (513 total, 94% pass rate, 77 test files)
+
+**Coverage**:
+- Overall: 40.8% (v8 measurement)
+- Domain entities: 92%+ (Chapter: 95.9%, Project: 97.3%, ProjectMetadata: 90.5%)
+- Application use cases: **100%**
+- Critical paths: 90%+
 
 **Test Types**:
-- Unit tests with mocked dependencies
-- Integration tests with real OpenAI API
-- Component tests with React Testing Library
-- Performance tests validating all targets
-- E2E infrastructure ready (Playwright setup complete)
+- **Unit tests**: Domain + Application layers with mocked dependencies
+- **Integration tests**: Real API calls (OpenAI & Anthropic) - 12 provider-specific tests for 6 metadata analysis types
+- **Component tests**: React Testing Library
+- **Performance tests**: All targets validated
 
-**Verified Scenarios**:
-- Multi-chapter import/export with full typography preservation
-- Chapter navigation and management
-- Rich text editing with A4 page styling
-- Advanced typography controls (font family, size, alignment, indent)
-- Real long-form text rewriting with formatted text
-- Proposal diversity and quality (5 distinct variants)
-- Text replacement with formatting preservation
-- Undo/redo functionality
-- Drag & drop chapter reordering
-- Unsaved changes detection
-- Error handling and edge cases
-- Performance targets validation
-- **Metadata analysis with intelligent caching** ⭐ NEW
-- **Content hash-based cache invalidation** ⭐ NEW
-- **Dual AI provider support for all analysis types** ⭐ NEW
-- **Metadata CRUD operations with multi-tenant isolation** ⭐ NEW
-- **Prompt loading from markdown files** ⭐ NEW
-- **Rate-limited metadata generation** ⭐ NEW
+**When Contributing**:
+- Follow TDD (see Development Rules section)
+- ALL tests must pass before committing
+- New features REQUIRE new tests
+- NEVER test mocked behavior only
+- Integration tests use real APIs (conditionally skipped if keys absent)
+- E2E infrastructure ready (Playwright)
 
-## Future Evolution Path
+**Run Tests**:
+```bash
+npm test                  # All tests
+npm run test:coverage     # With coverage report
+npm run test:integration  # Real API tests (requires OPENAI_API_KEY + ANTHROPIC_API_KEY)
+npm run test:e2e          # Playwright E2E (when implemented)
+```
 
-### Phase 3.6 Complete ✅
-**Metadata Analysis System** is fully implemented with 6 AI-powered analysis types, intelligent caching, dual provider support (OpenAI & Anthropic), and comprehensive testing.
+**For detailed test documentation**, see [docs/README.md#testing](docs/README.md#testing)
 
-### Phase 3.5 Complete ✅
-**Persistence, User Authentication & AI Provider Management** are fully implemented with MongoDB Atlas, Auth.js, multi-tenant project management, and flexible multi-provider AI configuration.
+## Current Status & Future Roadmap
 
-**Phase 3 Achievements**:
-- MongoDB Atlas integration with MongoDBProjectRepository
-- User authentication and session management
-- Dashboard for project management
-- Multiple projects per user with data isolation
-- Auto-save to database with 1-second debounce
-- Sign-in/sign-up pages with secure password hashing
-- Route protection middleware
-- Project serialization for MongoDB storage
-- Server Actions for all database operations
+**Completed Phases** (January 2026):
+- ✅ **Phase 1-2**: Core rewrite flow, multi-chapter management, import/export
+- ✅ **Phase 2.5**: A4 styling, advanced typography, rich text editing
+- ✅ **Phase 3**: MongoDB persistence, Auth.js authentication, multi-tenant projects
+- ✅ **Phase 3.5**: Multi-provider AI support (OpenAI, Anthropic), encrypted credentials, Clean Architecture completion (9.5/10 score)
+- ✅ **Phase 3.6**: Metadata Analysis System (6 AI-powered analysis types with intelligent caching)
 
-**Phase 3.5 Achievements** (NEW - January 2026):
-- Multiple AI provider support (OpenAI, Anthropic, Mistral, Cohere, Google)
-- Encrypted API key storage with AES-256-GCM encryption
-- Provider CRUD operations with multi-tenant isolation
-- Connection testing with rate limiting
-- Per-project provider selection
-- Centralized model configuration
-- ProvidersDialog UI for provider management
-- Dashboard alerts for missing providers
-- Secure credential handling (masked display only)
+**Planned Features** (Phase 4+):
+- Search across chapters, per-chapter undo/redo, chapter templates
+- Writing goals/statistics, version history, user preferences
+- Real-time collaboration, comments/annotations, team workspaces (Phase 5)
+- Voice memory, custom AI prompts, streaming responses (Phase 6)
 
-### Clean Architecture - Technical Debt ✅ RESOLVED
-
-**Audit Date**: January 2026 | **Initial Score**: 7.5/10 | **Current Score**: 9.5/10
-
-All technical debt items identified during the Clean Architecture audit have been addressed:
-
-#### ✅ Use Cases Manquants (RESOLVED)
-Created all missing Use Cases in `src/application/use-cases/`:
-- `CreateProviderUseCase.ts` - Provider creation with optional connection testing
-- `UpdateProviderUseCase.ts` - Provider updates with validation
-- `DeleteProviderUseCase.ts` - Provider deletion with project usage check
-- `ListProvidersUseCase.ts` - List user's providers
-- `TestProviderConnectionUseCase.ts` - Test provider credentials
-- `ValidateProviderUseCase.ts` - Validate existing provider
-- `RegisterUserUseCase.ts` - User registration with validation
-
-Server Actions now delegate to Use Cases:
-- `project-actions.ts` → Uses all Project CRUD Use Cases (CreateProject, LoadProject, ListProjects, DeleteProject, UpdateProjectTitle, UpdateProjectProvider) ⭐ NEW
-- `provider-actions.ts` → Uses all Provider Use Cases
-- `auth-actions.ts` → Uses `RegisterUserUseCase`
-- `chapter-actions.ts` → Uses existing Chapter Use Cases
-
-#### ✅ Injection de Dependances (RESOLVED)
-Centralized dependency injection in `src/app/actions/utils.ts`:
-- `getRepository()` - Project repository
-- `getProviderRepo()` - Provider repository
-- `getUserRepo()` - User repository
-- `getLLMProviderFactory()` - LLM provider factory
-- `getIdGenerator()` - UUID generator
-
-Server Actions no longer import directly from Infrastructure layer.
-
-#### ✅ Index.ts Incomplets (RESOLVED)
-Completed exports in:
-- `src/domain/index.ts` - Exports Chapter, Project, Provider, IdGenerator, all interfaces
-- `src/application/index.ts` - Exports all Use Cases (Chapter, Provider, Project, User)
-
-#### ✅ Validation Dispersee (RESOLVED)
-Validation consolidated:
-- **Provider**: Validation in `Provider.ts` constructor (Domain layer)
-- **User**: Validation in `RegisterUserUseCase.ts` (Application layer - acceptable for interface-based entity)
-- Server Actions contain no validation logic
-
-#### ✅ Dependance Crypto dans Domain (RESOLVED)
-Created `IdGenerator` interface in Domain layer:
-- `src/domain/interfaces/IdGenerator.ts` - Interface definition
-- `src/infrastructure/utils/UUIDGenerator.ts` - Implementation using `crypto.randomUUID()`
-- `Provider.create()` now accepts ID as parameter (generated by Use Case)
-
----
-
-### Phase 4: Advanced Features (Next)
-Now that persistence is proven, focus on power-user features:
-- **Search across chapters** - Full-text search within projects
-- **Per-chapter undo/redo** - Independent history per chapter
-- **Chapter templates** - Reusable chapter structures
-- **Writing goals/statistics** - Word count, progress tracking
-- **Export individual chapters** - Selective export
-- **Project sharing** - Share projects with other users
-- **Version history** - Track changes over time
-- **User preferences** - Theme, editor settings, AI prompt customization
-
-### Phase 5: Collaborative Features
-Long-term vision for team collaboration:
-- **Real-time collaboration** - Multiple users editing simultaneously
-- **Comments and annotations** - Inline feedback system
-- **Team workspaces** - Shared project spaces
-- **Role-based permissions** - Owner, editor, viewer roles
-- **Change tracking** - Track who made what changes
-- **Notification system** - Alerts for comments, shares, changes
-
-### Phase 6: AI Enhancement
-Advanced AI capabilities:
-- **Voice memory** - Remember user's writing style
-- **Advanced stylistic analysis** - Deep style insights
-- **Custom AI prompts** - User-configurable rewrite strategies
-- **Streaming responses** - Real-time AI generation
-- **Context-aware suggestions** - Proactive writing assistance
+**For detailed roadmap**, see [README.md#roadmap](README.md#roadmap)
 
 **Core Principle**: Each phase proves value before adding complexity.
-**Phase 3 Success Metric**: Users reliably store and manage multiple projects with seamless session resumption. ✅
-**Phase 3.5 Success Metric**: Users can configure and switch between multiple AI providers without environment variable changes. ✅

@@ -6,8 +6,8 @@
 
 **Débloquez. Explorez. Réécrivez. Sans quitter votre flow.**
 
-[![Tests](https://img.shields.io/badge/tests-400%2B%20passing-success?style=flat-square)](https://github.com/yourusername/revise)
-[![Coverage](https://img.shields.io/badge/coverage-68%25%2B-blue?style=flat-square)](https://github.com/yourusername/revise)
+[![Tests](https://img.shields.io/badge/tests-481%20passed%20%7C%2032%20skipped-success?style=flat-square)](https://github.com/yourusername/revise)
+[![Coverage](https://img.shields.io/badge/coverage-40.8%25-blue?style=flat-square)](https://github.com/yourusername/revise)
 [![Architecture](https://img.shields.io/badge/architecture-9.5%2F10-purple?style=flat-square)](https://github.com/yourusername/revise)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
@@ -268,18 +268,20 @@ src/
 ## 🧪 Tests
 
 ```bash
-npm test                  # 400+ tests
-npm run test:coverage     # Rapport de couverture
-npm run test:integration  # Tests avec vraies APIs
+npm test                  # 481 tests passed + 32 skipped (513 total)
+npm run test:coverage     # Rapport de couverture (40.8%)
+npm run test:integration  # Tests avec vraies APIs (OpenAI & Anthropic)
 npm run test:e2e          # Tests end-to-end (Playwright)
 ```
 
-| Couche | Tests | Couverture |
-|--------|-------|------------|
-| Domain | 49 | 97%+ |
-| Application | 39 | **100%** |
-| Infrastructure | 50 | 90%+ |
-| Interface | 71 | 85%+ |
+| Statistiques | Valeur |
+|--------------|--------|
+| Tests totaux | 513 (481 passed, 32 skipped) |
+| Fichiers de test | 77 (63 passed, 14 skipped) |
+| Couverture globale | 40.8% (v8) |
+| Couverture domaine | 92%+ (entités) |
+| Couverture application | **100%** (use cases) |
+| Tests d'intégration | 12 provider-specific (conditional) |
 
 ---
 

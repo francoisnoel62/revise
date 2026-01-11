@@ -312,11 +312,11 @@ We use Repository pattern for swappable persistence.
 
 ## Testing Strategy
 
-- **Unit Tests**: Domain and application layers (250+ tests) ⭐ ENHANCED
-- **Integration Tests**: Infrastructure and store (50+ tests) ⭐ ENHANCED
+- **Unit Tests**: Domain and application layers (~350+ tests)
+- **Integration Tests**: Infrastructure and store (~130+ tests including 12 provider-specific)
 - **E2E Tests**: Complete workflows (10+ tests planned)
-- **Coverage Target**: 85%+ for critical paths
-- **Total Tests**: 400+ passing ⭐ ENHANCED
+- **Coverage Achieved**: 40.8% global, 92%+ domain entities, 100% use cases
+- **Total Tests**: 481 passed + 32 skipped (513 total, 94% pass rate, 77 test files)
 
 ## Phase 3.6 Complete ✅
 
@@ -334,7 +334,7 @@ We use Repository pattern for swappable persistence.
 - ✅ **Enhanced AI Providers** - OpenAI & Anthropic support all 6 analysis types
 - ✅ **7 Value Objects** - MetadataType + 6 analysis-specific value objects
 - ✅ **Rate Limiting** - 5-second cooldown for metadata generation
-- ✅ **Comprehensive Testing** - 400+ tests with integration tests for both providers
+- ✅ **Comprehensive Testing** - 481 tests (513 total with 32 skipped) including integration tests for both providers
 - ✅ **Clean Architecture Maintained** - All new code follows established patterns
 
 ## Phase 3.5 Complete ✅

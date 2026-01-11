@@ -81,10 +81,13 @@ High-level project information.
 - Keyboard shortcuts: See README.md → Usage
 
 ### Testing
-- Test coverage: 316 passing tests (96% pass rate)
+- Test coverage: **481 passed + 32 skipped (513 total, 94% pass rate)**
+- Test files: 77 files (63 passed, 14 skipped)
 - Unit tests: Vitest + React Testing Library
-- Integration tests: Real API calls
+- Integration tests: Real API calls (OpenAI & Anthropic)
+- Provider-specific integration tests: 12 tests (6 OpenAI + 6 Anthropic) - conditional
 - E2E tests: Playwright (setup ready)
+- Coverage: 40.8% global, 92%+ domain entities, 100% use cases
 - See [API Reference](./developer/api-reference.md#testing) for examples
 
 ## 🔍 Find What You Need
@@ -143,7 +146,7 @@ High-level project information.
 - ✅ FilePromptRepository for version-controlled prompts
 - ✅ MongoDBMetadataRepository with multi-tenant isolation
 - ✅ Metadata UI pages and components
-- ✅ 400+ comprehensive tests
+- ✅ 481+ comprehensive tests (513 total with 32 skipped)
 
 ### Phase 3.5 - Clean Architecture Completion (January 2026) ✅
 
@@ -170,9 +173,10 @@ High-level project information.
 - ✅ **MongoDBProviderRepository** - Encrypted provider storage with multi-tenant isolation
 
 **Testing**:
-- ✅ **316 Tests Passing** - Comprehensive coverage across all layers
+- ✅ **481 Tests Passing** - Comprehensive coverage across all layers (513 total, 32 skipped)
 - ✅ **100% Application Layer Coverage** - All use cases tested
-- ✅ **97%+ Domain Layer Coverage** - Near-perfect business logic coverage
+- ✅ **92%+ Domain Layer Coverage** - Excellent business logic coverage (entities)
+- ✅ **12 Provider-Specific Integration Tests** - Real API validation (OpenAI & Anthropic)
 
 **Architecture Score**: 9.5/10 (up from 7.5/10 - all technical debt resolved)
 
