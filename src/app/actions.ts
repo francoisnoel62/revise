@@ -3,9 +3,9 @@
 
 'use server';
 
-import { DocxParser } from '@/infrastructure/document/parsers/DocxParser';
 import { DocxExporter } from '@/infrastructure/document/exporters/DocxExporter';
 import { Project } from '@/domain/entities/Project';
+import { ImportProjectUseCase } from '@/application/use-cases/ImportProjectUseCase';
 import { Chapter } from '@/domain/entities/Chapter';
 import { TextDocument } from '@/domain/entities/TextDocument';
 import { TextSelection } from '@/domain/value-objects/TextSelection';
@@ -16,6 +16,7 @@ import {
   type ActionResult,
   getAuthenticatedUserId,
   getRepository,
+  getDocumentParser,
   withErrorHandling,
 } from './actions/utils';
 import { type SerializedProject } from './actions/project-actions';
@@ -63,28 +64,11 @@ export async function importDocument(
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const parser = new DocxParser();
-
-    if (!parser.supports(file.name)) {
-      throw new Error(`Unsupported file format: ${file.name}`);
-    }
-
-    const chapters = await parser.parseToChapters(buffer, file.name);
-
-    // Auto-name chapters without titles
-    chapters.forEach((chapter, index) => {
-      if (!chapter.getTitle() || chapter.getTitle().trim() === '') {
-        chapter.updateTitle(`Chapitre ${index + 1}`);
-      }
-    });
-
-    // Extract title from filename
-    const title = file.name.replace(/\.[^/.]+$/, '') || 'Document importé';
-
-    // Create and persist project
-    const project = Project.create(auth.userId, title, chapters);
+    const parser = await getDocumentParser();
     const repository = await getRepository();
-    await repository.createProject(auth.userId, project);
+
+    const useCase = new ImportProjectUseCase(parser, repository);
+    const project = await useCase.execute(auth.userId, buffer, file.name);
 
     return serializeProject(project);
   });
