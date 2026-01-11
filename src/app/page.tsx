@@ -538,31 +538,69 @@ export default function LandingPage() {
           <div className="max-w-3xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Derrière Revise
+                Pourquoi Revise existe
               </h2>
             </div>
 
             <Card>
               <CardContent className="pt-8 md:pt-12">
-                <div className="flex flex-col md:flex-row items-center gap-8">
-                  <div className="w-32 h-32 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                <div className="flex flex-col md:flex-row items-start gap-8">
+                  <div className="w-32 h-32 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mx-auto md:mx-0">
                     <span className="text-4xl font-bold text-primary">FN</span>
                   </div>
-                  <div className="text-center md:text-left">
-                    <h3 className="text-2xl font-bold mb-2">François Fanfan Noël</h3>
-                    <p className="text-lg text-muted-foreground mb-4">
-                      Fondateur de Revise
-                    </p>
-                    <p className="text-muted-foreground mb-4">
-                      Passionné d&apos;écriture et de lecture, je crois que les outils créatifs
-                      doivent servir les auteurs, pas les remplacer. Revise est né de la frustration
-                      de ne trouver aucun assistant IA vraiment pensé pour la fiction francophone.
-                    </p>
-                    <p className="text-muted-foreground">
-                      Ma vision : construire le meilleur environnement d&apos;écriture pour les créateurs
-                      d&apos;histoires, en français d&apos;abord, avec une IA qui amplifie le talent plutôt
-                      que de le diluer.
-                    </p>
+                  <div>
+                    <h3 className="text-2xl font-bold mb-1 text-center md:text-left">François Fanfan Noël</h3>
+                    <p className="text-muted-foreground mb-6 text-center md:text-left">Fondateur</p>
+
+                    <div className="space-y-4 text-muted-foreground">
+                      <p className="font-medium text-foreground">
+                        Revise est né d&apos;une frustration.
+                      </p>
+
+                      <p>
+                        J&apos;ai passé des heures devant des outils d&apos;IA qui me proposaient
+                        des textes lisses, génériques, interchangeables. Des phrases que
+                        n&apos;importe qui aurait pu écrire. Des suggestions qui effaçaient
+                        ma voix au lieu de l&apos;enrichir.
+                      </p>
+
+                      <p>
+                        Je voulais autre chose : un outil qui comprenne que l&apos;écriture
+                        de fiction est un travail lent, imparfait, exigeant. Pas une course
+                        à la production.
+                      </p>
+
+                      <div className="border-l-2 border-primary pl-4 my-6">
+                        <p className="font-medium text-foreground mb-2">
+                          Ce que je refuse :
+                        </p>
+                        <p>
+                          L&apos;écriture jetable. Les textes standardisés. L&apos;IA qui remplace
+                          l&apos;auteur. La vitesse qui sacrifie la singularité.
+                        </p>
+                      </div>
+
+                      <div className="border-l-2 border-primary pl-4 my-6">
+                        <p className="font-medium text-foreground mb-2">
+                          Ce que je défends :
+                        </p>
+                        <p>
+                          La voix de l&apos;auteur. Le doute créatif. La réécriture comme art.
+                          L&apos;imperfection qui rend un texte vivant.
+                        </p>
+                      </div>
+
+                      <p>
+                        Revise n&apos;écrit pas à ta place. Il t&apos;aide à aller plus loin
+                        dans ce que <span className="italic">toi</span> tu veux dire.
+                      </p>
+
+                      <p className="font-medium text-foreground">
+                        Mon ambition : offrir aux auteurs francophones un environnement
+                        d&apos;écriture à la hauteur de leur créativité. Face aux géants
+                        anglo-saxons, construire l&apos;outil que nous méritons.
+                      </p>
+                    </div>
                   </div>
                 </div>
 
