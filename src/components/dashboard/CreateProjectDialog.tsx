@@ -106,7 +106,7 @@ export function CreateProjectDialog({
                 ref={fileInputRef}
                 id="file"
                 type="file"
-                accept=".docx"
+                accept=".docx,.pdf"
                 onChange={handleFileChange}
                 className="hidden"
                 disabled={isCreating}
@@ -137,7 +137,7 @@ export function CreateProjectDialog({
                   disabled={isCreating}
                 >
                   <Upload className="mr-2 h-4 w-4" />
-                  Import a .docx file
+                  Import a .docx or .pdf file
                 </Button>
               )}
             </div>
