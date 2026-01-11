@@ -21,7 +21,7 @@ const PDF_CONFIG = {
   typography: {
     defaultSize: 13, // pt
     lineHeight: 1.5,
-    paragraphSpacing: 9.75, // pt (0.75 * lineHeight * fontSize)
+    paragraphSpacing: 0, // pt (no extra spacing between paragraphs)
     firstLineIndent: 36, // 1.27cm in points
     headingScale: {
       1: 2.0,
