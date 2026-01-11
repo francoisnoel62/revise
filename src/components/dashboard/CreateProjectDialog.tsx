@@ -1,10 +1,11 @@
 // ABOUTME: Dialog for creating a new project with title and optional draft file.
-// ABOUTME: Includes PDF warning dialog to inform users about AI-based text structuring.
+// ABOUTME: Includes PDF warning dialog and progress indicator for AI-based import.
 
 'use client';
 
-import { useState, useRef } from 'react';
-import { Upload, X, AlertTriangle } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Upload, X, AlertTriangle, FileText, Sparkles, Save } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -44,7 +45,43 @@ export function CreateProjectDialog({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [showPdfWarning, setShowPdfWarning] = useState(false);
   const [pendingPdfFile, setPendingPdfFile] = useState<File | null>(null);
+  const [importProgress, setImportProgress] = useState(0);
+  const [importStatus, setImportStatus] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Progress simulation for PDF import
+  const isPdfImport = selectedFile?.name.toLowerCase().endsWith('.pdf');
+
+  useEffect(() => {
+    if (!isCreating || !isPdfImport) {
+      setImportProgress(0);
+      setImportStatus('');
+      return;
+    }
+
+    // Simulated progress steps for PDF import
+    const steps = [
+      { progress: 10, status: 'Lecture du fichier...', delay: 0 },
+      { progress: 25, status: 'Extraction du texte...', delay: 800 },
+      { progress: 45, status: 'Structuration par IA...', delay: 1500 },
+      { progress: 70, status: 'Conversion en chapitres...', delay: 4000 },
+      { progress: 90, status: 'Sauvegarde...', delay: 5500 },
+    ];
+
+    const timeouts: NodeJS.Timeout[] = [];
+
+    steps.forEach(({ progress, status, delay }) => {
+      const timeout = setTimeout(() => {
+        setImportProgress(progress);
+        setImportStatus(status);
+      }, delay);
+      timeouts.push(timeout);
+    });
+
+    return () => {
+      timeouts.forEach(clearTimeout);
+    };
+  }, [isCreating, isPdfImport]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -116,86 +153,140 @@ export function CreateProjectDialog({
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent>
-          <form onSubmit={handleSubmit}>
-            <DialogHeader>
-              <DialogTitle>New Project</DialogTitle>
-              <DialogDescription>
-                Create a new writing project. You can optionally import a draft.
-              </DialogDescription>
-            </DialogHeader>
+          {isCreating && isPdfImport ? (
+            // Progress view for PDF import
+            <div className="py-6">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+                  Import en cours
+                </DialogTitle>
+                <DialogDescription>
+                  Votre fichier PDF est en cours de traitement par l&apos;intelligence artificielle.
+                </DialogDescription>
+              </DialogHeader>
 
-            <div className="grid gap-4 py-4">
-              {/* Title input */}
-              <div className="grid gap-2">
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  placeholder="My novel..."
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  disabled={isCreating}
-                  autoFocus
-                />
-              </div>
+              <div className="mt-6 space-y-4">
+                <div className="flex items-center gap-3 text-sm">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <span className="truncate">{selectedFile?.name}</span>
+                </div>
 
-              {/* File upload */}
-              <div className="grid gap-2">
-                <Label htmlFor="file">Draft (optional)</Label>
-                <input
-                  ref={fileInputRef}
-                  id="file"
-                  type="file"
-                  accept=".docx,.pdf"
-                  onChange={handleFileChange}
-                  className="hidden"
-                  disabled={isCreating}
-                />
-
-                {selectedFile ? (
-                  <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/50">
-                    <Upload className="h-4 w-4 text-muted-foreground" />
-                    <span className="flex-1 text-sm truncate">{selectedFile.name}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={handleRemoveFile}
-                      disabled={isCreating}
-                    >
-                      <X className="h-4 w-4" />
-                      <span className="sr-only">Remove file</span>
-                    </Button>
+                <div className="space-y-2">
+                  <Progress value={importProgress} className="h-2" />
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <span>{importStatus}</span>
+                    <span>{importProgress}%</span>
                   </div>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isCreating}
-                  >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Import a .docx or .pdf file
-                  </Button>
-                )}
+                </div>
+
+                <div className="pt-4 space-y-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <div className={`h-2 w-2 rounded-full ${importProgress >= 10 ? 'bg-green-500' : 'bg-gray-300'}`} />
+                    <span>Lecture du fichier</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`h-2 w-2 rounded-full ${importProgress >= 25 ? 'bg-green-500' : 'bg-gray-300'}`} />
+                    <span>Extraction du texte</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`h-2 w-2 rounded-full ${importProgress >= 45 ? 'bg-green-500' : importProgress >= 25 ? 'bg-amber-500 animate-pulse' : 'bg-gray-300'}`} />
+                    <span>Structuration par IA</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`h-2 w-2 rounded-full ${importProgress >= 70 ? 'bg-green-500' : 'bg-gray-300'}`} />
+                    <span>Conversion en chapitres</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`h-2 w-2 rounded-full ${importProgress >= 90 ? 'bg-green-500' : 'bg-gray-300'}`} />
+                    <span>Sauvegarde</span>
+                  </div>
+                </div>
               </div>
             </div>
+          ) : (
+            // Normal form view
+            <form onSubmit={handleSubmit}>
+              <DialogHeader>
+                <DialogTitle>New Project</DialogTitle>
+                <DialogDescription>
+                  Create a new writing project. You can optionally import a draft.
+                </DialogDescription>
+              </DialogHeader>
 
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleOpenChange(false)}
-                disabled={isCreating}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isCreating}>
-                {isCreating ? 'Creating...' : 'Create'}
-              </Button>
-            </DialogFooter>
-          </form>
+              <div className="grid gap-4 py-4">
+                {/* Title input */}
+                <div className="grid gap-2">
+                  <Label htmlFor="title">Title</Label>
+                  <Input
+                    id="title"
+                    placeholder="My novel..."
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    disabled={isCreating}
+                    autoFocus
+                  />
+                </div>
+
+                {/* File upload */}
+                <div className="grid gap-2">
+                  <Label htmlFor="file">Draft (optional)</Label>
+                  <input
+                    ref={fileInputRef}
+                    id="file"
+                    type="file"
+                    accept=".docx,.pdf"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    disabled={isCreating}
+                  />
+
+                  {selectedFile ? (
+                    <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/50">
+                      <Upload className="h-4 w-4 text-muted-foreground" />
+                      <span className="flex-1 text-sm truncate">{selectedFile.name}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={handleRemoveFile}
+                        disabled={isCreating}
+                      >
+                        <X className="h-4 w-4" />
+                        <span className="sr-only">Remove file</span>
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isCreating}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Import a .docx or .pdf file
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleOpenChange(false)}
+                  disabled={isCreating}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isCreating}>
+                  {isCreating ? 'Creating...' : 'Create'}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
 
