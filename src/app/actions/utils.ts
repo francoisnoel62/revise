@@ -181,6 +181,33 @@ export async function tryGetDefaultLLMProvider(): Promise<LLMProvider | undefine
 }
 
 /**
+ * Get any available LLM provider for a user.
+ * Tries: 1) Default from env, 2) First valid user provider.
+ * Used for operations that need AI but don't have a project context (e.g., PDF import).
+ */
+export async function getAnyAvailableLLMProvider(userId: string): Promise<LLMProvider | undefined> {
+  // First, try default from environment
+  const defaultProvider = await tryGetDefaultLLMProvider();
+  if (defaultProvider) {
+    return defaultProvider;
+  }
+
+  // Then, try user's configured providers
+  const providerRepo = await getProviderRepo();
+  const providers = await providerRepo.listByUser(userId);
+
+  // Find first valid provider
+  for (const provider of providers) {
+    if (provider.isValidProvider()) {
+      return createLLMProvider(provider);
+    }
+  }
+
+  // No provider available
+  return undefined;
+}
+
+/**
  * Get LLM provider by provider ID.
  * Used when user explicitly selects a provider for a specific operation.
  */

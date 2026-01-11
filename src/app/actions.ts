@@ -19,7 +19,7 @@ import {
   getDocumentParser,
   getDocumentExporter,
   withErrorHandling,
-  tryGetDefaultLLMProvider,
+  getAnyAvailableLLMProvider,
 } from './actions/utils';
 import { type SerializedProject } from './actions/project-actions';
 
@@ -66,7 +66,8 @@ export async function importDocument(
     }
 
     // Get LLM provider for AI-powered PDF text structuring (optional)
-    const llmProvider = await tryGetDefaultLLMProvider();
+    // Tries: env default first, then user's configured providers
+    const llmProvider = await getAnyAvailableLLMProvider(auth.userId);
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const parser = await getDocumentParser(llmProvider);
