@@ -151,32 +151,134 @@ export function isShortLine(text: string, maxChars = 100): boolean {
 }
 
 /**
+ * Sort text items by position (top to bottom, left to right)
+ * PDF coordinate system has Y=0 at bottom, so we sort by -Y (descending)
+ */
+export function sortItemsByPosition(items: PdfTextItem[]): PdfTextItem[] {
+  return [...items].sort((a, b) => {
+    // First sort by Y (top to bottom, so higher Y values first in PDF coords)
+    // Use a tolerance for items on the same line
+    const yTolerance = Math.min(a.height, b.height) * 0.5;
+    if (Math.abs(a.y - b.y) > yTolerance) {
+      return b.y - a.y; // Higher Y = higher on page in PDF
+    }
+    // Then sort by X (left to right)
+    return a.x - b.x;
+  });
+}
+
+/**
+ * Group items into lines based on Y position
+ * Items with similar Y values are on the same line
+ */
+export function groupIntoLines(items: PdfTextItem[]): PdfTextItem[][] {
+  if (items.length === 0) return [];
+
+  const sorted = sortItemsByPosition(items);
+  const lines: PdfTextItem[][] = [];
+  let currentLine: PdfTextItem[] = [];
+  let currentY = sorted[0]?.y ?? 0;
+
+  for (const item of sorted) {
+    const yTolerance = item.height * 0.5;
+
+    if (Math.abs(item.y - currentY) > yTolerance && currentLine.length > 0) {
+      // New line
+      lines.push(currentLine);
+      currentLine = [];
+      currentY = item.y;
+    }
+
+    currentLine.push(item);
+  }
+
+  // Don't forget the last line
+  if (currentLine.length > 0) {
+    lines.push(currentLine);
+  }
+
+  return lines;
+}
+
+/**
+ * Join items in a line with appropriate spacing
+ * Detects gaps between items to add spaces
+ */
+export function joinLineItems(items: PdfTextItem[]): string {
+  if (items.length === 0) return '';
+  if (items.length === 1) return items[0].text;
+
+  // Sort by X position (left to right)
+  const sorted = [...items].sort((a, b) => a.x - b.x);
+
+  let result = sorted[0].text;
+
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = sorted[i - 1];
+    const curr = sorted[i];
+
+    // Calculate expected position after previous item
+    const expectedX = prev.x + prev.width;
+    const gap = curr.x - expectedX;
+
+    // If there's a significant gap, add a space
+    // Use average character width as threshold
+    const avgCharWidth = prev.width / Math.max(prev.text.length, 1);
+
+    if (gap > avgCharWidth * 0.3) {
+      result += ' ';
+    }
+
+    result += curr.text;
+  }
+
+  return result;
+}
+
+/**
  * Group consecutive text items into paragraphs based on vertical position
+ * First groups into lines, then groups lines into paragraphs
  * @param items - Array of text items from a page
- * @param lineThreshold - Vertical gap to consider a new paragraph
  * @returns Array of paragraph groups
  */
 export function groupIntoParagraphs(
   items: PdfTextItem[],
-  lineThreshold = 5
+  _lineThreshold = 5
 ): PdfTextItem[][] {
   if (items.length === 0) return [];
 
+  // First group into lines
+  const lines = groupIntoLines(items);
+  if (lines.length === 0) return [];
+
+  // Then group lines into paragraphs
+  // A new paragraph starts when there's a larger gap between lines
   const paragraphs: PdfTextItem[][] = [];
   let currentParagraph: PdfTextItem[] = [];
-  let lastY = items[0]?.y ?? 0;
+  let lastLineY = lines[0]?.[0]?.y ?? 0;
+  let lastLineHeight = lines[0]?.[0]?.height ?? 12;
 
-  for (const item of items) {
-    // Large vertical gap indicates new paragraph
-    const yDiff = Math.abs(item.y - lastY);
+  for (const line of lines) {
+    if (line.length === 0) continue;
 
-    if (yDiff > item.height * 1.5 && currentParagraph.length > 0) {
+    const lineY = line[0].y;
+    const lineHeight = line[0].height;
+    const yGap = Math.abs(lastLineY - lineY);
+
+    // Normal line spacing is about 1.2-1.5x the font height
+    // A paragraph break is typically 2x or more
+    const normalLineSpacing = lastLineHeight * 1.5;
+    const paragraphBreakThreshold = lastLineHeight * 2.2;
+
+    if (yGap > paragraphBreakThreshold && currentParagraph.length > 0) {
+      // Paragraph break detected
       paragraphs.push(currentParagraph);
       currentParagraph = [];
     }
 
-    currentParagraph.push(item);
-    lastY = item.y;
+    currentParagraph.push(...line);
+    lastLineY = lineY;
+    lastLineHeight = lineHeight;
   }
 
   // Don't forget the last paragraph
@@ -189,6 +291,7 @@ export function groupIntoParagraphs(
 
 /**
  * Build TipTap paragraph node from text items
+ * Groups items into lines, joins with proper spacing
  * @param items - Text items forming a paragraph
  * @param medianFontSize - Median font size for heading detection
  * @returns TipTap node (paragraph or heading)
@@ -204,39 +307,56 @@ export function buildTipTapNode(
     };
   }
 
-  // Combine text and check for heading
-  const fullText = items.map(i => i.text).join('');
+  // Group items into lines first
+  const lines = groupIntoLines(items);
+
+  // Build full text for heading detection
+  const lineTexts = lines.map(line => joinLineItems(line));
+  const fullText = lineTexts.join(' ');
+
   const avgFontSize = items.reduce((sum, i) => sum + i.fontSize, 0) / items.length;
   const headingLevel = detectHeadingLevel(avgFontSize, medianFontSize, isShortLine(fullText));
 
   // Build content array with formatting
+  // Group consecutive items with same formatting
   const content: Record<string, unknown>[] = [];
 
-  for (const item of items) {
-    const fontInfo = parseFontName(item.fontName);
-    const marks = fontInfoToMarks(fontInfo);
-    const sizeMark = fontSizeToMark(item.fontSize);
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+    const line = lines[lineIndex];
+    const lineText = joinLineItems(line);
 
-    if (sizeMark && !headingLevel) {
-      // Merge size mark with existing textStyle mark if present
-      const existingTextStyle = marks.find(m => m.type === 'textStyle');
-      if (existingTextStyle) {
-        existingTextStyle.attrs = { ...existingTextStyle.attrs, ...sizeMark.attrs };
-      } else {
-        marks.push(sizeMark);
+    if (lineText.trim()) {
+      // Get formatting from first item of line (simplified approach)
+      const firstItem = line[0];
+      const fontInfo = parseFontName(firstItem.fontName);
+      const marks = fontInfoToMarks(fontInfo);
+      const sizeMark = fontSizeToMark(firstItem.fontSize);
+
+      if (sizeMark && !headingLevel) {
+        const existingTextStyle = marks.find(m => m.type === 'textStyle');
+        if (existingTextStyle) {
+          existingTextStyle.attrs = { ...existingTextStyle.attrs, ...sizeMark.attrs };
+        } else {
+          marks.push(sizeMark);
+        }
+      }
+
+      const textNode: Record<string, unknown> = {
+        type: 'text',
+        text: lineText,
+      };
+
+      if (marks.length > 0) {
+        textNode.marks = marks;
+      }
+
+      content.push(textNode);
+
+      // Add space between lines (not hardBreak, as it's same paragraph)
+      if (lineIndex < lines.length - 1) {
+        content.push({ type: 'text', text: ' ' });
       }
     }
-
-    const textNode: Record<string, unknown> = {
-      type: 'text',
-      text: item.text,
-    };
-
-    if (marks.length > 0) {
-      textNode.marks = marks;
-    }
-
-    content.push(textNode);
   }
 
   // Return heading or paragraph
