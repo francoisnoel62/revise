@@ -167,6 +167,20 @@ export async function getLLMProviderForProject(
 }
 
 /**
+ * Get default LLM provider (from environment).
+ * Used when no project-specific provider is configured.
+ * Returns undefined if no default provider is available.
+ */
+export function tryGetDefaultLLMProvider(): LLMProvider | undefined {
+  try {
+    return getDefaultLLMProvider();
+  } catch {
+    // No default provider available (no API key configured)
+    return undefined;
+  }
+}
+
+/**
  * Get LLM provider by provider ID.
  * Used when user explicitly selects a provider for a specific operation.
  */

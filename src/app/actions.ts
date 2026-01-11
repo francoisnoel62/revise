@@ -11,8 +11,7 @@ import { TextSelection } from '@/domain/value-objects/TextSelection';
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
 import { RewriteTextUseCase } from '@/application/use-cases/RewriteTextUseCase';
 import { ExportProjectUseCase } from '@/application/use-cases/ExportProjectUseCase';
-import { getPromptRepository, getDefaultLLMProvider } from '@/infrastructure/config/providers';
-import { LLMProvider } from '@/domain/interfaces/LLMProvider';
+import { getPromptRepository } from '@/infrastructure/config/providers';
 import {
   type ActionResult,
   getAuthenticatedUserId,
@@ -20,6 +19,7 @@ import {
   getDocumentParser,
   getDocumentExporter,
   withErrorHandling,
+  tryGetDefaultLLMProvider,
 } from './actions/utils';
 import { type SerializedProject } from './actions/project-actions';
 
@@ -65,15 +65,8 @@ export async function importDocument(
       throw new Error('No file provided');
     }
 
-    // Try to get LLM provider for AI-powered PDF text structuring
-    // Falls back gracefully if no API key configured
-    let llmProvider: LLMProvider | undefined;
-    try {
-      llmProvider = getDefaultLLMProvider();
-    } catch {
-      // No LLM provider available, PDF will use simple text extraction
-      console.log('No LLM provider configured, PDF import will use simple text extraction');
-    }
+    // Get LLM provider for AI-powered PDF text structuring (optional)
+    const llmProvider = tryGetDefaultLLMProvider();
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const parser = await getDocumentParser(llmProvider);
