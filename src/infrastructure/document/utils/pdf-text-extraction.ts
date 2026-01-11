@@ -2,7 +2,17 @@
 // ABOUTME: Extracts text content with font information and position data
 
 import { getDocumentProxy } from 'unpdf';
-import type { TextItem as PdfJsTextItem } from 'pdfjs-dist/types/src/display/api';
+
+/**
+ * PDF.js TextItem structure (defined locally to avoid pdfjs-dist type dependency)
+ */
+interface PdfJsTextItem {
+  str: string;
+  fontName?: string;
+  height?: number;
+  width: number;
+  transform: number[];
+}
 
 /**
  * Represents a single text item extracted from PDF
