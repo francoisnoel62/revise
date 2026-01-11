@@ -1069,7 +1069,7 @@ INSTRUCTIONS:
     try {
       const message = await this.client.messages.create({
         model: this.model,
-        max_tokens: Math.min(rawText.length * 2, 16000), // Enough for HTML tags
+        max_tokens: Math.min(rawText.length * 2, 4096), // Safe limit for most models
         temperature: 0, // Zero creativity - pure structure
         system: systemPrompt,
         messages: [

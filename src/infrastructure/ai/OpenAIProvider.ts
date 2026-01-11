@@ -1081,7 +1081,7 @@ INSTRUCTIONS:
           { role: 'user', content: rawText },
         ],
         temperature: 0, // Zero creativity - pure structure
-        max_tokens: Math.min(rawText.length * 2, 16000), // Enough for HTML tags
+        max_tokens: Math.min(rawText.length * 2, 4096), // Safe limit for most models
       });
 
       const content = completion.choices[0]?.message?.content;
