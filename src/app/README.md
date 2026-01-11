@@ -143,7 +143,7 @@ Next.js App Router pages, layouts, UI components, and state management.
 - **UserMenu in header** - Profile dropdown with provider access ⭐ NEW
 
 **Phase 3 Features**:
-- **Project loading from database** - URL param `?project={id}` loads project from MongoDB
+- **Project loading from database** - URL param `/editor?project={id}` loads project from MongoDB
 - **Auto-redirect to dashboard** - Redirects if no project ID provided
 - **Session-based project access** - Only loads projects owned by authenticated user
 - **SaveStatus indicator** - Shows auto-save progress ("Saving...", "Saved")

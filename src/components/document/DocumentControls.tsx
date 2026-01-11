@@ -48,7 +48,7 @@ export function DocumentControls() {
       }
 
       // Navigate to new project
-      router.push(`/?project=${result.data.id}`);
+      router.push(`/editor?project=${result.data.id}`);
     } catch (error) {
       console.error('Import failed:', error);
       alert(error instanceof Error ? error.message : 'Import failed');

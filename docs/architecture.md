@@ -212,7 +212,7 @@ User creates project
 
 User opens project
   → Click project card
-  → Navigate to /?project={id}
+  → Navigate to /editor?project={id}
   → Editor loads project
 ```
 

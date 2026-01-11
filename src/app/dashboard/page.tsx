@@ -83,7 +83,7 @@ export default function DashboardPage() {
 
       // Close dialog and navigate to new project
       setIsDialogOpen(false);
-      router.push(`/?project=${projectId}`);
+      router.push(`/editor?project=${projectId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create project');
     } finally {
@@ -96,7 +96,7 @@ export default function DashboardPage() {
   };
 
   const handleOpenProject = (projectId: string) => {
-    router.push(`/?project=${projectId}`);
+    router.push(`/editor?project=${projectId}`);
   };
 
   const handleProjectDeleted = (projectId: string) => {
