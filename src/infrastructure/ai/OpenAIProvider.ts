@@ -11,6 +11,11 @@ import { Characters } from '@/domain/value-objects/Characters';
 import { Plot } from '@/domain/value-objects/Plot';
 import { Worldbuilding } from '@/domain/value-objects/Worldbuilding';
 import { Synthesis } from '@/domain/value-objects/Synthesis';
+import {
+  AccountBalance,
+  createAccountBalance,
+  createUnavailableBalance,
+} from '@/domain/value-objects/AccountBalance';
 
 interface ProposalResponse {
   proposals: Array<{
@@ -121,6 +126,7 @@ interface SynthesisResponse {
 
 export class OpenAIProvider implements LLMProvider {
   private client: OpenAI;
+  private apiKey: string;
   private model: string;
   private promptRepository: PromptRepository;
 
@@ -130,6 +136,7 @@ export class OpenAIProvider implements LLMProvider {
     model: string = 'gpt-4o'
   ) {
     this.client = new OpenAI({ apiKey });
+    this.apiKey = apiKey;
     this.model = model;
     this.promptRepository = promptRepository;
   }
@@ -1166,5 +1173,98 @@ INSTRUCTIONS:
       charactersToDevelop: parsed.charactersToDevelop,
       alerts: parsed.alerts,
     };
+  }
+
+  // ===========================
+  // ACCOUNT BALANCE
+  // ===========================
+
+  /**
+   * Retrieves account balance from OpenAI billing API.
+   * Uses undocumented but functional billing endpoints.
+   */
+  async getAccountBalance(): Promise<AccountBalance> {
+    try {
+      // Fetch billing subscription and credit grants in parallel
+      const [subscriptionResponse, grantsResponse] = await Promise.all([
+        this.fetchBillingEndpoint('/v1/dashboard/billing/subscription'),
+        this.fetchBillingEndpoint('/v1/dashboard/billing/credit_grants'),
+      ]);
+
+      // Parse subscription for limits and renewal
+      let limit: number | null = null;
+      let renewalDate: Date | null = null;
+
+      if (subscriptionResponse) {
+        // hard_limit_usd is the spending limit
+        if (typeof subscriptionResponse.hard_limit_usd === 'number') {
+          limit = subscriptionResponse.hard_limit_usd;
+        }
+        // billing_cycle_anchor or access_until for renewal date
+        if (subscriptionResponse.access_until) {
+          renewalDate = new Date(subscriptionResponse.access_until * 1000);
+        }
+      }
+
+      // Parse credit grants for usage
+      let used = 0;
+      if (grantsResponse) {
+        // total_used is in USD
+        if (typeof grantsResponse.total_used === 'number') {
+          used = grantsResponse.total_used;
+        }
+        // Some responses have total_granted as limit
+        if (limit === null && typeof grantsResponse.total_granted === 'number') {
+          limit = grantsResponse.total_granted;
+        }
+        // Check for grants array with expiration
+        if (Array.isArray(grantsResponse.grants) && grantsResponse.grants.length > 0) {
+          const activeGrant = grantsResponse.grants.find(
+            (g: { expires_at?: number }) => g.expires_at && g.expires_at * 1000 > Date.now()
+          );
+          if (activeGrant?.expires_at && !renewalDate) {
+            renewalDate = new Date(activeGrant.expires_at * 1000);
+          }
+        }
+      }
+
+      return createAccountBalance(used, limit, renewalDate, 'USD');
+    } catch (error) {
+      // Return unavailable balance with error message
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to fetch balance';
+      return createUnavailableBalance(errorMessage);
+    }
+  }
+
+  /**
+   * Fetches data from OpenAI billing endpoints.
+   * These are undocumented but functional endpoints.
+   */
+  private async fetchBillingEndpoint(
+    endpoint: string
+  ): Promise<Record<string, unknown> | null> {
+    try {
+      const response = await fetch(`https://api.openai.com${endpoint}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        // Don't throw for 404/403 - endpoint might not be available
+        if (response.status === 404 || response.status === 403) {
+          return null;
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch {
+      // Return null for network errors - let caller handle gracefully
+      return null;
+    }
   }
 }

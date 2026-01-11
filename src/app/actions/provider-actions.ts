@@ -10,6 +10,7 @@ import { DeleteProviderUseCase } from '@/application/use-cases/DeleteProviderUse
 import { ListProvidersUseCase } from '@/application/use-cases/ListProvidersUseCase';
 import { TestProviderConnectionUseCase } from '@/application/use-cases/TestProviderConnectionUseCase';
 import { ValidateProviderUseCase } from '@/application/use-cases/ValidateProviderUseCase';
+import { GetAccountBalanceUseCase } from '@/application/use-cases/GetAccountBalanceUseCase';
 import { maskApiKey } from '@/infrastructure/encryption/crypto';
 import {
   ActionResult,
@@ -258,5 +259,55 @@ export async function validateProviderAction(
     });
 
     return toSafeProvider(provider);
+  });
+}
+
+/**
+ * Client-safe account balance data transfer object.
+ * Dates are serialized as ISO strings.
+ */
+export interface SafeAccountBalance {
+  used: number;
+  limit: number | null;
+  renewalDate: string | null; // ISO string
+  currency: string;
+  available: boolean;
+  errorMessage?: string;
+}
+
+/**
+ * Get account balance for a provider.
+ * Retrieves usage, credits, and renewal information from the provider's API.
+ * Delegates to GetAccountBalanceUseCase for business logic.
+ *
+ * @param providerId The provider ID to get balance for
+ * @returns Action result with SafeAccountBalance or error
+ */
+export async function getAccountBalanceAction(
+  providerId: string
+): Promise<ActionResult<SafeAccountBalance>> {
+  const auth = await getAuthenticatedUserId();
+  if ('error' in auth) return auth.error;
+
+  return withErrorHandling(async () => {
+    const useCase = new GetAccountBalanceUseCase(
+      await getProviderRepo(),
+      await getLLMProviderFactory()
+    );
+
+    const balance = await useCase.execute({
+      userId: auth.userId,
+      providerId,
+    });
+
+    // Convert to serializable format
+    return {
+      used: balance.used,
+      limit: balance.limit,
+      renewalDate: balance.renewalDate?.toISOString() ?? null,
+      currency: balance.currency,
+      available: balance.available,
+      errorMessage: balance.errorMessage,
+    };
   });
 }

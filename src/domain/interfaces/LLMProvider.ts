@@ -8,6 +8,7 @@ import { Characters } from '../value-objects/Characters';
 import { Plot } from '../value-objects/Plot';
 import { Worldbuilding } from '../value-objects/Worldbuilding';
 import { Synthesis } from '../value-objects/Synthesis';
+import { AccountBalance } from '../value-objects/AccountBalance';
 
 /**
  * Test connection result.
@@ -123,4 +124,15 @@ export interface LLMProvider {
       worldbuilding?: Worldbuilding;
     }
   ): Promise<Synthesis>;
+
+  /**
+   * Retrieves the account balance information for the provider.
+   * Returns usage, credit limits, and renewal dates when available.
+   *
+   * Note: Some providers require admin API keys for this feature.
+   * If unavailable, returns an AccountBalance with available=false.
+   *
+   * @returns Promise resolving to AccountBalance
+   */
+  getAccountBalance(): Promise<AccountBalance>;
 }

@@ -1,7 +1,11 @@
 'use client';
 
 import * as React from 'react';
-import { SafeProvider, validateProviderAction } from '@/app/actions/provider-actions';
+import {
+  SafeProvider,
+  SafeAccountBalance,
+  validateProviderAction,
+} from '@/app/actions/provider-actions';
 import {
   Card,
   CardContent,
@@ -18,21 +22,48 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreVertical, Edit, Trash, CheckCircle, XCircle, RefreshCw, Loader2 } from 'lucide-react';
+import { MoreVertical, Edit, Trash, CheckCircle, XCircle, RefreshCw, Loader2, ExternalLink } from 'lucide-react';
 import { PROVIDER_NAMES } from '@/infrastructure/config/ai-models';
 
 export interface ProviderCardProps {
   provider: SafeProvider;
+  balance?: SafeAccountBalance | null;
+  isLoadingBalance?: boolean;
   onEdit: (provider: SafeProvider) => void;
   onDelete: (provider: SafeProvider) => void;
   onValidated?: (provider: SafeProvider) => void;
 }
 
 /**
- * ProviderCard component - displays a single provider with actions.
- * Shows provider name, type, model, validation status, and masked API key.
+ * Formats balance for display.
  */
-export function ProviderCard({ provider, onEdit, onDelete, onValidated }: ProviderCardProps) {
+function formatBalanceDisplay(balance: SafeAccountBalance): string {
+  if (!balance.available) {
+    return balance.errorMessage || 'Balance unavailable';
+  }
+
+  const symbol = balance.currency === 'USD' ? '$' : balance.currency + ' ';
+  const usedStr = `${symbol}${balance.used.toFixed(2)}`;
+
+  if (balance.limit !== null) {
+    return `${usedStr} / ${symbol}${balance.limit.toFixed(2)}`;
+  }
+
+  return usedStr;
+}
+
+/**
+ * ProviderCard component - displays a single provider with actions.
+ * Shows provider name, type, model, validation status, masked API key, and account balance.
+ */
+export function ProviderCard({
+  provider,
+  balance,
+  isLoadingBalance,
+  onEdit,
+  onDelete,
+  onValidated,
+}: ProviderCardProps) {
   const [isValidating, setIsValidating] = React.useState(false);
   const [validationError, setValidationError] = React.useState<string | null>(null);
   const providerDisplayName = PROVIDER_NAMES[provider.type] || provider.type;
@@ -122,6 +153,46 @@ export function ProviderCard({ provider, onEdit, onDelete, onValidated }: Provid
               </span>
             </div>
           )}
+
+          {/* Balance section */}
+          <div className="flex justify-between items-start">
+            <span className="text-muted-foreground">Balance:</span>
+            {isLoadingBalance ? (
+              <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+            ) : balance ? (
+              <div className="text-right">
+                {balance.available ? (
+                  <>
+                    <span className="font-medium">{formatBalanceDisplay(balance)}</span>
+                    {balance.renewalDate && (
+                      <div className="text-xs text-muted-foreground">
+                        Renews: {new Date(balance.renewalDate).toLocaleDateString()}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-xs text-muted-foreground">
+                    {balance.errorMessage?.includes('Admin API key') ? (
+                      <a
+                        href="https://console.anthropic.com/settings/admin-keys"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-blue-600 hover:underline"
+                      >
+                        Admin key required
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : (
+                      balance.errorMessage || 'Unavailable'
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <span className="text-xs text-muted-foreground">—</span>
+            )}
+          </div>
+
           {validationError && (
             <div className="text-xs text-destructive mt-2">
               {validationError}

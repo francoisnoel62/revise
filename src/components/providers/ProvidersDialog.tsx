@@ -22,10 +22,12 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Plus, Loader2 } from 'lucide-react';
-import { SafeProvider } from '@/app/actions/provider-actions';
 import {
+  SafeProvider,
+  SafeAccountBalance,
   listProvidersAction,
   deleteProviderAction,
+  getAccountBalanceAction,
 } from '@/app/actions/provider-actions';
 import { ProviderCard } from './ProviderCard';
 import { ProviderForm } from './ProviderForm';
@@ -51,6 +53,10 @@ export function ProvidersDialog({ open, onOpenChange }: ProvidersDialogProps) {
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
+  // Balance state - map of providerId to balance
+  const [balances, setBalances] = React.useState<Record<string, SafeAccountBalance>>({});
+  const [loadingBalances, setLoadingBalances] = React.useState<Set<string>>(new Set());
+
   // Delete confirmation dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [providerToDelete, setProviderToDelete] = React.useState<SafeProvider | null>(
@@ -73,6 +79,8 @@ export function ProvidersDialog({ open, onOpenChange }: ProvidersDialogProps) {
       const result = await listProvidersAction();
       if (result.success) {
         setProviders(result.data);
+        // Fetch balances for all providers in parallel
+        fetchBalances(result.data);
       } else {
         setError(result.error);
       }
@@ -81,6 +89,55 @@ export function ProvidersDialog({ open, onOpenChange }: ProvidersDialogProps) {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Fetch balances for all providers in parallel
+  const fetchBalances = async (providerList: SafeProvider[]) => {
+    // Mark all as loading
+    setLoadingBalances(new Set(providerList.map((p) => p.id)));
+
+    // Fetch balances in parallel
+    const balancePromises = providerList.map(async (provider) => {
+      try {
+        const result = await getAccountBalanceAction(provider.id);
+        if (result.success) {
+          return { providerId: provider.id, balance: result.data };
+        }
+        return {
+          providerId: provider.id,
+          balance: {
+            used: 0,
+            limit: null,
+            renewalDate: null,
+            currency: 'USD',
+            available: false,
+            errorMessage: result.error,
+          } as SafeAccountBalance,
+        };
+      } catch {
+        return {
+          providerId: provider.id,
+          balance: {
+            used: 0,
+            limit: null,
+            renewalDate: null,
+            currency: 'USD',
+            available: false,
+            errorMessage: 'Failed to fetch balance',
+          } as SafeAccountBalance,
+        };
+      }
+    });
+
+    const results = await Promise.all(balancePromises);
+
+    // Update balances state
+    const newBalances: Record<string, SafeAccountBalance> = {};
+    for (const { providerId, balance } of results) {
+      newBalances[providerId] = balance;
+    }
+    setBalances(newBalances);
+    setLoadingBalances(new Set());
   };
 
   // Handle create provider
@@ -150,6 +207,8 @@ export function ProvidersDialog({ open, onOpenChange }: ProvidersDialogProps) {
       setMode('list');
       setSelectedProvider(null);
       setError(null);
+      setBalances({});
+      setLoadingBalances(new Set());
     }
     onOpenChange(newOpen);
   };
@@ -215,6 +274,8 @@ export function ProvidersDialog({ open, onOpenChange }: ProvidersDialogProps) {
                       <ProviderCard
                         key={provider.id}
                         provider={provider}
+                        balance={balances[provider.id]}
+                        isLoadingBalance={loadingBalances.has(provider.id)}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
                         onValidated={handleProviderValidated}

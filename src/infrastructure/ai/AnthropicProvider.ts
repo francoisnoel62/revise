@@ -11,6 +11,11 @@ import { Characters } from '@/domain/value-objects/Characters';
 import { Plot } from '@/domain/value-objects/Plot';
 import { Worldbuilding } from '@/domain/value-objects/Worldbuilding';
 import { Synthesis } from '@/domain/value-objects/Synthesis';
+import {
+  AccountBalance,
+  createAccountBalance,
+  createUnavailableBalance,
+} from '@/domain/value-objects/AccountBalance';
 
 interface ProposalResponse {
   proposals: Array<{
@@ -30,6 +35,7 @@ interface NarrativeAnalysisResponse {
 
 export class AnthropicProvider implements LLMProvider {
   private client: Anthropic;
+  private apiKey: string;
   private model: string;
   private promptRepository: PromptRepository;
 
@@ -39,6 +45,7 @@ export class AnthropicProvider implements LLMProvider {
     model: string = 'claude-sonnet-4-5-20250929'
   ) {
     this.client = new Anthropic({ apiKey });
+    this.apiKey = apiKey;
     this.model = model;
     this.promptRepository = promptRepository;
   }
@@ -1162,5 +1169,93 @@ INSTRUCTIONS:
       charactersToDevelop: parsed.charactersToDevelop,
       alerts: parsed.alerts,
     };
+  }
+
+  // ===========================
+  // ACCOUNT BALANCE
+  // ===========================
+
+  /**
+   * Retrieves account balance from Anthropic Admin API.
+   * Requires an Admin API key (sk-ant-admin-...) for access.
+   * Regular API keys cannot access billing information.
+   */
+  async getAccountBalance(): Promise<AccountBalance> {
+    // Check if the API key is an admin key
+    const isAdminKey = this.apiKey.startsWith('sk-ant-admin');
+
+    if (!isAdminKey) {
+      return createUnavailableBalance(
+        'Admin API key required. Get one at console.anthropic.com/settings/admin-keys'
+      );
+    }
+
+    try {
+      // Fetch cost report from Anthropic Admin API
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startDate = startOfMonth.toISOString().split('T')[0];
+      const endDate = now.toISOString().split('T')[0];
+
+      const costResponse = await this.fetchAdminEndpoint(
+        `/v1/organizations/cost_report?start_date=${startDate}&end_date=${endDate}`
+      );
+
+      if (!costResponse) {
+        return createUnavailableBalance('Failed to fetch billing data');
+      }
+
+      // Parse cost report
+      // Cost is returned in cents as a string
+      let used = 0;
+      if (costResponse.total_cost_cents) {
+        used = parseFloat(String(costResponse.total_cost_cents)) / 100;
+      } else if (Array.isArray(costResponse.costs)) {
+        // Sum all costs
+        used = costResponse.costs.reduce(
+          (sum: number, c: { cost_cents?: string }) =>
+            sum + (c.cost_cents ? parseFloat(String(c.cost_cents)) / 100 : 0),
+          0
+        );
+      }
+
+      // Anthropic doesn't expose credit limits via API
+      // Return usage without limit
+      return createAccountBalance(used, null, null, 'USD');
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to fetch balance';
+      return createUnavailableBalance(errorMessage);
+    }
+  }
+
+  /**
+   * Fetches data from Anthropic Admin API endpoints.
+   * Requires Admin API key for authentication.
+   */
+  private async fetchAdminEndpoint(
+    endpoint: string
+  ): Promise<Record<string, unknown> | null> {
+    try {
+      const response = await fetch(`https://api.anthropic.com${endpoint}`, {
+        method: 'GET',
+        headers: {
+          'x-api-key': this.apiKey,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          return null;
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch {
+      return null;
+    }
   }
 }
