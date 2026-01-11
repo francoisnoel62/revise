@@ -27,8 +27,10 @@ vi.mock('@/store/projectStore', () => ({
 
 // Mock Server Actions
 const mockExportProject = vi.fn();
+const mockExportProjectPdf = vi.fn();
 vi.mock('@/app/actions', () => ({
   exportProject: (...args: unknown[]) => mockExportProject(...args),
+  exportProjectPdf: (...args: unknown[]) => mockExportProjectPdf(...args),
 }));
 
 describe('DocumentControls', () => {
@@ -68,8 +70,13 @@ describe('DocumentControls', () => {
 
     render(<DocumentControls />);
 
+    // Click dropdown trigger
     const exportButton = screen.getByText('Exporter');
     await user.click(exportButton);
+
+    // Click DOCX option in dropdown
+    const docxOption = await screen.findByText('DOCX (Word)');
+    await user.click(docxOption);
 
     expect(mockExportProject).toHaveBeenCalledWith('test-project-id');
   });

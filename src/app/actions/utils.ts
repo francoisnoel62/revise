@@ -13,6 +13,7 @@ import {
   getPromptRepository,
   createLLMProvider,
   getDefaultLLMProvider,
+  getDocxParser,
   getDocumentExporter as getExporterFromConfig,
   type ExportFormat,
 } from '@/infrastructure/config/providers';
@@ -26,6 +27,7 @@ import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
 import { LLMProviderFactory } from '@/domain/interfaces/LLMProviderFactory';
 import { IdGenerator } from '@/domain/interfaces/IdGenerator';
 import { LLMProvider } from '@/domain/interfaces/LLMProvider';
+import { DocumentParser } from '@/domain/interfaces/DocumentParser';
 import { DocumentExporter } from '@/domain/interfaces/DocumentExporter';
 
 /**
@@ -106,6 +108,13 @@ export async function getLLMProviderFactory(): Promise<LLMProviderFactory> {
  */
 export async function getIdGenerator(): Promise<IdGenerator> {
   return uuidGenerator;
+}
+
+/**
+ * Get document parser instance.
+ */
+export async function getDocumentParser(): Promise<DocumentParser> {
+  return getDocxParser();
 }
 
 /**
