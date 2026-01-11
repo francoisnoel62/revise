@@ -1181,7 +1181,7 @@ INSTRUCTIONS:
 
   /**
    * Retrieves account balance from OpenAI Costs API.
-   * Requires an Admin API key for access to billing data.
+   * Requires an Admin API key with appropriate scopes for access to billing data.
    * Regular API keys (sk-proj-...) cannot access billing information.
    */
   async getAccountBalance(): Promise<AccountBalance> {
@@ -1201,24 +1201,29 @@ INSTRUCTIONS:
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const startTime = Math.floor(startOfMonth.getTime() / 1000);
 
-      const costsResponse = await this.fetchBillingEndpoint(
+      const result = await this.fetchBillingEndpoint(
         `/v1/organization/costs?start_time=${startTime}`
       );
 
-      if (!costsResponse) {
-        return createUnavailableBalance('Failed to fetch billing data');
+      if (!result.success) {
+        return createUnavailableBalance(result.error || 'Failed to fetch billing data');
       }
+
+      const costsResponse = result.data;
 
       // Parse costs response
       let used = 0;
 
-      // The costs endpoint returns data with amount_cents or similar
-      if (typeof costsResponse.total_cost_usd === 'number') {
+      // The costs endpoint returns results array with amount in USD
+      if (Array.isArray(costsResponse.results)) {
+        used = costsResponse.results.reduce(
+          (sum: number, item: { amount?: { value?: number } }) =>
+            sum + (item.amount?.value || 0),
+          0
+        );
+      } else if (typeof costsResponse.total_cost_usd === 'number') {
         used = costsResponse.total_cost_usd;
-      } else if (typeof costsResponse.total_cost_cents === 'number') {
-        used = costsResponse.total_cost_cents / 100;
       } else if (Array.isArray(costsResponse.data)) {
-        // Sum costs from data array
         used = costsResponse.data.reduce(
           (sum: number, item: { amount?: { value?: number } }) =>
             sum + (item.amount?.value || 0),
@@ -1238,10 +1243,11 @@ INSTRUCTIONS:
   /**
    * Fetches data from OpenAI API endpoints.
    * Used for billing/costs data retrieval.
+   * Returns success status and either data or error message.
    */
   private async fetchBillingEndpoint(
     endpoint: string
-  ): Promise<Record<string, unknown> | null> {
+  ): Promise<{ success: true; data: Record<string, unknown> } | { success: false; error: string }> {
     try {
       const response = await fetch(`https://api.openai.com${endpoint}`, {
         method: 'GET',
@@ -1252,15 +1258,32 @@ INSTRUCTIONS:
       });
 
       if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          return null;
+        // Try to get detailed error message from response
+        try {
+          const errorData = await response.json();
+          if (errorData.error?.message) {
+            // Check for permission errors
+            if (response.status === 403 && errorData.error.message.includes('Missing scopes')) {
+              return {
+                success: false,
+                error: 'Admin key missing required scopes. Enable "Usage: Read" in your admin key settings.',
+              };
+            }
+            return { success: false, error: errorData.error.message };
+          }
+        } catch {
+          // Ignore JSON parse errors
         }
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        return { success: false, error: `HTTP ${response.status}: ${response.statusText}` };
       }
 
-      return await response.json();
-    } catch {
-      return null;
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Network error',
+      };
     }
   }
 }
