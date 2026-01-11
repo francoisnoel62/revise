@@ -111,9 +111,39 @@ export async function exportProject(
       throw new Error('Project not found');
     }
 
-    const exporter = await getDocumentExporter();
+    const exporter = await getDocumentExporter('docx');
     const useCase = new ExportProjectUseCase(exporter);
     const filename = `${project.getTitle()}.docx`;
+    const buffer = await useCase.execute(project, filename, 'all');
+
+    return {
+      buffer: Array.from(buffer),
+      filename,
+    };
+  });
+}
+
+/**
+ * Export a project to PDF format.
+ * Loads project from database by ID.
+ */
+export async function exportProjectPdf(
+  projectId: string
+): Promise<ActionResult<{ buffer: number[]; filename: string }>> {
+  const auth = await getAuthenticatedUserId();
+  if ('error' in auth) return auth.error;
+
+  return withErrorHandling(async () => {
+    const repository = await getRepository();
+    const project = await repository.loadProject(auth.userId, projectId);
+
+    if (!project) {
+      throw new Error('Project not found');
+    }
+
+    const exporter = await getDocumentExporter('pdf');
+    const useCase = new ExportProjectUseCase(exporter);
+    const filename = `${project.getTitle()}.pdf`;
     const buffer = await useCase.execute(project, filename, 'all');
 
     return {

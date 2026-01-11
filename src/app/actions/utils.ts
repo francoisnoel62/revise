@@ -14,6 +14,7 @@ import {
   createLLMProvider,
   getDefaultLLMProvider,
   getDocumentExporter as getExporterFromConfig,
+  type ExportFormat,
 } from '@/infrastructure/config/providers';
 import { LLMProviderFactoryImpl } from '@/infrastructure/ai/LLMProviderFactoryImpl';
 import { uuidGenerator } from '@/infrastructure/utils/UUIDGenerator';
@@ -108,11 +109,12 @@ export async function getIdGenerator(): Promise<IdGenerator> {
 }
 
 /**
- * Get document exporter instance.
- * Returns DocxExporter implementation via providers.
+ * Get document exporter instance for the specified format.
+ * Returns appropriate exporter implementation via providers.
+ * @param format - Export format ('docx' or 'pdf'), defaults to 'docx'
  */
-export async function getDocumentExporter(): Promise<DocumentExporter> {
-  return getExporterFromConfig();
+export async function getDocumentExporter(format: ExportFormat = 'docx'): Promise<DocumentExporter> {
+  return getExporterFromConfig(format);
 }
 
 /**
