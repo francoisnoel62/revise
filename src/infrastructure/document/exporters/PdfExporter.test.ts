@@ -419,7 +419,7 @@ describe('PdfExporter', () => {
             content: [
               {
                 type: 'text',
-                text: 'Smart quotes: "Hello" and 'World'',
+                text: 'Smart quotes: \u201CHello\u201D and \u2018World\u2019',
               },
             ],
           },

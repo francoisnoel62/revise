@@ -97,34 +97,38 @@ const CHAR_REPLACEMENTS: Record<string, string> = {
   'ε': 'e',
   'π': 'pi',
   'Ω': 'O',
-  // Special punctuation (using Unicode escapes for problematic characters)
-  '\u2013': '-', // en dash
-  '\u2014': '--', // em dash
-  '\u2018': "'", // left single quote
-  '\u2019': "'", // right single quote
-  '\u201C': '"', // left double quote
-  '\u201D': '"', // right double quote
-  '\u2026': '...', // ellipsis
-  '\u2022': '*', // bullet
+  // Special punctuation not supported by WinAnsi
+  // Note: em dash, en dash, smart quotes, ellipsis, bullet, euro, trademark ARE supported by WinAnsi
   '\u2192': '->', // right arrow
   '\u2190': '<-', // left arrow
   '\u2194': '<->', // left-right arrow
   '\u2260': '!=', // not equal
   '\u2264': '<=', // less than or equal
   '\u2265': '>=', // greater than or equal
-  '\u00B1': '+/-', // plus-minus
-  '\u00D7': 'x', // multiplication sign
-  '\u00F7': '/', // division sign
   '\u221A': 'sqrt', // square root
   '\u221E': 'inf', // infinity
-  '\u00B0': 'deg', // degree
-  '\u00A9': '(c)', // copyright
-  '\u00AE': '(R)', // registered
-  '\u2122': '(TM)', // trademark
-  '\u20AC': 'EUR', // euro
-  '\u00A3': 'GBP', // pound
-  '\u00A5': 'JPY', // yen
 };
+
+// WinAnsi extended characters (Unicode codepoints that map to Windows-1252)
+const WINANSI_EXTENDED = new Set([
+  0x2013, // en dash
+  0x2014, // em dash
+  0x2018, // left single quote
+  0x2019, // right single quote
+  0x201a, // single low-9 quote
+  0x201c, // left double quote
+  0x201d, // right double quote
+  0x201e, // double low-9 quote
+  0x2020, // dagger
+  0x2021, // double dagger
+  0x2022, // bullet
+  0x2026, // ellipsis
+  0x2030, // per mille
+  0x2039, // single left angle quote
+  0x203a, // single right angle quote
+  0x20ac, // euro (actually supported in WinAnsi)
+  0x2122, // trademark
+]);
 
 /**
  * Normalize text to WinAnsi-compatible characters.
@@ -136,13 +140,12 @@ function normalizeForWinAnsi(text: string): string {
     if (CHAR_REPLACEMENTS[char]) {
       result += CHAR_REPLACEMENTS[char];
     } else {
-      // Check if character is in WinAnsi range (basic Latin + Latin-1 Supplement)
       const code = char.charCodeAt(0);
-      if (code <= 255 || (code >= 0x2018 && code <= 0x201e)) {
-        // Basic Latin, Latin-1, or smart quotes (handled by pdf-lib)
+      // Accept: Basic Latin, Latin-1 Supplement, and WinAnsi extended characters
+      if (code <= 255 || WINANSI_EXTENDED.has(code)) {
         result += char;
       } else {
-        // Unknown character - replace with placeholder or skip
+        // Unknown character - replace with placeholder
         result += '?';
       }
     }
