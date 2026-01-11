@@ -1,34 +1,51 @@
-// ABOUTME: Tests for PdfParser implementation
+// ABOUTME: Tests for PdfParser with AI-powered text structuring
 // ABOUTME: Tests supports(), parse(), and parseToChapters() methods
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PdfParser } from './PdfParser';
+import { LLMProvider } from '@/domain/interfaces/LLMProvider';
 
-// Mock the pdf utilities
-vi.mock('../utils/pdf-text-extraction', () => ({
-  extractPdfText: vi.fn(),
-  getPdfOutline: vi.fn(),
-  isPdfScanned: vi.fn(),
-  calculateMedianFontSize: vi.fn(),
+// Mock unpdf
+vi.mock('unpdf', () => ({
+  getDocumentProxy: vi.fn(),
 }));
 
-vi.mock('../utils/pdf-chapter-detection', () => ({
-  detectChapters: vi.fn(),
+// Mock htmlToTipTapJSON
+vi.mock('../utils/tiptap-conversion', () => ({
+  htmlToTipTapJSON: vi.fn(),
 }));
 
-vi.mock('../utils/pdf-formatting', () => ({
-  groupIntoParagraphs: vi.fn(),
-  buildTipTapNode: vi.fn(),
-}));
+import { getDocumentProxy } from 'unpdf';
+import { htmlToTipTapJSON } from '../utils/tiptap-conversion';
 
-import {
-  extractPdfText,
-  getPdfOutline,
-  isPdfScanned,
-  calculateMedianFontSize,
-} from '../utils/pdf-text-extraction';
-import { detectChapters } from '../utils/pdf-chapter-detection';
-import { groupIntoParagraphs, buildTipTapNode } from '../utils/pdf-formatting';
+// Helper to create mock PDF document
+function createMockPdfDoc(pages: Array<{ items: Array<{ str: string }> }>) {
+  return {
+    numPages: pages.length,
+    getPage: vi.fn().mockImplementation((pageNum: number) => ({
+      getTextContent: vi.fn().mockResolvedValue({
+        items: pages[pageNum - 1]?.items || [],
+      }),
+    })),
+  };
+}
+
+// Helper to create mock LLMProvider
+function createMockLLMProvider(structuredHtml: string): LLMProvider {
+  return {
+    generateRewrites: vi.fn(),
+    testConnection: vi.fn(),
+    getProviderName: vi.fn().mockReturnValue('Mock'),
+    getModel: vi.fn().mockReturnValue('mock-model'),
+    generateNarrativeAnalysis: vi.fn(),
+    generateStylisticDNA: vi.fn(),
+    generateCharacters: vi.fn(),
+    generatePlot: vi.fn(),
+    generateWorldbuilding: vi.fn(),
+    generateSynthesis: vi.fn(),
+    structureRawText: vi.fn().mockResolvedValue(structuredHtml),
+  };
+}
 
 describe('PdfParser', () => {
   let parser: PdfParser;
@@ -62,48 +79,35 @@ describe('PdfParser', () => {
       );
     });
 
-    it('should extract plain text from PDF', async () => {
+    it('should extract raw text from PDF', async () => {
       const buffer = Buffer.from('test');
 
-      vi.mocked(extractPdfText).mockResolvedValue([
-        {
-          pageNumber: 1,
-          items: [
-            { text: 'Hello ', fontName: '', fontSize: 12, x: 0, y: 0, width: 50, height: 12 },
-            { text: 'World', fontName: '', fontSize: 12, x: 50, y: 0, width: 50, height: 12 },
-          ],
-          width: 612,
-          height: 792,
-        },
-      ]);
+      vi.mocked(getDocumentProxy).mockResolvedValue(
+        createMockPdfDoc([
+          { items: [{ str: 'Hello ' }, { str: 'World' }] },
+        ]) as ReturnType<typeof getDocumentProxy> extends Promise<infer T> ? T : never
+      );
 
       const result = await parser.parse(buffer, 'test.pdf');
 
-      expect(result).toBe('Hello World');
+      expect(result).toContain('Hello ');
+      expect(result).toContain('World');
     });
 
     it('should handle multiple pages', async () => {
       const buffer = Buffer.from('test');
 
-      vi.mocked(extractPdfText).mockResolvedValue([
-        {
-          pageNumber: 1,
-          items: [{ text: 'Page 1', fontName: '', fontSize: 12, x: 0, y: 0, width: 50, height: 12 }],
-          width: 612,
-          height: 792,
-        },
-        {
-          pageNumber: 2,
-          items: [{ text: 'Page 2', fontName: '', fontSize: 12, x: 0, y: 0, width: 50, height: 12 }],
-          width: 612,
-          height: 792,
-        },
-      ]);
+      vi.mocked(getDocumentProxy).mockResolvedValue(
+        createMockPdfDoc([
+          { items: [{ str: 'Page 1 content' }] },
+          { items: [{ str: 'Page 2 content' }] },
+        ]) as ReturnType<typeof getDocumentProxy> extends Promise<infer T> ? T : never
+      );
 
       const result = await parser.parse(buffer, 'test.pdf');
 
-      expect(result).toContain('Page 1');
-      expect(result).toContain('Page 2');
+      expect(result).toContain('Page 1 content');
+      expect(result).toContain('Page 2 content');
     });
   });
 
@@ -116,146 +120,98 @@ describe('PdfParser', () => {
       );
     });
 
-    it('should throw error for scanned PDF', async () => {
+    it('should throw error for empty/scanned PDF', async () => {
       const buffer = Buffer.from('test');
 
-      vi.mocked(isPdfScanned).mockResolvedValue(true);
+      vi.mocked(getDocumentProxy).mockResolvedValue(
+        createMockPdfDoc([
+          { items: [] }, // Empty page = scanned
+        ]) as ReturnType<typeof getDocumentProxy> extends Promise<infer T> ? T : never
+      );
 
       await expect(parser.parseToChapters(buffer, 'test.pdf')).rejects.toThrow(
-        'Ce PDF semble être scanné'
+        'Ce PDF semble être scanné ou vide'
       );
     });
 
-    it('should create chapters from detected boundaries', async () => {
+    it('should create single chapter when no H1 headings (without AI)', async () => {
       const buffer = Buffer.from('test');
 
-      vi.mocked(isPdfScanned).mockResolvedValue(false);
-      vi.mocked(extractPdfText).mockResolvedValue([
-        {
-          pageNumber: 1,
-          items: [
-            { text: 'Chapter content', fontName: '', fontSize: 12, x: 0, y: 0, width: 100, height: 12 },
-          ],
-          width: 612,
-          height: 792,
-        },
-      ]);
-      vi.mocked(getPdfOutline).mockResolvedValue([]);
-      vi.mocked(calculateMedianFontSize).mockReturnValue(12);
-      vi.mocked(detectChapters).mockReturnValue([
-        {
-          title: 'Chapter 1',
-          startPageIndex: 0,
-          startItemIndex: 0,
-          items: [{ text: 'Content', fontName: '', fontSize: 12, x: 0, y: 0, width: 50, height: 12 }],
-        },
-      ]);
-      vi.mocked(groupIntoParagraphs).mockReturnValue([
-        [{ text: 'Content', fontName: '', fontSize: 12, x: 0, y: 0, width: 50, height: 12 }],
-      ]);
-      vi.mocked(buildTipTapNode).mockReturnValue({
-        type: 'paragraph',
-        content: [{ type: 'text', text: 'Content' }],
-      });
+      vi.mocked(getDocumentProxy).mockResolvedValue(
+        createMockPdfDoc([
+          { items: [{ str: 'Some content here' }] },
+        ]) as ReturnType<typeof getDocumentProxy> extends Promise<infer T> ? T : never
+      );
 
-      const chapters = await parser.parseToChapters(buffer, 'test.pdf');
-
-      expect(chapters.length).toBe(1);
-      expect(chapters[0].getTitle()).toBe('Chapter 1');
-    });
-
-    it('should auto-name chapters without titles', async () => {
-      const buffer = Buffer.from('test');
-
-      vi.mocked(isPdfScanned).mockResolvedValue(false);
-      vi.mocked(extractPdfText).mockResolvedValue([
-        {
-          pageNumber: 1,
-          items: [{ text: 'Content', fontName: '', fontSize: 12, x: 0, y: 0, width: 50, height: 12 }],
-          width: 612,
-          height: 792,
-        },
-      ]);
-      vi.mocked(getPdfOutline).mockResolvedValue([]);
-      vi.mocked(calculateMedianFontSize).mockReturnValue(12);
-      vi.mocked(detectChapters).mockReturnValue([
-        {
-          title: '', // No title
-          startPageIndex: 0,
-          startItemIndex: 0,
-          items: [{ text: 'Content', fontName: '', fontSize: 12, x: 0, y: 0, width: 50, height: 12 }],
-        },
-      ]);
-      vi.mocked(groupIntoParagraphs).mockReturnValue([
-        [{ text: 'Content', fontName: '', fontSize: 12, x: 0, y: 0, width: 50, height: 12 }],
-      ]);
-      vi.mocked(buildTipTapNode).mockReturnValue({
-        type: 'paragraph',
-        content: [{ type: 'text', text: 'Content' }],
-      });
-
-      const chapters = await parser.parseToChapters(buffer, 'test.pdf');
-
-      expect(chapters[0].getTitle()).toBe('Chapitre 1');
-    });
-
-    it('should create at least one chapter even when detection returns empty', async () => {
-      const buffer = Buffer.from('test');
-
-      vi.mocked(isPdfScanned).mockResolvedValue(false);
-      vi.mocked(extractPdfText).mockResolvedValue([
-        {
-          pageNumber: 1,
-          items: [{ text: 'Some content', fontName: '', fontSize: 12, x: 0, y: 0, width: 80, height: 12 }],
-          width: 612,
-          height: 792,
-        },
-      ]);
-      vi.mocked(getPdfOutline).mockResolvedValue([]);
-      vi.mocked(calculateMedianFontSize).mockReturnValue(12);
-      vi.mocked(detectChapters).mockReturnValue([]); // Empty detection result
-      vi.mocked(groupIntoParagraphs).mockReturnValue([
-        [{ text: 'Some content', fontName: '', fontSize: 12, x: 0, y: 0, width: 80, height: 12 }],
-      ]);
-      vi.mocked(buildTipTapNode).mockReturnValue({
-        type: 'paragraph',
-        content: [{ type: 'text', text: 'Some content' }],
+      vi.mocked(htmlToTipTapJSON).mockReturnValue({
+        type: 'doc',
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Some content here' }] }],
       });
 
       const chapters = await parser.parseToChapters(buffer, 'test.pdf');
 
       expect(chapters.length).toBe(1);
       expect(chapters[0].getTitle()).toBe('Chapitre 1');
+    });
+
+    it('should use AI provider when available', async () => {
+      const mockProvider = createMockLLMProvider('<p>AI structured content</p>');
+      const parserWithAI = new PdfParser(mockProvider);
+      const buffer = Buffer.from('test');
+
+      vi.mocked(getDocumentProxy).mockResolvedValue(
+        createMockPdfDoc([
+          { items: [{ str: 'Raw text' }] },
+        ]) as ReturnType<typeof getDocumentProxy> extends Promise<infer T> ? T : never
+      );
+
+      vi.mocked(htmlToTipTapJSON).mockReturnValue({
+        type: 'doc',
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: 'AI structured content' }] }],
+      });
+
+      await parserWithAI.parseToChapters(buffer, 'test.pdf');
+
+      expect(mockProvider.structureRawText).toHaveBeenCalled();
+    });
+
+    it('should split by H1 headings from AI response', async () => {
+      const mockProvider = createMockLLMProvider(
+        '<h1>Chapter One</h1><p>First content</p><h1>Chapter Two</h1><p>Second content</p>'
+      );
+      const parserWithAI = new PdfParser(mockProvider);
+      const buffer = Buffer.from('test');
+
+      vi.mocked(getDocumentProxy).mockResolvedValue(
+        createMockPdfDoc([
+          { items: [{ str: 'Raw text' }] },
+        ]) as ReturnType<typeof getDocumentProxy> extends Promise<infer T> ? T : never
+      );
+
+      vi.mocked(htmlToTipTapJSON).mockReturnValue({
+        type: 'doc',
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Content' }] }],
+      });
+
+      const chapters = await parserWithAI.parseToChapters(buffer, 'test.pdf');
+
+      expect(chapters.length).toBe(2);
+      expect(chapters[0].getTitle()).toBe('Chapter One');
+      expect(chapters[1].getTitle()).toBe('Chapter Two');
     });
 
     it('should generate valid TipTap JSON content', async () => {
       const buffer = Buffer.from('test');
 
-      vi.mocked(isPdfScanned).mockResolvedValue(false);
-      vi.mocked(extractPdfText).mockResolvedValue([
-        {
-          pageNumber: 1,
-          items: [{ text: 'Content', fontName: '', fontSize: 12, x: 0, y: 0, width: 50, height: 12 }],
-          width: 612,
-          height: 792,
-        },
-      ]);
-      vi.mocked(getPdfOutline).mockResolvedValue([]);
-      vi.mocked(calculateMedianFontSize).mockReturnValue(12);
-      vi.mocked(detectChapters).mockReturnValue([
-        {
-          title: 'Test',
-          startPageIndex: 0,
-          startItemIndex: 0,
-          items: [{ text: 'Content', fontName: '', fontSize: 12, x: 0, y: 0, width: 50, height: 12 }],
-        },
-      ]);
-      vi.mocked(groupIntoParagraphs).mockReturnValue([
-        [{ text: 'Content', fontName: '', fontSize: 12, x: 0, y: 0, width: 50, height: 12 }],
-      ]);
-      vi.mocked(buildTipTapNode).mockReturnValue({
-        type: 'paragraph',
-        content: [{ type: 'text', text: 'Content' }],
+      vi.mocked(getDocumentProxy).mockResolvedValue(
+        createMockPdfDoc([
+          { items: [{ str: 'Content' }] },
+        ]) as ReturnType<typeof getDocumentProxy> extends Promise<infer T> ? T : never
+      );
+
+      vi.mocked(htmlToTipTapJSON).mockReturnValue({
+        type: 'doc',
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Content' }] }],
       });
 
       const chapters = await parser.parseToChapters(buffer, 'test.pdf');
@@ -263,6 +219,69 @@ describe('PdfParser', () => {
       const content = JSON.parse(chapters[0].getContent());
       expect(content.type).toBe('doc');
       expect(Array.isArray(content.content)).toBe(true);
+    });
+
+    it('should preserve whitespace in raw text extraction', async () => {
+      const buffer = Buffer.from('test');
+
+      vi.mocked(getDocumentProxy).mockResolvedValue(
+        createMockPdfDoc([
+          { items: [{ str: 'Hello ' }, { str: '' }, { str: 'World' }] },
+        ]) as ReturnType<typeof getDocumentProxy> extends Promise<infer T> ? T : never
+      );
+
+      vi.mocked(htmlToTipTapJSON).mockReturnValue({
+        type: 'doc',
+        content: [],
+      });
+
+      // The raw text should include the whitespace
+      const rawText = await parser.parse(buffer, 'test.pdf');
+      expect(rawText).toContain('Hello ');
+    });
+  });
+
+  describe('fallback simple text to HTML', () => {
+    it('should convert double newlines to paragraph breaks', async () => {
+      const buffer = Buffer.from('test');
+
+      vi.mocked(getDocumentProxy).mockResolvedValue(
+        createMockPdfDoc([
+          { items: [{ str: 'Paragraph 1' }, { str: '\n\n' }, { str: 'Paragraph 2' }] },
+        ]) as ReturnType<typeof getDocumentProxy> extends Promise<infer T> ? T : never
+      );
+
+      let capturedHtml = '';
+      vi.mocked(htmlToTipTapJSON).mockImplementation((html: string) => {
+        capturedHtml = html;
+        return { type: 'doc', content: [] };
+      });
+
+      await parser.parseToChapters(buffer, 'test.pdf');
+
+      // Without AI, simple fallback splits by double newlines
+      expect(capturedHtml).toContain('<p>');
+    });
+
+    it('should escape HTML special characters', async () => {
+      const buffer = Buffer.from('test');
+
+      vi.mocked(getDocumentProxy).mockResolvedValue(
+        createMockPdfDoc([
+          { items: [{ str: '<script>alert("xss")</script>' }] },
+        ]) as ReturnType<typeof getDocumentProxy> extends Promise<infer T> ? T : never
+      );
+
+      let capturedHtml = '';
+      vi.mocked(htmlToTipTapJSON).mockImplementation((html: string) => {
+        capturedHtml = html;
+        return { type: 'doc', content: [] };
+      });
+
+      await parser.parseToChapters(buffer, 'test.pdf');
+
+      expect(capturedHtml).not.toContain('<script>');
+      expect(capturedHtml).toContain('&lt;script&gt;');
     });
   });
 });

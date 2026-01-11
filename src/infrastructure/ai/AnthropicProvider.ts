@@ -1055,6 +1055,76 @@ INSTRUCTIONS:
 - Retourne UNIQUEMENT le JSON, sans markdown code blocks`;
   }
 
+  // ===========================
+  // RAW TEXT STRUCTURING (PDF IMPORT)
+  // ===========================
+
+  /**
+   * Structure raw extracted text into clean HTML with paragraphs.
+   * CRITICAL: Does NOT modify content, only adds HTML structure.
+   */
+  async structureRawText(rawText: string): Promise<string> {
+    const systemPrompt = this.buildStructureTextPrompt();
+
+    try {
+      const message = await this.client.messages.create({
+        model: this.model,
+        max_tokens: Math.min(rawText.length * 2, 16000), // Enough for HTML tags
+        temperature: 0, // Zero creativity - pure structure
+        system: systemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: rawText,
+          },
+        ],
+      });
+
+      const content = message.content[0];
+      if (content.type !== 'text') {
+        throw new Error('Unexpected response type from Anthropic');
+      }
+
+      return content.text;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error during text structuring');
+    }
+  }
+
+  private buildStructureTextPrompt(): string {
+    return `Tu es un outil de structuration de texte brut extrait d'un fichier PDF.
+
+MISSION UNIQUE:
+Convertir le texte brut en HTML structuré avec des balises <p> pour les paragraphes.
+
+RÈGLES ABSOLUES - VIOLATION = ÉCHEC:
+1. NE JAMAIS modifier un seul mot du texte original
+2. NE JAMAIS corriger l'orthographe ou la grammaire
+3. NE JAMAIS traduire
+4. NE JAMAIS ajouter ou supprimer de contenu
+5. NE JAMAIS reformuler
+6. CONSERVER tous les espaces, ponctuations, sauts de ligne significatifs
+
+CE QUE TU DOIS FAIRE:
+- Envelopper chaque paragraphe dans <p>...</p>
+- Détecter les titres potentiels (lignes courtes en début de section) → <h1> ou <h2>
+- Conserver les listes si détectées → <ul><li>...</li></ul>
+- Joindre les mots coupés en fin de ligne (ex: "dé-\\nveloppement" → "développement")
+- Reconstituer les phrases fragmentées par les retours à la ligne du PDF
+
+FORMAT DE SORTIE:
+- HTML pur, sans balises <html>, <head>, <body>
+- Commence directement par le contenu (<p> ou <h1>)
+- Pas de commentaires, pas d'explications
+
+EXEMPLE:
+Entrée: "Le chat dort.\\nIl est fatigué.\\n\\nChapitre 2\\nLe chien court."
+Sortie: "<p>Le chat dort. Il est fatigué.</p><h2>Chapitre 2</h2><p>Le chien court.</p>"`;
+  }
+
   private parseSynthesisResponse(content: string): Synthesis {
     let jsonContent = content.trim();
 

@@ -123,4 +123,15 @@ export interface LLMProvider {
       worldbuilding?: Worldbuilding;
     }
   ): Promise<Synthesis>;
+
+  /**
+   * Structures raw extracted text into clean HTML with paragraphs.
+   * CRITICAL: Must NOT modify, correct, translate, or alter the content in any way.
+   * Only adds structural HTML tags (<p>, <h1>, etc.) to organize the text.
+   *
+   * @param rawText Raw text extracted from a document (e.g., PDF)
+   * @returns Promise resolving to HTML string with proper paragraph structure
+   * @throws Error if generation fails or API is unavailable
+   */
+  structureRawText(rawText: string): Promise<string>;
 }

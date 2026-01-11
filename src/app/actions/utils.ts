@@ -112,9 +112,10 @@ export async function getIdGenerator(): Promise<IdGenerator> {
 
 /**
  * Get document parser instance.
+ * @param llmProvider - Optional LLM provider for AI-powered PDF text structuring
  */
-export async function getDocumentParser(): Promise<DocumentParser> {
-  return getDocxParser();
+export async function getDocumentParser(llmProvider?: LLMProvider): Promise<DocumentParser> {
+  return getDocxParser(llmProvider);
 }
 
 /**

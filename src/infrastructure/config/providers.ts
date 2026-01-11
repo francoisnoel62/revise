@@ -156,11 +156,12 @@ export function getDefaultLLMProvider(): LLMProvider {
 /**
  * Get the document parser.
  * Returns CompositeDocumentParser supporting both .docx and .pdf files.
+ * @param llmProvider - Optional LLM provider for AI-powered PDF text structuring
  */
-export function getDocxParser(): DocumentParser {
+export function getDocxParser(llmProvider?: LLMProvider): DocumentParser {
   return new CompositeDocumentParser([
     new DocxParser(),
-    new PdfParser(),
+    new PdfParser(llmProvider),
   ]);
 }
 
