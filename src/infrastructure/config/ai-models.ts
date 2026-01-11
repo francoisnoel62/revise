@@ -19,11 +19,17 @@ export interface ModelInfo {
 export const AI_MODELS: Record<ProviderType, ModelInfo[]> = {
   openai: [
     {
+      id: 'gpt-5-nano-2025-08-07',
+      name: 'GPT-5 Nano',
+      description: 'Latest GPT-5 generation, fast with 400K context and 128K output tokens',
+      contextWindow: 400000,
+      recommended: true,
+    },
+    {
       id: 'gpt-4o-mini',
       name: 'GPT-4o Mini',
-      description: 'Fast and cost-effective model, recommended for most use cases',
+      description: 'Fast and cost-effective model for most use cases',
       contextWindow: 128000,
-      recommended: true,
     },
     {
       id: 'gpt-4o',
