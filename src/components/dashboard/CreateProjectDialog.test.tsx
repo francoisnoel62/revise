@@ -49,7 +49,7 @@ describe('CreateProjectDialog', () => {
   it('has file upload button', () => {
     renderDialog();
 
-    expect(screen.getByText(/import a .docx file/i)).toBeInTheDocument();
+    expect(screen.getByText(/import a \.docx or \.pdf file/i)).toBeInTheDocument();
   });
 
   it('calls onCreateProject with title when submitted', async () => {
@@ -106,7 +106,7 @@ describe('CreateProjectDialog', () => {
     await user.click(removeButton);
 
     expect(screen.queryByText('my-draft.docx')).not.toBeInTheDocument();
-    expect(screen.getByText(/import a .docx file/i)).toBeInTheDocument();
+    expect(screen.getByText(/import a \.docx or \.pdf file/i)).toBeInTheDocument();
   });
 
   it('calls onCreateProject with file when submitted', async () => {
