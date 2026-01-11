@@ -4,18 +4,19 @@
 'use server';
 
 import { DocxParser } from '@/infrastructure/document/parsers/DocxParser';
-import { DocxExporter } from '@/infrastructure/document/exporters/DocxExporter';
 import { Project } from '@/domain/entities/Project';
 import { Chapter } from '@/domain/entities/Chapter';
 import { TextDocument } from '@/domain/entities/TextDocument';
 import { TextSelection } from '@/domain/value-objects/TextSelection';
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
 import { RewriteTextUseCase } from '@/application/use-cases/RewriteTextUseCase';
+import { ExportProjectUseCase } from '@/application/use-cases/ExportProjectUseCase';
 import { getPromptRepository } from '@/infrastructure/config/providers';
 import {
   type ActionResult,
   getAuthenticatedUserId,
   getRepository,
+  getDocumentExporter,
   withErrorHandling,
 } from './actions/utils';
 import { type SerializedProject } from './actions/project-actions';
@@ -110,12 +111,14 @@ export async function exportProject(
       throw new Error('Project not found');
     }
 
-    const exporter = new DocxExporter();
-    const buffer = await exporter.exportProject(project, `${project.getTitle()}.docx`);
+    const exporter = await getDocumentExporter();
+    const useCase = new ExportProjectUseCase(exporter);
+    const filename = `${project.getTitle()}.docx`;
+    const buffer = await useCase.execute(project, filename, 'all');
 
     return {
       buffer: Array.from(buffer),
-      filename: `${project.getTitle()}.docx`,
+      filename,
     };
   });
 }
@@ -157,8 +160,9 @@ export async function exportProjectLegacy(
       new Date()
     );
 
-    const exporter = new DocxExporter();
-    const buffer = await exporter.exportProject(project, 'export.docx');
+    const exporter = await getDocumentExporter();
+    const useCase = new ExportProjectUseCase(exporter);
+    const buffer = await useCase.execute(project, 'export.docx', 'all');
 
     return { buffer: Array.from(buffer) };
   } catch (error) {
