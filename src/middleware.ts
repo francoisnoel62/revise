@@ -1,8 +1,11 @@
+// ABOUTME: Next.js middleware for route protection using Auth.js
+// ABOUTME: Redirects unauthenticated users from protected routes to sign-in
+
 import { NextResponse } from 'next/server';
 import { auth } from '@/infrastructure/auth/auth-config';
 
 // Routes that require authentication
-const protectedRoutes = ['/', '/dashboard'];
+const protectedRoutes = ['/dashboard', '/editor', '/project'];
 
 // Routes that should redirect to dashboard if already authenticated
 const authRoutes = ['/auth/signin', '/auth/signup'];
@@ -28,6 +31,11 @@ export default auth((req) => {
 
   // Redirect authenticated users from auth routes to dashboard
   if (isAuthRoute && isLoggedIn) {
+    return NextResponse.redirect(new URL('/dashboard', nextUrl));
+  }
+
+  // Redirect authenticated users from landing page to dashboard
+  if (path === '/' && isLoggedIn) {
     return NextResponse.redirect(new URL('/dashboard', nextUrl));
   }
 
