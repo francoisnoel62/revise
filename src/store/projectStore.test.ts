@@ -56,7 +56,6 @@ describe('projectStore', () => {
       activeContent: '{"type":"doc","content":[{"type":"paragraph"}]}',
       isLoading: false,
       isSaving: false,
-      isImporting: false,
       isExporting: false,
       error: null,
       hasUnsavedChanges: false,

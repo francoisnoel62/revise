@@ -22,8 +22,6 @@ export interface ProjectState {
   isLoading: boolean;
   /** Saving in progress */
   isSaving: boolean;
-  /** Import in progress */
-  isImporting: boolean;
   /** Export in progress */
   isExporting: boolean;
   /** Current error message */
@@ -51,7 +49,6 @@ export interface ProjectState {
   saveCurrentChapter: () => Promise<void>;
 
   // UI state management
-  setIsImporting: (isImporting: boolean) => void;
   setIsExporting: (isExporting: boolean) => void;
   clearError: () => void;
 }

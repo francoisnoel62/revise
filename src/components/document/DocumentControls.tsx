@@ -1,65 +1,18 @@
-// ABOUTME: Import/export controls using server-backed actions.
-// ABOUTME: Import persists to database, export loads from database.
+// ABOUTME: Export controls using server-backed actions.
+// ABOUTME: Export loads project from database and downloads as .docx file.
 
 'use client';
 
-import { useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useProjectStore } from '@/store/projectStore';
-import { importDocument, exportProject } from '@/app/actions';
-import { Upload, Download, Loader2 } from 'lucide-react';
+import { exportProject } from '@/app/actions';
+import { Download, Loader2 } from 'lucide-react';
 
 export function DocumentControls() {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  const {
-    projectId,
-    project,
-    isImporting,
-    isExporting,
-    setIsImporting,
-    setIsExporting,
-  } = useProjectStore();
-
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsImporting(true);
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const result = await importDocument(formData);
-
-      if (!result.success) {
-        if (result.redirect) {
-          router.push(result.redirect);
-          return;
-        }
-        throw new Error(result.error);
-      }
-
-      // Navigate to new project
-      router.push(`/editor?project=${result.data.id}`);
-    } catch (error) {
-      console.error('Import failed:', error);
-      alert(error instanceof Error ? error.message : 'Import failed');
-    } finally {
-      setIsImporting(false);
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
+  const { projectId, project, isExporting, setIsExporting } = useProjectStore();
 
   const handleExport = async () => {
     if (!projectId) return;
@@ -99,52 +52,23 @@ export function DocumentControls() {
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".docx"
-        onChange={handleFileChange}
-        className="hidden"
-      />
-
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleImportClick}
-        disabled={isImporting}
-      >
-        {isImporting ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Importing...
-          </>
-        ) : (
-          <>
-            <Upload className="mr-2 h-4 w-4" />
-            Importer
-          </>
-        )}
-      </Button>
-
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleExport}
-        disabled={isExporting || !project}
-      >
-        {isExporting ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Exporting...
-          </>
-        ) : (
-          <>
-            <Download className="mr-2 h-4 w-4" />
-            Exporter
-          </>
-        )}
-      </Button>
-    </div>
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={handleExport}
+      disabled={isExporting || !project}
+    >
+      {isExporting ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Exporting...
+        </>
+      ) : (
+        <>
+          <Download className="mr-2 h-4 w-4" />
+          Exporter
+        </>
+      )}
+    </Button>
   );
 }
