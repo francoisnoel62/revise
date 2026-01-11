@@ -1,4 +1,4 @@
-// ABOUTME: Next.js middleware for route protection using Auth.js
+// ABOUTME: Next.js proxy for route protection using Auth.js
 // ABOUTME: Redirects unauthenticated users from protected routes to sign-in
 
 import { NextResponse } from 'next/server';
