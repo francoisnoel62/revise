@@ -194,7 +194,7 @@ export async function getAnyAvailableLLMProvider(userId: string): Promise<LLMPro
 
   // Then, try user's configured providers
   const providerRepo = await getProviderRepo();
-  const providers = await providerRepo.listByUser(userId);
+  const providers = await providerRepo.listProviders(userId);
 
   // Find first valid provider
   for (const provider of providers) {
