@@ -1180,57 +1180,55 @@ INSTRUCTIONS:
   // ===========================
 
   /**
-   * Retrieves account balance from OpenAI billing API.
-   * Uses undocumented but functional billing endpoints.
+   * Retrieves account balance from OpenAI Costs API.
+   * Requires an Admin API key for access to billing data.
+   * Regular API keys (sk-proj-...) cannot access billing information.
    */
   async getAccountBalance(): Promise<AccountBalance> {
+    // Check if the API key is an admin key
+    // Admin keys typically start with 'sk-admin-'
+    const isAdminKey = this.apiKey.startsWith('sk-admin-');
+
+    if (!isAdminKey) {
+      return createUnavailableBalance(
+        'Admin API key required. Get one at platform.openai.com/settings/organization/admin-keys'
+      );
+    }
+
     try {
-      // Fetch billing subscription and credit grants in parallel
-      const [subscriptionResponse, grantsResponse] = await Promise.all([
-        this.fetchBillingEndpoint('/v1/dashboard/billing/subscription'),
-        this.fetchBillingEndpoint('/v1/dashboard/billing/credit_grants'),
-      ]);
+      // Get costs for current month using the official Costs API
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startTime = Math.floor(startOfMonth.getTime() / 1000);
 
-      // Parse subscription for limits and renewal
-      let limit: number | null = null;
-      let renewalDate: Date | null = null;
+      const costsResponse = await this.fetchBillingEndpoint(
+        `/v1/organization/costs?start_time=${startTime}`
+      );
 
-      if (subscriptionResponse) {
-        // hard_limit_usd is the spending limit
-        if (typeof subscriptionResponse.hard_limit_usd === 'number') {
-          limit = subscriptionResponse.hard_limit_usd;
-        }
-        // billing_cycle_anchor or access_until for renewal date
-        if (typeof subscriptionResponse.access_until === 'number') {
-          renewalDate = new Date(subscriptionResponse.access_until * 1000);
-        }
+      if (!costsResponse) {
+        return createUnavailableBalance('Failed to fetch billing data');
       }
 
-      // Parse credit grants for usage
+      // Parse costs response
       let used = 0;
-      if (grantsResponse) {
-        // total_used is in USD
-        if (typeof grantsResponse.total_used === 'number') {
-          used = grantsResponse.total_used;
-        }
-        // Some responses have total_granted as limit
-        if (limit === null && typeof grantsResponse.total_granted === 'number') {
-          limit = grantsResponse.total_granted;
-        }
-        // Check for grants array with expiration
-        if (Array.isArray(grantsResponse.grants) && grantsResponse.grants.length > 0) {
-          const activeGrant = grantsResponse.grants.find(
-            (g: { expires_at?: number }) => g.expires_at && g.expires_at * 1000 > Date.now()
-          );
-          if (activeGrant?.expires_at && !renewalDate) {
-            renewalDate = new Date(activeGrant.expires_at * 1000);
-          }
-        }
+
+      // The costs endpoint returns data with amount_cents or similar
+      if (typeof costsResponse.total_cost_usd === 'number') {
+        used = costsResponse.total_cost_usd;
+      } else if (typeof costsResponse.total_cost_cents === 'number') {
+        used = costsResponse.total_cost_cents / 100;
+      } else if (Array.isArray(costsResponse.data)) {
+        // Sum costs from data array
+        used = costsResponse.data.reduce(
+          (sum: number, item: { amount?: { value?: number } }) =>
+            sum + (item.amount?.value || 0),
+          0
+        );
       }
 
-      return createAccountBalance(used, limit, renewalDate, 'USD');
+      // OpenAI doesn't expose credit limits via API
+      return createAccountBalance(used, null, null, 'USD');
     } catch (error) {
-      // Return unavailable balance with error message
       const errorMessage =
         error instanceof Error ? error.message : 'Failed to fetch balance';
       return createUnavailableBalance(errorMessage);
@@ -1238,8 +1236,8 @@ INSTRUCTIONS:
   }
 
   /**
-   * Fetches data from OpenAI billing endpoints.
-   * These are undocumented but functional endpoints.
+   * Fetches data from OpenAI API endpoints.
+   * Used for billing/costs data retrieval.
    */
   private async fetchBillingEndpoint(
     endpoint: string
@@ -1254,8 +1252,7 @@ INSTRUCTIONS:
       });
 
       if (!response.ok) {
-        // Don't throw for 404/403 - endpoint might not be available
-        if (response.status === 404 || response.status === 403) {
+        if (response.status === 401 || response.status === 403) {
           return null;
         }
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -1263,7 +1260,6 @@ INSTRUCTIONS:
 
       return await response.json();
     } catch {
-      // Return null for network errors - let caller handle gracefully
       return null;
     }
   }

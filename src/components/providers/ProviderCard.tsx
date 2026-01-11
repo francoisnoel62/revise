@@ -174,7 +174,11 @@ export function ProviderCard({
                   <div className="text-xs text-muted-foreground">
                     {balance.errorMessage?.includes('Admin API key') ? (
                       <a
-                        href="https://console.anthropic.com/settings/admin-keys"
+                        href={
+                          balance.errorMessage?.includes('platform.openai.com')
+                            ? 'https://platform.openai.com/settings/organization/admin-keys'
+                            : 'https://console.anthropic.com/settings/admin-keys'
+                        }
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1 text-blue-600 hover:underline"
