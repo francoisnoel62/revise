@@ -66,7 +66,7 @@ export async function importDocument(
     }
 
     // Get LLM provider for AI-powered PDF text structuring (optional)
-    const llmProvider = tryGetDefaultLLMProvider();
+    const llmProvider = await tryGetDefaultLLMProvider();
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const parser = await getDocumentParser(llmProvider);

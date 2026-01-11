@@ -171,7 +171,7 @@ export async function getLLMProviderForProject(
  * Used when no project-specific provider is configured.
  * Returns undefined if no default provider is available.
  */
-export function tryGetDefaultLLMProvider(): LLMProvider | undefined {
+export async function tryGetDefaultLLMProvider(): Promise<LLMProvider | undefined> {
   try {
     return getDefaultLLMProvider();
   } catch {
