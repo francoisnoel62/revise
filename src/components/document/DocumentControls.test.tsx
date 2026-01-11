@@ -1,7 +1,7 @@
 // ABOUTME: Test suite for DocumentControls component
-// ABOUTME: Validates import/export UI interactions and Server Action calls
+// ABOUTME: Validates export UI interactions and Server Action calls
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DocumentControls } from './DocumentControls';
@@ -14,44 +14,63 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
+// Mock project store
+const mockSetIsExporting = vi.fn();
+vi.mock('@/store/projectStore', () => ({
+  useProjectStore: () => ({
+    projectId: 'test-project-id',
+    project: { id: 'test-project-id', title: 'Test Project' },
+    isExporting: false,
+    setIsExporting: mockSetIsExporting,
+  }),
+}));
+
 // Mock Server Actions
+const mockExportProject = vi.fn();
 vi.mock('@/app/actions', () => ({
-  importDocument: vi.fn(),
-  exportDocument: vi.fn(),
+  exportProject: (...args: unknown[]) => mockExportProject(...args),
 }));
 
 describe('DocumentControls', () => {
-  it('should render import and export buttons', () => {
-    const onImport = vi.fn();
-    const onExport = vi.fn();
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
-    render(<DocumentControls onImport={onImport} onExport={onExport} />);
+  it('should render export button', () => {
+    render(<DocumentControls />);
 
-    expect(screen.getByText('Importer')).toBeInTheDocument();
     expect(screen.getByText('Exporter')).toBeInTheDocument();
   });
 
-  it('should trigger file input when import button is clicked', async () => {
-    const user = userEvent.setup();
-    const onImport = vi.fn();
-    const onExport = vi.fn();
+  it('should not render import button', () => {
+    render(<DocumentControls />);
 
-    render(<DocumentControls onImport={onImport} onExport={onExport} />);
-
-    const importButton = screen.getByText('Importer');
-    await user.click(importButton);
-
-    const fileInput = document.querySelector('input[type="file"]');
-    expect(fileInput).toBeInTheDocument();
+    expect(screen.queryByText('Importer')).not.toBeInTheDocument();
   });
 
-  it('should accept only .docx files', () => {
-    const onImport = vi.fn();
-    const onExport = vi.fn();
+  it('should call exportProject when export button is clicked', async () => {
+    const user = userEvent.setup();
 
-    render(<DocumentControls onImport={onImport} onExport={onExport} />);
+    // Mock successful export
+    mockExportProject.mockResolvedValue({
+      success: true,
+      data: {
+        buffer: new Uint8Array([1, 2, 3]),
+        filename: 'test.docx',
+      },
+    });
 
-    const fileInput = document.querySelector('input[type="file"]');
-    expect(fileInput).toHaveAttribute('accept', '.docx');
+    // Mock URL and document methods for download
+    const mockCreateObjectURL = vi.fn(() => 'blob:test');
+    const mockRevokeObjectURL = vi.fn();
+    global.URL.createObjectURL = mockCreateObjectURL;
+    global.URL.revokeObjectURL = mockRevokeObjectURL;
+
+    render(<DocumentControls />);
+
+    const exportButton = screen.getByText('Exporter');
+    await user.click(exportButton);
+
+    expect(mockExportProject).toHaveBeenCalledWith('test-project-id');
   });
 });

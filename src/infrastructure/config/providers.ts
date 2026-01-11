@@ -9,6 +9,7 @@ import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
 import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import { LLMProvider } from '@/domain/interfaces/LLMProvider';
 import { DocumentParser } from '@/domain/interfaces/DocumentParser';
+import { DocumentExporter } from '@/domain/interfaces/DocumentExporter';
 import { AuthJsProvider } from '@/infrastructure/auth/AuthJsProvider';
 import { MongoDBProjectRepository } from '@/infrastructure/persistence/MongoDBProjectRepository';
 import { MongoDBUserRepository } from '@/infrastructure/persistence/MongoDBUserRepository';
@@ -19,6 +20,7 @@ import { FilePromptRepository } from '@/infrastructure/prompts/FilePromptReposit
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
 import { AnthropicProvider } from '@/infrastructure/ai/AnthropicProvider';
 import { DocxParser } from '@/infrastructure/document/parsers/DocxParser';
+import { DocxExporter } from '@/infrastructure/document/exporters/DocxExporter';
 import { Provider } from '@/domain/entities/Provider';
 import { getDatabase } from './database';
 import { config } from './env';
@@ -154,4 +156,12 @@ export function getDefaultLLMProvider(): LLMProvider {
  */
 export function getDocxParser(): DocumentParser {
   return new DocxParser();
+}
+
+/**
+ * Get the document exporter.
+ * Returns DocxExporter implementation for .docx file support.
+ */
+export function getDocumentExporter(): DocumentExporter {
+  return new DocxExporter();
 }

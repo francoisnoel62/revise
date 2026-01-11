@@ -40,7 +40,6 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   activeContent: EMPTY_CONTENT,
   isLoading: false,
   isSaving: false,
-  isImporting: false,
   isExporting: false,
   error: null,
   hasUnsavedChanges: false,
@@ -308,7 +307,6 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   // === UI State ===
 
-  setIsImporting: (isImporting: boolean) => set({ isImporting }),
   setIsExporting: (isExporting: boolean) => set({ isExporting }),
   clearError: () => set({ error: null }),
 }));

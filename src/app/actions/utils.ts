@@ -14,6 +14,7 @@ import {
   createLLMProvider,
   getDefaultLLMProvider,
   getDocxParser,
+  getDocumentExporter as getExporterFromConfig,
 } from '@/infrastructure/config/providers';
 import { LLMProviderFactoryImpl } from '@/infrastructure/ai/LLMProviderFactoryImpl';
 import { uuidGenerator } from '@/infrastructure/utils/UUIDGenerator';
@@ -26,6 +27,7 @@ import { LLMProviderFactory } from '@/domain/interfaces/LLMProviderFactory';
 import { IdGenerator } from '@/domain/interfaces/IdGenerator';
 import { LLMProvider } from '@/domain/interfaces/LLMProvider';
 import { DocumentParser } from '@/domain/interfaces/DocumentParser';
+import { DocumentExporter } from '@/domain/interfaces/DocumentExporter';
 
 /**
  * Result type for Server Actions.
@@ -112,6 +114,14 @@ export async function getIdGenerator(): Promise<IdGenerator> {
  */
 export async function getDocumentParser(): Promise<DocumentParser> {
   return getDocxParser();
+}
+
+/**
+ * Get document exporter instance.
+ * Returns DocxExporter implementation via providers.
+ */
+export async function getDocumentExporter(): Promise<DocumentExporter> {
+  return getExporterFromConfig();
 }
 
 /**
