@@ -98,12 +98,9 @@ const CHAR_REPLACEMENTS: Record<string, string> = {
   'π': 'pi',
   'Ω': 'O',
   // Special punctuation (using Unicode escapes for problematic characters)
-  '\u2013': '-', // en dash
-  '\u2014': '--', // em dash
-  '\u2018': "'", // left single quote
-  '\u2019': "'", // right single quote
-  '\u201C': '"', // left double quote
-  '\u201D': '"', // right double quote
+  // NOTE: En dash (U+2013), em dash (U+2014), smart quotes (U+2018-U+201E),
+  // and French guillemets (U+00AB, U+00BB) are preserved - they are supported
+  // by WinAnsi encoding in pdf-lib StandardFonts
   '\u2026': '...', // ellipsis
   '\u2022': '*', // bullet
   '\u2192': '->', // right arrow
@@ -138,8 +135,15 @@ function normalizeForWinAnsi(text: string): string {
     } else {
       // Check if character is in WinAnsi range (basic Latin + Latin-1 Supplement)
       const code = char.charCodeAt(0);
-      if (code <= 255 || (code >= 0x2018 && code <= 0x201e)) {
-        // Basic Latin, Latin-1, or smart quotes (handled by pdf-lib)
+      // WinAnsi supports:
+      // - 0-255: Basic Latin, Latin-1 (includes French guillemets « » at 171, 187)
+      // - 0x2013-0x2014: En dash (–) and em dash (—)
+      // - 0x2018-0x201E: Smart quotes (' ' " " „)
+      if (
+        code <= 255 ||
+        (code >= 0x2013 && code <= 0x2014) ||
+        (code >= 0x2018 && code <= 0x201e)
+      ) {
         result += char;
       } else {
         // Unknown character - replace with placeholder or skip

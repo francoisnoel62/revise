@@ -392,6 +392,53 @@ describe('PdfExporter', () => {
       expect(buffer.length).toBeGreaterThan(0);
     });
 
+    it('should preserve French typography (guillemets and em dashes)', async () => {
+      const contentWithFrenchTypography = JSON.stringify({
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [
+              {
+                type: 'text',
+                text: '« Bonjour », dit-il — avec un sourire.',
+              },
+            ],
+          },
+          {
+            type: 'paragraph',
+            content: [
+              {
+                type: 'text',
+                text: 'Elle répondit : « Non merci — je préfère rester ici. »',
+              },
+            ],
+          },
+        ],
+      });
+
+      const chapters = [new Chapter('ch-1', 'French Typography', contentWithFrenchTypography, 0)];
+      const project = new Project(
+        'proj-1',
+        'user-1',
+        'French Typography Project',
+        chapters,
+        'ch-1',
+        null,
+        new Date(),
+        new Date()
+      );
+
+      // Should not throw an error - French typography is preserved
+      const buffer = await exporter.exportProject(project, 'french-typography.pdf');
+
+      expect(buffer).toBeInstanceOf(Buffer);
+      expect(buffer[0]).toBe(0x25); // '%'
+      expect(buffer[1]).toBe(0x50); // 'P'
+      expect(buffer[2]).toBe(0x44); // 'D'
+      expect(buffer[3]).toBe(0x46); // 'F'
+    });
+
     it('should handle non-WinAnsi characters (Turkish, Polish, etc.)', async () => {
       const contentWithSpecialChars = JSON.stringify({
         type: 'doc',
