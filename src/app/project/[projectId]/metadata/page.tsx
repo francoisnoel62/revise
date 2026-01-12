@@ -1,25 +1,15 @@
 // ABOUTME: Metadata list page for a project.
-// ABOUTME: Shows existing metadata and allows generating all analysis types (narrative, stylistic DNA, characters, plot, worldbuilding, synthesis).
+// ABOUTME: Shows existing metadata and allows generating/regenerating all analysis types.
 
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MetadataCard } from '@/components/metadata/MetadataCard';
 import { GenerateCard } from '@/components/metadata/GenerateCard';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import {
   MetadataListItem,
   listMetadataAction,
@@ -44,11 +34,8 @@ export default function MetadataListPage() {
   const [metadata, setMetadata] = useState<MetadataListItem[]>([]);
   const [providers, setProviders] = useState<SafeProvider[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [generatingType, setGeneratingType] = useState<string | null>(null); // Track which type is generating
+  const [generatingType, setGeneratingType] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
-  const [selectedProviderId, setSelectedProviderId] = useState<string>('');
-  const pendingProviderIdRef = useRef<string>(''); // Store provider ID immediately without state delay
 
   // Load project, metadata, and providers on mount
   useEffect(() => {
@@ -101,35 +88,16 @@ export default function MetadataListPage() {
   const hasSynthesis = metadata.some((m) => m.typeKey === 'synthesis');
 
   const handleGenerateNarrativeAnalysis = async (providerId: string) => {
-    // Store the selected provider ID immediately (no state delay)
-    pendingProviderIdRef.current = providerId;
-    setSelectedProviderId(providerId);
-
-    // If already exists, show confirmation dialog
-    if (hasNarrativeAnalysis) {
-      setShowRegenerateDialog(true);
-      return;
-    }
-
-    // Generate immediately with the provided ID
-    await doGenerate(providerId);
-  };
-
-  const doGenerate = async (providerId?: string) => {
-    // Use the provided providerId or fall back to the state
-    const providerToUse = providerId || selectedProviderId;
-
-    if (!providerToUse) {
+    if (!providerId) {
       setError('Veuillez sélectionner un provider');
       return;
     }
 
-    setGeneratingType('narrative-analysis'); // Track which type is generating
+    setGeneratingType('narrative-analysis');
     setError(null);
-    setShowRegenerateDialog(false);
 
     try {
-      const result = await generateNarrativeAnalysisAction(projectId, providerToUse);
+      const result = await generateNarrativeAnalysisAction(projectId, providerId);
 
       if (!result.success) {
         setError(result.error);
@@ -147,7 +115,7 @@ export default function MetadataListPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la génération');
     } finally {
-      setGeneratingType(null); // Clear generating state
+      setGeneratingType(null);
     }
   };
 
@@ -163,6 +131,58 @@ export default function MetadataListPage() {
     setMetadata((prev) =>
       prev.map((m) => (m.id === metadataId ? { ...m, title: newTitle } : m))
     );
+  };
+
+  // Handler for regenerating metadata from MetadataCard
+  const handleRegenerate = async (typeKey: string, providerId: string) => {
+    if (!providerId) {
+      setError('Veuillez sélectionner un provider');
+      return;
+    }
+
+    setGeneratingType(typeKey);
+    setError(null);
+
+    // Map typeKey to the appropriate generation action
+    const actionMap: Record<string, (projectId: string, providerId: string) => Promise<{ success: boolean; error?: string; data?: { metadata: { id: string } } }>> = {
+      'narrative-analysis': generateNarrativeAnalysisAction,
+      'stylistic-dna': generateStylisticDNAAction,
+      'characters': generateCharactersAction,
+      'plot': generatePlotAction,
+      'worldbuilding': generateWorldbuildingAction,
+      'synthesis': generateSynthesisAction,
+    };
+
+    const generateAction = actionMap[typeKey];
+    if (!generateAction) {
+      setError(`Type de métadonnée inconnu: ${typeKey}`);
+      setGeneratingType(null);
+      return;
+    }
+
+    try {
+      const result = await generateAction(projectId, providerId);
+
+      if (!result.success) {
+        setError(result.error || 'Une erreur est survenue');
+        return;
+      }
+
+      // Refresh metadata list
+      const metadataResult = await listMetadataAction(projectId);
+      if (metadataResult.success) {
+        setMetadata(metadataResult.data);
+      }
+
+      // Navigate to the generated metadata
+      if (result.data?.metadata?.id) {
+        router.push(`/project/${projectId}/metadata/${result.data.metadata.id}`);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la génération');
+    } finally {
+      setGeneratingType(null);
+    }
   };
 
   // Generic handler for all metadata generation types
@@ -293,19 +313,19 @@ export default function MetadataListPage() {
               onOpen={handleOpenMetadata}
               onDeleted={handleMetadataDeleted}
               onRenamed={handleMetadataRenamed}
+              providers={providers}
+              defaultProviderId={projectProviderId}
+              onRegenerate={handleRegenerate}
+              isRegenerating={generatingType === m.typeKey}
             />
           ))}
 
-          {/* Generate or Regenerate Narrative Analysis card */}
-          {narrativeType && (
+          {/* Generate Narrative Analysis card (only if doesn't exist) */}
+          {narrativeType && !hasNarrativeAnalysis && (
             <GenerateCard
               typeKey="narrative-analysis"
-              title={hasNarrativeAnalysis ? `Régénérer ${narrativeType.name}` : narrativeType.name}
-              description={
-                hasNarrativeAnalysis
-                  ? 'Générer une nouvelle analyse narrative. Cela remplacera l\'analyse existante.'
-                  : narrativeType.description
-              }
+              title={narrativeType.name}
+              description={narrativeType.description}
               isGenerating={generatingType === 'narrative-analysis'}
               isAnyGenerating={generatingType !== null}
               providers={providers}
@@ -314,16 +334,12 @@ export default function MetadataListPage() {
             />
           )}
 
-          {/* Generate or Regenerate Stylistic DNA card */}
-          {stylisticDNAType && (
+          {/* Generate Stylistic DNA card (only if doesn't exist) */}
+          {stylisticDNAType && !hasStylisticDNA && (
             <GenerateCard
               typeKey="stylistic-dna"
-              title={hasStylisticDNA ? `Régénérer ${stylisticDNAType.name}` : stylisticDNAType.name}
-              description={
-                hasStylisticDNA
-                  ? 'Générer une nouvelle analyse stylistique. Cela remplacera l\'analyse existante.'
-                  : stylisticDNAType.description
-              }
+              title={stylisticDNAType.name}
+              description={stylisticDNAType.description}
               isGenerating={generatingType === 'stylistic-dna'}
               isAnyGenerating={generatingType !== null}
               providers={providers}
@@ -332,16 +348,12 @@ export default function MetadataListPage() {
             />
           )}
 
-          {/* Generate or Regenerate Characters card */}
-          {charactersType && (
+          {/* Generate Characters card (only if doesn't exist) */}
+          {charactersType && !hasCharacters && (
             <GenerateCard
               typeKey="characters"
-              title={hasCharacters ? `Régénérer ${charactersType.name}` : charactersType.name}
-              description={
-                hasCharacters
-                  ? 'Générer une nouvelle analyse des personnages. Cela remplacera l\'analyse existante.'
-                  : charactersType.description
-              }
+              title={charactersType.name}
+              description={charactersType.description}
               isGenerating={generatingType === 'characters'}
               isAnyGenerating={generatingType !== null}
               providers={providers}
@@ -350,16 +362,12 @@ export default function MetadataListPage() {
             />
           )}
 
-          {/* Generate or Regenerate Plot card */}
-          {plotType && (
+          {/* Generate Plot card (only if doesn't exist) */}
+          {plotType && !hasPlot && (
             <GenerateCard
               typeKey="plot"
-              title={hasPlot ? `Régénérer ${plotType.name}` : plotType.name}
-              description={
-                hasPlot
-                  ? 'Générer une nouvelle analyse de l\'intrigue. Cela remplacera l\'analyse existante.'
-                  : plotType.description
-              }
+              title={plotType.name}
+              description={plotType.description}
               isGenerating={generatingType === 'plot'}
               isAnyGenerating={generatingType !== null}
               providers={providers}
@@ -368,16 +376,12 @@ export default function MetadataListPage() {
             />
           )}
 
-          {/* Generate or Regenerate Worldbuilding card */}
-          {worldbuildingType && (
+          {/* Generate Worldbuilding card (only if doesn't exist) */}
+          {worldbuildingType && !hasWorldbuilding && (
             <GenerateCard
               typeKey="worldbuilding"
-              title={hasWorldbuilding ? `Régénérer ${worldbuildingType.name}` : worldbuildingType.name}
-              description={
-                hasWorldbuilding
-                  ? 'Générer une nouvelle analyse de l\'univers. Cela remplacera l\'analyse existante.'
-                  : worldbuildingType.description
-              }
+              title={worldbuildingType.name}
+              description={worldbuildingType.description}
               isGenerating={generatingType === 'worldbuilding'}
               isAnyGenerating={generatingType !== null}
               providers={providers}
@@ -386,16 +390,12 @@ export default function MetadataListPage() {
             />
           )}
 
-          {/* Generate or Regenerate Synthesis card */}
-          {synthesisType && (
+          {/* Generate Synthesis card (only if doesn't exist) */}
+          {synthesisType && !hasSynthesis && (
             <GenerateCard
               typeKey="synthesis"
-              title={hasSynthesis ? `Régénérer ${synthesisType.name}` : synthesisType.name}
-              description={
-                hasSynthesis
-                  ? 'Générer une nouvelle synthèse. Cela remplacera la synthèse existante.'
-                  : synthesisType.description
-              }
+              title={synthesisType.name}
+              description={synthesisType.description}
               isGenerating={generatingType === 'synthesis'}
               isAnyGenerating={generatingType !== null}
               providers={providers}
@@ -411,28 +411,6 @@ export default function MetadataListPage() {
           </p>
         )}
       </main>
-
-      {/* Regenerate Confirmation Dialog */}
-      <AlertDialog open={showRegenerateDialog} onOpenChange={setShowRegenerateDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Régénérer l&apos;analyse narrative ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Cette action remplacera l&apos;analyse existante par une nouvelle génération.
-              Toutes les modifications manuelles seront perdues.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={generatingType !== null}>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => doGenerate(pendingProviderIdRef.current)}
-              disabled={generatingType !== null}
-            >
-              {generatingType === 'narrative-analysis' ? 'Génération...' : 'Régénérer'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

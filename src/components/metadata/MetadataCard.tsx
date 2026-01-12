@@ -1,10 +1,10 @@
 // ABOUTME: Card component displaying a single metadata document.
-// ABOUTME: Supports opening, renaming, and deleting metadata.
+// ABOUTME: Supports opening, renaming, deleting, and regenerating metadata.
 
 'use client';
 
 import { useState } from 'react';
-import { MoreVertical, Pencil, Trash2, Sparkles } from 'lucide-react';
+import { MoreVertical, Pencil, Trash2, Sparkles, RefreshCw } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -37,22 +37,49 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { MetadataListItem, deleteMetadataAction, updateMetadataTitleAction } from '@/app/actions/metadata-actions';
+import type { SafeProvider } from '@/app/actions/provider-actions';
 
 interface MetadataCardProps {
   metadata: MetadataListItem;
   onOpen: (metadataId: string) => void;
   onDeleted: (metadataId: string) => void;
   onRenamed: (metadataId: string, newTitle: string) => void;
+  providers?: SafeProvider[];
+  defaultProviderId?: string;
+  onRegenerate?: (typeKey: string, providerId: string) => void;
+  isRegenerating?: boolean;
 }
 
-export function MetadataCard({ metadata, onOpen, onDeleted, onRenamed }: MetadataCardProps) {
+export function MetadataCard({
+  metadata,
+  onOpen,
+  onDeleted,
+  onRenamed,
+  providers = [],
+  defaultProviderId,
+  onRegenerate,
+  isRegenerating = false,
+}: MetadataCardProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showRenameDialog, setShowRenameDialog] = useState(false);
+  const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
   const [newTitle, setNewTitle] = useState(metadata.title);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
+  const [selectedProviderId, setSelectedProviderId] = useState<string>(
+    defaultProviderId || providers[0]?.id || ''
+  );
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -83,6 +110,13 @@ export function MetadataCard({ metadata, onOpen, onDeleted, onRenamed }: Metadat
 
     setIsRenaming(false);
     setShowRenameDialog(false);
+  };
+
+  const handleRegenerate = () => {
+    if (onRegenerate && selectedProviderId) {
+      onRegenerate(metadata.typeKey, selectedProviderId);
+      setShowRegenerateDialog(false);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -136,6 +170,22 @@ export function MetadataCard({ metadata, onOpen, onDeleted, onRenamed }: Metadat
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              {onRegenerate && providers.length > 0 && (
+                <>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedProviderId(defaultProviderId || providers[0]?.id || '');
+                      setShowRegenerateDialog(true);
+                    }}
+                    disabled={isRegenerating}
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${isRegenerating ? 'animate-spin' : ''}`} />
+                    Régénérer
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation();
@@ -211,6 +261,66 @@ export function MetadataCard({ metadata, onOpen, onDeleted, onRenamed }: Metadat
             </Button>
             <Button onClick={handleRename} disabled={isRenaming || !newTitle.trim()}>
               {isRenaming ? 'Enregistrement...' : 'Enregistrer'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Regenerate Dialog */}
+      <Dialog open={showRegenerateDialog} onOpenChange={setShowRegenerateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-amber-500" />
+              Régénérer {metadata.title}
+            </DialogTitle>
+            <DialogDescription>
+              Générer une nouvelle analyse. Cela remplacera le contenu existant.
+              Toutes les modifications manuelles seront perdues.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-4">
+            <Label htmlFor="regenerate-provider-select">AI Provider</Label>
+            <Select
+              value={selectedProviderId}
+              onValueChange={setSelectedProviderId}
+              disabled={isRegenerating}
+            >
+              <SelectTrigger id="regenerate-provider-select">
+                <SelectValue placeholder="Sélectionner un provider" />
+              </SelectTrigger>
+              <SelectContent>
+                {providers.map((provider) => (
+                  <SelectItem key={provider.id} value={provider.id}>
+                    {provider.name} ({provider.type})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowRegenerateDialog(false)}
+              disabled={isRegenerating}
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={handleRegenerate}
+              disabled={isRegenerating || !selectedProviderId}
+            >
+              {isRegenerating ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Génération...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Régénérer
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
