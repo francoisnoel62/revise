@@ -1,20 +1,20 @@
 // ABOUTME: User registration page.
-// ABOUTME: Creates account and redirects to sign-in.
+// ABOUTME: Creates account and shows pending approval message.
 
 'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { registerUserAction } from '@/app/actions/auth-actions';
 
 export default function SignUpPage() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isPendingApproval, setIsPendingApproval] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -61,14 +61,60 @@ export default function SignUpPage() {
         return;
       }
 
-      // Redirect to sign-in with success message
-      router.push('/auth/signin?registered=true');
+      // Show pending approval message
+      setRegisteredEmail(formData.email);
+      setIsPendingApproval(true);
     } catch {
       setError('An error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Show pending approval screen after successful registration
+  if (isPendingApproval) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="mx-auto w-full max-w-md space-y-6 p-6 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
+            <svg
+              className="h-8 w-8 text-amber-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold">Compte en attente de validation</h1>
+            <p className="text-muted-foreground">
+              Votre compte a bien ete cree avec l&apos;adresse{' '}
+              <span className="font-medium text-foreground">{registeredEmail}</span>
+            </p>
+          </div>
+          <div className="rounded-lg border bg-muted/50 p-4">
+            <p className="text-sm text-muted-foreground">
+              Un administrateur doit approuver votre inscription avant que vous
+              puissiez vous connecter. Vous recevrez un email une fois votre
+              compte active.
+            </p>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Vous avez deja un compte approuve ?{' '}
+            <Link href="/auth/signin" className="text-primary hover:underline">
+              Se connecter
+            </Link>
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">

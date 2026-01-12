@@ -18,6 +18,14 @@ export const config = {
   encryption: {
     key: process.env.ENCRYPTION_KEY || '',
   },
+  email: {
+    resendApiKey: process.env.RESEND_API_KEY || '',
+    adminEmail: process.env.ADMIN_EMAIL || '',
+    fromEmail: process.env.EMAIL_FROM || 'Revise <noreply@resend.dev>',
+  },
+  app: {
+    baseUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+  },
 } as const;
 
 export function validateConfig(): void {

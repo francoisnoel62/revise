@@ -5,7 +5,7 @@
 
 import { RegisterUserUseCase, EmailAlreadyExistsError } from '@/application/use-cases/RegisterUserUseCase';
 import { SafeUser } from '@/domain/entities/User';
-import { ActionResult, getUserRepo } from './utils';
+import { ActionResult, getUserRepo, getEmailService } from './utils';
 
 /**
  * Register a new user.
@@ -17,7 +17,8 @@ export async function registerUserAction(
   name?: string
 ): Promise<ActionResult<SafeUser>> {
   try {
-    const useCase = new RegisterUserUseCase(await getUserRepo());
+    const emailService = await getEmailService();
+    const useCase = new RegisterUserUseCase(await getUserRepo(), emailService);
 
     const user = await useCase.execute({
       email,

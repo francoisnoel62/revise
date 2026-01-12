@@ -10,6 +10,8 @@ export interface User {
   email: string;
   passwordHash: string;
   name?: string;
+  isApproved: boolean;
+  approvedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,4 +32,5 @@ export interface SafeUser {
   id: string;
   email: string;
   name?: string;
+  isApproved: boolean;
 }

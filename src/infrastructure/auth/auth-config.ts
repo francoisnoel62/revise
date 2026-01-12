@@ -43,6 +43,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return null;
           }
 
+          // Check if user is approved
+          if (!user.isApproved) {
+            return null;
+          }
+
           return {
             id: user.id,
             email: user.email,

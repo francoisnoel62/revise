@@ -28,6 +28,9 @@ import { IdGenerator } from '@/domain/interfaces/IdGenerator';
 import { LLMProvider } from '@/domain/interfaces/LLMProvider';
 import { DocumentParser } from '@/domain/interfaces/DocumentParser';
 import { DocumentExporter } from '@/domain/interfaces/DocumentExporter';
+import { EmailService } from '@/domain/interfaces/EmailService';
+import { ResendEmailService } from '@/infrastructure/email/ResendEmailService';
+import { config } from '@/infrastructure/config/env';
 
 /**
  * Result type for Server Actions.
@@ -92,6 +95,17 @@ export async function getUserRepo(): Promise<UserRepository> {
  */
 export async function getMetadataRepo(): Promise<MetadataRepository> {
   return await getMetadataRepository();
+}
+
+/**
+ * Get email service instance if configured.
+ * Returns undefined if RESEND_API_KEY or ADMIN_EMAIL are not set.
+ */
+export async function getEmailService(): Promise<EmailService | undefined> {
+  if (!config.email.resendApiKey || !config.email.adminEmail) {
+    return undefined;
+  }
+  return new ResendEmailService();
 }
 
 /**
