@@ -361,7 +361,7 @@ If your selected provider fails:
 **Problem**: Seeing more API calls than expected.
 
 **Investigation**:
-1. Each rewrite generates 5 proposals (1 API call)
+1. Each rewrite generates 3 proposals (1 API call)
 2. Connection tests also count as API calls
 3. Check if team members have access
 4. Review auto-save frequency (may trigger rewrites)

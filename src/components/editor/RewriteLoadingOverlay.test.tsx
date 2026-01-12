@@ -29,7 +29,7 @@ describe('RewriteLoadingOverlay', () => {
   it('should display loading message', () => {
     render(<RewriteLoadingOverlay isVisible={true} />);
 
-    expect(screen.getByText('Génération de 5 propositions stylistiques')).toBeInTheDocument();
+    expect(screen.getByText('Génération de 3 propositions stylistiques')).toBeInTheDocument();
   });
 
   it('should render progress bar', () => {

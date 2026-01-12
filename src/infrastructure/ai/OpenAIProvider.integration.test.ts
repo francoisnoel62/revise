@@ -15,12 +15,12 @@ describe.skipIf(!process.env.OPENAI_API_KEY)('OpenAIProvider Integration', () =>
     provider = new OpenAIProvider(apiKey, model);
   });
 
-  it('should generate 5 distinct proposals with real API', async () => {
+  it('should generate 3 distinct proposals with real API', async () => {
     const text = 'The meeting was productive and we made good progress.';
 
     const proposals = await provider.generateRewrites(text);
 
-    expect(proposals).toHaveLength(5);
+    expect(proposals).toHaveLength(3);
 
     // All proposals should have content
     proposals.forEach((proposal) => {
@@ -29,7 +29,7 @@ describe.skipIf(!process.env.OPENAI_API_KEY)('OpenAIProvider Integration', () =>
 
     // Proposals should be genuinely different
     const uniqueContents = new Set(proposals.map((p) => p.content));
-    expect(uniqueContents.size).toBe(5);
+    expect(uniqueContents.size).toBe(3);
 
     // At least some proposals should have style labels
     const withLabels = proposals.filter((p) => p.styleLabel);
@@ -59,7 +59,7 @@ describe.skipIf(!process.env.OPENAI_API_KEY)('OpenAIProvider Integration', () =>
 
     const proposals = await provider.generateRewrites(selectedText, fullContext);
 
-    expect(proposals).toHaveLength(5);
+    expect(proposals).toHaveLength(3);
 
     // Proposals should understand "it" refers to the software release
     proposals.forEach((proposal) => {
@@ -74,7 +74,7 @@ describe.skipIf(!process.env.OPENAI_API_KEY)('OpenAIProvider Integration', () =>
 
     const proposals = await provider.generateRewrites(text);
 
-    expect(proposals).toHaveLength(5);
+    expect(proposals).toHaveLength(3);
 
     // All proposals should be substantive
     proposals.forEach((proposal) => {

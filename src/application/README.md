@@ -549,12 +549,12 @@ Orchestrates domain logic through use cases.
 
 **Dependencies**: `LLMProvider` interface
 **Input**: `TextDocument` (or Chapter content), `TextSelection`
-**Output**: Array of 5 `RewriteProposal` objects
+**Output**: Array of 3 `RewriteProposal` objects
 
 **Features**:
 - Extracts context around selection (200 chars before/after)
 - Validates selection boundaries
-- Returns exactly 5 distinct proposals
+- Returns exactly 3 distinct proposals (épuré, lyrique, amplifié)
 - Performance tracking in development mode
 - Works with both plain text and TipTap JSON
 

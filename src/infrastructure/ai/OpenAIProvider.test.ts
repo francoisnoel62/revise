@@ -30,7 +30,7 @@ describe('OpenAIProvider', () => {
     mockCreate.mockClear();
   });
 
-  it('should generate 5 rewrite proposals', async () => {
+  it('should generate 3 rewrite proposals', async () => {
     const mockResponse = {
       choices: [
         {
@@ -39,9 +39,7 @@ describe('OpenAIProvider', () => {
               proposals: [
                 { content: 'First variant', styleLabel: 'épuré' },
                 { content: 'Second variant', styleLabel: 'lyrique' },
-                { content: 'Third variant', styleLabel: 'nerveux' },
-                { content: 'Fourth variant', styleLabel: 'baroque' },
-                { content: 'Fifth variant', styleLabel: 'amplifié' },
+                { content: 'Third variant', styleLabel: 'amplifié' },
               ],
             }),
           },
@@ -52,7 +50,7 @@ describe('OpenAIProvider', () => {
 
     const result = await provider.generateRewrites('The quick brown fox');
 
-    expect(result).toHaveLength(5);
+    expect(result).toHaveLength(3);
     expect(result[0]).toBeInstanceOf(RewriteProposal);
     expect(result[0].content).toBe('First variant');
     expect(result[0].styleLabel).toBe('épuré');
@@ -68,8 +66,6 @@ describe('OpenAIProvider', () => {
                 { content: 'Variant 1' },
                 { content: 'Variant 2' },
                 { content: 'Variant 3' },
-                { content: 'Variant 4' },
-                { content: 'Variant 5' },
               ],
             }),
           },
@@ -101,8 +97,6 @@ describe('OpenAIProvider', () => {
                 { content: 'V1' },
                 { content: 'V2' },
                 { content: 'V3' },
-                { content: 'V4' },
-                { content: 'V5' },
               ],
             }),
           },
@@ -130,7 +124,7 @@ describe('OpenAIProvider', () => {
         {
           message: {
             content: JSON.stringify({
-              proposals: Array(5).fill({ content: 'Test' }),
+              proposals: Array(3).fill({ content: 'Test' }),
             }),
           },
         },
@@ -175,7 +169,7 @@ describe('OpenAIProvider', () => {
 
     await expect(async () => {
       await provider.generateRewrites('text');
-    }).rejects.toThrow('Expected exactly 5 proposals, got 2');
+    }).rejects.toThrow('Expected exactly 3 proposals, got 2');
   });
 
   it('should throw error if OpenAI API fails', async () => {
@@ -194,7 +188,7 @@ describe('OpenAIProvider', () => {
         {
           message: {
             content: JSON.stringify({
-              proposals: Array(5).fill({ content: 'Test' }),
+              proposals: Array(3).fill({ content: 'Test' }),
             }),
           },
         },
