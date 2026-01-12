@@ -89,7 +89,7 @@ export function CorrectionHistoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh]">
+      <DialogContent className="w-[85vw] max-w-none max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Historique des corrections - {chapterTitle}</DialogTitle>
           <DialogDescription>
