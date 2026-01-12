@@ -134,6 +134,43 @@ export class OpenAIProvider implements LLMProvider {
     this.promptRepository = promptRepository;
   }
 
+  /**
+   * Check if model is a reasoning model (GPT-5, o1, o3) with different API requirements.
+   * These models don't support temperature, top_p, response_format, max_tokens, etc.
+   */
+  private isReasoningModel(): boolean {
+    return (
+      this.model.startsWith('gpt-5') ||
+      this.model.startsWith('o1') ||
+      this.model.startsWith('o3')
+    );
+  }
+
+  /**
+   * Build token limit parameter based on model requirements.
+   * Reasoning models need much higher limits because they use tokens for internal reasoning.
+   */
+  private getTokenLimitParam(tokens: number): { max_tokens?: number; max_completion_tokens?: number } {
+    if (this.isReasoningModel()) {
+      // GPT-5 and o-series models use significant tokens for reasoning
+      // before generating output. Multiply by 3x to ensure enough room for both.
+      const reasoningBuffer = Math.max(tokens * 3, 16000);
+      return { max_completion_tokens: reasoningBuffer };
+    }
+    return { max_tokens: tokens };
+  }
+
+  /**
+   * Build response format parameter based on model requirements.
+   * Reasoning models don't support response_format: json_object.
+   */
+  private getResponseFormatParam(): { response_format?: { type: 'json_object' } } {
+    if (this.isReasoningModel()) {
+      return {};
+    }
+    return { response_format: { type: 'json_object' } };
+  }
+
   async generateRewrites(
     text: string,
     context?: string
@@ -142,16 +179,16 @@ export class OpenAIProvider implements LLMProvider {
     const userPrompt = this.buildUserPrompt(text, context);
 
     try {
-      // GPT-5 models don't support temperature, top_p, presence_penalty, frequency_penalty
-      const isGpt5 = this.model.startsWith('gpt-5');
+      // GPT-5 and o-series models don't support temperature, top_p, presence_penalty, frequency_penalty, response_format
+      const isReasoning = this.isReasoningModel();
       const completion = await this.client.chat.completions.create({
         model: this.model,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        response_format: { type: 'json_object' },
-        ...(isGpt5
+        ...this.getResponseFormatParam(),
+        ...(isReasoning
           ? {}
           : {
               temperature: 0.85, // Balanced creativity with coherence
@@ -306,15 +343,16 @@ FORMAT DE SORTIE (JSON):
     const userPrompt = fullText;
 
     try {
+      const isReasoning = this.isReasoningModel();
       const completion = await this.client.chat.completions.create({
         model: this.model,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        response_format: { type: 'json_object' },
-        temperature: 0.3, // Lower for more consistent analysis
-        max_tokens: 4096,
+        ...this.getResponseFormatParam(),
+        ...(isReasoning ? {} : { temperature: 0.3 }), // Lower for more consistent analysis
+        ...this.getTokenLimitParam(4096),
       });
 
       const content = completion.choices[0]?.message?.content;
@@ -434,15 +472,16 @@ INSTRUCTIONS FINALES:
     const userPrompt = fullText;
 
     try {
+      const isReasoning = this.isReasoningModel();
       const completion = await this.client.chat.completions.create({
         model: this.model,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        response_format: { type: 'json_object' },
-        temperature: 0.3,
-        max_tokens: 4096,
+        ...this.getResponseFormatParam(),
+        ...(isReasoning ? {} : { temperature: 0.3 }),
+        ...this.getTokenLimitParam(4096),
       });
 
       const content = completion.choices[0]?.message?.content;
@@ -536,15 +575,16 @@ INSTRUCTIONS:
     const userPrompt = fullText;
 
     try {
+      const isReasoning = this.isReasoningModel();
       const completion = await this.client.chat.completions.create({
         model: this.model,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        response_format: { type: 'json_object' },
-        temperature: 0.3,
-        max_tokens: 8192, // More tokens for detailed character profiles
+        ...this.getResponseFormatParam(),
+        ...(isReasoning ? {} : { temperature: 0.3 }),
+        ...this.getTokenLimitParam(8192), // More tokens for detailed character profiles
       });
 
       const content = completion.choices[0]?.message?.content;
@@ -667,15 +707,16 @@ INSTRUCTIONS:
     const userPrompt = fullText;
 
     try {
+      const isReasoning = this.isReasoningModel();
       const completion = await this.client.chat.completions.create({
         model: this.model,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        response_format: { type: 'json_object' },
-        temperature: 0.3,
-        max_tokens: 8192, // More tokens for scene breakdown
+        ...this.getResponseFormatParam(),
+        ...(isReasoning ? {} : { temperature: 0.3 }),
+        ...this.getTokenLimitParam(8192), // More tokens for scene breakdown
       });
 
       const content = completion.choices[0]?.message?.content;
@@ -825,15 +866,16 @@ INSTRUCTIONS:
     const userPrompt = fullText;
 
     try {
+      const isReasoning = this.isReasoningModel();
       const completion = await this.client.chat.completions.create({
         model: this.model,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        response_format: { type: 'json_object' },
-        temperature: 0.3,
-        max_tokens: 6144,
+        ...this.getResponseFormatParam(),
+        ...(isReasoning ? {} : { temperature: 0.3 }),
+        ...this.getTokenLimitParam(6144),
       });
 
       const content = completion.choices[0]?.message?.content;
@@ -984,15 +1026,16 @@ INSTRUCTIONS:
     const userPrompt = `TEXTE:\n\n${fullText}${contextInfo}`;
 
     try {
+      const isReasoning = this.isReasoningModel();
       const completion = await this.client.chat.completions.create({
         model: this.model,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        response_format: { type: 'json_object' },
-        temperature: 0.3,
-        max_tokens: 8192, // Large output for comprehensive synthesis
+        ...this.getResponseFormatParam(),
+        ...(isReasoning ? {} : { temperature: 0.3 }),
+        ...this.getTokenLimitParam(8192), // Large output for comprehensive synthesis
       });
 
       const content = completion.choices[0]?.message?.content;
