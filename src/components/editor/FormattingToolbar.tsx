@@ -24,6 +24,7 @@ import {
   IndentIncrease,
   Undo2,
   Redo2,
+  History,
 } from 'lucide-react';
 import { ProviderSelect } from './ProviderSelect';
 import { SafeProvider } from '@/app/actions/provider-actions';
@@ -37,6 +38,7 @@ interface FormattingToolbarProps {
   selectedProviderId?: string | null;
   onProviderChange?: (providerId: string | null) => void;
   providersLoading?: boolean;
+  onHistoryClick?: () => void;
 }
 
 export function FormattingToolbar({
@@ -48,6 +50,7 @@ export function FormattingToolbar({
   selectedProviderId = null,
   onProviderChange,
   providersLoading = false,
+  onHistoryClick,
 }: FormattingToolbarProps) {
   if (!editor) return null;
 
@@ -251,6 +254,17 @@ export function FormattingToolbar({
               disabled={rewriteLoading}
               loading={providersLoading}
             />
+          )}
+          {onHistoryClick && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onHistoryClick}
+              title="Historique des corrections"
+              className="w-9 h-9"
+            >
+              <History className="h-4 w-4" />
+            </Button>
           )}
         </div>
       )}

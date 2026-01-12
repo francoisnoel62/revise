@@ -6,6 +6,7 @@ import { ProjectRepository } from '@/domain/interfaces/ProjectRepository';
 import { UserRepository } from '@/domain/interfaces/UserRepository';
 import { ProviderRepository } from '@/domain/interfaces/ProviderRepository';
 import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
+import { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
 import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import { LLMProvider } from '@/domain/interfaces/LLMProvider';
 import { DocumentParser } from '@/domain/interfaces/DocumentParser';
@@ -15,6 +16,7 @@ import { MongoDBProjectRepository } from '@/infrastructure/persistence/MongoDBPr
 import { MongoDBUserRepository } from '@/infrastructure/persistence/MongoDBUserRepository';
 import { MongoDBProviderRepository } from '@/infrastructure/persistence/MongoDBProviderRepository';
 import { MongoDBMetadataRepository } from '@/infrastructure/persistence/MongoDBMetadataRepository';
+import { MongoDBCorrectionHistoryRepository } from '@/infrastructure/persistence/MongoDBCorrectionHistoryRepository';
 import { InMemoryProjectRepository } from '@/infrastructure/persistence/InMemoryProjectRepository';
 import { FilePromptRepository } from '@/infrastructure/prompts/FilePromptRepository';
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
@@ -83,6 +85,21 @@ export async function getMetadataRepository(): Promise<MetadataRepository> {
     await metadataRepoInstance.ensureIndexes();
   }
   return metadataRepoInstance;
+}
+
+/**
+ * Get the correction history repository.
+ */
+let correctionHistoryRepoInstance: MongoDBCorrectionHistoryRepository | null = null;
+
+export async function getCorrectionHistoryRepository(): Promise<CorrectionHistoryRepository> {
+  if (!correctionHistoryRepoInstance) {
+    const db = await getDatabase();
+    correctionHistoryRepoInstance = new MongoDBCorrectionHistoryRepository(db);
+    // Ensure indexes on first use
+    await correctionHistoryRepoInstance.ensureIndexes();
+  }
+  return correctionHistoryRepoInstance;
 }
 
 /**

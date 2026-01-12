@@ -9,6 +9,7 @@ export { Provider } from './entities/Provider';
 export type { ProviderType } from './entities/Provider';
 export * from './entities/User';
 export { ProjectMetadata, type ProjectMetadataProperties } from './entities/ProjectMetadata';
+export { CorrectionHistory } from './entities/CorrectionHistory';
 
 // Value Objects
 export { TextSelection } from './value-objects/TextSelection';
@@ -43,3 +44,4 @@ export type { ProviderRepository } from './interfaces/ProviderRepository';
 export type { IdGenerator } from './interfaces/IdGenerator';
 export * from './interfaces/UserRepository';
 export type { MetadataRepository } from './interfaces/MetadataRepository';
+export type { CorrectionHistoryRepository } from './interfaces/CorrectionHistoryRepository';

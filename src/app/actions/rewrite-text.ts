@@ -1,14 +1,18 @@
 // ABOUTME: Server Action for generating AI rewrite proposals.
 // ABOUTME: Requires user-configured provider (no default fallback).
+// ABOUTME: Automatically saves proposals to correction history.
 
 'use server';
 
 import { RewriteTextUseCase } from '@/application';
+import { SaveCorrectionHistoryUseCase } from '@/application/use-cases/SaveCorrectionHistoryUseCase';
 import {
   getProviderRepository,
   getProjectRepository,
   createLLMProvider,
+  getCorrectionHistoryRepository,
 } from '@/infrastructure/config/providers';
+import { uuidGenerator } from '@/infrastructure/utils/UUIDGenerator';
 import { extractTextFromTipTapJSON } from '@/infrastructure/document/utils/tiptap-conversion';
 import {
   ActionResult,
@@ -26,8 +30,10 @@ interface RewriteProposalDTO {
  *
  * Requires a user-configured provider for the project.
  * Throws an error if no provider is configured.
+ * Automatically saves proposals to correction history.
  *
  * @param projectId The project ID (to determine which provider to use)
+ * @param chapterId The chapter ID where the selection was made
  * @param fullContent Full document content (TipTap JSON string) for context
  * @param selectionStart Selection start position (for reference)
  * @param selectionEnd Selection end position (for reference)
@@ -36,6 +42,7 @@ interface RewriteProposalDTO {
  */
 export async function rewriteText(
   projectId: string,
+  chapterId: string,
   fullContent: string,
   selectionStart: number,
   selectionEnd: number,
@@ -116,7 +123,32 @@ export async function rewriteText(
       console.log(`[Rewrite] Completed in ${duration.toFixed(2)}ms`);
     }
 
-    // 6. Convert to DTOs
+    // 7. Save to correction history (non-blocking, don't fail if this fails)
+    try {
+      const historyRepo = await getCorrectionHistoryRepository();
+      const saveHistoryUseCase = new SaveCorrectionHistoryUseCase(
+        historyRepo,
+        projectRepo,
+        uuidGenerator
+      );
+
+      await saveHistoryUseCase.execute({
+        ownerId: userId,
+        projectId,
+        chapterId,
+        selectedText,
+        proposals: proposals.map((p) => p.content),
+      });
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Rewrite] History saved successfully');
+      }
+    } catch (historyError) {
+      // Log but don't fail the rewrite operation
+      console.error('[Rewrite] Failed to save history:', historyError);
+    }
+
+    // 8. Convert to DTOs
     return proposals.map((p) => ({
       content: p.content,
       styleLabel: p.styleLabel,
