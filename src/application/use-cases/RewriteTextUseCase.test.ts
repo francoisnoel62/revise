@@ -160,4 +160,111 @@ describe('RewriteTextUseCase', () => {
       await failingUseCase.execute(document, selection);
     }).rejects.toThrow('API unavailable');
   });
+
+  describe('executeWithText', () => {
+    it('should generate rewrites for directly provided text', async () => {
+      const selectedText = 'quick';
+      const fullContext = 'The quick brown fox jumps over the lazy dog.';
+
+      const mockProposals = [
+        new RewriteProposal('fast', 'concise'),
+        new RewriteProposal('speedy', 'informal'),
+        new RewriteProposal('swift', 'formal'),
+        new RewriteProposal('rapid', 'technical'),
+        new RewriteProposal('hasty', 'negative'),
+      ];
+      mockProvider.setMockProposals(mockProposals);
+
+      const result = await useCase.executeWithText(selectedText, fullContext);
+
+      expect(result).toHaveLength(5);
+      expect(result).toEqual(mockProposals);
+    });
+
+    it('should pass text directly to LLM provider (avoiding position extraction)', async () => {
+      let capturedText = '';
+      let capturedContext = '';
+
+      const customProvider: LLMProvider = {
+        async generateRewrites(text: string, context?: string) {
+          capturedText = text;
+          capturedContext = context || '';
+          return [
+            new RewriteProposal('rewritten', 'style'),
+          ];
+        },
+        async testConnection() {
+          return { valid: true };
+        },
+        getProviderName() {
+          return 'Custom';
+        },
+        getModel() {
+          return 'custom-model';
+        },
+      };
+      const customUseCase = new RewriteTextUseCase(customProvider);
+
+      await customUseCase.executeWithText('selected text', 'full document context');
+
+      expect(capturedText).toBe('selected text');
+      expect(capturedContext).toBe('full document context');
+    });
+
+    it('should throw error for empty selected text', async () => {
+      await expect(async () => {
+        await useCase.executeWithText('', 'context');
+      }).rejects.toThrow('Cannot rewrite empty selection');
+    });
+
+    it('should throw error for whitespace-only selected text', async () => {
+      await expect(async () => {
+        await useCase.executeWithText('   ', 'context');
+      }).rejects.toThrow('Cannot rewrite empty selection');
+    });
+
+    it('should work correctly with TipTap-extracted text (regression test)', async () => {
+      // This test simulates the fix for the JSON/text position mismatch bug.
+      // When content is stored as TipTap JSON, editor positions don't match
+      // JSON string positions. The solution is to extract text directly from
+      // TipTap editor and pass it to executeWithText.
+
+      // Simulated TipTap JSON (what's stored in the database)
+      const tiptapJson = '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Hello world"}]}]}';
+
+      // Plain text extracted from TipTap editor using doc.textBetween()
+      const selectedText = 'Hello';
+      const plainTextContext = 'Hello world'; // Extracted from JSON
+
+      let capturedText = '';
+      const customProvider: LLMProvider = {
+        async generateRewrites(text: string) {
+          capturedText = text;
+          return [new RewriteProposal('Bonjour', 'french')];
+        },
+        async testConnection() {
+          return { valid: true };
+        },
+        getProviderName() {
+          return 'Test';
+        },
+        getModel() {
+          return 'test-model';
+        },
+      };
+
+      const customUseCase = new RewriteTextUseCase(customProvider);
+      const result = await customUseCase.executeWithText(selectedText, plainTextContext);
+
+      // Verify that the actual selected text is passed, not garbage from JSON
+      expect(capturedText).toBe('Hello');
+      expect(result[0].content).toBe('Bonjour');
+
+      // Demonstrate the bug: using positions on JSON string would fail
+      const brokenSelection = new TextSelection(0, 5); // Would get '{"typ' from JSON
+      const brokenText = tiptapJson.substring(brokenSelection.start, brokenSelection.end);
+      expect(brokenText).toBe('{"typ'); // This proves the bug - positions don't align!
+      expect(brokenText).not.toBe('Hello');
+    });
+  });
 });

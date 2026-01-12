@@ -143,6 +143,17 @@ function EditorContent() {
       return;
     }
 
+    // CRITICAL: Extract selected text directly from TipTap editor
+    // This avoids the JSON/text position mismatch bug where TipTap positions
+    // don't match positions in the JSON string representation
+    if (!editor) return;
+
+    const selectedText = editor.state.doc.textBetween(selection.from, selection.to, ' ');
+    if (!selectedText.trim()) {
+      alert('Veuillez sélectionner du texte à réécrire.');
+      return;
+    }
+
     setRewriteLoading(true);
 
     try {
@@ -153,7 +164,8 @@ function EditorContent() {
         project.id,
         activeChapter.content,
         selection.from,
-        selection.to
+        selection.to,
+        selectedText  // Pass the actual selected text to avoid extraction issues
       );
 
       if (!result.success) {
