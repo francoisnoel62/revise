@@ -1,6 +1,6 @@
 // ABOUTME: Shared utilities for Server Actions.
 // ABOUTME: Provides authentication, repository access, and error handling.
-// ABOUTME: Centralizes dependency injection to reduce coupling to Infrastructure layer.
+// ABOUTME: Requires user-configured providers (no default fallback).
 
 'use server';
 
@@ -12,7 +12,6 @@ import {
   getMetadataRepository,
   getPromptRepository,
   createLLMProvider,
-  getDefaultLLMProvider,
   getDocxParser,
   getDocumentExporter as getExporterFromConfig,
   type ExportFormat,
@@ -128,7 +127,8 @@ export async function getDocumentExporter(format: ExportFormat = 'docx'): Promis
 
 /**
  * Get LLM provider for a specific project.
- * Uses project's configured provider or falls back to environment variable.
+ * Requires a user-configured provider for the project.
+ * Throws an error if no provider is configured.
  */
 export async function getLLMProviderForProject(
   userId: string,
@@ -143,26 +143,28 @@ export async function getLLMProviderForProject(
 
   const providerId = project.getProviderId();
 
-  if (providerId) {
-    // Use project's configured provider
-    const providerRepo = await getProviderRepo();
-    const provider = await providerRepo.findById(userId, providerId);
-
-    if (!provider) {
-      throw new Error('Project provider not found. Please select a valid provider.');
-    }
-
-    if (!provider.isValidProvider()) {
-      throw new Error(
-        'Project provider is invalid. Please test the connection or select a different provider.'
-      );
-    }
-
-    return createLLMProvider(provider);
+  if (!providerId) {
+    throw new Error(
+      'Aucun fournisseur IA configuré pour ce projet. Veuillez en sélectionner un dans les paramètres du projet.'
+    );
   }
 
-  // Fall back to environment variable (backward compatibility)
-  return getDefaultLLMProvider();
+  const providerRepo = await getProviderRepo();
+  const provider = await providerRepo.findById(userId, providerId);
+
+  if (!provider) {
+    throw new Error(
+      'Le fournisseur IA configuré est introuvable. Veuillez en sélectionner un autre.'
+    );
+  }
+
+  if (!provider.isValidProvider()) {
+    throw new Error(
+      'Le fournisseur IA configuré est invalide. Veuillez tester la connexion ou en choisir un autre.'
+    );
+  }
+
+  return createLLMProvider(provider);
 }
 
 /**
