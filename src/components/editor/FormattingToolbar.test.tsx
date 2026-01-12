@@ -44,8 +44,8 @@ describe('FormattingToolbar', () => {
             toggleHighlight: () => ({ run: vi.fn().mockReturnValue(true) }),
           })
         }),
-        undo: () => ({ run: vi.fn().mockReturnValue(canUndo) }),
-        redo: () => ({ run: vi.fn().mockReturnValue(canRedo) }),
+        undo: () => canUndo,
+        redo: () => canRedo,
       })),
       chain: vi.fn(() => createMockChain()),
       view: {}, // Add view property so component renders

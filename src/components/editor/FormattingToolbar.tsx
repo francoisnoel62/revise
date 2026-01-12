@@ -208,7 +208,7 @@ export function FormattingToolbar({
           variant="ghost"
           size="sm"
           onClick={() => editor.chain().focus().undo().run()}
-          disabled={!editor.can().undo().run()}
+          disabled={!editor.can().undo()}
           title="Annuler (Ctrl+Z)"
           className="w-9 h-9"
         >
@@ -220,7 +220,7 @@ export function FormattingToolbar({
           variant="ghost"
           size="sm"
           onClick={() => editor.chain().focus().redo().run()}
-          disabled={!editor.can().redo().run()}
+          disabled={!editor.can().redo()}
           title="Rétablir (Ctrl+Y)"
           className="w-9 h-9"
         >
