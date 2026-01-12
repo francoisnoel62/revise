@@ -1,5 +1,5 @@
 // ABOUTME: Concrete implementation of LLMProvider using OpenAI API for text rewriting
-// ABOUTME: Generates 5 stylistically distinct proposals using carefully crafted prompt
+// ABOUTME: Generates 3 stylistically distinct proposals using carefully crafted prompt
 
 import OpenAI from 'openai';
 import { LLMProvider, ConnectionTestResult } from '@/domain/interfaces/LLMProvider';
@@ -195,37 +195,25 @@ PRÉSERVATION DE LA LANGUE (CRITIQUE):
 - Ne JAMAIS traduire ou changer de langue
 - Ceci est une EXIGENCE ABSOLUE
 
-GÉNÈRE EXACTEMENT 5 PROPOSITIONS DISTINCTES:
+GÉNÈRE EXACTEMENT 3 PROPOSITIONS DISTINCTES ET ORTHOGONALES:
 
 1. PROSE ÉPURÉE (styleLabel: "épuré")
-   - Chaque mot doit justifier sa présence
+   - Compression maximale, chaque mot justifie sa présence
    - Supprimer tout ce qui n'ajoute pas de sens
-   - Verbes d'action précis, adjectifs rares et frappants
+   - Verbes d'action précis, sobriété
    - Inspiration: Hemingway, Camus, Carver
 
 2. PROSE LYRIQUE (styleLabel: "lyrique")
-   - Travail sur la musicalité et le rythme
-   - Images sensorielles riches et originales
-   - Variations de longueur de phrases pour créer une respiration
-   - Inspiration: Woolf, Proust, Duras
+   - Musicalité et images sensorielles
+   - Rythme varié, respiration du texte
+   - Métaphores originales, densité poétique
+   - Inspiration: Woolf, Duras, García Márquez
 
-3. PROSE NERVEUSE (styleLabel: "nerveux")
-   - Phrases courtes et percutantes
-   - Tension narrative, énergie cinétique
-   - Coupes franches, sans gras
-   - Inspiration: Ellroy, Manchette, Simenon
-
-4. PROSE BAROQUE (styleLabel: "baroque")
-   - Périodes amples et architecturées
-   - Complexité syntaxique maîtrisée
-   - Subordonnées enchâssées avec élégance
-   - Inspiration: Faulkner, Claude Simon, Proust
-
-5. VOIX AMPLIFIÉE (styleLabel: "amplifié")
-   - Intensifier la voix propre détectée dans le contexte
+3. VOIX AMPLIFIÉE (styleLabel: "amplifié")
+   - Intensifier la voix propre de l'auteur détectée dans le contexte
    - Pousser les caractéristiques stylistiques déjà présentes
-   - Rester fidèle mais magnifier
    - Le texte que l'auteur aurait écrit avec plus de temps
+   - Transformation structurelle si pertinent
 
 QUALITÉS D'EXCELLENCE À RECHERCHER:
 - Spécificité concrète: "la Renault 4 rouillée" plutôt que "la vieille voiture"
@@ -245,8 +233,6 @@ FORMAT DE SORTIE (JSON):
   "proposals": [
     { "content": "...", "styleLabel": "épuré" },
     { "content": "...", "styleLabel": "lyrique" },
-    { "content": "...", "styleLabel": "nerveux" },
-    { "content": "...", "styleLabel": "baroque" },
     { "content": "...", "styleLabel": "amplifié" }
   ]
 }`;
@@ -259,7 +245,7 @@ FORMAT DE SORTIE (JSON):
       prompt += `\n\n---\n\nCONTEXTE ÉLARGI (analyse ce passage pour comprendre la voix et le style de l'auteur):\n\n«${context}»`;
     }
 
-    prompt += `\n\n---\n\nGénère maintenant 5 propositions littérairement distinctes dans la MÊME LANGUE que le texte source. Retourne uniquement le JSON.`;
+    prompt += `\n\n---\n\nGénère maintenant 3 propositions littérairement distinctes dans la MÊME LANGUE que le texte source. Retourne uniquement le JSON.`;
 
     return prompt;
   }
@@ -427,9 +413,9 @@ INSTRUCTIONS FINALES:
       throw new Error('Invalid response structure from OpenAI');
     }
 
-    if (parsed.proposals.length !== 5) {
+    if (parsed.proposals.length !== 3) {
       throw new Error(
-        `Expected exactly 5 proposals, got ${parsed.proposals.length}`
+        `Expected exactly 3 proposals, got ${parsed.proposals.length}`
       );
     }
 

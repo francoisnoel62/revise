@@ -28,7 +28,7 @@ describe('AnthropicProvider', () => {
     mockCreate.mockClear();
   });
 
-  it('should generate 5 rewrite proposals', async () => {
+  it('should generate 3 rewrite proposals', async () => {
     const mockResponse = {
       content: [
         {
@@ -37,9 +37,7 @@ describe('AnthropicProvider', () => {
             proposals: [
               { content: 'First variant', styleLabel: 'épuré' },
               { content: 'Second variant', styleLabel: 'lyrique' },
-              { content: 'Third variant', styleLabel: 'nerveux' },
-              { content: 'Fourth variant', styleLabel: 'baroque' },
-              { content: 'Fifth variant', styleLabel: 'amplifié' },
+              { content: 'Third variant', styleLabel: 'amplifié' },
             ],
           }),
         },
@@ -49,7 +47,7 @@ describe('AnthropicProvider', () => {
 
     const result = await provider.generateRewrites('The quick brown fox');
 
-    expect(result).toHaveLength(5);
+    expect(result).toHaveLength(3);
     expect(result[0]).toBeInstanceOf(RewriteProposal);
     expect(result[0].content).toBe('First variant');
     expect(result[0].styleLabel).toBe('épuré');
@@ -65,8 +63,6 @@ describe('AnthropicProvider', () => {
               { content: 'Variant 1' },
               { content: 'Variant 2' },
               { content: 'Variant 3' },
-              { content: 'Variant 4' },
-              { content: 'Variant 5' },
             ],
           }),
         },
@@ -97,8 +93,6 @@ describe('AnthropicProvider', () => {
               { content: 'V1' },
               { content: 'V2' },
               { content: 'V3' },
-              { content: 'V4' },
-              { content: 'V5' },
             ],
           }),
         },
@@ -125,7 +119,7 @@ describe('AnthropicProvider', () => {
         {
           type: 'text',
           text: JSON.stringify({
-            proposals: Array(5).fill({ content: 'Test' }),
+            proposals: Array(3).fill({ content: 'Test' }),
           }),
         },
       ],
@@ -168,7 +162,7 @@ describe('AnthropicProvider', () => {
 
     await expect(async () => {
       await provider.generateRewrites('text');
-    }).rejects.toThrow('Expected exactly 5 proposals, got 2');
+    }).rejects.toThrow('Expected exactly 3 proposals, got 2');
   });
 
   it('should throw error if Anthropic API fails', async () => {
@@ -183,7 +177,7 @@ describe('AnthropicProvider', () => {
 
   it('should handle JSON wrapped in markdown code blocks', async () => {
     const jsonContent = JSON.stringify({
-      proposals: Array(5).fill({ content: 'Test', styleLabel: 'épuré' }),
+      proposals: Array(3).fill({ content: 'Test', styleLabel: 'épuré' }),
     });
     const mockResponse = {
       content: [
@@ -197,13 +191,13 @@ describe('AnthropicProvider', () => {
 
     const result = await provider.generateRewrites('text');
 
-    expect(result).toHaveLength(5);
+    expect(result).toHaveLength(3);
     expect(result[0].content).toBe('Test');
   });
 
   it('should handle JSON wrapped in plain markdown code blocks', async () => {
     const jsonContent = JSON.stringify({
-      proposals: Array(5).fill({ content: 'Test', styleLabel: 'épuré' }),
+      proposals: Array(3).fill({ content: 'Test', styleLabel: 'épuré' }),
     });
     const mockResponse = {
       content: [
@@ -217,7 +211,7 @@ describe('AnthropicProvider', () => {
 
     const result = await provider.generateRewrites('text');
 
-    expect(result).toHaveLength(5);
+    expect(result).toHaveLength(3);
     expect(result[0].content).toBe('Test');
   });
 
@@ -227,7 +221,7 @@ describe('AnthropicProvider', () => {
         {
           type: 'text',
           text: JSON.stringify({
-            proposals: Array(5).fill({ content: 'Test' }),
+            proposals: Array(3).fill({ content: 'Test' }),
           }),
         },
       ],

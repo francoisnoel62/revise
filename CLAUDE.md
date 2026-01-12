@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Revise** is an AI-powered writing tool, designed specifically for fiction writers. It helps overcome writer’s block, continue scenes, and enrich descriptions, emotions, and pacing. Unlike general AI tools, it understands narrative concepts like conflict, scenes, and story arcs. It favors creativity over factual accuracy, which is intentional. It works best as an inspiring co-author, not as an autopilot that writes the book for you.
 
 ### Core Value Proposition
-- Select text → Trigger rewrite → Receive 5 stylistically distinct proposals → Insert chosen version instantly
+- Select text → Trigger rewrite → Receive 3 stylistically distinct proposals → Insert chosen version instantly
 - Success metric: Users prefer this flow over copy-pasting to ChatGPT
 
 ### MVP Status: Phase 3.6 Complete ✅
@@ -77,7 +77,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Formatted import/export** (.docx with full typography preservation)
 - **Chapter splitting** by H1 headings on import
 - **TipTap JSON-based editor** with enhanced formatting toolbar
-- **AI-powered rewrite** with 5 distinct proposals (language-preserving, formatted text support)
+- **AI-powered rewrite** with 3 distinct proposals (language-preserving, formatted text support)
 - **Proposals Sheet** (dismissible right panel)
 - **Chapters Sheet** (left navigation with Switch toggle, scrollable, inline title editing)
 - **Keyboard shortcuts** (CTRL+B/I/U, CTRL+Shift+H, CTRL+K for em dash)
@@ -191,15 +191,15 @@ This architecture enables future evolution (persistence, projects, memory) witho
 **Core user flow**:
 1. Sign up/Sign in → Dashboard → Create/Import project
 2. Edit in A4-styled TipTap editor (auto-save to MongoDB after 1s)
-3. Select text → Click "Réécrire" → Choose from 5 proposals → Insert
+3. Select text → Click "Réécrire" → Choose from 3 proposals → Insert
 4. Manage chapters via ChaptersSheet (add, delete, reorder, rename)
 5. Export all chapters to .docx with full typography preservation
 
 **Key shortcuts**: Ctrl+B/I/U (format), Ctrl+K (em dash), Ctrl+Z (undo) - [See README.md for full list](README.md)
 
 ### AI Rewriting Constraints
-- **Core Flow**: Select text → Click "Réécrire" → Choose from 5 proposals → Insert (max 2 clicks)
-- **AI Strategy**: Single fixed prompt, generates 5 stylistically distinct variants, language-preserving (FR→FR, EN→EN)
+- **Core Flow**: Select text → Click "Réécrire" → Choose from 3 proposals → Insert (max 2 clicks)
+- **AI Strategy**: Single fixed prompt, generates 3 stylistically distinct variants (épuré, lyrique, amplifié), language-preserving (FR→FR, EN→EN)
 - **Quality**: Maintains author's voice, prohibits clichés/filler, uses GPT-4o-mini for speed/quality balance
 - **UX Rules**: No chat, no modals, no configuration, no onboarding - silent and fast
 - **Prompt Location**: `src/infrastructure/ai/OpenAIProvider.ts` (critical product component)
@@ -215,7 +215,7 @@ If a feature isn't essential to the **selection → replacement loop**, it's exc
 
 **Targets (Phase 1)**:
 - Selection → Proposals: < 3 seconds
-- All 5 proposals must be genuinely different
+- All 3 proposals must be genuinely different
 - Zero need to explain or reconfigure requests
 - Tool must be usable without documentation
 

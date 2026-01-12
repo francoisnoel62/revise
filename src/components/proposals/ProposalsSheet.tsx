@@ -1,5 +1,5 @@
 // ABOUTME: Right-side sheet for displaying AI rewrite proposals
-// ABOUTME: Shows 5 proposals with insert buttons in dismissible panel
+// ABOUTME: Shows 3 proposals with insert buttons in dismissible panel
 
 'use client';
 

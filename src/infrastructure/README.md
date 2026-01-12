@@ -62,7 +62,7 @@ Implements domain interfaces with concrete external services.
 **Features**:
 - Carefully crafted system prompt for text rewriting
 - Context-aware generation (uses surrounding text)
-- Generates exactly 5 distinct stylistic variants
+- Generates exactly 3 distinct stylistic variants (épuré, lyrique, amplifié)
 - JSON-structured responses
 - Error handling for API failures
 - Works with both plain text and formatted text

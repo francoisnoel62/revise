@@ -119,7 +119,7 @@ Toutes vos modifications sont **automatiquement sauvegardées** dans MongoDB Atl
 
 1. Sélectionnez le texte à réécrire
 2. Cliquez sur "Réécrire" au-dessus de la sélection
-3. 5 propositions apparaissent à droite
+3. 3 propositions apparaissent à droite
 4. Cliquez sur "Insérer" pour la proposition choisie
 5. Le texte original est remplacé
 6. Utilisez Ctrl+Z pour annuler si besoin
