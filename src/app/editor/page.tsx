@@ -14,6 +14,7 @@ import { ChaptersSheet } from '@/components/navigation/ChaptersSheet';
 import { ProposalsSheet } from '@/components/proposals/ProposalsSheet';
 import { DocumentControls } from '@/components/document/DocumentControls';
 import { SaveStatus } from '@/components/ui/SaveStatus';
+import { CharacterCounter } from '@/components/editor/CharacterCounter';
 import { UserMenu } from '@/components/auth/UserMenu';
 import { Button } from '@/components/ui/button';
 import { Editor } from '@tiptap/react';
@@ -259,6 +260,8 @@ function EditorContent() {
               <span>{project.chapters.find((c) => c.id === project.activeChapterId)?.title || 'Untitled'}</span>
               <span>·</span>
               <SaveStatus />
+              <span>·</span>
+              <CharacterCounter editor={editor} />
             </div>
           </div>
           {/* Right: controls */}
