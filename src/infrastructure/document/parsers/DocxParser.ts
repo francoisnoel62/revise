@@ -6,6 +6,13 @@ import { DocumentParser } from '@/domain/interfaces/DocumentParser';
 import { Chapter } from '@/domain/entities/Chapter';
 import { htmlToTipTapJSON } from '../utils/tiptap-conversion';
 
+// Mammoth types don't include transforms, but it exists at runtime
+const mammothWithTransforms = mammoth as typeof mammoth & {
+  transforms: {
+    paragraph: <T>(fn: (p: T) => T) => (doc: unknown) => unknown;
+  };
+};
+
 // Use crypto.randomUUID() on server, fallback for client
 const generateId = (): string => {
   // eslint-disable-next-line no-undef
@@ -70,7 +77,7 @@ export class DocxParser implements DocumentParser {
       const result = await mammoth.convertToHtml(
         { buffer },
         {
-          transformDocument: mammoth.transforms.paragraph(transformParagraph),
+          transformDocument: mammothWithTransforms.transforms.paragraph(transformParagraph),
           styleMap: [
             'u => u', // Preserve underlines
             "p[style-name='Heading 1'] => h1",
