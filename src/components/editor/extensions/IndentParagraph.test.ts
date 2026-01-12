@@ -143,6 +143,46 @@ describe('IndentParagraph', () => {
     editor.destroy();
   });
 
+  it('should parse paragraph with CSS text-indent style from HTML', () => {
+    // This is what Mammoth generates when importing DOCX with first-line indent
+    const editor = createEditor('<p style="text-indent: 1.27cm">Hello world</p>');
+
+    // Check if indent is parsed from CSS style
+    editor.commands.setTextSelection(3);
+    const attrs = editor.getAttributes('paragraph');
+    expect(attrs.indent).toBe(true);
+
+    editor.destroy();
+  });
+
+  it('should parse paragraph with CSS text-indent in various units', () => {
+    // Test different CSS units that might appear
+    const testCases = [
+      '<p style="text-indent: 36pt">With points</p>',
+      '<p style="text-indent: 0.5in">With inches</p>',
+      '<p style="text-indent: 48px">With pixels</p>',
+      '<p style="text-indent: 2em">With em</p>',
+    ];
+
+    for (const html of testCases) {
+      const editor = createEditor(html);
+      editor.commands.setTextSelection(3);
+      const attrs = editor.getAttributes('paragraph');
+      expect(attrs.indent).toBe(true);
+      editor.destroy();
+    }
+  });
+
+  it('should not parse zero text-indent as indented', () => {
+    const editor = createEditor('<p style="text-indent: 0">Hello world</p>');
+
+    editor.commands.setTextSelection(3);
+    const attrs = editor.getAttributes('paragraph');
+    expect(attrs.indent).toBeUndefined();
+
+    editor.destroy();
+  });
+
   it('should work with new paragraphs created by Enter key', () => {
     const editor = createEditor('<p>Hello</p>');
 

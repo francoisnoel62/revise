@@ -43,10 +43,25 @@ export const IndentParagraph = Node.create<IndentParagraphOptions>({
         default: undefined,
         keepOnSplit: true, // Inherit indent when creating new paragraph
         parseHTML: (element) => {
+          // Check for data-indent attribute (from TipTap export)
           const dataIndent = element.getAttribute('data-indent');
           if (dataIndent === 'true') {
             return true;
           }
+
+          // Check for CSS text-indent style (from DOCX import via Mammoth)
+          const style = element.getAttribute('style');
+          if (style) {
+            const textIndentMatch = style.match(/text-indent:\s*([^;]+)/i);
+            if (textIndentMatch) {
+              const value = textIndentMatch[1].trim();
+              // Only consider it indented if value is non-zero
+              if (value && value !== '0' && value !== '0px' && value !== '0pt' && value !== '0cm' && value !== '0in' && value !== '0em') {
+                return true;
+              }
+            }
+          }
+
           return undefined;
         },
         renderHTML: (attributes) => {
