@@ -4,6 +4,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/infrastructure/config/database';
 import { MongoDBUserRepository } from '@/infrastructure/persistence/MongoDBUserRepository';
+import { HMACApprovalTokenGenerator } from '@/infrastructure/auth/HMACApprovalTokenGenerator';
+import { config } from '@/infrastructure/config/env';
 import {
   ApproveUserUseCase,
   ApprovalAction,
@@ -20,7 +22,7 @@ export async function GET(request: NextRequest) {
   // Validate parameters
   if (!userId || !token || !action) {
     return createHtmlResponse(
-      'Paramètres manquants',
+      'Parametres manquants',
       'Le lien est invalide ou incomplet.',
       'error'
     );
@@ -29,7 +31,7 @@ export async function GET(request: NextRequest) {
   if (action !== 'approve' && action !== 'reject') {
     return createHtmlResponse(
       'Action invalide',
-      'L\'action doit être "approve" ou "reject".',
+      'L\'action doit etre "approve" ou "reject".',
       'error'
     );
   }
@@ -37,20 +39,21 @@ export async function GET(request: NextRequest) {
   try {
     const db = await getDatabase();
     const userRepo = new MongoDBUserRepository(db);
-    const useCase = new ApproveUserUseCase(userRepo);
+    const tokenGenerator = new HMACApprovalTokenGenerator(config.auth.secret);
+    const useCase = new ApproveUserUseCase(userRepo, tokenGenerator);
 
     const result = await useCase.execute({ userId, token, action });
 
     if (result.action === 'approve') {
       return createHtmlResponse(
-        'Utilisateur approuvé',
+        'Utilisateur approuve',
         `L'utilisateur ${result.userEmail} peut maintenant se connecter.`,
         'success'
       );
     } else {
       return createHtmlResponse(
-        'Inscription rejetée',
-        `L'inscription de ${result.userEmail} a été rejetée et le compte supprimé.`,
+        'Inscription rejetee',
+        `L'inscription de ${result.userEmail} a ete rejetee et le compte supprime.`,
         'warning'
       );
     }
@@ -58,7 +61,7 @@ export async function GET(request: NextRequest) {
     if (error instanceof InvalidTokenError) {
       return createHtmlResponse(
         'Token invalide',
-        'Le lien a expiré ou est invalide.',
+        'Le lien a expire ou est invalide.',
         'error'
       );
     }
@@ -66,7 +69,7 @@ export async function GET(request: NextRequest) {
     if (error instanceof UserNotFoundError) {
       return createHtmlResponse(
         'Utilisateur introuvable',
-        'L\'utilisateur n\'existe pas ou a déjà été traité.',
+        'L\'utilisateur n\'existe pas ou a deja ete traite.',
         'error'
       );
     }

@@ -3,16 +3,10 @@
 
 import { SafeUser } from '../entities/User';
 
-export interface RegistrationNotification {
-  user: SafeUser;
-  approveUrl: string;
-  rejectUrl: string;
-}
-
 export interface EmailService {
   /**
    * Send notification to admin when a new user registers.
-   * Contains approve/reject links for the admin to act on.
+   * The implementation is responsible for generating approval/rejection links.
    */
-  sendRegistrationNotification(notification: RegistrationNotification): Promise<void>;
+  sendRegistrationNotification(user: SafeUser): Promise<void>;
 }

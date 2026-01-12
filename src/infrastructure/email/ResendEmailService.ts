@@ -1,17 +1,18 @@
 // ABOUTME: Resend implementation of EmailService.
-// ABOUTME: Sends registration approval emails to admin.
+// ABOUTME: Sends registration approval emails to admin with secure links.
 
 import { Resend } from 'resend';
-import {
-  EmailService,
-  RegistrationNotification,
-} from '@/domain/interfaces/EmailService';
+import { EmailService } from '@/domain/interfaces/EmailService';
+import { SafeUser } from '@/domain/entities/User';
 import { config } from '../config/env';
+import { HMACApprovalTokenGenerator } from '../auth/HMACApprovalTokenGenerator';
 
 export class ResendEmailService implements EmailService {
   private resend: Resend;
   private adminEmail: string;
   private fromEmail: string;
+  private tokenGenerator: HMACApprovalTokenGenerator;
+  private baseUrl: string;
 
   constructor() {
     if (!config.email.resendApiKey) {
@@ -24,12 +25,14 @@ export class ResendEmailService implements EmailService {
     this.resend = new Resend(config.email.resendApiKey);
     this.adminEmail = config.email.adminEmail;
     this.fromEmail = config.email.fromEmail;
+    this.tokenGenerator = new HMACApprovalTokenGenerator(config.auth.secret);
+    this.baseUrl = config.app.baseUrl;
   }
 
-  async sendRegistrationNotification(
-    notification: RegistrationNotification
-  ): Promise<void> {
-    const { user, approveUrl, rejectUrl } = notification;
+  async sendRegistrationNotification(user: SafeUser): Promise<void> {
+    const token = this.tokenGenerator.generateToken(user.id);
+    const approveUrl = `${this.baseUrl}/api/approve?userId=${user.id}&token=${token}&action=approve`;
+    const rejectUrl = `${this.baseUrl}/api/approve?userId=${user.id}&token=${token}&action=reject`;
 
     const html = `
 <!DOCTYPE html>
@@ -55,17 +58,17 @@ export class ResendEmailService implements EmailService {
 
     <div class="info">
       <p><strong>Email:</strong> ${user.email}</p>
-      <p><strong>Nom:</strong> ${user.name || 'Non renseigné'}</p>
+      <p><strong>Nom:</strong> ${user.name || 'Non renseigne'}</p>
       <p><strong>Date:</strong> ${new Date().toLocaleDateString('fr-FR', { dateStyle: 'full' })}</p>
     </div>
 
     <div class="buttons">
-      <a href="${approveUrl}" class="btn btn-approve">✓ Approuver</a>
-      <a href="${rejectUrl}" class="btn btn-reject">✗ Rejeter</a>
+      <a href="${approveUrl}" class="btn btn-approve">Approuver</a>
+      <a href="${rejectUrl}" class="btn btn-reject">Rejeter</a>
     </div>
 
     <p class="footer">
-      Cet utilisateur ne pourra pas se connecter tant que vous n'aurez pas approuvé son inscription.
+      Cet utilisateur ne pourra pas se connecter tant que vous n'aurez pas approuve son inscription.
     </p>
   </div>
 </body>
@@ -76,13 +79,13 @@ export class ResendEmailService implements EmailService {
 Nouvelle inscription sur Revise
 
 Email: ${user.email}
-Nom: ${user.name || 'Non renseigné'}
+Nom: ${user.name || 'Non renseigne'}
 Date: ${new Date().toLocaleDateString('fr-FR', { dateStyle: 'full' })}
 
 Pour approuver: ${approveUrl}
 Pour rejeter: ${rejectUrl}
 
-Cet utilisateur ne pourra pas se connecter tant que vous n'aurez pas approuvé son inscription.
+Cet utilisateur ne pourra pas se connecter tant que vous n'aurez pas approuve son inscription.
     `.trim();
 
     await this.resend.emails.send({

@@ -3,8 +3,6 @@
 
 import { UserRepository, SafeUser } from '@/domain/interfaces/UserRepository';
 import { EmailService } from '@/domain/interfaces/EmailService';
-import { ApproveUserUseCase } from './ApproveUserUseCase';
-import { config } from '@/infrastructure/config/env';
 
 export interface RegisterUserInput {
   email: string;
@@ -56,14 +54,7 @@ export class RegisterUserUseCase {
 
     // 4. Send notification email to admin
     if (this.emailService) {
-      const token = ApproveUserUseCase.generateToken(user.id);
-      const baseUrl = config.app.baseUrl;
-
-      await this.emailService.sendRegistrationNotification({
-        user,
-        approveUrl: `${baseUrl}/api/approve?userId=${user.id}&token=${token}&action=approve`,
-        rejectUrl: `${baseUrl}/api/approve?userId=${user.id}&token=${token}&action=reject`,
-      });
+      await this.emailService.sendRegistrationNotification(user);
     }
 
     return user;

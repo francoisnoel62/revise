@@ -1,9 +1,8 @@
 // ABOUTME: Use case for approving or rejecting user registrations.
 // ABOUTME: Validates token and updates user approval status.
 
-import { createHmac } from 'node:crypto';
 import { UserRepository } from '@/domain/interfaces/UserRepository';
-import { config } from '@/infrastructure/config/env';
+import { ApprovalTokenGenerator } from '@/domain/interfaces/ApprovalTokenGenerator';
 
 export type ApprovalAction = 'approve' | 'reject';
 
@@ -34,14 +33,16 @@ export class UserNotFoundError extends Error {
 }
 
 export class ApproveUserUseCase {
-  constructor(private userRepository: UserRepository) {}
+  constructor(
+    private userRepository: UserRepository,
+    private tokenGenerator: ApprovalTokenGenerator
+  ) {}
 
   async execute(input: ApproveUserInput): Promise<ApproveUserResult> {
     const { userId, token, action } = input;
 
     // Validate token
-    const expectedToken = ApproveUserUseCase.generateToken(userId);
-    if (token !== expectedToken) {
+    if (!this.tokenGenerator.verifyToken(userId, token)) {
       throw new InvalidTokenError();
     }
 
@@ -62,17 +63,5 @@ export class ApproveUserUseCase {
       action,
       userEmail: user.email,
     };
-  }
-
-  /**
-   * Generate a secure token for a user ID.
-   * Uses HMAC-SHA256 with AUTH_SECRET as the key.
-   */
-  static generateToken(userId: string): string {
-    const secret = config.auth.secret;
-    if (!secret) {
-      throw new Error('AUTH_SECRET is required for token generation');
-    }
-    return createHmac('sha256', secret).update(userId).digest('hex').slice(0, 32);
   }
 }

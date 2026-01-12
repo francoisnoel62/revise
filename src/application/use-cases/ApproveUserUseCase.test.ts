@@ -8,19 +8,12 @@ import {
   UserNotFoundError,
 } from './ApproveUserUseCase';
 import { UserRepository } from '@/domain/interfaces/UserRepository';
-import { User, SafeUser } from '@/domain/entities/User';
-
-// Mock the config
-vi.mock('@/infrastructure/config/env', () => ({
-  config: {
-    auth: {
-      secret: 'test-secret-key-for-hmac-generation',
-    },
-  },
-}));
+import { ApprovalTokenGenerator } from '@/domain/interfaces/ApprovalTokenGenerator';
+import { User } from '@/domain/entities/User';
 
 describe('ApproveUserUseCase', () => {
   let mockUserRepository: UserRepository;
+  let mockTokenGenerator: ApprovalTokenGenerator;
   let useCase: ApproveUserUseCase;
 
   const mockUser: User = {
@@ -42,33 +35,23 @@ describe('ApproveUserUseCase', () => {
       approveUser: vi.fn(),
       deleteUser: vi.fn(),
     };
-    useCase = new ApproveUserUseCase(mockUserRepository);
-  });
 
-  describe('generateToken', () => {
-    it('generates consistent tokens for same user ID', () => {
-      const token1 = ApproveUserUseCase.generateToken('user-123');
-      const token2 = ApproveUserUseCase.generateToken('user-123');
-      expect(token1).toBe(token2);
-      expect(token1).toHaveLength(32);
-    });
+    mockTokenGenerator = {
+      generateToken: vi.fn().mockReturnValue('valid-token'),
+      verifyToken: vi.fn().mockImplementation((userId, token) => token === 'valid-token'),
+    };
 
-    it('generates different tokens for different user IDs', () => {
-      const token1 = ApproveUserUseCase.generateToken('user-123');
-      const token2 = ApproveUserUseCase.generateToken('user-456');
-      expect(token1).not.toBe(token2);
-    });
+    useCase = new ApproveUserUseCase(mockUserRepository, mockTokenGenerator);
   });
 
   describe('execute - approve', () => {
     it('approves user with valid token', async () => {
-      const validToken = ApproveUserUseCase.generateToken(mockUser.id);
       vi.mocked(mockUserRepository.findById).mockResolvedValue(mockUser);
       vi.mocked(mockUserRepository.approveUser).mockResolvedValue(true);
 
       const result = await useCase.execute({
         userId: mockUser.id,
-        token: validToken,
+        token: 'valid-token',
         action: 'approve',
       });
 
@@ -76,6 +59,7 @@ describe('ApproveUserUseCase', () => {
       expect(result.action).toBe('approve');
       expect(result.userEmail).toBe(mockUser.email);
       expect(mockUserRepository.approveUser).toHaveBeenCalledWith(mockUser.id);
+      expect(mockTokenGenerator.verifyToken).toHaveBeenCalledWith(mockUser.id, 'valid-token');
     });
 
     it('rejects invalid token', async () => {
@@ -89,13 +73,12 @@ describe('ApproveUserUseCase', () => {
     });
 
     it('rejects when user not found', async () => {
-      const validToken = ApproveUserUseCase.generateToken(mockUser.id);
       vi.mocked(mockUserRepository.findById).mockResolvedValue(null);
 
       await expect(
         useCase.execute({
           userId: mockUser.id,
-          token: validToken,
+          token: 'valid-token',
           action: 'approve',
         })
       ).rejects.toThrow(UserNotFoundError);
@@ -104,13 +87,12 @@ describe('ApproveUserUseCase', () => {
 
   describe('execute - reject', () => {
     it('deletes user with valid token', async () => {
-      const validToken = ApproveUserUseCase.generateToken(mockUser.id);
       vi.mocked(mockUserRepository.findById).mockResolvedValue(mockUser);
       vi.mocked(mockUserRepository.deleteUser).mockResolvedValue(true);
 
       const result = await useCase.execute({
         userId: mockUser.id,
-        token: validToken,
+        token: 'valid-token',
         action: 'reject',
       });
 
