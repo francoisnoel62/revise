@@ -1,5 +1,5 @@
-// ABOUTME: Server Action for generating AI rewrite proposals
-// ABOUTME: Orchestrates RewriteTextUseCase with project's configured provider
+// ABOUTME: Server Action for generating AI rewrite proposals.
+// ABOUTME: Requires user-configured provider (no default fallback).
 
 'use server';
 
@@ -9,7 +9,6 @@ import {
   getProviderRepository,
   getProjectRepository,
   createLLMProvider,
-  getDefaultLLMProvider,
 } from '@/infrastructure/config/providers';
 import {
   ActionResult,
@@ -25,8 +24,8 @@ interface RewriteProposalDTO {
 /**
  * Rewrite selected text using AI.
  *
- * Uses project's configured provider if available,
- * otherwise falls back to environment default (backward compatibility).
+ * Requires a user-configured provider for the project.
+ * Throws an error if no provider is configured.
  *
  * @param projectId The project ID (to determine which provider to use)
  * @param fullContent Full document content for context
@@ -67,29 +66,29 @@ export async function rewriteText(
       throw new Error('Project not found');
     }
 
-    // 4. Get LLM provider based on project configuration
-    let llmProvider;
-
-    if (project.getProviderId()) {
-      // Project has configured provider - use it
-      const providerRepo = await getProviderRepository();
-      const provider = await providerRepo.findById(userId, project.getProviderId()!);
-
-      if (!provider) {
-        throw new Error('Project provider not found. Please select a valid provider.');
-      }
-
-      if (!provider.isValidProvider()) {
-        throw new Error(
-          'Project provider is invalid. Please test the connection or select a different provider.'
-        );
-      }
-
-      llmProvider = createLLMProvider(provider);
-    } else {
-      // No provider configured - use default from environment (backward compatibility)
-      llmProvider = getDefaultLLMProvider();
+    // 4. Get LLM provider - requires user-configured provider
+    if (!project.getProviderId()) {
+      throw new Error(
+        'Aucun fournisseur IA configuré pour ce projet. Veuillez en sélectionner un dans les paramètres du projet.'
+      );
     }
+
+    const providerRepo = await getProviderRepository();
+    const provider = await providerRepo.findById(userId, project.getProviderId()!);
+
+    if (!provider) {
+      throw new Error(
+        'Le fournisseur IA configuré est introuvable. Veuillez en sélectionner un autre.'
+      );
+    }
+
+    if (!provider.isValidProvider()) {
+      throw new Error(
+        'Le fournisseur IA configuré est invalide. Veuillez tester la connexion ou en choisir un autre.'
+      );
+    }
+
+    const llmProvider = createLLMProvider(provider);
 
     // 5. Execute rewrite use case
     const document = new TextDocument(fullContent);
