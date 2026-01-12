@@ -309,4 +309,26 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   setIsExporting: (isExporting: boolean) => set({ isExporting }),
   clearError: () => set({ error: null }),
+
+  // === Correction History Cache ===
+
+  correctionHistoryCache: new Map(),
+
+  getCorrectionHistoryCache: (chapterId: string) => {
+    const cache = get().correctionHistoryCache.get(chapterId);
+    if (!cache) return null;
+    return cache.data;
+  },
+
+  setCorrectionHistoryCache: (chapterId: string, data) => {
+    const newCache = new Map(get().correctionHistoryCache);
+    newCache.set(chapterId, { data, timestamp: Date.now() });
+    set({ correctionHistoryCache: newCache });
+  },
+
+  invalidateCorrectionHistoryCache: (chapterId: string) => {
+    const newCache = new Map(get().correctionHistoryCache);
+    newCache.delete(chapterId);
+    set({ correctionHistoryCache: newCache });
+  },
 }));

@@ -39,6 +39,7 @@ function EditorContent() {
     isLoading,
     error,
     loadProject,
+    invalidateCorrectionHistoryCache,
   } = useProjectStore();
 
   // UI state for proposals
@@ -178,6 +179,9 @@ function EditorContent() {
         alert(`Erreur: ${result.error}`);
         return;
       }
+
+      // Invalidate history cache since new correction was saved
+      invalidateCorrectionHistoryCache(activeChapter.id);
 
       setProposals(result.data?.map(p => ({ content: p.content, styleLabel: p.styleLabel })) || []);
       setOriginalText(selectedText);

@@ -1,5 +1,5 @@
 // ABOUTME: Dialog component for viewing correction history of a specific chapter
-// ABOUTME: Fetches and displays history in a searchable table
+// ABOUTME: Uses Zustand cache to avoid unnecessary database queries
 
 'use client';
 
@@ -17,6 +17,7 @@ import {
   deleteCorrectionHistoryAction,
   type CorrectionHistoryListItem,
 } from '@/app/actions/correction-history-actions';
+import { useProjectStore } from '@/store/projectStore';
 
 interface CorrectionHistoryDialogProps {
   projectId: string;
@@ -38,8 +39,19 @@ export function CorrectionHistoryDialog({
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // Cache from store
+  const getCorrectionHistoryCache = useProjectStore((s) => s.getCorrectionHistoryCache);
+  const setCorrectionHistoryCache = useProjectStore((s) => s.setCorrectionHistoryCache);
+
   const loadHistory = useCallback(async () => {
     if (!projectId || !chapterId) return;
+
+    // Check cache first
+    const cachedData = getCorrectionHistoryCache(chapterId);
+    if (cachedData) {
+      setHistory(cachedData);
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -49,6 +61,8 @@ export function CorrectionHistoryDialog({
 
       if (result.success) {
         setHistory(result.data);
+        // Store in cache
+        setCorrectionHistoryCache(chapterId, result.data);
       } else {
         setError(result.error);
       }
@@ -58,7 +72,7 @@ export function CorrectionHistoryDialog({
     } finally {
       setLoading(false);
     }
-  }, [projectId, chapterId]);
+  }, [projectId, chapterId, getCorrectionHistoryCache, setCorrectionHistoryCache]);
 
   // Load history when dialog opens
   useEffect(() => {
@@ -74,8 +88,10 @@ export function CorrectionHistoryDialog({
       const result = await deleteCorrectionHistoryAction(historyId);
 
       if (result.success) {
-        // Remove from local state
-        setHistory((prev) => prev.filter((h) => h.id !== historyId));
+        // Remove from local state and update cache
+        const newHistory = history.filter((h) => h.id !== historyId);
+        setHistory(newHistory);
+        setCorrectionHistoryCache(chapterId, newHistory);
       } else {
         alert(`Erreur: ${result.error}`);
       }
