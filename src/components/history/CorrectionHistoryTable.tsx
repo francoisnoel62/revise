@@ -1,22 +1,19 @@
 // ABOUTME: Table component displaying correction history with filtering
-// ABOUTME: Shows date, chapter, selected text, and proposals with search functionality
+// ABOUTME: Uses accordion for expandable rows with copy functionality
 
 'use client';
 
 import { useState, useMemo } from 'react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import { Trash2 } from 'lucide-react';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
+import { Trash2, Copy, Check } from 'lucide-react';
 import { type CorrectionHistoryListItem } from '@/app/actions/correction-history-actions';
 
 interface CorrectionHistoryTableProps {
@@ -32,6 +29,7 @@ export function CorrectionHistoryTable({
 }: CorrectionHistoryTableProps) {
   const [searchText, setSearchText] = useState('');
   const [searchDate, setSearchDate] = useState('');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Filter data based on search inputs
   const filteredData = useMemo(() => {
@@ -50,6 +48,16 @@ export function CorrectionHistoryTable({
       return matchesText && matchesDate;
     });
   }, [data, searchText, searchDate]);
+
+  const handleCopy = async (text: string, id: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -85,79 +93,118 @@ export function CorrectionHistoryTable({
         {data.length !== filteredData.length && ` sur ${data.length}`}
       </div>
 
-      {/* Table */}
+      {/* Accordion list */}
       <ScrollArea className="h-[400px] rounded-md border">
-        <Table>
-          <TableHeader className="sticky top-0 bg-background">
-            <TableRow>
-              <TableHead className="w-[130px]">Date/Heure</TableHead>
-              <TableHead className="w-[200px]">Texte sélectionné</TableHead>
-              <TableHead className="w-[200px]">Proposition 1</TableHead>
-              <TableHead className="w-[200px]">Proposition 2</TableHead>
-              <TableHead className="w-[200px]">Proposition 3</TableHead>
-              {onDelete && <TableHead className="w-[50px]"></TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredData.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={onDelete ? 6 : 5}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  {data.length === 0
-                    ? 'Aucun historique de correction'
-                    : 'Aucun résultat pour cette recherche'}
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredData.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-mono text-xs whitespace-nowrap">
-                    {formatDate(item.createdAt)}
-                  </TableCell>
-                  <TableCell>
-                    <div
-                      className="text-sm line-clamp-2 cursor-help"
-                      title={item.selectedText}
-                    >
-                      {item.selectedText}
+        {filteredData.length === 0 ? (
+          <div className="h-24 flex items-center justify-center text-muted-foreground">
+            {data.length === 0
+              ? 'Aucun historique de correction'
+              : 'Aucun résultat pour cette recherche'}
+          </div>
+        ) : (
+          <Accordion type="single" collapsible className="w-full">
+            {filteredData.map((item) => (
+              <AccordionItem key={item.id} value={item.id}>
+                <div className="flex items-center gap-2 px-4">
+                  <AccordionTrigger className="flex-1 hover:no-underline">
+                    <div className="flex items-center gap-4 w-full">
+                      <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">
+                        {formatDate(item.createdAt)}
+                      </span>
+                      <span className="text-sm truncate flex-1 text-left">
+                        {item.selectedText}
+                      </span>
                     </div>
-                  </TableCell>
-                  {item.proposals.slice(0, 3).map((proposal, idx) => (
-                    <TableCell key={idx}>
-                      <div
-                        className="text-sm text-muted-foreground line-clamp-2 cursor-help"
-                        title={proposal}
-                      >
-                        {proposal}
-                      </div>
-                    </TableCell>
-                  ))}
-                  {/* Fill empty proposal columns if less than 3 */}
-                  {item.proposals.length < 3 &&
-                    Array.from({ length: 3 - item.proposals.length }).map((_, idx) => (
-                      <TableCell key={`empty-${idx}`}>-</TableCell>
-                    ))}
+                  </AccordionTrigger>
                   {onDelete && (
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        onClick={() => onDelete(item.id)}
-                        disabled={isDeleting === item.id}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(item.id);
+                      }}
+                      disabled={isDeleting === item.id}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   )}
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+                </div>
+                <AccordionContent className="px-4">
+                  <div className="space-y-4 pt-2">
+                    {/* Selected text */}
+                    <TextBlock
+                      label="Texte sélectionné"
+                      text={item.selectedText}
+                      id={`${item.id}-selected`}
+                      copiedId={copiedId}
+                      onCopy={handleCopy}
+                    />
+
+                    {/* Proposals */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {item.proposals.slice(0, 3).map((proposal, idx) => (
+                        <TextBlock
+                          key={idx}
+                          label={`Proposition ${idx + 1}`}
+                          text={proposal}
+                          id={`${item.id}-prop-${idx}`}
+                          copiedId={copiedId}
+                          onCopy={handleCopy}
+                          variant="proposal"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        )}
       </ScrollArea>
+    </div>
+  );
+}
+
+interface TextBlockProps {
+  label: string;
+  text: string;
+  id: string;
+  copiedId: string | null;
+  onCopy: (text: string, id: string) => void;
+  variant?: 'default' | 'proposal';
+}
+
+function TextBlock({ label, text, id, copiedId, onCopy, variant = 'default' }: TextBlockProps) {
+  const isCopied = copiedId === id;
+
+  return (
+    <div className={`rounded-lg border p-3 ${variant === 'proposal' ? 'bg-muted/50' : 'bg-background'}`}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          {label}
+        </span>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 text-muted-foreground hover:text-foreground"
+          onClick={() => onCopy(text, id)}
+        >
+          {isCopied ? (
+            <>
+              <Check className="h-3.5 w-3.5 mr-1 text-green-600" />
+              <span className="text-xs text-green-600">Copié</span>
+            </>
+          ) : (
+            <>
+              <Copy className="h-3.5 w-3.5 mr-1" />
+              <span className="text-xs">Copier</span>
+            </>
+          )}
+        </Button>
+      </div>
+      <p className="text-sm whitespace-pre-wrap">{text}</p>
     </div>
   );
 }
