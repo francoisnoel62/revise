@@ -20,7 +20,6 @@ import { FilePromptRepository } from '@/infrastructure/prompts/FilePromptReposit
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
 import { AnthropicProvider } from '@/infrastructure/ai/AnthropicProvider';
 import { DocxParser } from '@/infrastructure/document/parsers/DocxParser';
-import { PdfParser } from '@/infrastructure/document/parsers/PdfParser';
 import { CompositeDocumentParser } from '@/infrastructure/document/parsers/CompositeParser';
 import { DocxExporter } from '@/infrastructure/document/exporters/DocxExporter';
 import { PdfExporter } from '@/infrastructure/document/exporters/PdfExporter';
@@ -154,13 +153,12 @@ export function getDefaultLLMProvider(): LLMProvider {
 }
 
 /**
- * Get the document parser.
- * Returns CompositeDocumentParser supporting both .docx and .pdf files.
+ * Get the document parser for import.
+ * Returns CompositeDocumentParser supporting .docx files.
  */
 export function getDocxParser(): DocumentParser {
   return new CompositeDocumentParser([
     new DocxParser(),
-    new PdfParser(),
   ]);
 }
 
