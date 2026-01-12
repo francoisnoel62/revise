@@ -1,4 +1,4 @@
-// ABOUTME: Dialog component for viewing correction history
+// ABOUTME: Dialog component for viewing correction history of a specific chapter
 // ABOUTME: Fetches and displays history in a searchable table
 
 'use client';
@@ -13,19 +13,23 @@ import {
 } from '@/components/ui/dialog';
 import { CorrectionHistoryTable } from './CorrectionHistoryTable';
 import {
-  listCorrectionHistoryAction,
+  listCorrectionHistoryByChapterAction,
   deleteCorrectionHistoryAction,
   type CorrectionHistoryListItem,
 } from '@/app/actions/correction-history-actions';
 
 interface CorrectionHistoryDialogProps {
   projectId: string;
+  chapterId: string;
+  chapterTitle: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function CorrectionHistoryDialog({
   projectId,
+  chapterId,
+  chapterTitle,
   open,
   onOpenChange,
 }: CorrectionHistoryDialogProps) {
@@ -35,13 +39,13 @@ export function CorrectionHistoryDialog({
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadHistory = useCallback(async () => {
-    if (!projectId) return;
+    if (!projectId || !chapterId) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      const result = await listCorrectionHistoryAction(projectId);
+      const result = await listCorrectionHistoryByChapterAction(projectId, chapterId);
 
       if (result.success) {
         setHistory(result.data);
@@ -54,7 +58,7 @@ export function CorrectionHistoryDialog({
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, chapterId]);
 
   // Load history when dialog opens
   useEffect(() => {
@@ -87,9 +91,9 @@ export function CorrectionHistoryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle>Historique des corrections</DialogTitle>
+          <DialogTitle>Historique des corrections - {chapterTitle}</DialogTitle>
           <DialogDescription>
-            Retrouvez toutes les propositions de réécriture générées par l&apos;IA
+            Propositions de réécriture générées par l&apos;IA pour ce chapitre
           </DialogDescription>
         </DialogHeader>
 

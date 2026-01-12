@@ -336,9 +336,11 @@ function EditorContent() {
       />
 
       {/* Correction history dialog */}
-      {project && (
+      {project && project.activeChapterId && (
         <CorrectionHistoryDialog
           projectId={project.id}
+          chapterId={project.activeChapterId}
+          chapterTitle={project.chapters.find((c) => c.id === project.activeChapterId)?.title ?? 'Chapitre'}
           open={showHistoryDialog}
           onOpenChange={setShowHistoryDialog}
         />

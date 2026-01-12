@@ -154,6 +154,38 @@ export async function listCorrectionHistoryAction(
 }
 
 /**
+ * List correction history for a specific chapter.
+ * Returns entries sorted by createdAt descending (newest first).
+ */
+export async function listCorrectionHistoryByChapterAction(
+  projectId: string,
+  chapterId: string
+): Promise<ActionResult<CorrectionHistoryListItem[]>> {
+  const auth = await getAuthenticatedUserId();
+  if ('error' in auth) return auth.error;
+
+  return withErrorHandling(async () => {
+    const historyRepo = await getCorrectionHistoryRepo();
+    const projectRepo = await getRepository();
+
+    // Verify project ownership
+    const project = await projectRepo.loadProject(auth.userId, projectId);
+    if (!project) {
+      throw new Error('Project not found');
+    }
+
+    // Find history for this chapter
+    const history = await historyRepo.findByChapterId(auth.userId, chapterId);
+
+    // Get chapter title
+    const chapter = project.getChapters().find((c) => c.getId() === chapterId);
+    const chapterTitle = chapter?.getTitle() ?? 'Chapitre supprimé';
+
+    return history.map((h) => serializeHistoryListItem(h, chapterTitle));
+  });
+}
+
+/**
  * Delete a correction history entry.
  */
 export async function deleteCorrectionHistoryAction(
