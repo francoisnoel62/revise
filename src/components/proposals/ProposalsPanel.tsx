@@ -1,4 +1,4 @@
-// ABOUTME: Panel displaying 5 AI-generated rewrite proposals with insert buttons
+// ABOUTME: Panel displaying 3 AI-generated rewrite proposals with insert buttons
 // ABOUTME: Implements 2-click UX requirement (select → rewrite → insert)
 
 'use client';

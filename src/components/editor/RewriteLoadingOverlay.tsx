@@ -66,7 +66,7 @@ export function RewriteLoadingOverlay({ isVisible }: RewriteLoadingOverlayProps)
             Réécriture en cours...
           </h3>
           <p className="text-sm text-slate-500">
-            Génération de 5 propositions stylistiques
+            Génération de 3 propositions stylistiques
           </p>
         </div>
 
