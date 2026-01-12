@@ -17,13 +17,11 @@ describe('CompositeDocumentParser', () => {
   });
 
   let docxParser: DocumentParser;
-  let pdfParser: DocumentParser;
   let compositeParser: CompositeDocumentParser;
 
   beforeEach(() => {
     docxParser = createMockParser('.docx');
-    pdfParser = createMockParser('.pdf');
-    compositeParser = new CompositeDocumentParser([docxParser, pdfParser]);
+    compositeParser = new CompositeDocumentParser([docxParser]);
   });
 
   describe('constructor', () => {
@@ -43,13 +41,10 @@ describe('CompositeDocumentParser', () => {
       expect(compositeParser.supports('document.docx')).toBe(true);
     });
 
-    it('should return true for .pdf files', () => {
-      expect(compositeParser.supports('document.pdf')).toBe(true);
-    });
-
     it('should return false for unsupported formats', () => {
       expect(compositeParser.supports('document.txt')).toBe(false);
       expect(compositeParser.supports('document.doc')).toBe(false);
+      expect(compositeParser.supports('document.pdf')).toBe(false);
     });
 
     it('should delegate to child parsers', () => {
@@ -65,16 +60,6 @@ describe('CompositeDocumentParser', () => {
       await compositeParser.parse(buffer, 'test.docx');
 
       expect(docxParser.parse).toHaveBeenCalledWith(buffer, 'test.docx');
-      expect(pdfParser.parse).not.toHaveBeenCalled();
-    });
-
-    it('should route .pdf to pdfParser', async () => {
-      const buffer = Buffer.from('test');
-
-      await compositeParser.parse(buffer, 'test.pdf');
-
-      expect(pdfParser.parse).toHaveBeenCalledWith(buffer, 'test.pdf');
-      expect(docxParser.parse).not.toHaveBeenCalled();
     });
 
     it('should throw error for unsupported format', async () => {
@@ -85,16 +70,21 @@ describe('CompositeDocumentParser', () => {
       );
     });
 
+    it('should throw error for PDF files (not supported for import)', async () => {
+      const buffer = Buffer.from('test');
+
+      await expect(compositeParser.parse(buffer, 'test.pdf')).rejects.toThrow(
+        'Format de fichier non supporté: .pdf'
+      );
+    });
+
     it('should return result from appropriate parser', async () => {
       const buffer = Buffer.from('test');
       vi.mocked(docxParser.parse).mockResolvedValue('docx content');
-      vi.mocked(pdfParser.parse).mockResolvedValue('pdf content');
 
       const docxResult = await compositeParser.parse(buffer, 'test.docx');
-      const pdfResult = await compositeParser.parse(buffer, 'test.pdf');
 
       expect(docxResult).toBe('docx content');
-      expect(pdfResult).toBe('pdf content');
     });
   });
 
@@ -105,16 +95,6 @@ describe('CompositeDocumentParser', () => {
       await compositeParser.parseToChapters(buffer, 'test.docx');
 
       expect(docxParser.parseToChapters).toHaveBeenCalledWith(buffer, 'test.docx');
-      expect(pdfParser.parseToChapters).not.toHaveBeenCalled();
-    });
-
-    it('should route .pdf to pdfParser', async () => {
-      const buffer = Buffer.from('test');
-
-      await compositeParser.parseToChapters(buffer, 'test.pdf');
-
-      expect(pdfParser.parseToChapters).toHaveBeenCalledWith(buffer, 'test.pdf');
-      expect(docxParser.parseToChapters).not.toHaveBeenCalled();
     });
 
     it('should throw error for unsupported format', async () => {
@@ -125,19 +105,23 @@ describe('CompositeDocumentParser', () => {
       );
     });
 
+    it('should throw error for PDF files (not supported for import)', async () => {
+      const buffer = Buffer.from('test');
+
+      await expect(compositeParser.parseToChapters(buffer, 'test.pdf')).rejects.toThrow(
+        'Format de fichier non supporté: .pdf'
+      );
+    });
+
     it('should return chapters from appropriate parser', async () => {
       const buffer = Buffer.from('test');
       const docxChapter = new Chapter('doc1', 'DOCX Chapter', JSON.stringify({ type: 'doc', content: [] }), 0);
-      const pdfChapter = new Chapter('pdf1', 'PDF Chapter', JSON.stringify({ type: 'doc', content: [] }), 0);
 
       vi.mocked(docxParser.parseToChapters).mockResolvedValue([docxChapter]);
-      vi.mocked(pdfParser.parseToChapters).mockResolvedValue([pdfChapter]);
 
       const docxResult = await compositeParser.parseToChapters(buffer, 'test.docx');
-      const pdfResult = await compositeParser.parseToChapters(buffer, 'test.pdf');
 
       expect(docxResult[0].getTitle()).toBe('DOCX Chapter');
-      expect(pdfResult[0].getTitle()).toBe('PDF Chapter');
     });
   });
 
@@ -146,7 +130,7 @@ describe('CompositeDocumentParser', () => {
       const extensions = compositeParser.getSupportedExtensions();
 
       expect(extensions).toContain('.docx');
-      expect(extensions).toContain('.pdf');
+      expect(extensions).not.toContain('.pdf');
     });
   });
 
@@ -154,17 +138,17 @@ describe('CompositeDocumentParser', () => {
     it('should handle uppercase extensions', async () => {
       const buffer = Buffer.from('test');
 
-      await compositeParser.parseToChapters(buffer, 'TEST.PDF');
+      await compositeParser.parseToChapters(buffer, 'TEST.DOCX');
 
-      expect(pdfParser.parseToChapters).toHaveBeenCalled();
+      expect(docxParser.parseToChapters).toHaveBeenCalled();
     });
 
     it('should handle mixed case extensions', async () => {
       const buffer = Buffer.from('test');
 
-      await compositeParser.parseToChapters(buffer, 'document.PdF');
+      await compositeParser.parseToChapters(buffer, 'document.DocX');
 
-      expect(pdfParser.parseToChapters).toHaveBeenCalled();
+      expect(docxParser.parseToChapters).toHaveBeenCalled();
     });
   });
 });
