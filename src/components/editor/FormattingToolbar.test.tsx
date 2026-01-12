@@ -4,7 +4,8 @@ import { FormattingToolbar } from './FormattingToolbar';
 import { Editor } from '@tiptap/react';
 
 describe('FormattingToolbar', () => {
-  const createMockEditor = (activeFormats: string[] = []): Editor => {
+  const createMockEditor = (activeFormats: string[] = [], options?: { canUndo?: boolean; canRedo?: boolean }): Editor => {
+    const { canUndo = true, canRedo = true } = options || {};
     const createMockChain = () => {
       const chain = {
         focus: vi.fn().mockReturnThis(),
@@ -16,6 +17,8 @@ describe('FormattingToolbar', () => {
         setFontSize: vi.fn().mockReturnThis(),
         setTextAlign: vi.fn().mockReturnThis(),
         toggleIndent: vi.fn().mockReturnThis(),
+        undo: vi.fn().mockReturnThis(),
+        redo: vi.fn().mockReturnThis(),
         run: vi.fn().mockReturnThis(),
       };
       return chain;
@@ -40,7 +43,9 @@ describe('FormattingToolbar', () => {
             toggleUnderline: () => ({ run: vi.fn().mockReturnValue(true) }),
             toggleHighlight: () => ({ run: vi.fn().mockReturnValue(true) }),
           })
-        })
+        }),
+        undo: () => ({ run: vi.fn().mockReturnValue(canUndo) }),
+        redo: () => ({ run: vi.fn().mockReturnValue(canRedo) }),
       })),
       chain: vi.fn(() => createMockChain()),
       view: {}, // Add view property so component renders
@@ -126,5 +131,49 @@ describe('FormattingToolbar', () => {
     expect(screen.getByTitle(/Bold/)).toHaveClass('bg-primary');
     expect(screen.getByTitle(/Italic/)).toHaveClass('bg-primary');
     expect(screen.getByTitle(/Underline/)).toHaveClass('bg-primary');
+  });
+
+  it('should render undo and redo buttons', () => {
+    const editor = createMockEditor();
+    render(<FormattingToolbar editor={editor} />);
+
+    expect(screen.getByTitle(/Annuler/)).toBeInTheDocument();
+    expect(screen.getByTitle(/Rétablir/)).toBeInTheDocument();
+  });
+
+  it('should call undo when undo button is clicked', () => {
+    const editor = createMockEditor();
+    render(<FormattingToolbar editor={editor} />);
+
+    const undoButton = screen.getByTitle(/Annuler/);
+    fireEvent.click(undoButton);
+
+    expect(editor.chain).toHaveBeenCalled();
+  });
+
+  it('should call redo when redo button is clicked', () => {
+    const editor = createMockEditor();
+    render(<FormattingToolbar editor={editor} />);
+
+    const redoButton = screen.getByTitle(/Rétablir/);
+    fireEvent.click(redoButton);
+
+    expect(editor.chain).toHaveBeenCalled();
+  });
+
+  it('should disable undo button when undo is not available', () => {
+    const editor = createMockEditor([], { canUndo: false });
+    render(<FormattingToolbar editor={editor} />);
+
+    const undoButton = screen.getByTitle(/Annuler/);
+    expect(undoButton).toBeDisabled();
+  });
+
+  it('should disable redo button when redo is not available', () => {
+    const editor = createMockEditor([], { canRedo: false });
+    render(<FormattingToolbar editor={editor} />);
+
+    const redoButton = screen.getByTitle(/Rétablir/);
+    expect(redoButton).toBeDisabled();
   });
 });
