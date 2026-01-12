@@ -10,6 +10,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useProjectStore } from '@/store/projectStore';
 import { TextEditor } from '@/components/editor/TextEditor';
 import { FormattingToolbar } from '@/components/editor/FormattingToolbar';
+import { RewriteLoadingOverlay } from '@/components/editor/RewriteLoadingOverlay';
 import { ChaptersSheet } from '@/components/navigation/ChaptersSheet';
 import { ProposalsSheet } from '@/components/proposals/ProposalsSheet';
 import { DocumentControls } from '@/components/document/DocumentControls';
@@ -301,6 +302,9 @@ function EditorContent() {
           </div>
         </div>
       </div>
+
+      {/* Loading overlay with author quotes */}
+      <RewriteLoadingOverlay isVisible={rewriteLoading} />
 
       {/* Proposals panel */}
       <ProposalsSheet
