@@ -135,24 +135,6 @@ export function createLLMProvider(provider: Provider): LLMProvider {
 }
 
 /**
- * Get default LLM provider (from environment for backward compatibility).
- * Used when project has no provider configured.
- */
-export function getDefaultLLMProvider(): LLMProvider {
-  const apiKey = config.openai.apiKey;
-  const model = config.openai.model;
-
-  if (!apiKey) {
-    throw new Error(
-      'No default OpenAI API key configured. Please set OPENAI_API_KEY or configure a provider.'
-    );
-  }
-
-  const promptRepo = getPromptRepository();
-  return new OpenAIProvider(apiKey, promptRepo, model);
-}
-
-/**
  * Get the document parser for import.
  * Returns CompositeDocumentParser supporting .docx files.
  */
