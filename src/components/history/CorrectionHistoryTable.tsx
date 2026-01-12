@@ -31,7 +31,6 @@ export function CorrectionHistoryTable({
   isDeleting,
 }: CorrectionHistoryTableProps) {
   const [searchText, setSearchText] = useState('');
-  const [searchChapter, setSearchChapter] = useState('');
   const [searchDate, setSearchDate] = useState('');
 
   // Filter data based on search inputs
@@ -44,22 +43,18 @@ export function CorrectionHistoryTable({
           p.toLowerCase().includes(searchText.toLowerCase())
         );
 
-      const matchesChapter =
-        !searchChapter ||
-        item.chapterTitle.toLowerCase().includes(searchChapter.toLowerCase());
-
       const matchesDate =
         !searchDate ||
         formatDate(item.createdAt).includes(searchDate);
 
-      return matchesText && matchesChapter && matchesDate;
+      return matchesText && matchesDate;
     });
-  }, [data, searchText, searchChapter, searchDate]);
+  }, [data, searchText, searchDate]);
 
   return (
     <div className="space-y-4">
       {/* Search filters */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="text-sm font-medium text-muted-foreground mb-1 block">
             Date
@@ -68,17 +63,6 @@ export function CorrectionHistoryTable({
             placeholder="Rechercher par date..."
             value={searchDate}
             onChange={(e) => setSearchDate(e.target.value)}
-            className="h-9"
-          />
-        </div>
-        <div>
-          <label className="text-sm font-medium text-muted-foreground mb-1 block">
-            Chapitre
-          </label>
-          <Input
-            placeholder="Rechercher par chapitre..."
-            value={searchChapter}
-            onChange={(e) => setSearchChapter(e.target.value)}
             className="h-9"
           />
         </div>
@@ -106,12 +90,11 @@ export function CorrectionHistoryTable({
         <Table>
           <TableHeader className="sticky top-0 bg-background">
             <TableRow>
-              <TableHead className="w-[140px]">Date/Heure</TableHead>
-              <TableHead className="w-[120px]">Chapitre</TableHead>
+              <TableHead className="w-[130px]">Date/Heure</TableHead>
               <TableHead className="w-[200px]">Texte sélectionné</TableHead>
-              <TableHead>Proposition 1</TableHead>
-              <TableHead>Proposition 2</TableHead>
-              <TableHead>Proposition 3</TableHead>
+              <TableHead className="w-[200px]">Proposition 1</TableHead>
+              <TableHead className="w-[200px]">Proposition 2</TableHead>
+              <TableHead className="w-[200px]">Proposition 3</TableHead>
               {onDelete && <TableHead className="w-[50px]"></TableHead>}
             </TableRow>
           </TableHeader>
@@ -119,7 +102,7 @@ export function CorrectionHistoryTable({
             {filteredData.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={onDelete ? 7 : 6}
+                  colSpan={onDelete ? 6 : 5}
                   className="h-24 text-center text-muted-foreground"
                 >
                   {data.length === 0
@@ -130,23 +113,21 @@ export function CorrectionHistoryTable({
             ) : (
               filteredData.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell className="font-mono text-xs">
+                  <TableCell className="font-mono text-xs whitespace-nowrap">
                     {formatDate(item.createdAt)}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="truncate max-w-[100px]">
-                      {item.chapterTitle}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="max-w-[180px] truncate text-sm" title={item.selectedText}>
+                    <div
+                      className="text-sm line-clamp-2 cursor-help"
+                      title={item.selectedText}
+                    >
                       {item.selectedText}
                     </div>
                   </TableCell>
                   {item.proposals.slice(0, 3).map((proposal, idx) => (
                     <TableCell key={idx}>
                       <div
-                        className="max-w-[150px] truncate text-sm text-muted-foreground"
+                        className="text-sm text-muted-foreground line-clamp-2 cursor-help"
                         title={proposal}
                       >
                         {proposal}
