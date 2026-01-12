@@ -41,14 +41,14 @@ export function ProposalsSheet({
 
         {/* Original selected text */}
         {originalText && (
-          <div className="mt-4 p-3 bg-slate-100 border border-slate-200 rounded-lg flex-shrink-0">
+          <div className="mt-4 mx-4 p-3 bg-slate-100 border border-slate-200 rounded-lg flex-shrink-0">
             <p className="text-xs text-slate-500 font-medium mb-1">Texte original</p>
             <p className="text-sm text-slate-700 whitespace-pre-wrap">{originalText}</p>
           </div>
         )}
 
-        <ScrollArea className="flex-1 mt-4 pr-4">
-          <div className="space-y-4 pb-4">
+        <ScrollArea className="flex-1 min-h-0 mt-4">
+          <div className="space-y-4 px-4 pb-4">
             {proposals.map((proposal, index) => (
               <div
                 key={index}
