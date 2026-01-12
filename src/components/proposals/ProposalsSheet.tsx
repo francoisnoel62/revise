@@ -47,7 +47,7 @@ export function ProposalsSheet({
           </div>
         )}
 
-        <ScrollArea className="flex-1 mt-4 pr-4">
+        <ScrollArea className="flex-1 min-h-0 mt-4 pr-4">
           <div className="space-y-4 pb-4">
             {proposals.map((proposal, index) => (
               <div
