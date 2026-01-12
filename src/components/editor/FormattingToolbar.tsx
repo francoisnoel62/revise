@@ -22,6 +22,8 @@ import {
   AlignRight,
   AlignJustify,
   IndentIncrease,
+  Undo2,
+  Redo2,
 } from 'lucide-react';
 import { ProviderSelect } from './ProviderSelect';
 import { SafeProvider } from '@/app/actions/provider-actions';
@@ -196,6 +198,33 @@ export function FormattingToolbar({
           className="w-9 h-9"
         >
           <IndentIncrease className="h-4 w-4" />
+        </Button>
+
+        {/* Separator */}
+        <div className="w-px h-8 bg-slate-300 mx-1" />
+
+        {/* Undo */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().undo().run()}
+          disabled={!editor.can().undo()}
+          title="Annuler (Ctrl+Z)"
+          className="w-9 h-9"
+        >
+          <Undo2 className="h-4 w-4" />
+        </Button>
+
+        {/* Redo */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().redo().run()}
+          disabled={!editor.can().redo()}
+          title="Rétablir (Ctrl+Y)"
+          className="w-9 h-9"
+        >
+          <Redo2 className="h-4 w-4" />
         </Button>
       </div>
 
