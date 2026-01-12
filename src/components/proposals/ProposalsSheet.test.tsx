@@ -125,4 +125,36 @@ describe('ProposalsSheet', () => {
     fireEvent.click(insertButtons[2]);
     expect(onInsert).toHaveBeenCalledWith('Third proposal text');
   });
+
+  describe('originalText display', () => {
+    it('should display original text when provided', () => {
+      const props = { ...defaultProps, originalText: 'Le texte sélectionné original' };
+      render(<ProposalsSheet {...props} />);
+
+      expect(screen.getByText('Texte original')).toBeInTheDocument();
+      expect(screen.getByText('Le texte sélectionné original')).toBeInTheDocument();
+    });
+
+    it('should not display original text section when not provided', () => {
+      render(<ProposalsSheet {...defaultProps} />);
+
+      expect(screen.queryByText('Texte original')).not.toBeInTheDocument();
+    });
+
+    it('should not display original text section when empty string', () => {
+      const props = { ...defaultProps, originalText: '' };
+      render(<ProposalsSheet {...props} />);
+
+      expect(screen.queryByText('Texte original')).not.toBeInTheDocument();
+    });
+
+    it('should preserve whitespace in original text', () => {
+      const props = { ...defaultProps, originalText: 'Some original text here' };
+      render(<ProposalsSheet {...props} />);
+
+      // Check that the original text container has whitespace-pre-wrap class
+      const originalTextElement = screen.getByText('Some original text here');
+      expect(originalTextElement).toHaveClass('whitespace-pre-wrap');
+    });
+  });
 });

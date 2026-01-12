@@ -44,6 +44,7 @@ function EditorContent() {
   const [selection, setSelection] = useState({ from: 0, to: 0 });
   const [hasSelection, setHasSelection] = useState(false);
   const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [originalText, setOriginalText] = useState('');
   const [showProposals, setShowProposals] = useState(false);
   const [rewriteLoading, setRewriteLoading] = useState(false);
   const [editor, setEditor] = useState<Editor | null>(null);
@@ -174,6 +175,7 @@ function EditorContent() {
       }
 
       setProposals(result.data?.map(p => ({ content: p.content, styleLabel: p.styleLabel })) || []);
+      setOriginalText(selectedText);
       setShowProposals(true);
     } catch (error) {
       alert('Une erreur est survenue lors de la réécriture.');
@@ -322,6 +324,7 @@ function EditorContent() {
       <ProposalsSheet
         open={showProposals}
         proposals={proposals}
+        originalText={originalText}
         onInsert={handleInsert}
         onClose={() => setShowProposals(false)}
       />
