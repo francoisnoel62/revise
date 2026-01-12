@@ -5,25 +5,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { Progress } from '@/components/ui/progress';
-
-// Collection of famous author quotes about writing
-const AUTHOR_QUOTES = [
-  { text: "Le premier jet n'est que de l'argile à modeler.", author: "Ernest Hemingway" },
-  { text: "Écrire, c'est réécrire.", author: "William Zinsser" },
-  { text: "La perfection est atteinte non pas lorsqu'il n'y a plus rien à ajouter, mais lorsqu'il n'y a plus rien à retirer.", author: "Antoine de Saint-Exupéry" },
-  { text: "Un écrivain est quelqu'un pour qui écrire est plus difficile que pour les autres.", author: "Thomas Mann" },
-  { text: "L'art d'écrire est l'art de découvrir ce que vous croyez.", author: "Gustave Flaubert" },
-  { text: "La prose est une architecture, pas une décoration intérieure.", author: "Ernest Hemingway" },
-  { text: "Chaque mot est comme une note de musique inutile si elle n'est pas à sa place.", author: "Gustave Flaubert" },
-  { text: "Il n'y a pas de règles. Vous pouvez écrire une histoire, si vous le pouvez, de n'importe quelle manière.", author: "Somerset Maugham" },
-  { text: "Le style, c'est l'homme même.", author: "Buffon" },
-  { text: "Écrire, c'est une façon de parler sans être interrompu.", author: "Jules Renard" },
-  { text: "Les mots sont des pistolets chargés.", author: "Jean-Paul Sartre" },
-  { text: "La vraie vie est si souvent celle qu'on ne vit pas.", author: "Oscar Wilde" },
-  { text: "Tous les grands hommes sont des faiseurs de livres.", author: "Voltaire" },
-  { text: "Bien écrire, c'est tout à la fois bien penser, bien sentir et bien rendre.", author: "Buffon" },
-  { text: "L'écrivain original n'est pas celui qui n'imite personne, mais celui que personne ne peut imiter.", author: "Chateaubriand" },
-];
+import AUTHOR_QUOTES from '@/data/author-quotes.json';
 
 interface RewriteLoadingOverlayProps {
   isVisible: boolean;
