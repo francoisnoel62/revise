@@ -20,6 +20,7 @@ interface Proposal {
 interface ProposalsSheetProps {
   open: boolean;
   proposals: Proposal[];
+  originalText?: string;
   onInsert: (content: string) => void;
   onClose: () => void;
 }
@@ -27,18 +28,27 @@ interface ProposalsSheetProps {
 export function ProposalsSheet({
   open,
   proposals,
+  originalText,
   onInsert,
   onClose,
 }: ProposalsSheetProps) {
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <SheetContent side="right" className="w-[500px] sm:w-[600px]">
+      <SheetContent side="right" className="w-[500px] sm:w-[600px] flex flex-col">
         <SheetHeader>
           <SheetTitle>Propositions de réécriture</SheetTitle>
         </SheetHeader>
 
-        <ScrollArea className="h-full mt-6 pr-4">
-          <div className="space-y-4 pb-20">
+        {/* Original selected text */}
+        {originalText && (
+          <div className="mt-4 p-3 bg-slate-100 border border-slate-200 rounded-lg flex-shrink-0">
+            <p className="text-xs text-slate-500 font-medium mb-1">Texte original</p>
+            <p className="text-sm text-slate-700 whitespace-pre-wrap">{originalText}</p>
+          </div>
+        )}
+
+        <ScrollArea className="flex-1 mt-4 pr-4">
+          <div className="space-y-4 pb-4">
             {proposals.map((proposal, index) => (
               <div
                 key={index}

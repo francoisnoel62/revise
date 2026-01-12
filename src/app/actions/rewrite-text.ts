@@ -4,12 +4,12 @@
 'use server';
 
 import { RewriteTextUseCase } from '@/application';
-import { TextDocument, TextSelection } from '@/domain';
 import {
   getProviderRepository,
   getProjectRepository,
   createLLMProvider,
 } from '@/infrastructure/config/providers';
+import { extractTextFromTipTapJSON } from '@/infrastructure/document/utils/tiptap-conversion';
 import {
   ActionResult,
   getAuthenticatedUserId,
@@ -28,16 +28,18 @@ interface RewriteProposalDTO {
  * Throws an error if no provider is configured.
  *
  * @param projectId The project ID (to determine which provider to use)
- * @param fullContent Full document content for context
- * @param selectionStart Selection start position
- * @param selectionEnd Selection end position
+ * @param fullContent Full document content (TipTap JSON string) for context
+ * @param selectionStart Selection start position (for reference)
+ * @param selectionEnd Selection end position (for reference)
+ * @param selectedText The actual selected text extracted from TipTap editor
  * @returns Action result with proposals or error
  */
 export async function rewriteText(
   projectId: string,
   fullContent: string,
   selectionStart: number,
-  selectionEnd: number
+  selectionEnd: number,
+  selectedText: string
 ): Promise<ActionResult<RewriteProposalDTO[]>> {
   // 1. Authenticate
   const auth = await getAuthenticatedUserId();
@@ -47,11 +49,15 @@ export async function rewriteText(
   const { userId } = auth;
 
   // 2. Validate input
+  if (!selectedText || selectedText.trim().length === 0) {
+    return { success: false, error: 'Selected text is required' };
+  }
+
   if (!fullContent || fullContent.trim().length === 0) {
     return { success: false, error: 'Content is required' };
   }
 
-  if (selectionStart < 0 || selectionEnd > fullContent.length || selectionStart >= selectionEnd) {
+  if (selectionStart < 0 || selectionStart >= selectionEnd) {
     return { success: false, error: 'Invalid selection range' };
   }
 
@@ -90,11 +96,19 @@ export async function rewriteText(
 
     const llmProvider = createLLMProvider(provider);
 
-    // 5. Execute rewrite use case
-    const document = new TextDocument(fullContent);
-    const selection = new TextSelection(selectionStart, selectionEnd);
+    // 5. Extract plain text context from TipTap JSON for AI
+    let plainTextContext = '';
+    try {
+      const tiptapJson = JSON.parse(fullContent);
+      plainTextContext = extractTextFromTipTapJSON(tiptapJson);
+    } catch {
+      // If parsing fails, use fullContent as-is (fallback for plain text)
+      plainTextContext = fullContent;
+    }
+
+    // 6. Execute rewrite use case with extracted text (avoids JSON/position mismatch)
     const useCase = new RewriteTextUseCase(llmProvider);
-    const proposals = await useCase.execute(document, selection);
+    const proposals = await useCase.executeWithText(selectedText, plainTextContext);
 
     const duration = performance.now() - startTime;
 
