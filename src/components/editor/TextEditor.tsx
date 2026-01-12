@@ -12,6 +12,7 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import { FontFamily } from '@tiptap/extension-text-style/font-family';
 import { FontSize } from '@tiptap/extension-text-style/font-size';
 import TextAlign from '@tiptap/extension-text-align';
+import CharacterCount from '@tiptap/extension-character-count';
 import { IndentParagraph } from './extensions/IndentParagraph';
 import { useEffect } from 'react';
 import { useAutosave } from '@/hooks/useAutosave';
@@ -71,6 +72,7 @@ export function TextEditor({
       }),
       EmDashExtension,
       Placeholder.configure({ placeholder }),
+      CharacterCount,
     ],
     content: activeContent ? JSON.parse(activeContent) : { type: 'doc', content: [] },
     onUpdate: ({ editor }) => {
