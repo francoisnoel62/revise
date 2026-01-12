@@ -48,20 +48,45 @@ export class DocxParser implements DocumentParser {
     }
 
     try {
-      // Convert to HTML with formatting
+      // Transform paragraphs to detect indentation before HTML conversion
+      // Mammoth exposes paragraph.indent.firstLine for first-line indentation
+      const transformParagraph = (paragraph: {
+        indent?: { firstLine?: string | null };
+        styleName?: string | null;
+      }) => {
+        // Check if paragraph has first-line indent
+        if (paragraph.indent?.firstLine) {
+          // Mark as indented by adding a custom style name that we can map
+          return {
+            ...paragraph,
+            styleName: paragraph.styleName || 'IndentedParagraph',
+            _hasIndent: true,
+          };
+        }
+        return paragraph;
+      };
+
+      // Convert to HTML with formatting and indentation detection
       const result = await mammoth.convertToHtml(
         { buffer },
         {
+          transformDocument: mammoth.transforms.paragraph(transformParagraph),
           styleMap: [
             'u => u', // Preserve underlines
             "p[style-name='Heading 1'] => h1",
             "p[style-name='Heading 2'] => h2",
             "p[style-name='Heading 3'] => h3",
+            "p[style-name='IndentedParagraph'] => p.indented:fresh",
           ],
         }
       );
 
-      const html = result.value;
+      // Post-process HTML to convert class="indented" to data-indent="true"
+      // This allows the IndentParagraph TipTap extension to detect indentation
+      const html = result.value.replace(
+        /<p class="indented">/g,
+        '<p data-indent="true">'
+      );
 
       // Split by H1 tags
       const sections = this.splitByHeadings(html);

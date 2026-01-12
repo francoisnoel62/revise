@@ -6,8 +6,10 @@ import { DocxParser } from './parsers/DocxParser';
 import { DocxExporter } from './exporters/DocxExporter';
 import { TextDocument } from '@/domain/entities/TextDocument';
 import { TextSelection } from '@/domain/value-objects/TextSelection';
+import { Chapter } from '@/domain/entities/Chapter';
 
 describe('Document Pipeline Integration', () => {
+
   it('should parse, modify, and export docx', async () => {
     const parser = new DocxParser();
     const exporter = new DocxExporter();
