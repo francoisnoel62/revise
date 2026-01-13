@@ -11,6 +11,7 @@ import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import { LLMProvider } from '@/domain/interfaces/LLMProvider';
 import { DocumentParser } from '@/domain/interfaces/DocumentParser';
 import { DocumentExporter } from '@/domain/interfaces/DocumentExporter';
+import { ContentConverter } from '@/domain/interfaces/ContentConverter';
 import { AuthJsProvider } from '@/infrastructure/auth/AuthJsProvider';
 import { MongoDBProjectRepository } from '@/infrastructure/persistence/MongoDBProjectRepository';
 import { MongoDBUserRepository } from '@/infrastructure/persistence/MongoDBUserRepository';
@@ -25,6 +26,7 @@ import { DocxParser } from '@/infrastructure/document/parsers/DocxParser';
 import { CompositeDocumentParser } from '@/infrastructure/document/parsers/CompositeParser';
 import { DocxExporter } from '@/infrastructure/document/exporters/DocxExporter';
 import { PdfExporter } from '@/infrastructure/document/exporters/PdfExporter';
+import { TipTapContentService } from '@/infrastructure/document/utils/TipTapContentService';
 import { Provider } from '@/domain/entities/Provider';
 import { getDatabase } from './database';
 import { config } from './env';
@@ -176,4 +178,12 @@ export function getDocumentExporter(format: ExportFormat = 'docx'): DocumentExpo
     return new PdfExporter();
   }
   return new DocxExporter();
+}
+
+/**
+ * Get the content converter for extracting/transforming editor content.
+ * Returns TipTapContentService implementation.
+ */
+export function getContentConverter(): ContentConverter {
+  return new TipTapContentService();
 }

@@ -14,9 +14,11 @@ import { FontSize } from '@tiptap/extension-text-style/font-size';
 import TextAlign from '@tiptap/extension-text-align';
 import CharacterCount from '@tiptap/extension-character-count';
 import { IndentParagraph } from './extensions/IndentParagraph';
-import { useEffect } from 'react';
+import { Autocomplete } from './extensions/Autocomplete';
+import { useEffect, useCallback } from 'react';
 import { useAutosave } from '@/hooks/useAutosave';
 import { useProjectStore } from '@/store/projectStore';
+import { generateCompletionAction } from '@/app/actions/completion-actions';
 
 // Custom extension for em dash insertion with Ctrl+K
 const EmDashExtension = Extension.create({
@@ -36,14 +38,37 @@ interface TextEditorProps {
   onSelectionChange: (from: number, to: number) => void;
   onEditorReady?: (editor: Editor) => void;
   placeholder?: string;
+  projectId?: string;
+  autocompleteEnabled?: boolean;
 }
 
 export function TextEditor({
   onSelectionChange,
   onEditorReady,
   placeholder = 'Commencez à écrire ou importez un document...',
+  projectId,
+  autocompleteEnabled = true,
 }: TextEditorProps) {
   const { activeContent, updateActiveContent, project } = useProjectStore();
+
+  // Handler for autocompletion requests
+  const handleAutocomplete = useCallback(
+    async (textBeforeCursor: string, textAfterCursor: string): Promise<string | null> => {
+      const id = projectId || project?.id;
+      if (!id) return null;
+
+      try {
+        const result = await generateCompletionAction(id, textBeforeCursor, textAfterCursor);
+        if (result.success && result.data) {
+          return result.data.completion;
+        }
+        return null;
+      } catch {
+        return null;
+      }
+    },
+    [projectId, project?.id]
+  );
 
   // Enable autosave
   useAutosave();
@@ -73,6 +98,12 @@ export function TextEditor({
       EmDashExtension,
       Placeholder.configure({ placeholder }),
       CharacterCount,
+      Autocomplete.configure({
+        enabled: autocompleteEnabled,
+        onComplete: handleAutocomplete,
+        projectId: projectId || project?.id,
+        useStreaming: true,
+      }),
     ],
     content: activeContent ? JSON.parse(activeContent) : { type: 'doc', content: [] },
     onUpdate: ({ editor }) => {
@@ -110,6 +141,14 @@ export function TextEditor({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, project?.activeChapterId]); // Trigger on activeChapterId change
+
+  // Update autocomplete extension when enabled state changes
+  useEffect(() => {
+    if (!editor) return;
+
+    // Use the command to update autocomplete enabled state
+    editor.commands.setAutocompleteEnabled(autocompleteEnabled);
+  }, [editor, autocompleteEnabled]);
 
   if (!editor) return null;
 

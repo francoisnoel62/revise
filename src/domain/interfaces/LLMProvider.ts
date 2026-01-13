@@ -9,6 +9,8 @@ import { Plot } from '../value-objects/Plot';
 import { Worldbuilding } from '../value-objects/Worldbuilding';
 import { Synthesis } from '../value-objects/Synthesis';
 import { ChapterSummaries } from '../value-objects/ChapterSummaries';
+import { ChapterGeneration } from '../value-objects/ChapterGeneration';
+import { ChapterGenerationTypeKey } from '../value-objects/ChapterGenerationType';
 
 /**
  * Test connection result.
@@ -134,4 +136,70 @@ export interface LLMProvider {
    * @throws Error if generation fails or API is unavailable
    */
   generateChapterSummaries(fullText: string): Promise<ChapterSummaries>;
+
+  /**
+   * Generates content for a new chapter based on project context.
+   * Uses all available metadata and existing chapters to produce
+   * contextually appropriate content matching the author's voice.
+   *
+   * @param fullText The complete text with all existing chapters
+   * @param generationType Type of generation: beginning, full, or outline
+   * @param metadata Optional project metadata for enhanced context
+   * @returns Promise resolving to generated chapter content
+   * @throws Error if generation fails or API is unavailable
+   */
+  generateChapter(
+    fullText: string,
+    generationType: ChapterGenerationTypeKey,
+    metadata?: {
+      narrative?: NarrativeAnalysis;
+      stylisticDNA?: StylisticDNA;
+      characters?: Characters;
+      plot?: Plot;
+      worldbuilding?: Worldbuilding;
+      chapterSummaries?: ChapterSummaries;
+    }
+  ): Promise<ChapterGeneration>;
+
+  /**
+   * Generates text completion for autocompletion feature.
+   * Continues the text naturally based on context and author's style.
+   *
+   * @param textBeforeCursor Text before the cursor position (context)
+   * @param textAfterCursor Optional text after cursor (for better context)
+   * @param metadata Optional project metadata for style consistency
+   * @returns Promise resolving to suggested completion text (1-3 sentences)
+   * @throws Error if generation fails or API is unavailable
+   */
+  generateCompletion(
+    textBeforeCursor: string,
+    textAfterCursor?: string,
+    metadata?: {
+      narrative?: NarrativeAnalysis;
+      stylisticDNA?: StylisticDNA;
+      characters?: Characters;
+      plot?: Plot;
+    }
+  ): Promise<string>;
+
+  /**
+   * Generates text completion with streaming support.
+   * Yields text chunks as they are generated.
+   *
+   * @param textBeforeCursor Text before the cursor position (context)
+   * @param textAfterCursor Optional text after cursor (for better context)
+   * @param metadata Optional project metadata for style consistency
+   * @returns AsyncIterator yielding text chunks
+   * @throws Error if generation fails or API is unavailable
+   */
+  generateCompletionStream(
+    textBeforeCursor: string,
+    textAfterCursor?: string,
+    metadata?: {
+      narrative?: NarrativeAnalysis;
+      stylisticDNA?: StylisticDNA;
+      characters?: Characters;
+      plot?: Plot;
+    }
+  ): AsyncIterableIterator<string>;
 }

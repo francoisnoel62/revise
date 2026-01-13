@@ -63,4 +63,36 @@ export interface PromptRepository {
    * @returns The complete chapter summaries prompt
    */
   getChapterSummariesPrompt(): Promise<string>;
+
+  /**
+   * Get the system prompt for chapter beginning generation.
+   * Generates an opening for a new chapter (10 phrases).
+   *
+   * @returns The complete chapter beginning prompt
+   */
+  getChapterBeginningPrompt(): Promise<string>;
+
+  /**
+   * Get the system prompt for full chapter generation.
+   * Generates a complete chapter (max 1000 words).
+   *
+   * @returns The complete full chapter prompt
+   */
+  getChapterFullPrompt(): Promise<string>;
+
+  /**
+   * Get the system prompt for chapter outline generation.
+   * Generates a detailed outline (5-9 points).
+   *
+   * @returns The complete chapter outline prompt
+   */
+  getChapterOutlinePrompt(): Promise<string>;
+
+  /**
+   * Get the system prompt for text autocompletion.
+   * Generates natural text continuation (1-3 sentences).
+   *
+   * @returns The complete autocompletion prompt
+   */
+  getCompletionPrompt(): Promise<string>;
 }

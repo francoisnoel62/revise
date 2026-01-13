@@ -12,6 +12,8 @@ import { Plot } from '@/domain/value-objects/Plot';
 import { Worldbuilding } from '@/domain/value-objects/Worldbuilding';
 import { Synthesis } from '@/domain/value-objects/Synthesis';
 import { ChapterSummaries } from '@/domain/value-objects/ChapterSummaries';
+import { ChapterGeneration } from '@/domain/value-objects/ChapterGeneration';
+import { ChapterGenerationTypeKey } from '@/domain/value-objects/ChapterGenerationType';
 
 interface ProposalResponse {
   proposals: Array<{
@@ -1206,5 +1208,307 @@ INSTRUCTIONS SUPPLÉMENTAIRES:
       chapters: parsed.chapters,
       overallArc: parsed.overallArc,
     };
+  }
+
+  // ===========================
+  // CHAPTER GENERATION
+  // ===========================
+
+  async generateChapter(
+    fullText: string,
+    generationType: ChapterGenerationTypeKey,
+    metadata?: {
+      narrative?: NarrativeAnalysis;
+      stylisticDNA?: StylisticDNA;
+      characters?: Characters;
+      plot?: Plot;
+      worldbuilding?: Worldbuilding;
+      chapterSummaries?: ChapterSummaries;
+    }
+  ): Promise<ChapterGeneration> {
+    // Load the appropriate prompt based on generation type
+    const basePrompt = await this.loadChapterGenerationPrompt(generationType);
+    const systemPrompt = this.enhanceChapterGenerationPromptForAnthropic(basePrompt, metadata);
+
+    // Determine token limit based on generation type
+    const tokenLimit = generationType === 'chapter-full' ? 4096 : 2048;
+
+    try {
+      const message = await this.client.messages.create({
+        model: this.model,
+        max_tokens: tokenLimit,
+        temperature: 0.75, // Higher creativity for generation
+        system: systemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: fullText,
+          },
+        ],
+      });
+
+      const content = message.content[0];
+      if (content.type !== 'text') {
+        throw new Error('Unexpected response type from Anthropic');
+      }
+
+      return this.parseChapterGenerationResponse(content.text, generationType);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error during chapter generation');
+    }
+  }
+
+  private async loadChapterGenerationPrompt(
+    generationType: ChapterGenerationTypeKey
+  ): Promise<string> {
+    switch (generationType) {
+      case 'chapter-beginning':
+        return this.promptRepository.getChapterBeginningPrompt();
+      case 'chapter-full':
+        return this.promptRepository.getChapterFullPrompt();
+      case 'chapter-outline':
+        return this.promptRepository.getChapterOutlinePrompt();
+      default:
+        throw new Error(`Unknown generation type: ${generationType}`);
+    }
+  }
+
+  private enhanceChapterGenerationPromptForAnthropic(
+    basePrompt: string,
+    metadata?: {
+      narrative?: NarrativeAnalysis;
+      stylisticDNA?: StylisticDNA;
+      characters?: Characters;
+      plot?: Plot;
+      worldbuilding?: Worldbuilding;
+      chapterSummaries?: ChapterSummaries;
+    }
+  ): string {
+    let contextInfo = '';
+
+    if (metadata) {
+      if (metadata.narrative) {
+        contextInfo += '\n\n--- ANALYSE NARRATIVE ---\n';
+        contextInfo += `Narrateur: ${metadata.narrative.narratorType}\n`;
+        contextInfo += `Focalisation: ${metadata.narrative.focalization}\n`;
+        contextInfo += `Temporalité: ${metadata.narrative.temporality}\n`;
+      }
+      if (metadata.stylisticDNA) {
+        contextInfo += '\n\n--- ADN STYLISTIQUE ---\n';
+        contextInfo += `Registre: ${metadata.stylisticDNA.registerAndLexicon}\n`;
+        contextInfo += `Rythme: ${metadata.stylisticDNA.rhythmAndBreathing}\n`;
+        contextInfo += `Règles: ${metadata.stylisticDNA.writingRules.slice(0, 5).join(', ')}\n`;
+      }
+      if (metadata.characters) {
+        contextInfo += '\n\n--- PERSONNAGES ---\n';
+        for (const char of metadata.characters.characterProfiles.slice(0, 5)) {
+          contextInfo += `- ${char.name}: ${char.identity}. ${char.psychology}\n`;
+        }
+      }
+      if (metadata.plot) {
+        contextInfo += '\n\n--- INTRIGUE ---\n';
+        contextInfo += `Enjeux: ${metadata.plot.stakes}\n`;
+        contextInfo += `État actuel: ${metadata.plot.plotState}\n`;
+        contextInfo += `Conflits: ${metadata.plot.conflicts}\n`;
+      }
+      if (metadata.worldbuilding) {
+        contextInfo += '\n\n--- UNIVERS ---\n';
+        contextInfo += `Atmosphère: ${metadata.worldbuilding.atmosphere}\n`;
+        contextInfo += `Thèmes: ${metadata.worldbuilding.explicitThemes}\n`;
+      }
+      if (metadata.chapterSummaries) {
+        contextInfo += '\n\n--- RÉSUMÉS DES CHAPITRES PRÉCÉDENTS ---\n';
+        for (const chap of metadata.chapterSummaries.chapters) {
+          contextInfo += `Chapitre ${chap.chapterNumber} (${chap.chapterTitle}): ${chap.summary}\n`;
+        }
+        contextInfo += `\nArc narratif global: ${metadata.chapterSummaries.overallArc}\n`;
+      }
+    }
+
+    return `${basePrompt}${contextInfo ? '\n\n---\n\nCONTEXTE DU PROJET:' + contextInfo : ''}
+
+---
+
+INSTRUCTIONS FINALES:
+- Détecte la langue du texte et réponds dans la MÊME LANGUE
+- Retourne UNIQUEMENT le JSON valide, sans markdown code blocks
+- Le contenu généré doit provoquer une réaction chez l'auteur: adhésion, rejet ou réécriture`;
+  }
+
+  private parseChapterGenerationResponse(
+    content: string,
+    generationType: ChapterGenerationTypeKey
+  ): ChapterGeneration {
+    const jsonContent = this.extractJson(content);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let parsed: any;
+    try {
+      parsed = JSON.parse(jsonContent);
+    } catch {
+      throw new Error('Failed to parse chapter generation response from Anthropic');
+    }
+
+    if (!parsed.content || typeof parsed.content !== 'string') {
+      throw new Error('Invalid response: missing content');
+    }
+
+    return {
+      generationType,
+      content: parsed.content,
+      narrativeContext: parsed.narrativeContext,
+      suggestions: parsed.suggestions,
+    };
+  }
+
+  /**
+   * Generate text completion for autocompletion feature.
+   */
+  async generateCompletion(
+    textBeforeCursor: string,
+    textAfterCursor?: string,
+    metadata?: {
+      narrative?: NarrativeAnalysis;
+      stylisticDNA?: StylisticDNA;
+      characters?: Characters;
+      plot?: Plot;
+    }
+  ): Promise<string> {
+    const basePrompt = await this.promptRepository.getCompletionPrompt();
+    const systemPrompt = this.enhanceCompletionPrompt(basePrompt, metadata);
+
+    // Build user prompt with context
+    let userPrompt = `[AVANT]\n${textBeforeCursor}`;
+    if (textAfterCursor && textAfterCursor.trim()) {
+      userPrompt += `\n\n[APRÈS]\n${textAfterCursor}`;
+    }
+
+    try {
+      const response = await this.client.messages.create({
+        model: this.model,
+        max_tokens: 256, // Short completions
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+      });
+
+      const content = response.content[0];
+      if (content.type !== 'text') {
+        throw new Error('Unexpected response type from Anthropic');
+      }
+
+      // Clean up the response
+      return this.cleanCompletionResponse(content.text);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error during completion generation');
+    }
+  }
+
+  private enhanceCompletionPrompt(
+    basePrompt: string,
+    metadata?: {
+      narrative?: NarrativeAnalysis;
+      stylisticDNA?: StylisticDNA;
+      characters?: Characters;
+      plot?: Plot;
+    }
+  ): string {
+    let contextInfo = '';
+
+    if (metadata) {
+      if (metadata.stylisticDNA) {
+        contextInfo += '\n\n[MÉTADONNÉES - STYLE]\n';
+        contextInfo += `Registre: ${metadata.stylisticDNA.registerAndLexicon}\n`;
+        contextInfo += `Rythme: ${metadata.stylisticDNA.rhythmAndBreathing}\n`;
+      }
+      if (metadata.narrative) {
+        contextInfo += '\n\n[MÉTADONNÉES - NARRATION]\n';
+        contextInfo += `Point de vue: ${metadata.narrative.narratorType}\n`;
+        contextInfo += `Focalisation: ${metadata.narrative.focalization}\n`;
+      }
+      if (metadata.characters) {
+        contextInfo += '\n\n[MÉTADONNÉES - PERSONNAGES]\n';
+        for (const char of metadata.characters.characterProfiles.slice(0, 3)) {
+          contextInfo += `- ${char.name}: ${char.identity}\n`;
+        }
+      }
+      if (metadata.plot) {
+        contextInfo += '\n\n[MÉTADONNÉES - INTRIGUE]\n';
+        contextInfo += `État actuel: ${metadata.plot.plotState}\n`;
+      }
+    }
+
+    return `${basePrompt}${contextInfo}`;
+  }
+
+  private cleanCompletionResponse(content: string): string {
+    let text = content.trim();
+
+    // Remove surrounding quotes if present
+    if (
+      (text.startsWith('"') && text.endsWith('"')) ||
+      (text.startsWith("'") && text.endsWith("'"))
+    ) {
+      text = text.slice(1, -1);
+    }
+
+    // Remove markdown formatting
+    text = text.replace(/^```\w*\n?/, '').replace(/\n?```$/, '');
+
+    return text.trim();
+  }
+
+  /**
+   * Generate text completion with streaming.
+   */
+  async *generateCompletionStream(
+    textBeforeCursor: string,
+    textAfterCursor?: string,
+    metadata?: {
+      narrative?: NarrativeAnalysis;
+      stylisticDNA?: StylisticDNA;
+      characters?: Characters;
+      plot?: Plot;
+    }
+  ): AsyncIterableIterator<string> {
+    const basePrompt = await this.promptRepository.getCompletionPrompt();
+    const systemPrompt = this.enhanceCompletionPrompt(basePrompt, metadata);
+
+    // Build user prompt with context
+    let userPrompt = `[AVANT]\n${textBeforeCursor}`;
+    if (textAfterCursor && textAfterCursor.trim()) {
+      userPrompt += `\n\n[APRÈS]\n${textAfterCursor}`;
+    }
+
+    const stream = this.client.messages.stream({
+      model: this.model,
+      max_tokens: 256,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    });
+
+    let isFirstChunk = true;
+
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+        const content = event.delta.text;
+        if (content) {
+          // Clean up first chunk if it starts with quotes
+          if (isFirstChunk) {
+            isFirstChunk = false;
+            if (content.startsWith('"') || content.startsWith("'")) {
+              yield content.slice(1);
+              continue;
+            }
+          }
+          yield content;
+        }
+      }
+    }
   }
 }
