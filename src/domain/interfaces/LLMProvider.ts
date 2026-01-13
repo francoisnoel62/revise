@@ -160,4 +160,25 @@ export interface LLMProvider {
       chapterSummaries?: ChapterSummaries;
     }
   ): Promise<ChapterGeneration>;
+
+  /**
+   * Generates text completion for autocompletion feature.
+   * Continues the text naturally based on context and author's style.
+   *
+   * @param textBeforeCursor Text before the cursor position (context)
+   * @param textAfterCursor Optional text after cursor (for better context)
+   * @param metadata Optional project metadata for style consistency
+   * @returns Promise resolving to suggested completion text (1-3 sentences)
+   * @throws Error if generation fails or API is unavailable
+   */
+  generateCompletion(
+    textBeforeCursor: string,
+    textAfterCursor?: string,
+    metadata?: {
+      narrative?: NarrativeAnalysis;
+      stylisticDNA?: StylisticDNA;
+      characters?: Characters;
+      plot?: Plot;
+    }
+  ): Promise<string>;
 }

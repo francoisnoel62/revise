@@ -96,6 +96,26 @@ export class FilePromptRepository implements PromptRepository {
   }
 
   /**
+   * Read the autocompletion prompt from markdown file.
+   */
+  async getCompletionPrompt(): Promise<string> {
+    // Autocompletion prompt is at root level, not in a subdirectory
+    const filePath = join(this.promptsDir, 'autocompletion.md');
+
+    try {
+      const content = await readFile(filePath, 'utf-8');
+      return content.trim();
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(
+          `Failed to read autocompletion prompt from ${filePath}: ${error.message}`
+        );
+      }
+      throw new Error('Failed to read autocompletion prompt');
+    }
+  }
+
+  /**
    * Helper method to read a prompt file from a subdirectory.
    * @param filename The name of the file to read
    * @param promptType Human-readable name for error messages

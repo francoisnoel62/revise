@@ -1363,4 +1363,103 @@ INSTRUCTIONS FINALES:
       suggestions: parsed.suggestions,
     };
   }
+
+  /**
+   * Generate text completion for autocompletion feature.
+   */
+  async generateCompletion(
+    textBeforeCursor: string,
+    textAfterCursor?: string,
+    metadata?: {
+      narrative?: NarrativeAnalysis;
+      stylisticDNA?: StylisticDNA;
+      characters?: Characters;
+      plot?: Plot;
+    }
+  ): Promise<string> {
+    const basePrompt = await this.promptRepository.getCompletionPrompt();
+    const systemPrompt = this.enhanceCompletionPrompt(basePrompt, metadata);
+
+    // Build user prompt with context
+    let userPrompt = `[AVANT]\n${textBeforeCursor}`;
+    if (textAfterCursor && textAfterCursor.trim()) {
+      userPrompt += `\n\n[APRÈS]\n${textAfterCursor}`;
+    }
+
+    try {
+      const response = await this.client.messages.create({
+        model: this.model,
+        max_tokens: 256, // Short completions
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+      });
+
+      const content = response.content[0];
+      if (content.type !== 'text') {
+        throw new Error('Unexpected response type from Anthropic');
+      }
+
+      // Clean up the response
+      return this.cleanCompletionResponse(content.text);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error during completion generation');
+    }
+  }
+
+  private enhanceCompletionPrompt(
+    basePrompt: string,
+    metadata?: {
+      narrative?: NarrativeAnalysis;
+      stylisticDNA?: StylisticDNA;
+      characters?: Characters;
+      plot?: Plot;
+    }
+  ): string {
+    let contextInfo = '';
+
+    if (metadata) {
+      if (metadata.stylisticDNA) {
+        contextInfo += '\n\n[MÉTADONNÉES - STYLE]\n';
+        contextInfo += `Registre: ${metadata.stylisticDNA.registerAndLexicon}\n`;
+        contextInfo += `Rythme: ${metadata.stylisticDNA.rhythmAndBreathing}\n`;
+      }
+      if (metadata.narrative) {
+        contextInfo += '\n\n[MÉTADONNÉES - NARRATION]\n';
+        contextInfo += `Point de vue: ${metadata.narrative.narratorType}\n`;
+        contextInfo += `Focalisation: ${metadata.narrative.focalization}\n`;
+      }
+      if (metadata.characters) {
+        contextInfo += '\n\n[MÉTADONNÉES - PERSONNAGES]\n';
+        for (const char of metadata.characters.characterProfiles.slice(0, 3)) {
+          contextInfo += `- ${char.name}: ${char.identity}\n`;
+        }
+      }
+      if (metadata.plot) {
+        contextInfo += '\n\n[MÉTADONNÉES - INTRIGUE]\n';
+        contextInfo += `État actuel: ${metadata.plot.plotState}\n`;
+      }
+    }
+
+    return `${basePrompt}${contextInfo}`;
+  }
+
+  private cleanCompletionResponse(content: string): string {
+    let text = content.trim();
+
+    // Remove surrounding quotes if present
+    if (
+      (text.startsWith('"') && text.endsWith('"')) ||
+      (text.startsWith("'") && text.endsWith("'"))
+    ) {
+      text = text.slice(1, -1);
+    }
+
+    // Remove markdown formatting
+    text = text.replace(/^```\w*\n?/, '').replace(/\n?```$/, '');
+
+    return text.trim();
+  }
 }

@@ -1477,4 +1477,107 @@ INSTRUCTIONS FINALES:
 
     return text;
   }
+
+  /**
+   * Generate text completion for autocompletion feature.
+   */
+  async generateCompletion(
+    textBeforeCursor: string,
+    textAfterCursor?: string,
+    metadata?: {
+      narrative?: NarrativeAnalysis;
+      stylisticDNA?: StylisticDNA;
+      characters?: Characters;
+      plot?: Plot;
+    }
+  ): Promise<string> {
+    const basePrompt = await this.promptRepository.getCompletionPrompt();
+    const systemPrompt = this.enhanceCompletionPrompt(basePrompt, metadata);
+
+    // Build user prompt with context
+    let userPrompt = `[AVANT]\n${textBeforeCursor}`;
+    if (textAfterCursor && textAfterCursor.trim()) {
+      userPrompt += `\n\n[APRÈS]\n${textAfterCursor}`;
+    }
+
+    try {
+      const isReasoning = this.isReasoningModel();
+      const completion = await this.client.chat.completions.create({
+        model: this.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        ...(isReasoning ? {} : { temperature: 0.7 }),
+        ...this.getTokenLimitParam(256), // Short completions
+      });
+
+      const content = completion.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('Empty response from OpenAI');
+      }
+
+      // Clean up the response - remove quotes if wrapped
+      return this.cleanCompletionResponse(content);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error during completion generation');
+    }
+  }
+
+  private enhanceCompletionPrompt(
+    basePrompt: string,
+    metadata?: {
+      narrative?: NarrativeAnalysis;
+      stylisticDNA?: StylisticDNA;
+      characters?: Characters;
+      plot?: Plot;
+    }
+  ): string {
+    let contextInfo = '';
+
+    if (metadata) {
+      if (metadata.stylisticDNA) {
+        contextInfo += '\n\n[MÉTADONNÉES - STYLE]\n';
+        contextInfo += `Registre: ${metadata.stylisticDNA.registerAndLexicon}\n`;
+        contextInfo += `Rythme: ${metadata.stylisticDNA.rhythmAndBreathing}\n`;
+      }
+      if (metadata.narrative) {
+        contextInfo += '\n\n[MÉTADONNÉES - NARRATION]\n';
+        contextInfo += `Point de vue: ${metadata.narrative.narratorType}\n`;
+        contextInfo += `Focalisation: ${metadata.narrative.focalization}\n`;
+      }
+      if (metadata.characters) {
+        contextInfo += '\n\n[MÉTADONNÉES - PERSONNAGES]\n';
+        for (const char of metadata.characters.characterProfiles.slice(0, 3)) {
+          contextInfo += `- ${char.name}: ${char.identity}\n`;
+        }
+      }
+      if (metadata.plot) {
+        contextInfo += '\n\n[MÉTADONNÉES - INTRIGUE]\n';
+        contextInfo += `État actuel: ${metadata.plot.plotState}\n`;
+      }
+    }
+
+    return `${basePrompt}${contextInfo}`;
+  }
+
+  private cleanCompletionResponse(content: string): string {
+    let text = content.trim();
+
+    // Remove surrounding quotes if present
+    if (
+      (text.startsWith('"') && text.endsWith('"')) ||
+      (text.startsWith("'") && text.endsWith("'"))
+    ) {
+      text = text.slice(1, -1);
+    }
+
+    // Remove markdown formatting
+    text = text.replace(/^```\w*\n?/, '').replace(/\n?```$/, '');
+
+    return text.trim();
+  }
 }

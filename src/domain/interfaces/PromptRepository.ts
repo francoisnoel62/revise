@@ -87,4 +87,12 @@ export interface PromptRepository {
    * @returns The complete chapter outline prompt
    */
   getChapterOutlinePrompt(): Promise<string>;
+
+  /**
+   * Get the system prompt for text autocompletion.
+   * Generates natural text continuation (1-3 sentences).
+   *
+   * @returns The complete autocompletion prompt
+   */
+  getCompletionPrompt(): Promise<string>;
 }
