@@ -56,9 +56,9 @@ export async function POST(request: NextRequest) {
   const providerRepo = await getProviderRepository();
   const promptRepo = getPromptRepository();
 
-  // Try to get user's configured provider
+  // Try to get user's configured provider (use first available)
   const providers = await providerRepo.listProviders(userId);
-  const defaultProvider = providers.find((p) => p.isDefault) || providers[0];
+  const defaultProvider = providers[0];
 
   let llmProvider;
 
