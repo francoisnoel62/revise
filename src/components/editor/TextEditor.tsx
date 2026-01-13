@@ -142,6 +142,18 @@ export function TextEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, project?.activeChapterId]); // Trigger on activeChapterId change
 
+  // Update autocomplete extension when enabled state changes
+  useEffect(() => {
+    if (!editor) return;
+
+    // Update the Autocomplete extension's options dynamically
+    editor.extensionManager.extensions.forEach((ext) => {
+      if (ext.name === 'autocomplete') {
+        ext.options.enabled = autocompleteEnabled;
+      }
+    });
+  }, [editor, autocompleteEnabled]);
+
   if (!editor) return null;
 
   return (

@@ -60,6 +60,9 @@ function EditorContent() {
   // History dialog state
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
 
+  // Autocomplete state
+  const [autocompleteEnabled, setAutocompleteEnabled] = useState(true);
+
   // Track initialization to prevent infinite loop
   const initializedRef = useRef(false);
   const currentProjectIdRef = useRef<string | null>(null);
@@ -311,6 +314,8 @@ function EditorContent() {
               onProviderChange={handleProviderChange}
               providersLoading={providersLoading}
               onHistoryClick={() => setShowHistoryDialog(true)}
+              autocompleteEnabled={autocompleteEnabled}
+              onAutocompleteChange={setAutocompleteEnabled}
             />
           </div>
         </div>
@@ -323,6 +328,7 @@ function EditorContent() {
             <TextEditor
               onSelectionChange={handleSelectionChange}
               onEditorReady={(editorInstance) => setEditor(editorInstance)}
+              autocompleteEnabled={autocompleteEnabled}
             />
             {/* Show AI generation menu when editor is empty */}
             <FloatingGenerationMenu

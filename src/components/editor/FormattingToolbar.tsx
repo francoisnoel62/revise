@@ -25,7 +25,10 @@ import {
   Undo2,
   Redo2,
   History,
+  Sparkles,
 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { ProviderSelect } from './ProviderSelect';
 import { SafeProvider } from '@/app/actions/provider-actions';
 
@@ -39,6 +42,8 @@ interface FormattingToolbarProps {
   onProviderChange?: (providerId: string | null) => void;
   providersLoading?: boolean;
   onHistoryClick?: () => void;
+  autocompleteEnabled?: boolean;
+  onAutocompleteChange?: (enabled: boolean) => void;
 }
 
 export function FormattingToolbar({
@@ -51,6 +56,8 @@ export function FormattingToolbar({
   onProviderChange,
   providersLoading = false,
   onHistoryClick,
+  autocompleteEnabled = true,
+  onAutocompleteChange,
 }: FormattingToolbarProps) {
   if (!editor) return null;
 
@@ -265,6 +272,26 @@ export function FormattingToolbar({
             >
               <History className="h-4 w-4" />
             </Button>
+          )}
+          {/* Autocomplete Toggle */}
+          {onAutocompleteChange && (
+            <>
+              <div className="w-px h-8 bg-slate-300 mx-1" />
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-slate-500" />
+                <Switch
+                  id="autocomplete-toggle"
+                  checked={autocompleteEnabled}
+                  onCheckedChange={onAutocompleteChange}
+                />
+                <Label
+                  htmlFor="autocomplete-toggle"
+                  className="text-xs text-slate-600 cursor-pointer"
+                >
+                  Auto
+                </Label>
+              </div>
+            </>
           )}
         </div>
       )}
