@@ -2,8 +2,17 @@
 // ABOUTME: Uses serialized data structures compatible with Server Actions.
 
 import { SerializedProject, SerializedChapter, ProjectListItem } from '@/app/actions/project-actions';
+import { CorrectionHistoryListItem } from '@/app/actions/correction-history-actions';
 
 export type { SerializedProject, SerializedChapter, ProjectListItem };
+
+/**
+ * Cache entry for correction history.
+ */
+export interface CorrectionHistoryCacheEntry {
+  data: CorrectionHistoryListItem[];
+  timestamp: number;
+}
 
 /**
  * Store state for project management.
@@ -51,4 +60,14 @@ export interface ProjectState {
   // UI state management
   setIsExporting: (isExporting: boolean) => void;
   clearError: () => void;
+
+  // Correction history cache
+  /** Cache of correction history per chapter */
+  correctionHistoryCache: Map<string, CorrectionHistoryCacheEntry>;
+  /** Get cached history for a chapter (returns null if not cached or stale) */
+  getCorrectionHistoryCache: (chapterId: string) => CorrectionHistoryListItem[] | null;
+  /** Set cached history for a chapter */
+  setCorrectionHistoryCache: (chapterId: string, data: CorrectionHistoryListItem[]) => void;
+  /** Invalidate cache for a chapter (called after new correction saved) */
+  invalidateCorrectionHistoryCache: (chapterId: string) => void;
 }

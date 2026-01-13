@@ -1,0 +1,136 @@
+// ABOUTME: Dialog component for viewing correction history of a specific chapter
+// ABOUTME: Uses Zustand cache to avoid unnecessary database queries
+
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { CorrectionHistoryTable } from './CorrectionHistoryTable';
+import {
+  listCorrectionHistoryByChapterAction,
+  deleteCorrectionHistoryAction,
+  type CorrectionHistoryListItem,
+} from '@/app/actions/correction-history-actions';
+import { useProjectStore } from '@/store/projectStore';
+
+interface CorrectionHistoryDialogProps {
+  projectId: string;
+  chapterId: string;
+  chapterTitle: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function CorrectionHistoryDialog({
+  projectId,
+  chapterId,
+  chapterTitle,
+  open,
+  onOpenChange,
+}: CorrectionHistoryDialogProps) {
+  const [history, setHistory] = useState<CorrectionHistoryListItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Cache from store
+  const getCorrectionHistoryCache = useProjectStore((s) => s.getCorrectionHistoryCache);
+  const setCorrectionHistoryCache = useProjectStore((s) => s.setCorrectionHistoryCache);
+
+  const loadHistory = useCallback(async () => {
+    if (!projectId || !chapterId) return;
+
+    // Check cache first
+    const cachedData = getCorrectionHistoryCache(chapterId);
+    if (cachedData) {
+      setHistory(cachedData);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await listCorrectionHistoryByChapterAction(projectId, chapterId);
+
+      if (result.success) {
+        setHistory(result.data);
+        // Store in cache
+        setCorrectionHistoryCache(chapterId, result.data);
+      } else {
+        setError(result.error);
+      }
+    } catch (err) {
+      setError('Erreur lors du chargement de l\'historique');
+      console.error('Failed to load history:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [projectId, chapterId, getCorrectionHistoryCache, setCorrectionHistoryCache]);
+
+  // Load history when dialog opens
+  useEffect(() => {
+    if (open) {
+      loadHistory();
+    }
+  }, [open, loadHistory]);
+
+  const handleDelete = async (historyId: string) => {
+    setDeletingId(historyId);
+
+    try {
+      const result = await deleteCorrectionHistoryAction(historyId);
+
+      if (result.success) {
+        // Remove from local state and update cache
+        const newHistory = history.filter((h) => h.id !== historyId);
+        setHistory(newHistory);
+        setCorrectionHistoryCache(chapterId, newHistory);
+      } else {
+        alert(`Erreur: ${result.error}`);
+      }
+    } catch (err) {
+      alert('Erreur lors de la suppression');
+      console.error('Failed to delete history:', err);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="!w-[85vw] !max-w-none max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Historique des corrections - {chapterTitle}</DialogTitle>
+          <DialogDescription>
+            Propositions de réécriture générées par l&apos;IA pour ce chapitre
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-auto min-h-0">
+          {loading ? (
+            <div className="flex items-center justify-center h-[400px]">
+              <div className="text-muted-foreground">Chargement...</div>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center h-[400px]">
+              <div className="text-destructive">{error}</div>
+            </div>
+          ) : (
+            <CorrectionHistoryTable
+              data={history}
+              onDelete={handleDelete}
+              isDeleting={deletingId}
+            />
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

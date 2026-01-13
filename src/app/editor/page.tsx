@@ -22,6 +22,7 @@ import { Editor } from '@tiptap/react';
 import { rewriteText } from '@/app/actions/rewrite-text';
 import { listProvidersAction, SafeProvider } from '@/app/actions/provider-actions';
 import { updateProjectProviderAction } from '@/app/actions/project-actions';
+import { CorrectionHistoryDialog } from '@/components/history/CorrectionHistoryDialog';
 
 interface Proposal {
   content: string;
@@ -38,6 +39,7 @@ function EditorContent() {
     isLoading,
     error,
     loadProject,
+    invalidateCorrectionHistoryCache,
   } = useProjectStore();
 
   // UI state for proposals
@@ -53,6 +55,9 @@ function EditorContent() {
   const [providers, setProviders] = useState<SafeProvider[]>([]);
   const [providersLoading, setProvidersLoading] = useState(false);
   const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
+
+  // History dialog state
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
 
   // Track initialization to prevent infinite loop
   const initializedRef = useRef(false);
@@ -163,6 +168,7 @@ function EditorContent() {
 
       const result = await rewriteText(
         project.id,
+        activeChapter.id,  // Chapter ID for history tracking
         activeChapter.content,
         selection.from,
         selection.to,
@@ -173,6 +179,9 @@ function EditorContent() {
         alert(`Erreur: ${result.error}`);
         return;
       }
+
+      // Invalidate history cache since new correction was saved
+      invalidateCorrectionHistoryCache(activeChapter.id);
 
       setProposals(result.data?.map(p => ({ content: p.content, styleLabel: p.styleLabel })) || []);
       setOriginalText(selectedText);
@@ -300,6 +309,7 @@ function EditorContent() {
               selectedProviderId={selectedProviderId}
               onProviderChange={handleProviderChange}
               providersLoading={providersLoading}
+              onHistoryClick={() => setShowHistoryDialog(true)}
             />
           </div>
         </div>
@@ -328,6 +338,17 @@ function EditorContent() {
         onInsert={handleInsert}
         onClose={() => setShowProposals(false)}
       />
+
+      {/* Correction history dialog */}
+      {project && project.activeChapterId && (
+        <CorrectionHistoryDialog
+          projectId={project.id}
+          chapterId={project.activeChapterId}
+          chapterTitle={project.chapters.find((c) => c.id === project.activeChapterId)?.title ?? 'Chapitre'}
+          open={showHistoryDialog}
+          onOpenChange={setShowHistoryDialog}
+        />
+      )}
     </main>
   );
 }

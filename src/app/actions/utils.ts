@@ -10,6 +10,7 @@ import {
   getProviderRepository,
   getUserRepository,
   getMetadataRepository,
+  getCorrectionHistoryRepository,
   getPromptRepository,
   createLLMProvider,
   getDocxParser,
@@ -23,6 +24,7 @@ import { ProjectRepository } from '@/domain/interfaces/ProjectRepository';
 import { ProviderRepository } from '@/domain/interfaces/ProviderRepository';
 import { UserRepository } from '@/domain/interfaces/UserRepository';
 import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
+import { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
 import { LLMProviderFactory } from '@/domain/interfaces/LLMProviderFactory';
 import { IdGenerator } from '@/domain/interfaces/IdGenerator';
 import { LLMProvider } from '@/domain/interfaces/LLMProvider';
@@ -92,6 +94,13 @@ export async function getUserRepo(): Promise<UserRepository> {
  */
 export async function getMetadataRepo(): Promise<MetadataRepository> {
   return await getMetadataRepository();
+}
+
+/**
+ * Get correction history repository instance.
+ */
+export async function getCorrectionHistoryRepo(): Promise<CorrectionHistoryRepository> {
+  return await getCorrectionHistoryRepository();
 }
 
 /**
