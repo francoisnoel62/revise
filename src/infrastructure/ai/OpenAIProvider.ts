@@ -12,6 +12,8 @@ import { Plot } from '@/domain/value-objects/Plot';
 import { Worldbuilding } from '@/domain/value-objects/Worldbuilding';
 import { Synthesis } from '@/domain/value-objects/Synthesis';
 import { ChapterSummaries } from '@/domain/value-objects/ChapterSummaries';
+import { ChapterGeneration } from '@/domain/value-objects/ChapterGeneration';
+import { ChapterGenerationTypeKey } from '@/domain/value-objects/ChapterGenerationType';
 
 interface ProposalResponse {
   proposals: Array<{
@@ -127,6 +129,12 @@ interface ChapterSummariesResponse {
     summary: string;
   }>;
   overallArc: string;
+}
+
+interface ChapterGenerationResponse {
+  content: string;
+  narrativeContext?: string;
+  suggestions?: string[];
 }
 
 export class OpenAIProvider implements LLMProvider {
@@ -1287,6 +1295,158 @@ INSTRUCTIONS SUPPLÉMENTAIRES:
     return {
       chapters: parsed.chapters,
       overallArc: parsed.overallArc,
+    };
+  }
+
+  // ===========================
+  // CHAPTER GENERATION
+  // ===========================
+
+  async generateChapter(
+    fullText: string,
+    generationType: ChapterGenerationTypeKey,
+    metadata?: {
+      narrative?: NarrativeAnalysis;
+      stylisticDNA?: StylisticDNA;
+      characters?: Characters;
+      plot?: Plot;
+      worldbuilding?: Worldbuilding;
+      chapterSummaries?: ChapterSummaries;
+    }
+  ): Promise<ChapterGeneration> {
+    // Load the appropriate prompt based on generation type
+    const basePrompt = await this.loadChapterGenerationPrompt(generationType);
+    const systemPrompt = this.enhanceChapterGenerationPromptForOpenAI(basePrompt, metadata);
+    const userPrompt = fullText;
+
+    // Determine token limit based on generation type
+    const tokenLimit = generationType === 'chapter-full' ? 4096 : 2048;
+
+    try {
+      const isReasoning = this.isReasoningModel();
+      const completion = await this.client.chat.completions.create({
+        model: this.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        ...this.getResponseFormatParam(),
+        ...(isReasoning ? {} : { temperature: 0.75 }), // Higher creativity for generation
+        ...this.getTokenLimitParam(tokenLimit),
+      });
+
+      const content = completion.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('Empty response from OpenAI');
+      }
+
+      return this.parseChapterGenerationResponse(content, generationType);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error during chapter generation');
+    }
+  }
+
+  private async loadChapterGenerationPrompt(
+    generationType: ChapterGenerationTypeKey
+  ): Promise<string> {
+    switch (generationType) {
+      case 'chapter-beginning':
+        return this.promptRepository.getChapterBeginningPrompt();
+      case 'chapter-full':
+        return this.promptRepository.getChapterFullPrompt();
+      case 'chapter-outline':
+        return this.promptRepository.getChapterOutlinePrompt();
+      default:
+        throw new Error(`Unknown generation type: ${generationType}`);
+    }
+  }
+
+  private enhanceChapterGenerationPromptForOpenAI(
+    basePrompt: string,
+    metadata?: {
+      narrative?: NarrativeAnalysis;
+      stylisticDNA?: StylisticDNA;
+      characters?: Characters;
+      plot?: Plot;
+      worldbuilding?: Worldbuilding;
+      chapterSummaries?: ChapterSummaries;
+    }
+  ): string {
+    let contextInfo = '';
+
+    if (metadata) {
+      if (metadata.narrative) {
+        contextInfo += '\n\n--- ANALYSE NARRATIVE ---\n';
+        contextInfo += `Narrateur: ${metadata.narrative.narratorType}\n`;
+        contextInfo += `Focalisation: ${metadata.narrative.focalization}\n`;
+        contextInfo += `Temporalité: ${metadata.narrative.temporality}\n`;
+      }
+      if (metadata.stylisticDNA) {
+        contextInfo += '\n\n--- ADN STYLISTIQUE ---\n';
+        contextInfo += `Registre: ${metadata.stylisticDNA.registerAndLexicon}\n`;
+        contextInfo += `Rythme: ${metadata.stylisticDNA.rhythmAndBreathing}\n`;
+        contextInfo += `Règles: ${metadata.stylisticDNA.writingRules.slice(0, 5).join(', ')}\n`;
+      }
+      if (metadata.characters) {
+        contextInfo += '\n\n--- PERSONNAGES ---\n';
+        for (const char of metadata.characters.characterProfiles.slice(0, 5)) {
+          contextInfo += `- ${char.name}: ${char.identity}. ${char.psychology}\n`;
+        }
+      }
+      if (metadata.plot) {
+        contextInfo += '\n\n--- INTRIGUE ---\n';
+        contextInfo += `Enjeux: ${metadata.plot.stakes}\n`;
+        contextInfo += `État actuel: ${metadata.plot.plotState}\n`;
+        contextInfo += `Conflits: ${metadata.plot.conflicts}\n`;
+      }
+      if (metadata.worldbuilding) {
+        contextInfo += '\n\n--- UNIVERS ---\n';
+        contextInfo += `Atmosphère: ${metadata.worldbuilding.atmosphere}\n`;
+        contextInfo += `Thèmes: ${metadata.worldbuilding.explicitThemes}\n`;
+      }
+      if (metadata.chapterSummaries) {
+        contextInfo += '\n\n--- RÉSUMÉS DES CHAPITRES PRÉCÉDENTS ---\n';
+        for (const chap of metadata.chapterSummaries.chapters) {
+          contextInfo += `Chapitre ${chap.chapterNumber} (${chap.chapterTitle}): ${chap.summary}\n`;
+        }
+        contextInfo += `\nArc narratif global: ${metadata.chapterSummaries.overallArc}\n`;
+      }
+    }
+
+    return `${basePrompt}${contextInfo ? '\n\n---\n\nCONTEXTE DU PROJET:' + contextInfo : ''}
+
+---
+
+INSTRUCTIONS FINALES:
+- Détecte la langue du texte et réponds dans la MÊME LANGUE
+- Retourne UNIQUEMENT le JSON valide, sans commentaires
+- Le contenu généré doit provoquer une réaction chez l'auteur: adhésion, rejet ou réécriture`;
+  }
+
+  private parseChapterGenerationResponse(
+    content: string,
+    generationType: ChapterGenerationTypeKey
+  ): ChapterGeneration {
+    let parsed: ChapterGenerationResponse;
+
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      throw new Error('Failed to parse chapter generation response');
+    }
+
+    if (!parsed.content || typeof parsed.content !== 'string') {
+      throw new Error('Invalid response: missing content');
+    }
+
+    return {
+      generationType,
+      content: parsed.content,
+      narrativeContext: parsed.narrativeContext,
+      suggestions: parsed.suggestions,
     };
   }
 }

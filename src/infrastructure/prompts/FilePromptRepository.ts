@@ -71,10 +71,42 @@ export class FilePromptRepository implements PromptRepository {
   }
 
   /**
-   * Helper method to read a prompt file from the metadata directory.
+   * Read the chapter beginning generation prompt from markdown file.
    */
-  private async readPromptFile(filename: string, promptType?: string): Promise<string> {
-    const filePath = join(this.promptsDir, 'metadata', filename);
+  async getChapterBeginningPrompt(): Promise<string> {
+    return this.readPromptFile(
+      'chapter-beginning.md',
+      'chapter beginning',
+      'chapter-generation'
+    );
+  }
+
+  /**
+   * Read the full chapter generation prompt from markdown file.
+   */
+  async getChapterFullPrompt(): Promise<string> {
+    return this.readPromptFile('chapter-full.md', 'full chapter', 'chapter-generation');
+  }
+
+  /**
+   * Read the chapter outline generation prompt from markdown file.
+   */
+  async getChapterOutlinePrompt(): Promise<string> {
+    return this.readPromptFile('chapter-outline.md', 'chapter outline', 'chapter-generation');
+  }
+
+  /**
+   * Helper method to read a prompt file from a subdirectory.
+   * @param filename The name of the file to read
+   * @param promptType Human-readable name for error messages
+   * @param subdir Subdirectory (defaults to 'metadata')
+   */
+  private async readPromptFile(
+    filename: string,
+    promptType?: string,
+    subdir: string = 'metadata'
+  ): Promise<string> {
+    const filePath = join(this.promptsDir, subdir, filename);
 
     try {
       const content = await readFile(filePath, 'utf-8');

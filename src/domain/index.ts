@@ -34,6 +34,14 @@ export {
   type ChapterSummaries,
   type ChapterSummary as ChapterSummaryItem,
 } from './value-objects/ChapterSummaries';
+export { type ChapterGeneration } from './value-objects/ChapterGeneration';
+export {
+  type ChapterGenerationTypeDefinition,
+  type ChapterGenerationTypeKey,
+  CHAPTER_GENERATION_TYPES,
+  isValidChapterGenerationType,
+  getChapterGenerationType,
+} from './value-objects/ChapterGenerationType';
 
 // Interfaces
 export type { LLMProvider, ConnectionTestResult } from './interfaces/LLMProvider';

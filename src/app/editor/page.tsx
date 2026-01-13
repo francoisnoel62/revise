@@ -23,6 +23,7 @@ import { rewriteText } from '@/app/actions/rewrite-text';
 import { listProvidersAction, SafeProvider } from '@/app/actions/provider-actions';
 import { updateProjectProviderAction } from '@/app/actions/project-actions';
 import { CorrectionHistoryDialog } from '@/components/history/CorrectionHistoryDialog';
+import { FloatingGenerationMenu } from '@/components/editor/FloatingGenerationMenu';
 
 interface Proposal {
   content: string;
@@ -318,10 +319,16 @@ function EditorContent() {
       {/* A4 width editor container (794px = 210mm) */}
       <div className="flex justify-center pb-8">
         <div className="w-198.5">
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          <div className="bg-white rounded-lg shadow-lg overflow-hidden relative">
             <TextEditor
               onSelectionChange={handleSelectionChange}
               onEditorReady={(editorInstance) => setEditor(editorInstance)}
+            />
+            {/* Show AI generation menu when editor is empty */}
+            <FloatingGenerationMenu
+              editor={editor}
+              projectId={project.id}
+              isVisible={editor?.isEmpty ?? false}
             />
           </div>
         </div>
