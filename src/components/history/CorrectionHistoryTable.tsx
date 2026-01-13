@@ -60,9 +60,9 @@ export function CorrectionHistoryTable({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 overflow-hidden">
       {/* Search filters */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="text-sm font-medium text-muted-foreground mb-1 block">
             Date
@@ -132,7 +132,7 @@ export function CorrectionHistoryTable({
                   )}
                 </div>
                 <AccordionContent className="px-4">
-                  <div className="space-y-4 pt-2">
+                  <div className="space-y-3 pt-2">
                     {/* Selected text */}
                     <TextBlock
                       label="Texte sélectionné"
@@ -142,20 +142,18 @@ export function CorrectionHistoryTable({
                       onCopy={handleCopy}
                     />
 
-                    {/* Proposals */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {item.proposals.slice(0, 3).map((proposal, idx) => (
-                        <TextBlock
-                          key={idx}
-                          label={`Proposition ${idx + 1}`}
-                          text={proposal}
-                          id={`${item.id}-prop-${idx}`}
-                          copiedId={copiedId}
-                          onCopy={handleCopy}
-                          variant="proposal"
-                        />
-                      ))}
-                    </div>
+                    {/* Proposals - stacked vertically */}
+                    {item.proposals.slice(0, 3).map((proposal, idx) => (
+                      <TextBlock
+                        key={idx}
+                        label={`Proposition ${idx + 1}`}
+                        text={proposal}
+                        id={`${item.id}-prop-${idx}`}
+                        copiedId={copiedId}
+                        onCopy={handleCopy}
+                        variant="proposal"
+                      />
+                    ))}
                   </div>
                 </AccordionContent>
               </AccordionItem>

@@ -105,7 +105,7 @@ export function CorrectionHistoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!w-[85vw] !max-w-none max-h-[90vh]">
+      <DialogContent className="!w-[85vw] !max-w-none max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Historique des corrections - {chapterTitle}</DialogTitle>
           <DialogDescription>
@@ -113,21 +113,23 @@ export function CorrectionHistoryDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {loading ? (
-          <div className="flex items-center justify-center h-[400px]">
-            <div className="text-muted-foreground">Chargement...</div>
-          </div>
-        ) : error ? (
-          <div className="flex items-center justify-center h-[400px]">
-            <div className="text-destructive">{error}</div>
-          </div>
-        ) : (
-          <CorrectionHistoryTable
-            data={history}
-            onDelete={handleDelete}
-            isDeleting={deletingId}
-          />
-        )}
+        <div className="flex-1 overflow-auto min-h-0">
+          {loading ? (
+            <div className="flex items-center justify-center h-[400px]">
+              <div className="text-muted-foreground">Chargement...</div>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center h-[400px]">
+              <div className="text-destructive">{error}</div>
+            </div>
+          ) : (
+            <CorrectionHistoryTable
+              data={history}
+              onDelete={handleDelete}
+              isDeleting={deletingId}
+            />
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );
