@@ -147,9 +147,10 @@ export function TextEditor({
     if (!editor) return;
 
     // Update the Autocomplete extension's storage (reactive) dynamically
+    // Type assertion needed because TipTap types storage as readonly, but it's mutable at runtime
     editor.extensionManager.extensions.forEach((ext) => {
       if (ext.name === 'autocomplete') {
-        ext.storage.enabled = autocompleteEnabled;
+        (ext.storage as { enabled: boolean }).enabled = autocompleteEnabled;
       }
     });
   }, [editor, autocompleteEnabled]);
