@@ -7,9 +7,9 @@ import {
   getProviderRepository,
   getMetadataRepository,
   getPromptRepository,
+  getContentConverter,
   createLLMProvider,
 } from '@/infrastructure/config/providers';
-import { TipTapContentService } from '@/infrastructure/document/utils/TipTapContentService';
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
 import { metadataCache, CachedMetadata } from '@/infrastructure/cache/MetadataCache';
 import {
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
   const promptRepo = getPromptRepository();
 
   // Try to get user's configured provider
-  const providers = await providerRepo.findByOwnerId(userId);
+  const providers = await providerRepo.listProviders(userId);
   const defaultProvider = providers.find((p) => p.isDefault) || providers[0];
 
   let llmProvider;
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
 
   if (!metadata) {
     const metadataRepo = await getMetadataRepository();
-    const contentConverter = new TipTapContentService();
+    const contentConverter = getContentConverter();
     metadata = await loadProjectMetadata(
       metadataRepo,
       contentConverter,

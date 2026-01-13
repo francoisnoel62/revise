@@ -4,7 +4,7 @@
 'use server';
 
 import { GenerateCompletionUseCase } from '@/application/use-cases/GenerateCompletionUseCase';
-import { TipTapContentService } from '@/infrastructure/document/utils/TipTapContentService';
+import { getContentConverter } from '@/infrastructure/config/providers';
 import {
   ActionResult,
   getAuthenticatedUserId,
@@ -55,8 +55,8 @@ export async function generateCompletionAction(
     // 4. Get LLM provider
     const llmProvider = await getLLMProviderForProject(auth.userId, projectId);
 
-    // 5. Execute use case with injected dependencies
-    const contentConverter = new TipTapContentService();
+    // 5. Execute use case with injected dependencies via composition root
+    const contentConverter = getContentConverter();
     const useCase = new GenerateCompletionUseCase(
       await getMetadataRepo(),
       llmProvider,
