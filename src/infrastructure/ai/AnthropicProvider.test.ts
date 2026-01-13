@@ -215,6 +215,46 @@ describe('AnthropicProvider', () => {
     expect(result[0].content).toBe('Test');
   });
 
+  it('should handle JSON with trailing whitespace after code blocks', async () => {
+    const jsonContent = JSON.stringify({
+      proposals: Array(3).fill({ content: 'Test', styleLabel: 'épuré' }),
+    });
+    const mockResponse = {
+      content: [
+        {
+          type: 'text',
+          text: `\`\`\`json\n${jsonContent}\n\`\`\`\n\n`,
+        },
+      ],
+    };
+    mockCreate.mockResolvedValue(mockResponse);
+
+    const result = await provider.generateRewrites('text');
+
+    expect(result).toHaveLength(3);
+    expect(result[0].content).toBe('Test');
+  });
+
+  it('should handle JSON with explanatory text before code block', async () => {
+    const jsonContent = JSON.stringify({
+      proposals: Array(3).fill({ content: 'Test', styleLabel: 'épuré' }),
+    });
+    const mockResponse = {
+      content: [
+        {
+          type: 'text',
+          text: `Here is the analysis:\n\n\`\`\`json\n${jsonContent}\n\`\`\``,
+        },
+      ],
+    };
+    mockCreate.mockResolvedValue(mockResponse);
+
+    const result = await provider.generateRewrites('text');
+
+    expect(result).toHaveLength(3);
+    expect(result[0].content).toBe('Test');
+  });
+
   it('should use system message for instructions', async () => {
     const mockResponse = {
       content: [

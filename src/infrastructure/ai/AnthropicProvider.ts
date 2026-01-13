@@ -43,6 +43,31 @@ export class AnthropicProvider implements LLMProvider {
     this.promptRepository = promptRepository;
   }
 
+  /**
+   * Extract JSON from Claude's response, handling markdown code blocks and extra text.
+   * Claude often wraps JSON in ```json...``` blocks or adds explanatory text.
+   */
+  private extractJson(content: string): string {
+    let text = content.trim();
+
+    // Try to extract from markdown code block (handles multiline with 's' flag equivalent)
+    const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (codeBlockMatch) {
+      text = codeBlockMatch[1].trim();
+    }
+
+    // If no code block, try to find JSON object directly
+    if (!text.startsWith('{')) {
+      const jsonStart = text.indexOf('{');
+      const jsonEnd = text.lastIndexOf('}');
+      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+        text = text.slice(jsonStart, jsonEnd + 1);
+      }
+    }
+
+    return text;
+  }
+
   async generateRewrites(
     text: string,
     context?: string
@@ -290,16 +315,7 @@ INSTRUCTIONS FINALES:
     let parsed: NarrativeAnalysisResponse;
 
     try {
-      // Claude sometimes wraps JSON in markdown code blocks
-      let jsonContent = content.trim();
-
-      // Remove markdown code blocks if present
-      if (jsonContent.startsWith('```json')) {
-        jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-      } else if (jsonContent.startsWith('```')) {
-        jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
-      }
-
+      const jsonContent = this.extractJson(content);
       parsed = JSON.parse(jsonContent);
     } catch {
       throw new Error('Failed to parse narrative analysis response from Anthropic');
@@ -339,16 +355,7 @@ INSTRUCTIONS FINALES:
     let parsed: ProposalResponse;
 
     try {
-      // Claude sometimes wraps JSON in markdown code blocks, so we need to handle that
-      let jsonContent = content.trim();
-
-      // Remove markdown code blocks if present
-      if (jsonContent.startsWith('```json')) {
-        jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-      } else if (jsonContent.startsWith('```')) {
-        jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
-      }
-
+      const jsonContent = this.extractJson(content);
       parsed = JSON.parse(jsonContent);
     } catch {
       throw new Error('Failed to parse Anthropic response');
@@ -431,14 +438,7 @@ INSTRUCTIONS:
   }
 
   private parseStylisticDNAResponse(content: string): StylisticDNA {
-    let jsonContent = content.trim();
-
-    // Remove markdown code blocks if present
-    if (jsonContent.startsWith('```json')) {
-      jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-    } else if (jsonContent.startsWith('```')) {
-      jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
-    }
+    const jsonContent = this.extractJson(content);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let parsed: any;
@@ -552,14 +552,7 @@ INSTRUCTIONS:
   }
 
   private parseCharactersResponse(content: string): Characters {
-    let jsonContent = content.trim();
-
-    // Remove markdown code blocks if present
-    if (jsonContent.startsWith('```json')) {
-      jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-    } else if (jsonContent.startsWith('```')) {
-      jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
-    }
+    const jsonContent = this.extractJson(content);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let parsed: any;
@@ -698,14 +691,7 @@ INSTRUCTIONS:
   }
 
   private parsePlotResponse(content: string): Plot {
-    let jsonContent = content.trim();
-
-    // Remove markdown code blocks if present
-    if (jsonContent.startsWith('```json')) {
-      jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-    } else if (jsonContent.startsWith('```')) {
-      jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
-    }
+    const jsonContent = this.extractJson(content);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let parsed: any;
@@ -857,14 +843,7 @@ INSTRUCTIONS:
   }
 
   private parseWorldbuildingResponse(content: string): Worldbuilding {
-    let jsonContent = content.trim();
-
-    // Remove markdown code blocks if present
-    if (jsonContent.startsWith('```json')) {
-      jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-    } else if (jsonContent.startsWith('```')) {
-      jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
-    }
+    const jsonContent = this.extractJson(content);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let parsed: any;
@@ -1042,14 +1021,7 @@ INSTRUCTIONS:
   }
 
   private parseSynthesisResponse(content: string): Synthesis {
-    let jsonContent = content.trim();
-
-    // Remove markdown code blocks if present
-    if (jsonContent.startsWith('```json')) {
-      jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-    } else if (jsonContent.startsWith('```')) {
-      jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
-    }
+    const jsonContent = this.extractJson(content);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let parsed: any;
