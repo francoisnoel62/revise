@@ -146,10 +146,10 @@ export function TextEditor({
   useEffect(() => {
     if (!editor) return;
 
-    // Update the Autocomplete extension's options dynamically
+    // Update the Autocomplete extension's storage (reactive) dynamically
     editor.extensionManager.extensions.forEach((ext) => {
       if (ext.name === 'autocomplete') {
-        ext.options.enabled = autocompleteEnabled;
+        ext.storage.enabled = autocompleteEnabled;
       }
     });
   }, [editor, autocompleteEnabled]);

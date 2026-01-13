@@ -302,7 +302,7 @@ function EditorContent() {
 
       {/* Toolbar sticky centrée au-dessus de l'éditeur */}
       <div className="sticky top-18.25 z-40 flex justify-center py-2 bg-slate-50">
-        <div className="w-198.5">
+        <div className="w-3/4">
           <div className="bg-white rounded-lg shadow border border-slate-200 px-2 py-1">
             <FormattingToolbar
               editor={editor}

@@ -31,6 +31,7 @@ export interface AutocompleteStorage {
   suggestion: string | null;
   isLoading: boolean;
   abortController: AbortController | null;
+  enabled: boolean;
 }
 
 const autocompletePluginKey = new PluginKey('autocomplete');
@@ -212,17 +213,18 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
       suggestion: null,
       isLoading: false,
       abortController: null,
+      enabled: this.options.enabled,
     };
   },
 
   addKeyboardShortcuts() {
     return {
       Tab: ({ editor }) => {
-        if (!this.options.enabled) {
+        const { storage } = this;
+
+        if (!storage.enabled) {
           return false;
         }
-
-        const { storage } = this;
 
         // If we have a suggestion, insert it
         if (storage.suggestion) {
