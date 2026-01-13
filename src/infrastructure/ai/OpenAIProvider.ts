@@ -1433,7 +1433,9 @@ INSTRUCTIONS FINALES:
     let parsed: ChapterGenerationResponse;
 
     try {
-      parsed = JSON.parse(content);
+      // For reasoning models, JSON might be wrapped in markdown or have extra text
+      const jsonContent = this.isReasoningModel() ? this.extractJson(content) : content;
+      parsed = JSON.parse(jsonContent);
     } catch {
       throw new Error('Failed to parse chapter generation response');
     }
@@ -1448,5 +1450,31 @@ INSTRUCTIONS FINALES:
       narrativeContext: parsed.narrativeContext,
       suggestions: parsed.suggestions,
     };
+  }
+
+  /**
+   * Extract JSON from response, handling markdown code blocks and extra text.
+   * Reasoning models (GPT-5, o1, o3) don't support response_format and may include
+   * additional text or wrap JSON in code blocks.
+   */
+  private extractJson(content: string): string {
+    let text = content.trim();
+
+    // Try to extract from markdown code block
+    const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (codeBlockMatch) {
+      text = codeBlockMatch[1].trim();
+    }
+
+    // If no code block, try to find JSON object directly
+    if (!text.startsWith('{')) {
+      const jsonStart = text.indexOf('{');
+      const jsonEnd = text.lastIndexOf('}');
+      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+        text = text.slice(jsonStart, jsonEnd + 1);
+      }
+    }
+
+    return text;
   }
 }

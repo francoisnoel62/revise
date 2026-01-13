@@ -18,7 +18,12 @@ Tu privilégies toujours :
 
 À partir des métadonnées du projet et du manuscrit existant :
 
-Écris l'ouverture du prochain chapitre (environ 10 phrases).
+Écris l'ouverture du prochain chapitre.
+
+### LIMITE STRICTE : EXACTEMENT 8 À 12 PHRASES
+- Pas moins de 8 phrases
+- Pas plus de 12 phrases
+- Cette limite est ABSOLUE et NON NÉGOCIABLE
 
 ### Objectifs :
 - Installer une nouvelle dynamique ou un léger déséquilibre
@@ -41,7 +46,7 @@ Retourne un JSON valide :
 
 ```json
 {
-  "content": "[le texte généré ici - environ 10 phrases]",
+  "content": "[le texte généré ici - STRICTEMENT 8 à 12 phrases, pas plus]",
   "narrativeContext": "[résumé en 2 phrases des enjeux narratifs menant à ce chapitre]",
   "suggestions": ["[suggestion 1 pour continuer]", "[suggestion 2 pour continuer]"]
 }
