@@ -70,6 +70,9 @@ function triggerCompletion(
 
   storage.isLoading = true;
 
+  // Force view update to show spinner immediately
+  editor.view.dispatch(editor.state.tr);
+
   if (options.useStreaming && options.projectId) {
     // Use streaming mode
     streamCompletion(editor, storage, options, textBefore, textAfter);
@@ -82,12 +85,14 @@ function triggerCompletion(
 
         if (suggestion) {
           storage.suggestion = suggestion;
-          // Force view update to show ghost text
-          editor.view.dispatch(editor.state.tr);
         }
+        // Force view update to show ghost text or remove spinner
+        editor.view.dispatch(editor.state.tr);
       })
       .catch(() => {
         storage.isLoading = false;
+        // Force view update to remove spinner
+        editor.view.dispatch(editor.state.tr);
       });
   }
 }
@@ -173,9 +178,15 @@ async function streamCompletion(
 
     storage.isLoading = false;
     storage.abortController = null;
+
+    // Force view update to remove spinner
+    editor.view.dispatch(editor.state.tr);
   } catch (error) {
     storage.isLoading = false;
     storage.abortController = null;
+
+    // Force view update to remove spinner
+    editor.view.dispatch(editor.state.tr);
 
     // Don't log abort errors (user cancelled)
     if (error instanceof Error && error.name !== 'AbortError') {
@@ -267,29 +278,54 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
           },
 
           apply(tr, oldDecorations) {
-            // Clear decorations if suggestion is cleared
-            if (!extension.storage.suggestion) {
+            const { isLoading, suggestion } = extension.storage;
+
+            // Clear decorations if not loading and no suggestion
+            if (!isLoading && !suggestion) {
               return DecorationSet.empty;
             }
 
-            // Create ghost text decoration at cursor position
+            // Create decoration at cursor position
             const { selection } = tr;
             if (!selection.empty) {
               return DecorationSet.empty;
             }
 
             const pos = selection.from;
-            const ghostWidget = Decoration.widget(pos, () => {
-              const span = document.createElement('span');
-              span.className = 'autocomplete-ghost';
-              span.textContent = extension.storage.suggestion || '';
-              span.style.color = '#9ca3af';
-              span.style.fontStyle = 'italic';
-              span.style.pointerEvents = 'none';
-              return span;
-            });
+            const decorations: Decoration[] = [];
 
-            return DecorationSet.create(tr.doc, [ghostWidget]);
+            // Show spinner while loading (before or during streaming)
+            if (isLoading) {
+              const spinnerWidget = Decoration.widget(pos, () => {
+                const spinner = document.createElement('span');
+                spinner.className = 'autocomplete-spinner';
+                spinner.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;margin-left:2px;animation:spin 1s linear infinite;">
+                  <style>@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }</style>
+                  <circle cx="12" cy="12" r="10" stroke="#9ca3af" stroke-width="3" fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"/>
+                </svg>`;
+                spinner.style.pointerEvents = 'none';
+                return spinner;
+              }, { side: 1 }); // side: 1 means after the ghost text
+
+              decorations.push(spinnerWidget);
+            }
+
+            // Show ghost text if we have a suggestion
+            if (suggestion) {
+              const ghostWidget = Decoration.widget(pos, () => {
+                const span = document.createElement('span');
+                span.className = 'autocomplete-ghost';
+                span.textContent = suggestion;
+                span.style.color = '#9ca3af';
+                span.style.fontStyle = 'italic';
+                span.style.pointerEvents = 'none';
+                return span;
+              }, { side: 0 }); // side: 0 means before spinner
+
+              decorations.push(ghostWidget);
+            }
+
+            return DecorationSet.create(tr.doc, decorations);
           },
         },
 
