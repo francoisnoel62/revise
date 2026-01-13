@@ -27,7 +27,6 @@ import { DocxExporter } from '@/infrastructure/document/exporters/DocxExporter';
 import { PdfExporter } from '@/infrastructure/document/exporters/PdfExporter';
 import { Provider } from '@/domain/entities/Provider';
 import { getDatabase } from './database';
-import { config } from './env';
 
 /**
  * Get the authentication provider.

@@ -57,6 +57,22 @@ export default [
         HTMLInputElement: "readonly",
         HTMLButtonElement: "readonly",
         HTMLElement: "readonly",
+        // Table elements
+        HTMLTableElement: "readonly",
+        HTMLTableSectionElement: "readonly",
+        HTMLTableRowElement: "readonly",
+        HTMLTableCellElement: "readonly",
+        HTMLTableCaptionElement: "readonly",
+        // Test globals
+        global: "readonly",
+        ResizeObserver: "readonly",
+        IntersectionObserver: "readonly",
+        // DOM types for tests
+        InputEvent: "readonly",
+        KeyboardEvent: "readonly",
+        NodeFilter: "readonly",
+        Node: "readonly",
+        TextEncoder: "readonly",
       },
     },
     plugins: {

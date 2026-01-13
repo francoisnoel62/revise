@@ -3,9 +3,13 @@
 
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { Progress } from '@/components/ui/progress';
 import AUTHOR_QUOTES from '@/data/author-quotes.json';
+
+// Shuffle quotes at module load time (outside React's render cycle)
+const SHUFFLED_QUOTES = [...AUTHOR_QUOTES].sort(() => Math.random() - 0.5);
+const QUOTES_COUNT = SHUFFLED_QUOTES.length;
 
 interface RewriteLoadingOverlayProps {
   isVisible: boolean;
@@ -15,17 +19,12 @@ export function RewriteLoadingOverlay({ isVisible }: RewriteLoadingOverlayProps)
   const [progress, setProgress] = useState(0);
   const [quoteIndex, setQuoteIndex] = useState(0);
 
-  // Shuffle quotes on mount for variety
-  const shuffledQuotes = useMemo(() => {
-    return [...AUTHOR_QUOTES].sort(() => Math.random() - 0.5);
-  }, []);
-
-  // Animate progress bar
+  // Animate progress bar - starts fresh each time overlay becomes visible
   useEffect(() => {
-    if (!isVisible) {
-      setProgress(0);
-      return;
-    }
+    if (!isVisible) return;
+
+    // Reset progress when becoming visible (use setTimeout to defer state update)
+    setTimeout(() => setProgress(0), 0);
 
     // Start at 0 and animate to ~90% over time (never 100% until actual completion)
     const interval = setInterval(() => {
@@ -42,21 +41,21 @@ export function RewriteLoadingOverlay({ isVisible }: RewriteLoadingOverlayProps)
 
   // Rotate quotes every 3 seconds
   useEffect(() => {
-    if (!isVisible) {
-      setQuoteIndex(0);
-      return;
-    }
+    if (!isVisible) return;
+
+    // Reset quote index when becoming visible
+    setTimeout(() => setQuoteIndex(0), 0);
 
     const interval = setInterval(() => {
-      setQuoteIndex((prev) => (prev + 1) % shuffledQuotes.length);
+      setQuoteIndex((prev) => (prev + 1) % QUOTES_COUNT);
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [isVisible, shuffledQuotes.length]);
+  }, [isVisible]);
 
   if (!isVisible) return null;
 
-  const currentQuote = shuffledQuotes[quoteIndex];
+  const currentQuote = SHUFFLED_QUOTES[quoteIndex];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
