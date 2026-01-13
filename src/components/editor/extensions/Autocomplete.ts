@@ -1,7 +1,7 @@
 // ABOUTME: TipTap extension for AI-powered text autocompletion
 // ABOUTME: Shows ghost text suggestions on Tab, accepts with second Tab
 
-import { Extension } from '@tiptap/core';
+import { Extension, Editor } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 
@@ -34,6 +34,155 @@ export interface AutocompleteStorage {
 }
 
 const autocompletePluginKey = new PluginKey('autocomplete');
+
+/**
+ * Trigger completion request (non-streaming)
+ */
+function triggerCompletion(
+  editor: Editor,
+  storage: AutocompleteStorage,
+  options: AutocompleteOptions
+): void {
+  if (storage.isLoading) {
+    return;
+  }
+
+  // Get text before and after cursor
+  const { state } = editor;
+  const { selection, doc } = state;
+  const pos = selection.from;
+
+  // Get text content before cursor (up to 500 chars for context)
+  const textBefore = doc.textBetween(Math.max(0, pos - 500), pos, '\n', '\n');
+
+  // Get text content after cursor (up to 100 chars for context)
+  const textAfter = doc.textBetween(
+    pos,
+    Math.min(doc.content.size, pos + 100),
+    '\n',
+    '\n'
+  );
+
+  // Don't trigger if no text before cursor
+  if (!textBefore.trim()) {
+    return;
+  }
+
+  storage.isLoading = true;
+
+  if (options.useStreaming && options.projectId) {
+    // Use streaming mode
+    streamCompletion(editor, storage, options, textBefore, textAfter);
+  } else {
+    // Use non-streaming mode
+    options
+      .onComplete(textBefore, textAfter)
+      .then((suggestion) => {
+        storage.isLoading = false;
+
+        if (suggestion) {
+          storage.suggestion = suggestion;
+          // Force view update to show ghost text
+          editor.view.dispatch(editor.state.tr);
+        }
+      })
+      .catch(() => {
+        storage.isLoading = false;
+      });
+  }
+}
+
+/**
+ * Stream completion from SSE endpoint
+ */
+async function streamCompletion(
+  editor: Editor,
+  storage: AutocompleteStorage,
+  options: AutocompleteOptions,
+  textBefore: string,
+  textAfter: string
+): Promise<void> {
+  // Create abort controller for cancellation
+  const abortController = new AbortController();
+  storage.abortController = abortController;
+
+  try {
+    const response = await fetch('/api/completion/stream', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        projectId: options.projectId,
+        textBeforeCursor: textBefore,
+        textAfterCursor: textAfter,
+      }),
+      signal: abortController.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch completion');
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('No response body');
+    }
+
+    const decoder = new TextDecoder();
+    let accumulated = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+        break;
+      }
+
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n');
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+
+          if (data === '[DONE]') {
+            continue;
+          }
+
+          try {
+            const parsed = JSON.parse(data);
+
+            if (parsed.error) {
+              throw new Error(parsed.error);
+            }
+
+            if (parsed.text) {
+              accumulated += parsed.text;
+              storage.suggestion = accumulated;
+
+              // Force view update to show updated ghost text
+              editor.view.dispatch(editor.state.tr);
+            }
+          } catch {
+            // Ignore parse errors for partial chunks
+          }
+        }
+      }
+    }
+
+    storage.isLoading = false;
+    storage.abortController = null;
+  } catch (error) {
+    storage.isLoading = false;
+    storage.abortController = null;
+
+    // Don't log abort errors (user cancelled)
+    if (error instanceof Error && error.name !== 'AbortError') {
+      console.error('Completion error:', error);
+    }
+  }
+}
 
 export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteStorage>({
   name: 'autocomplete',
@@ -81,7 +230,7 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
         }
 
         // Trigger completion request
-        this.triggerCompletion(editor);
+        triggerCompletion(editor, storage, this.options);
 
         return true;
       },
@@ -151,148 +300,5 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
         },
       }),
     ];
-  },
-
-  // Helper method to trigger completion
-  triggerCompletion(editor: ReturnType<typeof Extension.create>['editor']) {
-    const { storage, options } = this;
-
-    if (storage.isLoading) {
-      return;
-    }
-
-    // Get text before and after cursor
-    const { state } = editor;
-    const { selection, doc } = state;
-    const pos = selection.from;
-
-    // Get text content before cursor (up to 500 chars for context)
-    const textBefore = doc.textBetween(Math.max(0, pos - 500), pos, '\n', '\n');
-
-    // Get text content after cursor (up to 100 chars for context)
-    const textAfter = doc.textBetween(
-      pos,
-      Math.min(doc.content.size, pos + 100),
-      '\n',
-      '\n'
-    );
-
-    // Don't trigger if no text before cursor
-    if (!textBefore.trim()) {
-      return;
-    }
-
-    storage.isLoading = true;
-
-    if (options.useStreaming && options.projectId) {
-      // Use streaming mode
-      this.streamCompletion(editor, textBefore, textAfter);
-    } else {
-      // Use non-streaming mode
-      options
-        .onComplete(textBefore, textAfter)
-        .then((suggestion) => {
-          storage.isLoading = false;
-
-          if (suggestion) {
-            storage.suggestion = suggestion;
-            // Force view update to show ghost text
-            editor.view.dispatch(editor.state.tr);
-          }
-        })
-        .catch(() => {
-          storage.isLoading = false;
-        });
-    }
-  },
-
-  // Stream completion from SSE endpoint
-  async streamCompletion(
-    editor: ReturnType<typeof Extension.create>['editor'],
-    textBefore: string,
-    textAfter: string
-  ) {
-    const { storage, options } = this;
-
-    // Create abort controller for cancellation
-    const abortController = new AbortController();
-    storage.abortController = abortController;
-
-    try {
-      const response = await fetch('/api/completion/stream', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          projectId: options.projectId,
-          textBeforeCursor: textBefore,
-          textAfterCursor: textAfter,
-        }),
-        signal: abortController.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch completion');
-      }
-
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('No response body');
-      }
-
-      const decoder = new TextDecoder();
-      let accumulated = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-
-        if (done) {
-          break;
-        }
-
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-
-            if (data === '[DONE]') {
-              continue;
-            }
-
-            try {
-              const parsed = JSON.parse(data);
-
-              if (parsed.error) {
-                throw new Error(parsed.error);
-              }
-
-              if (parsed.text) {
-                accumulated += parsed.text;
-                storage.suggestion = accumulated;
-
-                // Force view update to show updated ghost text
-                editor.view.dispatch(editor.state.tr);
-              }
-            } catch {
-              // Ignore parse errors for partial chunks
-            }
-          }
-        }
-      }
-
-      storage.isLoading = false;
-      storage.abortController = null;
-    } catch (error) {
-      storage.isLoading = false;
-      storage.abortController = null;
-
-      // Don't log abort errors (user cancelled)
-      if (error instanceof Error && error.name !== 'AbortError') {
-        console.error('Completion error:', error);
-      }
-    }
   },
 });
