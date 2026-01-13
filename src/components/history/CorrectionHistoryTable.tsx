@@ -107,11 +107,11 @@ export function CorrectionHistoryTable({
               <AccordionItem key={item.id} value={item.id}>
                 <div className="flex items-center gap-2 px-4">
                   <AccordionTrigger className="flex-1 hover:no-underline">
-                    <div className="flex items-center gap-4 w-full">
-                      <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">
+                    <div className="flex items-center gap-4 w-full min-w-0">
+                      <span className="font-mono text-xs text-muted-foreground whitespace-nowrap shrink-0">
                         {formatDate(item.createdAt)}
                       </span>
-                      <span className="text-sm truncate flex-1 text-left">
+                      <span className="text-sm line-clamp-1 flex-1 text-left break-words">
                         {item.selectedText}
                       </span>
                     </div>
@@ -178,7 +178,7 @@ function TextBlock({ label, text, id, copiedId, onCopy, variant = 'default' }: T
   const isCopied = copiedId === id;
 
   return (
-    <div className={`rounded-lg border p-3 ${variant === 'proposal' ? 'bg-muted/50' : 'bg-background'}`}>
+    <div className={`rounded-lg border p-3 overflow-hidden ${variant === 'proposal' ? 'bg-muted/50' : 'bg-background'}`}>
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
           {label}
@@ -186,7 +186,7 @@ function TextBlock({ label, text, id, copiedId, onCopy, variant = 'default' }: T
         <Button
           variant="ghost"
           size="sm"
-          className="h-7 px-2 text-muted-foreground hover:text-foreground"
+          className="h-7 px-2 text-muted-foreground hover:text-foreground shrink-0"
           onClick={() => onCopy(text, id)}
         >
           {isCopied ? (
@@ -202,7 +202,7 @@ function TextBlock({ label, text, id, copiedId, onCopy, variant = 'default' }: T
           )}
         </Button>
       </div>
-      <p className="text-sm whitespace-pre-wrap">{text}</p>
+      <p className="text-sm whitespace-pre-wrap break-words">{text}</p>
     </div>
   );
 }
