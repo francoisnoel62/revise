@@ -34,6 +34,17 @@ export interface AutocompleteStorage {
   enabled: boolean;
 }
 
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    autocomplete: {
+      /**
+       * Set whether autocompletion is enabled
+       */
+      setAutocompleteEnabled: (enabled: boolean) => ReturnType;
+    };
+  }
+}
+
 const autocompletePluginKey = new PluginKey('autocomplete');
 
 /**
@@ -214,6 +225,17 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
       isLoading: false,
       abortController: null,
       enabled: this.options.enabled,
+    };
+  },
+
+  addCommands() {
+    return {
+      setAutocompleteEnabled:
+        (enabled: boolean) =>
+        () => {
+          this.storage.enabled = enabled;
+          return true;
+        },
     };
   },
 
