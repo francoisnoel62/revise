@@ -181,4 +181,25 @@ export interface LLMProvider {
       plot?: Plot;
     }
   ): Promise<string>;
+
+  /**
+   * Generates text completion with streaming support.
+   * Yields text chunks as they are generated.
+   *
+   * @param textBeforeCursor Text before the cursor position (context)
+   * @param textAfterCursor Optional text after cursor (for better context)
+   * @param metadata Optional project metadata for style consistency
+   * @returns AsyncIterator yielding text chunks
+   * @throws Error if generation fails or API is unavailable
+   */
+  generateCompletionStream(
+    textBeforeCursor: string,
+    textAfterCursor?: string,
+    metadata?: {
+      narrative?: NarrativeAnalysis;
+      stylisticDNA?: StylisticDNA;
+      characters?: Characters;
+      plot?: Plot;
+    }
+  ): AsyncIterableIterator<string>;
 }

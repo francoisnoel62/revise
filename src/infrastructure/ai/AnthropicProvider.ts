@@ -1462,4 +1462,53 @@ INSTRUCTIONS FINALES:
 
     return text.trim();
   }
+
+  /**
+   * Generate text completion with streaming.
+   */
+  async *generateCompletionStream(
+    textBeforeCursor: string,
+    textAfterCursor?: string,
+    metadata?: {
+      narrative?: NarrativeAnalysis;
+      stylisticDNA?: StylisticDNA;
+      characters?: Characters;
+      plot?: Plot;
+    }
+  ): AsyncIterableIterator<string> {
+    const basePrompt = await this.promptRepository.getCompletionPrompt();
+    const systemPrompt = this.enhanceCompletionPrompt(basePrompt, metadata);
+
+    // Build user prompt with context
+    let userPrompt = `[AVANT]\n${textBeforeCursor}`;
+    if (textAfterCursor && textAfterCursor.trim()) {
+      userPrompt += `\n\n[APRÈS]\n${textAfterCursor}`;
+    }
+
+    const stream = this.client.messages.stream({
+      model: this.model,
+      max_tokens: 256,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    });
+
+    let isFirstChunk = true;
+
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+        const content = event.delta.text;
+        if (content) {
+          // Clean up first chunk if it starts with quotes
+          if (isFirstChunk) {
+            isFirstChunk = false;
+            if (content.startsWith('"') || content.startsWith("'")) {
+              yield content.slice(1);
+              continue;
+            }
+          }
+          yield content;
+        }
+      }
+    }
+  }
 }

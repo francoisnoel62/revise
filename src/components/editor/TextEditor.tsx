@@ -101,6 +101,8 @@ export function TextEditor({
       Autocomplete.configure({
         enabled: autocompleteEnabled,
         onComplete: handleAutocomplete,
+        projectId: projectId || project?.id,
+        useStreaming: true,
       }),
     ],
     content: activeContent ? JSON.parse(activeContent) : { type: 'doc', content: [] },

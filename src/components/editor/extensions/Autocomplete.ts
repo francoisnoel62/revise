@@ -7,12 +7,20 @@ import { Decoration, DecorationSet } from '@tiptap/pm/view';
 
 export interface AutocompleteOptions {
   /**
-   * Function to fetch completion from server
+   * Function to fetch completion from server (non-streaming)
    */
   onComplete: (
     textBeforeCursor: string,
     textAfterCursor: string
   ) => Promise<string | null>;
+  /**
+   * Project ID for streaming completions
+   */
+  projectId?: string;
+  /**
+   * Whether to use streaming mode
+   */
+  useStreaming: boolean;
   /**
    * Whether autocompletion is enabled
    */
@@ -22,6 +30,7 @@ export interface AutocompleteOptions {
 export interface AutocompleteStorage {
   suggestion: string | null;
   isLoading: boolean;
+  abortController: AbortController | null;
 }
 
 const autocompletePluginKey = new PluginKey('autocomplete');
@@ -32,6 +41,8 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
   addOptions() {
     return {
       onComplete: async () => null,
+      projectId: undefined,
+      useStreaming: true,
       enabled: true,
     };
   },
@@ -40,6 +51,7 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
     return {
       suggestion: null,
       isLoading: false,
+      abortController: null,
     };
   },
 
@@ -74,9 +86,18 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
         return true;
       },
       Escape: () => {
+        const { storage } = this;
+
+        // Cancel ongoing request
+        if (storage.abortController) {
+          storage.abortController.abort();
+          storage.abortController = null;
+        }
+
         // Cancel current suggestion
-        if (this.storage.suggestion) {
-          this.storage.suggestion = null;
+        if (storage.suggestion || storage.isLoading) {
+          storage.suggestion = null;
+          storage.isLoading = false;
           return true;
         }
         return false;
@@ -149,7 +170,12 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
     const textBefore = doc.textBetween(Math.max(0, pos - 500), pos, '\n', '\n');
 
     // Get text content after cursor (up to 100 chars for context)
-    const textAfter = doc.textBetween(pos, Math.min(doc.content.size, pos + 100), '\n', '\n');
+    const textAfter = doc.textBetween(
+      pos,
+      Math.min(doc.content.size, pos + 100),
+      '\n',
+      '\n'
+    );
 
     // Don't trigger if no text before cursor
     if (!textBefore.trim()) {
@@ -158,19 +184,115 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
 
     storage.isLoading = true;
 
-    options
-      .onComplete(textBefore, textAfter)
-      .then((suggestion) => {
-        storage.isLoading = false;
+    if (options.useStreaming && options.projectId) {
+      // Use streaming mode
+      this.streamCompletion(editor, textBefore, textAfter);
+    } else {
+      // Use non-streaming mode
+      options
+        .onComplete(textBefore, textAfter)
+        .then((suggestion) => {
+          storage.isLoading = false;
 
-        if (suggestion) {
-          storage.suggestion = suggestion;
-          // Force view update to show ghost text
-          editor.view.dispatch(editor.state.tr);
-        }
-      })
-      .catch(() => {
-        storage.isLoading = false;
+          if (suggestion) {
+            storage.suggestion = suggestion;
+            // Force view update to show ghost text
+            editor.view.dispatch(editor.state.tr);
+          }
+        })
+        .catch(() => {
+          storage.isLoading = false;
+        });
+    }
+  },
+
+  // Stream completion from SSE endpoint
+  async streamCompletion(
+    editor: ReturnType<typeof Extension.create>['editor'],
+    textBefore: string,
+    textAfter: string
+  ) {
+    const { storage, options } = this;
+
+    // Create abort controller for cancellation
+    const abortController = new AbortController();
+    storage.abortController = abortController;
+
+    try {
+      const response = await fetch('/api/completion/stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          projectId: options.projectId,
+          textBeforeCursor: textBefore,
+          textAfterCursor: textAfter,
+        }),
+        signal: abortController.signal,
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch completion');
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      const decoder = new TextDecoder();
+      let accumulated = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          break;
+        }
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+
+            if (data === '[DONE]') {
+              continue;
+            }
+
+            try {
+              const parsed = JSON.parse(data);
+
+              if (parsed.error) {
+                throw new Error(parsed.error);
+              }
+
+              if (parsed.text) {
+                accumulated += parsed.text;
+                storage.suggestion = accumulated;
+
+                // Force view update to show updated ghost text
+                editor.view.dispatch(editor.state.tr);
+              }
+            } catch {
+              // Ignore parse errors for partial chunks
+            }
+          }
+        }
+      }
+
+      storage.isLoading = false;
+      storage.abortController = null;
+    } catch (error) {
+      storage.isLoading = false;
+      storage.abortController = null;
+
+      // Don't log abort errors (user cancelled)
+      if (error instanceof Error && error.name !== 'AbortError') {
+        console.error('Completion error:', error);
+      }
+    }
   },
 });

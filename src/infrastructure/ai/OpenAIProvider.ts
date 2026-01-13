@@ -1580,4 +1580,57 @@ INSTRUCTIONS FINALES:
 
     return text.trim();
   }
+
+  /**
+   * Generate text completion with streaming.
+   */
+  async *generateCompletionStream(
+    textBeforeCursor: string,
+    textAfterCursor?: string,
+    metadata?: {
+      narrative?: NarrativeAnalysis;
+      stylisticDNA?: StylisticDNA;
+      characters?: Characters;
+      plot?: Plot;
+    }
+  ): AsyncIterableIterator<string> {
+    const basePrompt = await this.promptRepository.getCompletionPrompt();
+    const systemPrompt = this.enhanceCompletionPrompt(basePrompt, metadata);
+
+    // Build user prompt with context
+    let userPrompt = `[AVANT]\n${textBeforeCursor}`;
+    if (textAfterCursor && textAfterCursor.trim()) {
+      userPrompt += `\n\n[APRÈS]\n${textAfterCursor}`;
+    }
+
+    const isReasoning = this.isReasoningModel();
+
+    const stream = await this.client.chat.completions.create({
+      model: this.model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      ...(isReasoning ? {} : { temperature: 0.7 }),
+      ...this.getTokenLimitParam(256),
+      stream: true,
+    });
+
+    let isFirstChunk = true;
+
+    for await (const chunk of stream) {
+      const content = chunk.choices[0]?.delta?.content;
+      if (content) {
+        // Clean up first chunk if it starts with quotes
+        if (isFirstChunk) {
+          isFirstChunk = false;
+          if (content.startsWith('"') || content.startsWith("'")) {
+            yield content.slice(1);
+            continue;
+          }
+        }
+        yield content;
+      }
+    }
+  }
 }

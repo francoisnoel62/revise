@@ -28,6 +28,7 @@ import {
   withErrorHandling,
 } from './utils';
 import { canGenerateMetadata, recordMetadataGeneration } from './rate-limiter';
+import { metadataCache } from '@/infrastructure/cache/MetadataCache';
 
 /**
  * Serialized metadata for client transport.
@@ -172,7 +173,8 @@ export async function listMetadataAction(
  */
 export async function updateMetadataContentAction(
   metadataId: string,
-  content: string
+  content: string,
+  projectId?: string
 ): Promise<ActionResult<{ saved: true }>> {
   const auth = await getAuthenticatedUserId();
   if ('error' in auth) return auth.error;
@@ -185,6 +187,14 @@ export async function updateMetadataContentAction(
       metadataId,
       content,
     });
+
+    // Invalidate cache when metadata content changes
+    if (projectId) {
+      metadataCache.invalidate(auth.userId, projectId);
+    } else {
+      // If no projectId provided, invalidate all user's cache
+      metadataCache.invalidateUser(auth.userId);
+    }
 
     return { saved: true };
   });
@@ -217,7 +227,8 @@ export async function updateMetadataTitleAction(
  * Delete a metadata document.
  */
 export async function deleteMetadataAction(
-  metadataId: string
+  metadataId: string,
+  projectId?: string
 ): Promise<ActionResult<{ deleted: true }>> {
   const auth = await getAuthenticatedUserId();
   if ('error' in auth) return auth.error;
@@ -229,6 +240,13 @@ export async function deleteMetadataAction(
       ownerId: auth.userId,
       metadataId,
     });
+
+    // Invalidate cache when metadata is deleted
+    if (projectId) {
+      metadataCache.invalidate(auth.userId, projectId);
+    } else {
+      metadataCache.invalidateUser(auth.userId);
+    }
 
     return { deleted: true };
   });
@@ -278,6 +296,11 @@ export async function generateNarrativeAnalysisAction(
       ownerId: auth.userId,
       projectId,
     });
+
+    // Invalidate cache when metadata is regenerated
+    if (!result.wasCached) {
+      metadataCache.invalidate(auth.userId, projectId);
+    }
 
     return {
       metadata: serializeMetadata(result.metadata),
@@ -329,6 +352,11 @@ export async function generateStylisticDNAAction(
       projectId,
     });
 
+    // Invalidate cache when metadata is regenerated
+    if (!result.wasCached) {
+      metadataCache.invalidate(auth.userId, projectId);
+    }
+
     return {
       metadata: serializeMetadata(result.metadata),
       wasUpdated: result.wasUpdated,
@@ -378,6 +406,11 @@ export async function generateCharactersAction(
       ownerId: auth.userId,
       projectId,
     });
+
+    // Invalidate cache when metadata is regenerated
+    if (!result.wasCached) {
+      metadataCache.invalidate(auth.userId, projectId);
+    }
 
     return {
       metadata: serializeMetadata(result.metadata),
@@ -429,6 +462,11 @@ export async function generatePlotAction(
       projectId,
     });
 
+    // Invalidate cache when metadata is regenerated
+    if (!result.wasCached) {
+      metadataCache.invalidate(auth.userId, projectId);
+    }
+
     return {
       metadata: serializeMetadata(result.metadata),
       wasUpdated: result.wasUpdated,
@@ -478,6 +516,11 @@ export async function generateWorldbuildingAction(
       ownerId: auth.userId,
       projectId,
     });
+
+    // Invalidate cache when metadata is regenerated
+    if (!result.wasCached) {
+      metadataCache.invalidate(auth.userId, projectId);
+    }
 
     return {
       metadata: serializeMetadata(result.metadata),
@@ -529,6 +572,11 @@ export async function generateSynthesisAction(
       projectId,
     });
 
+    // Invalidate cache when metadata is regenerated
+    if (!result.wasCached) {
+      metadataCache.invalidate(auth.userId, projectId);
+    }
+
     return {
       metadata: serializeMetadata(result.metadata),
       wasUpdated: result.wasUpdated,
@@ -578,6 +626,11 @@ export async function generateChapterSummariesAction(
       ownerId: auth.userId,
       projectId,
     });
+
+    // Invalidate cache when metadata is regenerated
+    if (!result.wasCached) {
+      metadataCache.invalidate(auth.userId, projectId);
+    }
 
     return {
       metadata: serializeMetadata(result.metadata),
