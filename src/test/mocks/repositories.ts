@@ -3,6 +3,7 @@
 
 import { vi } from 'vitest';
 import { Project } from '@/domain/entities/Project';
+import { Chapter } from '@/domain/entities/Chapter';
 import { Provider } from '@/domain/entities/Provider';
 import { ProjectMetadata } from '@/domain/entities/ProjectMetadata';
 import { ProjectRepository } from '@/domain/interfaces/ProjectRepository';
@@ -24,6 +25,7 @@ export function createMockProjectRepository(): ProjectRepository & {
 
     createProject: vi.fn(async (_ownerId: string, project: Project) => {
       projects.set(project.getId(), project);
+      return project;
     }),
 
     loadProject: vi.fn(async (ownerId: string, projectId: string) => {
@@ -34,8 +36,9 @@ export function createMockProjectRepository(): ProjectRepository & {
       return null;
     }),
 
-    saveProject: vi.fn(async (_ownerId: string, project: Project) => {
+    updateProject: vi.fn(async (_ownerId: string, project: Project) => {
       projects.set(project.getId(), project);
+      return project;
     }),
 
     listProjects: vi.fn(async (ownerId: string) => {
@@ -47,6 +50,10 @@ export function createMockProjectRepository(): ProjectRepository & {
       if (project && project.getOwnerId() === ownerId) {
         projects.delete(projectId);
       }
+    }),
+
+    updateChapter: vi.fn(async (_ownerId: string, _projectId: string, _chapter: Chapter) => {
+      // No-op for mock
     }),
   };
 }

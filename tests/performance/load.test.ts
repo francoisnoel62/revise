@@ -72,7 +72,7 @@ describe('Load Testing', () => {
         } else {
           // Write
           project.updateTitle(`Title ${i}`);
-          return projectRepo.saveProject(userId, project);
+          return projectRepo.updateProject(userId, project);
         }
       });
 
@@ -194,7 +194,7 @@ describe('Load Testing', () => {
       for (let i = 0; i < 100; i++) {
         const chapter = project.getChapters()[0];
         chapter.updateContent(stringify(createSimpleDocument(`Content version ${i}`)));
-        await projectRepo.saveProject(userId, project);
+        await projectRepo.updateProject(userId, project);
       }
 
       const loaded = await projectRepo.loadProject(userId, project.getId());
@@ -314,7 +314,7 @@ describe('Load Testing', () => {
         const updatedProject = Project.create(userId, `Title ${i}`, project.getChapters());
         // Copy the ID
         Object.defineProperty(updatedProject, 'id', { value: project.getId() });
-        operations.push(projectRepo.saveProject(userId, updatedProject));
+        operations.push(projectRepo.updateProject(userId, updatedProject));
       }
 
       // Shuffle operations

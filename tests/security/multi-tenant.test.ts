@@ -46,7 +46,7 @@ describe('Multi-tenant Security', () => {
       // User B tries to modify it (by creating a different project with same ID)
       const maliciousProject = Project.create(USER_B, 'Hacked!', []);
       // Attempt to overwrite - in real implementation this would fail
-      await projectRepo.saveProject(USER_B, maliciousProject);
+      await projectRepo.updateProject(USER_B, maliciousProject);
 
       // Verify original project is unchanged
       const original = await projectRepo.loadProject(USER_A, projectA.getId());

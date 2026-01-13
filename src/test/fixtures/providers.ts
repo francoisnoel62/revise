@@ -15,7 +15,6 @@ export function createTestProvider(overrides?: {
   apiKey?: string;
   model?: string;
   isValid?: boolean;
-  lastTested?: Date;
 }): Provider {
   const defaults = {
     id: `provider-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -25,7 +24,6 @@ export function createTestProvider(overrides?: {
     apiKey: 'sk-test-api-key-1234567890',
     model: 'gpt-4o',
     isValid: false,
-    lastTested: undefined,
   };
 
   const config = { ...defaults, ...overrides };
@@ -40,10 +38,6 @@ export function createTestProvider(overrides?: {
 
   if (config.isValid) {
     provider.markAsValid();
-  }
-
-  if (config.lastTested) {
-    provider.updateLastTested(config.lastTested);
   }
 
   return provider;
