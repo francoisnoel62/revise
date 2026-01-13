@@ -16,6 +16,7 @@ import { GenerateCharactersUseCase } from '@/application/use-cases/GenerateChara
 import { GeneratePlotUseCase } from '@/application/use-cases/GeneratePlotUseCase';
 import { GenerateWorldbuildingUseCase } from '@/application/use-cases/GenerateWorldbuildingUseCase';
 import { GenerateSynthesisUseCase } from '@/application/use-cases/GenerateSynthesisUseCase';
+import { GenerateChapterSummariesUseCase } from '@/application/use-cases/GenerateChapterSummariesUseCase';
 import {
   ActionResult,
   getAuthenticatedUserId,
@@ -517,6 +518,56 @@ export async function generateSynthesisAction(
       : await getLLMProviderForProject(auth.userId, projectId);
 
     const useCase = new GenerateSynthesisUseCase(
+      await getMetadataRepo(),
+      await getRepository(),
+      llmProvider,
+      await getIdGenerator()
+    );
+
+    const result = await useCase.execute({
+      ownerId: auth.userId,
+      projectId,
+    });
+
+    return {
+      metadata: serializeMetadata(result.metadata),
+      wasUpdated: result.wasUpdated,
+      wasCached: result.wasCached,
+    };
+  });
+}
+
+/**
+ * Generate chapter summaries for a project.
+ * Creates new metadata or updates existing.
+ * @param projectId - The project ID
+ * @param providerId - Optional provider ID to use for generation. If not provided, uses project's default provider.
+ */
+export async function generateChapterSummariesAction(
+  projectId: string,
+  providerId?: string
+): Promise<
+  ActionResult<{ metadata: SerializedMetadata; wasUpdated: boolean; wasCached: boolean }>
+> {
+  const auth = await getAuthenticatedUserId();
+  if ('error' in auth) return auth.error;
+
+  const rateCheck = canGenerateMetadata(auth.userId, 'chapter-summaries');
+  if (!rateCheck.allowed) {
+    return {
+      success: false,
+      error: `Veuillez attendre ${rateCheck.waitSeconds} secondes avant de régénérer cette analyse.`,
+    };
+  }
+
+  return withErrorHandling(async () => {
+    recordMetadataGeneration(auth.userId, 'chapter-summaries');
+
+    const llmProvider = providerId
+      ? await getLLMProviderById(auth.userId, providerId)
+      : await getLLMProviderForProject(auth.userId, projectId);
+
+    const useCase = new GenerateChapterSummariesUseCase(
       await getMetadataRepo(),
       await getRepository(),
       llmProvider,

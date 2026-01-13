@@ -11,6 +11,7 @@ import { Characters } from '@/domain/value-objects/Characters';
 import { Plot } from '@/domain/value-objects/Plot';
 import { Worldbuilding } from '@/domain/value-objects/Worldbuilding';
 import { Synthesis } from '@/domain/value-objects/Synthesis';
+import { ChapterSummaries } from '@/domain/value-objects/ChapterSummaries';
 
 interface ProposalResponse {
   proposals: Array<{
@@ -117,6 +118,15 @@ interface SynthesisResponse {
   suggestedScenes: string[];
   charactersToDevelop: string;
   alerts: string[];
+}
+
+interface ChapterSummariesResponse {
+  chapters: Array<{
+    chapterNumber: number;
+    chapterTitle: string;
+    summary: string;
+  }>;
+  overallArc: string;
 }
 
 export class OpenAIProvider implements LLMProvider {
@@ -1194,6 +1204,89 @@ INSTRUCTIONS:
       suggestedScenes: parsed.suggestedScenes,
       charactersToDevelop: parsed.charactersToDevelop,
       alerts: parsed.alerts,
+    };
+  }
+
+  // ===========================
+  // CHAPTER SUMMARIES
+  // ===========================
+
+  async generateChapterSummaries(fullText: string): Promise<ChapterSummaries> {
+    const basePrompt = await this.promptRepository.getChapterSummariesPrompt();
+    const systemPrompt = this.enhanceChapterSummariesPromptForOpenAI(basePrompt);
+    const userPrompt = fullText;
+
+    try {
+      const isReasoning = this.isReasoningModel();
+      const completion = await this.client.chat.completions.create({
+        model: this.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        ...this.getResponseFormatParam(),
+        ...(isReasoning ? {} : { temperature: 0.3 }),
+        ...this.getTokenLimitParam(4096),
+      });
+
+      const content = completion.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('Empty response from OpenAI');
+      }
+
+      return this.parseChapterSummariesResponse(content);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error during chapter summaries generation');
+    }
+  }
+
+  private enhanceChapterSummariesPromptForOpenAI(basePrompt: string): string {
+    return `${basePrompt}
+
+---
+
+INSTRUCTIONS SUPPLÉMENTAIRES:
+- Détecte la langue du texte et réponds dans la MÊME LANGUE
+- Chaque résumé de chapitre doit faire MAXIMUM 6 phrases
+- Retourne UNIQUEMENT le JSON valide, sans commentaires`;
+  }
+
+  private parseChapterSummariesResponse(content: string): ChapterSummaries {
+    let parsed: ChapterSummariesResponse;
+
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      throw new Error('Failed to parse chapter summaries response');
+    }
+
+    if (!Array.isArray(parsed.chapters) || parsed.chapters.length === 0) {
+      throw new Error('Invalid response: chapters must be a non-empty array');
+    }
+
+    // Validate each chapter summary
+    for (const chapter of parsed.chapters) {
+      if (typeof chapter.chapterNumber !== 'number') {
+        throw new Error('Invalid chapter: chapterNumber must be a number');
+      }
+      if (!chapter.chapterTitle || typeof chapter.chapterTitle !== 'string') {
+        throw new Error('Invalid chapter: missing chapterTitle');
+      }
+      if (!chapter.summary || typeof chapter.summary !== 'string') {
+        throw new Error('Invalid chapter: missing summary');
+      }
+    }
+
+    if (!parsed.overallArc || typeof parsed.overallArc !== 'string') {
+      throw new Error('Invalid response: missing overallArc');
+    }
+
+    return {
+      chapters: parsed.chapters,
+      overallArc: parsed.overallArc,
     };
   }
 }

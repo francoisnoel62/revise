@@ -55,4 +55,12 @@ export interface PromptRepository {
    * @returns The complete synthesis prompt
    */
   getSynthesisPrompt(): Promise<string>;
+
+  /**
+   * Get the system prompt for chapter summaries generation.
+   * Creates a structured summary (max 6 sentences) per chapter.
+   *
+   * @returns The complete chapter summaries prompt
+   */
+  getChapterSummariesPrompt(): Promise<string>;
 }

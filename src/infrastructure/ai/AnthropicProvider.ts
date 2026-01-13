@@ -11,6 +11,7 @@ import { Characters } from '@/domain/value-objects/Characters';
 import { Plot } from '@/domain/value-objects/Plot';
 import { Worldbuilding } from '@/domain/value-objects/Worldbuilding';
 import { Synthesis } from '@/domain/value-objects/Synthesis';
+import { ChapterSummaries } from '@/domain/value-objects/ChapterSummaries';
 
 interface ProposalResponse {
   proposals: Array<{
@@ -1119,6 +1120,91 @@ INSTRUCTIONS:
       suggestedScenes: parsed.suggestedScenes,
       charactersToDevelop: parsed.charactersToDevelop,
       alerts: parsed.alerts,
+    };
+  }
+
+  // ===========================
+  // CHAPTER SUMMARIES
+  // ===========================
+
+  async generateChapterSummaries(fullText: string): Promise<ChapterSummaries> {
+    const basePrompt = await this.promptRepository.getChapterSummariesPrompt();
+    const systemPrompt = this.enhanceChapterSummariesPromptForAnthropic(basePrompt);
+
+    try {
+      const message = await this.client.messages.create({
+        model: this.model,
+        max_tokens: 4096,
+        temperature: 0.3,
+        system: systemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: fullText,
+          },
+        ],
+      });
+
+      const content = message.content[0];
+      if (content.type !== 'text') {
+        throw new Error('Unexpected response type from Anthropic');
+      }
+
+      return this.parseChapterSummariesResponse(content.text);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error during chapter summaries generation');
+    }
+  }
+
+  private enhanceChapterSummariesPromptForAnthropic(basePrompt: string): string {
+    return `${basePrompt}
+
+---
+
+INSTRUCTIONS SUPPLÉMENTAIRES:
+- Détecte la langue du texte et réponds dans la MÊME LANGUE
+- Chaque résumé de chapitre doit faire MAXIMUM 6 phrases
+- Retourne UNIQUEMENT le JSON valide, sans markdown code blocks`;
+  }
+
+  private parseChapterSummariesResponse(content: string): ChapterSummaries {
+    const jsonContent = this.extractJson(content);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let parsed: any;
+    try {
+      parsed = JSON.parse(jsonContent);
+    } catch {
+      throw new Error('Failed to parse chapter summaries response from Anthropic');
+    }
+
+    if (!Array.isArray(parsed.chapters) || parsed.chapters.length === 0) {
+      throw new Error('Invalid response: chapters must be a non-empty array');
+    }
+
+    // Validate each chapter summary
+    for (const chapter of parsed.chapters) {
+      if (typeof chapter.chapterNumber !== 'number') {
+        throw new Error('Invalid chapter: chapterNumber must be a number');
+      }
+      if (!chapter.chapterTitle || typeof chapter.chapterTitle !== 'string') {
+        throw new Error('Invalid chapter: missing chapterTitle');
+      }
+      if (!chapter.summary || typeof chapter.summary !== 'string') {
+        throw new Error('Invalid chapter: missing summary');
+      }
+    }
+
+    if (!parsed.overallArc || typeof parsed.overallArc !== 'string') {
+      throw new Error('Invalid response: missing overallArc');
+    }
+
+    return {
+      chapters: parsed.chapters,
+      overallArc: parsed.overallArc,
     };
   }
 }
