@@ -10,13 +10,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Select text → Trigger rewrite → Receive 3 stylistically distinct proposals → Insert chosen version instantly
 - Success metric: Users prefer this flow over copy-pasting to ChatGPT
 
-### MVP Status: Phase 3.6 Complete ✅
+### MVP Status: Phase 3.7 Complete ✅
 
-**Phase 3 Persistence & User Authentication**, **Phase 3.5 AI Provider Management**, and **Phase 3.6 Metadata Analysis System** are **fully implemented and tested** with comprehensive MongoDB integration, Auth.js authentication, multi-tenant project management, flexible AI provider configuration, and intelligent narrative analysis capabilities with caching.
+**Phase 3 Persistence & User Authentication**, **Phase 3.5 AI Provider Management**, **Phase 3.6 Metadata Analysis System**, and **Phase 3.7 UX Enhancements** are **fully implemented and tested** with comprehensive MongoDB integration, Auth.js authentication, multi-tenant project management, flexible AI provider configuration, intelligent narrative analysis, PDF export, and correction history.
 
 **Implemented features:**
 
-**Phase 3.6 - Metadata Analysis System:** (NEW - January 2026)
+**Phase 3.7 - UX Enhancements:** (NEW - January 2026)
+- **PDF Export** with full typography support (pdf-lib), A4 styling matching editor
+- **Correction History** - Track and view all AI rewrites per chapter with searchable accordion UI
+- **Character/Word Count** - Live statistics in editor header (TipTap CharacterCount extension)
+- **Undo/Redo Toolbar Buttons** - Accessible via toolbar in addition to keyboard shortcuts
+- **Loading Overlay** - Progress bar with 100 famous author quotes during AI rewrite (3s rotation)
+- **3 Proposals** - Reduced from 5 to 3 (épuré, lyrique, amplifié) for better UX and 40% token reduction
+- **GPT-5 & o-series Support** - Proper API parameters for reasoning models (max_completion_tokens, no temperature)
+- **Metadata UI Improvements** - Regeneration moved to 3-dot menu, reduced visual clutter
+- **CorrectionHistory entity** with multi-tenant repository and server actions
+- **39 unit tests** for correction history (entity, use cases, edge cases)
+
+**Phase 3.6 - Metadata Analysis System:** (January 2026)
 - **6 AI-powered analysis types** with intelligent caching and regeneration detection
   - **Narrative Analysis** - POV, structure, temporality, voice analysis
   - **Characters** - Character profiles, relationships, narrative hierarchy extraction
@@ -119,34 +131,35 @@ This project MUST follow Clean Architecture principles adapted to Next.js:
 
 1. **Domain Layer** (`src/domain`)
    - Pure business logic, zero framework dependencies
-   - Entities: `Chapter`, `Project`, `ProjectMetadata`, `Provider`, `User`
+   - Entities: `Chapter`, `Project`, `ProjectMetadata`, `Provider`, `User`, `CorrectionHistory`
    - Value Objects: `TextSelection`, `RewriteProposal`, `MetadataType` + 6 analysis types
    - Interfaces: All external contracts (repositories, providers, parsers, exporters)
 
 2. **Application Layer** (`src/application/use-cases`)
-   - **37 Use Cases** orchestrating domain logic:
+   - **40 Use Cases** orchestrating domain logic:
      - **Project CRUD** (6): Create, Load, List, Delete, UpdateTitle, UpdateProvider
      - **Chapter Operations** (8): Import, Export, Switch, Add, Remove, Reorder, UpdateContent, UpdateTitle
      - **Provider Management** (6): Create, Update, Delete, List, TestConnection, Validate
      - **Metadata CRUD** (6): Create, Load, List, UpdateContent, UpdateTitle, Delete
      - **Metadata Generation** (6): Generate each of 6 analysis types with caching
+     - **Correction History** (3): Save, List, Delete (per-chapter history tracking)
      - **User Registration** (1): RegisterUser with validation
      - **Legacy** (4): RewriteText, ImportDocument, ExportDocument, SwitchChapter
 
 3. **Infrastructure Layer** (`src/infrastructure`)
-   - **AI Providers**: OpenAIProvider, AnthropicProvider (both support 6 metadata analysis types)
-   - **Persistence**: 4 MongoDB repositories (Project, User, Provider, Metadata) + InMemory (legacy)
-   - **Document**: DocxParser, DocxExporter, TipTap conversion utilities
+   - **AI Providers**: OpenAIProvider, AnthropicProvider (both support 6 metadata analysis types + GPT-5/o-series)
+   - **Persistence**: 5 MongoDB repositories (Project, User, Provider, Metadata, CorrectionHistory) + InMemory (legacy)
+   - **Document**: DocxParser, DocxExporter, PdfExporter, TipTap conversion utilities
    - **Security**: Encryption (AES-256-GCM), Auth.js provider, bcrypt password hashing
    - **Prompts**: FilePromptRepository (load from `/docs/prompt/metadata/*.md`)
    - **Utilities**: UUIDGenerator, text hashing (SHA-256), serialization
 
 4. **Interface Layer** (`src/app`, `src/components`)
    - **Pages** (6): Dashboard, Editor, Metadata List, Metadata Editor, Sign In, Sign Up
-   - **Components** (~30): Organized by feature (editor, navigation, proposals, providers, metadata, dashboard, document)
-   - **Server Actions** (7): All delegate to Use Cases (project, chapter, auth, provider, metadata, import, export, rewrite)
+   - **Components** (~35): Organized by feature (editor, navigation, proposals, providers, metadata, dashboard, document, history)
+   - **Server Actions** (8): All delegate to Use Cases (project, chapter, auth, provider, metadata, correction-history, import, export, rewrite)
    - **Dependency Injection**: `utils.ts` centralizes all repository/factory getters
-   - **State**: Zustand store (server-backed)
+   - **State**: Zustand store (server-backed with correction history cache)
    - **Hooks**: useAutosave (1s debounce)
 
 ### Dependency Rules
@@ -171,18 +184,18 @@ This architecture enables future evolution (persistence, projects, memory) witho
 - **UI**: shadcn/ui + Radix UI (Sheet, Dialog, Card, Button, ScrollArea, DropdownMenu)
 - **State**: Zustand (server-backed)
 - **Styling**: Tailwind CSS v4 + A4 page styling
-- **Document**: mammoth (import) + docx library (export with full typography)
-- **AI**: OpenAI GPT-4o-mini + Anthropic Claude (dual provider support)
+- **Document**: mammoth (import) + docx library (DOCX export) + pdf-lib (PDF export)
+- **AI**: OpenAI GPT-4o-mini/GPT-5-nano + Anthropic Claude (dual provider support with o-series reasoning models)
 - **Testing**: Vitest + React Testing Library + Playwright
-- **Other**: @dnd-kit (drag & drop), AES-256-GCM encryption
+- **Other**: @dnd-kit (drag & drop), AES-256-GCM encryption, TipTap CharacterCount extension
 
 ## Key Features & Constraints
 
 ### Document Import/Export
-- **Format**: .docx only (import & export)
-- **Import**: Auto chapter splitting by H1, converts to TipTap JSON, preserves formatting
-- **Export**: Multi-chapter with page breaks, full typography (font, size, alignment, indent)
-- **Handling**: Browser file input, server actions for async operations
+- **Import**: .docx only with auto chapter splitting by H1, converts to TipTap JSON, preserves formatting
+- **Export**: DOCX and PDF formats with full typography (font, size, alignment, indent)
+- **PDF Export**: A4 styling matching editor, special character support (Turkish, Polish, Czech, etc.)
+- **Handling**: Browser file input, server actions for async operations, format selection dropdown
 
 ### Multi-Chapter Workflow (✅ Phase 3 Implemented)
 
@@ -191,9 +204,10 @@ This architecture enables future evolution (persistence, projects, memory) witho
 **Core user flow**:
 1. Sign up/Sign in → Dashboard → Create/Import project
 2. Edit in A4-styled TipTap editor (auto-save to MongoDB after 1s)
-3. Select text → Click "Réécrire" → Choose from 3 proposals → Insert
-4. Manage chapters via ChaptersSheet (add, delete, reorder, rename)
-5. Export all chapters to .docx with full typography preservation
+3. Select text → Click "Réécrire" → Choose from 3 proposals → Insert (history auto-saved)
+4. Review correction history via toolbar button (accordion UI per chapter)
+5. Manage chapters via ChaptersSheet (add, delete, reorder, rename)
+6. Export all chapters to DOCX or PDF with full typography preservation
 
 **Key shortcuts**: Ctrl+B/I/U (format), Ctrl+K (em dash), Ctrl+Z (undo) - [See README.md for full list](README.md)
 
@@ -207,7 +221,7 @@ This architecture enables future evolution (persistence, projects, memory) witho
 ### Out of Scope
 If a feature isn't essential to the **selection → replacement loop**, it's excluded.
 
-**Currently excluded**: PDF export, streaming responses, custom AI prompts, search, per-chapter undo/redo, version control, real-time collaboration, comments/annotations, voice memory, chapter templates, writing statistics.
+**Currently excluded**: streaming responses, custom AI prompts, search, per-chapter undo/redo, version control, real-time collaboration, comments/annotations, voice memory, chapter templates.
 
 **Principle**: Ship minimum viable features. Add complexity only when proven necessary.
 
@@ -227,7 +241,7 @@ If a feature isn't essential to the **selection → replacement loop**, it's exc
 - ✅ Content Update: < 100ms → **0.10ms** (1000x faster than target)
 - ✅ Keystroke Latency: < 100ms → **< 100ms** (immediate)
 
-**Test Results**: 481 passed + 32 skipped (513 total, 94% pass rate) | 63 test files passed + 14 skipped (77 total)
+**Test Results**: 520+ passed + 32 skipped (552+ total, 94% pass rate) | 66+ test files passed + 14 skipped (80+ total)
 
 ## Development Guidelines
 
@@ -371,7 +385,7 @@ These rules are **MANDATORY** for all code contributions. They ensure code quali
 
 ### Testing Requirements
 
-**Current Status**: 481 passed + 32 skipped (513 total, 94% pass rate, 77 test files)
+**Current Status**: 520+ passed + 32 skipped (552+ total, 94% pass rate, 80+ test files)
 
 **Coverage**:
 - Overall: 40.8% (v8 measurement)
@@ -411,10 +425,11 @@ npm run test:e2e          # Playwright E2E (when implemented)
 - ✅ **Phase 3**: MongoDB persistence, Auth.js authentication, multi-tenant projects
 - ✅ **Phase 3.5**: Multi-provider AI support (OpenAI, Anthropic), encrypted credentials, Clean Architecture completion (9.5/10 score)
 - ✅ **Phase 3.6**: Metadata Analysis System (6 AI-powered analysis types with intelligent caching)
+- ✅ **Phase 3.7**: UX Enhancements (PDF export, correction history, word count, author quotes, 3 proposals)
 
 **Planned Features** (Phase 4+):
-- Search across chapters, per-chapter undo/redo, chapter templates
-- Writing goals/statistics, version history, user preferences
+- Search across chapters, chapter templates
+- Version history, user preferences
 - Real-time collaboration, comments/annotations, team workspaces (Phase 5)
 - Voice memory, custom AI prompts, streaming responses (Phase 6)
 

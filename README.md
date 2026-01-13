@@ -6,7 +6,7 @@
 
 **Débloquez. Explorez. Réécrivez. Sans quitter votre flow.**
 
-[![Tests](https://img.shields.io/badge/tests-481%20passed%20%7C%2032%20skipped-success?style=flat-square)](https://github.com/yourusername/revise)
+[![Tests](https://img.shields.io/badge/tests-520%20passed%20%7C%2032%20skipped-success?style=flat-square)](https://github.com/yourusername/revise)
 [![Coverage](https://img.shields.io/badge/coverage-40.8%25-blue?style=flat-square)](https://github.com/yourusername/revise)
 [![Architecture](https://img.shields.io/badge/architecture-9.5%2F10-purple?style=flat-square)](https://github.com/yourusername/revise)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -37,7 +37,7 @@ Il comprend ce que ChatGPT ignore : les scènes, les conflits, la tension dramat
 | 🎬 **Scène qui ne fonctionne pas** | Améliore le rythme, les descriptions, les émotions |
 | 🔀 **Exploration créative** | Génère des variantes : mêmes idées, tons différents |
 | 👤 **Personnages plats** | Travaille les motivations, réactions, arcs |
-| ✏️ **Phrase qui coince** | 5 reformulations instantanées, vous choisissez |
+| ✏️ **Phrase qui coince** | 3 reformulations distinctes, vous choisissez |
 
 ### Le verdict clair
 
@@ -73,7 +73,7 @@ Il comprend ce que ChatGPT ignore : les scènes, les conflits, la tension dramat
 | Critère | Revise | ChatGPT |
 |---------|--------|---------|
 | Comprend les arcs narratifs | ✅ Natif | ⚠️ Avec prompting |
-| Propose des variantes stylistiques | ✅ 5 d'un coup | ❌ Une à la fois |
+| Propose des variantes stylistiques | ✅ 3 d'un coup | ❌ Une à la fois |
 | Respecte votre voix d'auteur | ✅ Analyse votre style | ⚠️ Tend à uniformiser |
 | Gère des manuscrits multi-chapitres | ✅ Conçu pour | ❌ Limité par le contexte |
 | Précision factuelle | ⚠️ Sacrifiée pour la créativité | ✅ Prioritaire |
@@ -86,23 +86,28 @@ Il comprend ce que ChatGPT ignore : les scènes, les conflits, la tension dramat
 ### L'essentiel : Réécriture instantanée
 
 ```
-Sélectionnez du texte → Cliquez "Réécrire" → 5 alternatives apparaissent → Insérez votre choix
+Sélectionnez du texte → Cliquez "Réécrire" → 3 alternatives apparaissent → Insérez votre choix
 ```
 
 Pas de chat. Pas d'explications. Pas de friction. Vous restez dans votre flow.
+
+**3 styles distincts** : épuré, lyrique, amplifié — pour un choix clair sans surcharge cognitive.
 
 ### 📚 Gestion de manuscrit
 
 - **Import .docx intelligent** : Détection automatique des chapitres (H1)
 - **Navigation par chapitres** : Panneau latéral, drag & drop, renommage inline
-- **Export préservé** : Formatage et typographie intacts
+- **Export multi-format** : DOCX et PDF avec typographie préservée
 - **Auto-save** : Vers MongoDB, debounce 1 seconde
+- **Historique des corrections** : Retrouvez toutes vos réécritures par chapitre
 
 ### 📄 Expérience d'écriture A4
 
 - **Page réaliste** : 794px, ombres, marges professionnelles
 - **Typographie** : Georgia / Times New Roman, 11-16pt
 - **Mise en page** : Alignement, indentation première ligne, interligne 1.5
+- **Compteur de mots** : Statistiques caractères/mots en temps réel
+- **Undo/Redo** : Boutons dans la toolbar + raccourcis clavier
 - **Raccourcis** : Gras, italique, surligné, tiret cadratin...
 
 ### 🧠 Analyse de manuscrit par IA
@@ -119,6 +124,12 @@ Six types d'analyse pour comprendre votre texte en profondeur :
 | **Synthèse** | Méta-analyse avec feedback éditorial |
 
 > **Cache intelligent** : Les analyses ne se régénèrent que si votre contenu change réellement (hash SHA-256).
+
+### ✨ UX soignée
+
+- **Citations d'auteurs** : 100 citations inspirantes pendant l'attente IA
+- **Progression visuelle** : Barre de chargement avec rotation des citations
+- **Menu contextuel** : Régénération des analyses via menu 3 points
 
 ### 🔌 Multi-providers IA
 
@@ -218,11 +229,11 @@ graph LR
     D --> E{Blocage ?}
     E -->|Oui| F[Sélectionner texte]
     F --> G[Réécrire]
-    G --> H[Choisir parmi 5]
+    G --> H[Choisir parmi 3]
     H --> D
     E -->|Non| I[Continuer]
     I --> D
-    D --> J[Exporter .docx]
+    D --> J[Exporter DOCX/PDF]
 ```
 
 ### Raccourcis clavier
@@ -268,7 +279,7 @@ src/
 ## 🧪 Tests
 
 ```bash
-npm test                  # 481 tests passed + 32 skipped (513 total)
+npm test                  # 520+ tests passed + 32 skipped (552+ total)
 npm run test:coverage     # Rapport de couverture (40.8%)
 npm run test:integration  # Tests avec vraies APIs (OpenAI & Anthropic)
 npm run test:e2e          # Tests end-to-end (Playwright)
@@ -276,8 +287,8 @@ npm run test:e2e          # Tests end-to-end (Playwright)
 
 | Statistiques | Valeur |
 |--------------|--------|
-| Tests totaux | 513 (481 passed, 32 skipped) |
-| Fichiers de test | 77 (63 passed, 14 skipped) |
+| Tests totaux | 552+ (520+ passed, 32 skipped) |
+| Fichiers de test | 80+ (66+ passed, 14 skipped) |
 | Couverture globale | 40.8% (v8) |
 | Couverture domaine | 92%+ (entités) |
 | Couverture application | **100%** (use cases) |
@@ -294,11 +305,11 @@ npm run test:e2e          # Tests end-to-end (Playwright)
 - [x] Phase 3 : Persistence MongoDB, authentification
 - [x] Phase 3.5 : Multi-providers, chiffrement, Clean Architecture
 - [x] Phase 3.6 : Analyse de manuscrit IA (6 types)
+- [x] Phase 3.7 : Export PDF, historique des corrections, UX améliorée
 
 ### 🔜 Phase 4
 
 - [ ] Recherche full-text dans les chapitres
-- [ ] Historique undo/redo par chapitre
 - [ ] Templates de chapitres
 - [ ] Objectifs d'écriture & statistiques
 - [ ] Partage de projets

@@ -119,17 +119,35 @@ Toutes vos modifications sont **automatiquement sauvegardées** dans MongoDB Atl
 
 1. Sélectionnez le texte à réécrire
 2. Cliquez sur "Réécrire" au-dessus de la sélection
-3. 3 propositions apparaissent à droite
-4. Cliquez sur "Insérer" pour la proposition choisie
-5. Le texte original est remplacé
-6. Utilisez Ctrl+Z pour annuler si besoin
+3. Une barre de progression avec des citations d'auteurs célèbres s'affiche pendant le chargement
+4. 3 propositions distinctes (épuré, lyrique, amplifié) apparaissent à droite
+5. Cliquez sur "Insérer" pour la proposition choisie
+6. Le texte original est remplacé et l'historique est sauvegardé automatiquement
+7. Utilisez Ctrl+Z pour annuler si besoin
+
+### Historique des Corrections
+
+1. Cliquez sur l'icône d'historique dans la barre d'outils
+2. Une fenêtre affiche toutes les réécritures précédentes pour le chapitre actuel
+3. Chaque entrée est dans un accordéon expansible
+4. Vous pouvez copier le texte original ou les propositions
+5. Utilisez les filtres de date et de texte pour retrouver une correction spécifique
+
+### Compteur de Mots
+
+Le compteur de mots et de caractères est affiché en temps réel dans l'en-tête de l'éditeur pour le chapitre actif.
 
 ### Export de Documents
 
-1. Cliquez sur "Exporter"
-2. Tous les chapitres sont exportés dans un seul fichier .docx
-3. Les chapitres sont séparés par des sauts de page
-4. Le formatage (gras, italique, etc.) **et la typographie** (police, taille, alignement, retrait) sont préservés
+1. Cliquez sur le menu déroulant d'export
+2. Choisissez le format souhaité (DOCX ou PDF)
+3. Tous les chapitres sont exportés dans un seul fichier
+4. Les chapitres sont séparés par des sauts de page
+5. Le formatage (gras, italique, etc.) **et la typographie** (police, taille, alignement, retrait) sont préservés
+
+**Formats disponibles** :
+- **DOCX** : Format Word, modifiable dans tout traitement de texte
+- **PDF** : Format figé, idéal pour partage et impression (style A4 identique à l'éditeur)
 
 **Note**: L'export sert désormais de **sauvegarde supplémentaire** ou pour partager votre travail. Vos projets sont déjà sauvegardés automatiquement dans le cloud.
 
@@ -193,10 +211,10 @@ Toutes vos modifications sont **automatiquement sauvegardées** dans MongoDB Atl
 - **Ctrl+K**: Insérer un tiret cadratin (—)
 
 **Édition** :
-- **Ctrl+Z**: Annuler
-- **Ctrl+Shift+Z**: Refaire
+- **Ctrl+Z**: Annuler (également disponible via bouton dans la toolbar)
+- **Ctrl+Shift+Z**: Refaire (également disponible via bouton dans la toolbar)
 
 **Navigation** :
 - **Esc**: Fermer les panneaux (chapitres ou propositions)
 
-**Note**: Les contrôles typographiques (police, taille, alignement, retrait) sont accessibles uniquement via la barre d'outils.
+**Note**: Les contrôles typographiques (police, taille, alignement, retrait), annuler/refaire et l'historique des corrections sont accessibles via la barre d'outils.

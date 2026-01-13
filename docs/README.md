@@ -81,11 +81,12 @@ High-level project information.
 - Keyboard shortcuts: See README.md → Usage
 
 ### Testing
-- Test coverage: **481 passed + 32 skipped (513 total, 94% pass rate)**
-- Test files: 77 files (63 passed, 14 skipped)
+- Test coverage: **520+ passed + 32 skipped (552+ total, 94% pass rate)**
+- Test files: 80+ files (66+ passed, 14 skipped)
 - Unit tests: Vitest + React Testing Library
 - Integration tests: Real API calls (OpenAI & Anthropic)
 - Provider-specific integration tests: 12 tests (6 OpenAI + 6 Anthropic) - conditional
+- Correction history tests: 39 unit tests (entity, use cases, edge cases)
 - E2E tests: Playwright (setup ready)
 - Coverage: 40.8% global, 92%+ domain entities, 100% use cases
 - See [API Reference](./developer/api-reference.md#testing) for examples
@@ -128,6 +129,28 @@ High-level project information.
 
 ## 🆕 What's New
 
+### Phase 3.7 - UX Enhancements (January 2026) ✅
+
+**Enhanced User Experience & New Features**:
+- ✅ PDF Export - Full typography support with pdf-lib, A4 styling matching editor
+- ✅ Correction History - Track and view all AI rewrites per chapter with searchable accordion UI
+- ✅ Character/Word Count - Live statistics in editor header
+- ✅ Undo/Redo Toolbar Buttons - Accessible via toolbar in addition to keyboard shortcuts
+- ✅ Loading Overlay - Progress bar with 100 famous author quotes during AI rewrite (3s rotation)
+- ✅ 3 Proposals - Reduced from 5 to 3 (épuré, lyrique, amplifié) for better UX and 40% token savings
+- ✅ GPT-5 & o-series Support - Proper API parameters for reasoning models
+- ✅ Metadata UI Improvements - Regeneration moved to 3-dot menu
+
+**Technical Achievements**:
+- ✅ CorrectionHistory entity with multi-tenant repository
+- ✅ 3 new use cases (Save, List, Delete correction history)
+- ✅ correction-history-actions server actions
+- ✅ CorrectionHistoryDialog with accordion UI and copy functionality
+- ✅ Zustand store cache for correction history
+- ✅ PdfExporter with special character support (Turkish, Polish, Czech, etc.)
+- ✅ 39 unit tests for correction history (entity, use cases, edge cases)
+- ✅ TipTap CharacterCount extension integration
+
 ### Phase 3.6 - Metadata Analysis System (January 2026) ✅
 
 **6 AI-Powered Analysis Types with Intelligent Caching**:
@@ -146,7 +169,7 @@ High-level project information.
 - ✅ FilePromptRepository for version-controlled prompts
 - ✅ MongoDBMetadataRepository with multi-tenant isolation
 - ✅ Metadata UI pages and components
-- ✅ 481+ comprehensive tests (513 total with 32 skipped)
+- ✅ 520+ comprehensive tests (552+ total with 32 skipped)
 
 ### Phase 3.5 - Clean Architecture Completion (January 2026) ✅
 
@@ -173,7 +196,7 @@ High-level project information.
 - ✅ **MongoDBProviderRepository** - Encrypted provider storage with multi-tenant isolation
 
 **Testing**:
-- ✅ **481 Tests Passing** - Comprehensive coverage across all layers (513 total, 32 skipped)
+- ✅ **520+ Tests Passing** - Comprehensive coverage across all layers (552+ total, 32 skipped)
 - ✅ **100% Application Layer Coverage** - All use cases tested
 - ✅ **92%+ Domain Layer Coverage** - Excellent business logic coverage (entities)
 - ✅ **12 Provider-Specific Integration Tests** - Real API validation (OpenAI & Anthropic)
@@ -248,6 +271,6 @@ docs/
 
 ---
 
-**Documentation Version**: Phase 3.6 (January 2026)
-**Last Updated**: January 10, 2026
-**Status**: Complete ✅ - Metadata Analysis System (6 AI-powered analysis types with 400+ tests)
+**Documentation Version**: Phase 3.7 (January 2026)
+**Last Updated**: January 13, 2026
+**Status**: Complete ✅ - UX Enhancements (PDF export, correction history, 3 proposals, 520+ tests)
