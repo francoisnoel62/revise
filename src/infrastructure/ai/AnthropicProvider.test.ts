@@ -4,6 +4,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AnthropicProvider } from './AnthropicProvider';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
+import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 
 // Mock Anthropic module
 vi.mock('@anthropic-ai/sdk', () => {
@@ -16,12 +17,22 @@ vi.mock('@anthropic-ai/sdk', () => {
   };
 });
 
+// Mock PromptRepository for tests
+const mockPromptRepository: PromptRepository = {
+  getNarrativeAnalysisPrompt: vi.fn().mockResolvedValue('mock narrative prompt'),
+  getStylisticDNAPrompt: vi.fn().mockResolvedValue('mock stylistic prompt'),
+  getCharactersPrompt: vi.fn().mockResolvedValue('mock characters prompt'),
+  getPlotPrompt: vi.fn().mockResolvedValue('mock plot prompt'),
+  getWorldbuildingPrompt: vi.fn().mockResolvedValue('mock worldbuilding prompt'),
+  getSynthesisPrompt: vi.fn().mockResolvedValue('mock synthesis prompt'),
+};
+
 describe('AnthropicProvider', () => {
   let provider: AnthropicProvider;
   let mockCreate: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    provider = new AnthropicProvider('fake-api-key', 'claude-sonnet-4-5-20250929');
+    provider = new AnthropicProvider('fake-api-key', mockPromptRepository, 'claude-sonnet-4-5-20250929');
     // Access the mock after the provider is created
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockCreate = (provider as any).client.messages.create;
