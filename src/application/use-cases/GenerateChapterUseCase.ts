@@ -5,6 +5,7 @@ import {
   ProjectRepository,
   MetadataRepository,
   LLMProvider,
+  ContentConverter,
   NarrativeAnalysis,
   StylisticDNA,
   Characters,
@@ -23,14 +24,15 @@ export interface GenerateChapterInput {
 
 export interface GenerateChapterResult {
   generation: ChapterGeneration;
-  tipTapContent: string; // TipTap JSON ready to insert into editor
+  editorContent: string; // Editor-formatted content ready to insert
 }
 
 export class GenerateChapterUseCase {
   constructor(
     private readonly projectRepository: ProjectRepository,
     private readonly metadataRepository: MetadataRepository,
-    private readonly llmProvider: LLMProvider
+    private readonly llmProvider: LLMProvider,
+    private readonly contentConverter: ContentConverter
   ) {}
 
   async execute(input: GenerateChapterInput): Promise<GenerateChapterResult> {
@@ -75,12 +77,15 @@ export class GenerateChapterUseCase {
       metadata
     );
 
-    // 6. Convert generated content to TipTap JSON
-    const tipTapContent = this.formatAsTipTapJSON(generation, input.generationType);
+    // 6. Convert generated content to editor format
+    const editorContent = this.contentConverter.toEditorContent(
+      generation.content,
+      input.generationType
+    );
 
     return {
       generation,
-      tipTapContent,
+      editorContent,
     };
   }
 
@@ -115,8 +120,7 @@ export class GenerateChapterUseCase {
       const content = metadata.getContent();
 
       try {
-        const doc = JSON.parse(content);
-        const text = this.extractTextFromTipTapJSON(doc);
+        const text = this.contentConverter.extractText(content);
 
         // Parse the text back to structured format based on type
         // For now, we just include the raw text summaries
@@ -157,86 +161,14 @@ export class GenerateChapterUseCase {
     for (const chapter of chapters) {
       const title = chapter.getTitle();
       const content = chapter.getContent();
+      const text = this.contentConverter.extractText(content);
 
-      try {
-        const json = JSON.parse(content);
-        const text = this.extractTextFromTipTapJSON(json);
-
-        if (text.trim()) {
-          parts.push(`# ${title}\n\n${text}`);
-        }
-      } catch {
-        // Skip chapters with invalid JSON
+      if (text.trim()) {
+        parts.push(`# ${title}\n\n${text}`);
       }
     }
 
     return parts.join('\n\n---\n\n');
-  }
-
-  /**
-   * Recursively extract text from TipTap JSON.
-   */
-  private extractTextFromTipTapJSON(json: unknown): string {
-    if (!json || typeof json !== 'object') return '';
-
-    const node = json as Record<string, unknown>;
-
-    if (node.type === 'text' && typeof node.text === 'string') {
-      return node.text;
-    }
-
-    if (Array.isArray(node.content)) {
-      return node.content
-        .map((child) => this.extractTextFromTipTapJSON(child))
-        .join(node.type === 'paragraph' ? '\n' : ' ');
-    }
-
-    return '';
-  }
-
-  /**
-   * Format generated content as TipTap JSON document.
-   */
-  private formatAsTipTapJSON(
-    generation: ChapterGeneration,
-    generationType: ChapterGenerationTypeKey
-  ): string {
-    const content: object[] = [];
-
-    if (generationType === 'chapter-outline') {
-      // Format outline as structured list
-      const lines = generation.content.split('\n').filter((line) => line.trim());
-
-      for (const line of lines) {
-        content.push(this.createParagraph(line));
-      }
-    } else {
-      // Format narrative text as paragraphs
-      const paragraphs = generation.content.split('\n\n').filter((p) => p.trim());
-
-      for (const paragraph of paragraphs) {
-        content.push(this.createParagraph(paragraph.trim()));
-      }
-    }
-
-    // Ensure we have at least one paragraph
-    if (content.length === 0) {
-      content.push(this.createParagraph(generation.content));
-    }
-
-    const doc = {
-      type: 'doc',
-      content,
-    };
-
-    return JSON.stringify(doc);
-  }
-
-  private createParagraph(text: string): object {
-    return {
-      type: 'paragraph',
-      content: text ? [{ type: 'text', text }] : [],
-    };
   }
 
   // Simplified parsers that extract key information from TipTap text

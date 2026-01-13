@@ -5,6 +5,7 @@
 
 import { GenerateChapterUseCase } from '@/application/use-cases/GenerateChapterUseCase';
 import { ChapterGenerationTypeKey, isValidChapterGenerationType } from '@/domain';
+import { TipTapContentService } from '@/infrastructure/document/utils/TipTapContentService';
 import {
   ActionResult,
   getAuthenticatedUserId,
@@ -69,11 +70,13 @@ export async function generateChapterAction(
       ? await getLLMProviderById(auth.userId, providerId)
       : await getLLMProviderForProject(auth.userId, projectId);
 
-    // 6. Execute use case
+    // 6. Execute use case with injected dependencies
+    const contentConverter = new TipTapContentService();
     const useCase = new GenerateChapterUseCase(
       await getRepository(),
       await getMetadataRepo(),
-      llmProvider
+      llmProvider,
+      contentConverter
     );
 
     const result = await useCase.execute({
@@ -84,7 +87,7 @@ export async function generateChapterAction(
 
     // 7. Return serialized result
     return {
-      tipTapContent: result.tipTapContent,
+      tipTapContent: result.editorContent,
       narrativeContext: result.generation.narrativeContext,
       suggestions: result.generation.suggestions,
     };

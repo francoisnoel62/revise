@@ -57,3 +57,4 @@ export type { IdGenerator } from './interfaces/IdGenerator';
 export * from './interfaces/UserRepository';
 export type { MetadataRepository } from './interfaces/MetadataRepository';
 export type { CorrectionHistoryRepository } from './interfaces/CorrectionHistoryRepository';
+export type { ContentConverter } from './interfaces/ContentConverter';

@@ -10,6 +10,7 @@ import {
   ProjectRepository,
   MetadataRepository,
   ProjectMetadata,
+  ContentConverter,
 } from '../../../domain';
 import { ChapterGeneration } from '../../../domain/value-objects/ChapterGeneration';
 
@@ -41,6 +42,7 @@ describe('GenerateChapterUseCase', () => {
   let mockProjectRepo: ProjectRepository;
   let mockMetadataRepo: MetadataRepository;
   let mockLLMProvider: LLMProvider;
+  let mockContentConverter: ContentConverter;
 
   beforeEach(() => {
     mockProjectRepo = {
@@ -69,6 +71,30 @@ describe('GenerateChapterUseCase', () => {
       getProviderName: vi.fn().mockReturnValue('Mock'),
       getModel: vi.fn().mockReturnValue('mock-model'),
     } as unknown as LLMProvider;
+
+    mockContentConverter = {
+      extractText: vi.fn().mockImplementation((content: string) => {
+        try {
+          const json = JSON.parse(content);
+          if (json.content && Array.isArray(json.content)) {
+            return json.content
+              .map((node: { content?: Array<{ text?: string }> }) =>
+                node.content?.map((c) => c.text || '').join('') || ''
+              )
+              .join(' ');
+          }
+          return '';
+        } catch {
+          return content;
+        }
+      }),
+      toEditorContent: vi.fn().mockImplementation((text: string) => {
+        return JSON.stringify({
+          type: 'doc',
+          content: [{ type: 'paragraph', content: [{ type: 'text', text }] }],
+        });
+      }),
+    } as ContentConverter;
   });
 
   it('should generate chapter beginning content', async () => {
@@ -88,7 +114,8 @@ describe('GenerateChapterUseCase', () => {
     const useCase = new GenerateChapterUseCase(
       mockProjectRepo,
       mockMetadataRepo,
-      mockLLMProvider
+      mockLLMProvider,
+      mockContentConverter
     );
 
     // Execute
@@ -101,8 +128,8 @@ describe('GenerateChapterUseCase', () => {
     // Verify
     expect(result.generation.generationType).toBe('chapter-beginning');
     expect(result.generation.content).toBe('Generated beginning text.');
-    expect(result.tipTapContent).toBeDefined();
-    expect(JSON.parse(result.tipTapContent).type).toBe('doc');
+    expect(result.editorContent).toBeDefined();
+    expect(JSON.parse(result.editorContent).type).toBe('doc');
   });
 
   it('should generate full chapter content', async () => {
@@ -122,7 +149,8 @@ describe('GenerateChapterUseCase', () => {
     const useCase = new GenerateChapterUseCase(
       mockProjectRepo,
       mockMetadataRepo,
-      mockLLMProvider
+      mockLLMProvider,
+      mockContentConverter
     );
 
     // Execute
@@ -134,7 +162,7 @@ describe('GenerateChapterUseCase', () => {
 
     // Verify
     expect(result.generation.generationType).toBe('chapter-full');
-    const parsedContent = JSON.parse(result.tipTapContent);
+    const parsedContent = JSON.parse(result.editorContent);
     expect(parsedContent.content.length).toBeGreaterThan(0);
   });
 
@@ -155,7 +183,8 @@ describe('GenerateChapterUseCase', () => {
     const useCase = new GenerateChapterUseCase(
       mockProjectRepo,
       mockMetadataRepo,
-      mockLLMProvider
+      mockLLMProvider,
+      mockContentConverter
     );
 
     // Execute
@@ -176,7 +205,8 @@ describe('GenerateChapterUseCase', () => {
     const useCase = new GenerateChapterUseCase(
       mockProjectRepo,
       mockMetadataRepo,
-      mockLLMProvider
+      mockLLMProvider,
+      mockContentConverter
     );
 
     await expect(
@@ -198,7 +228,8 @@ describe('GenerateChapterUseCase', () => {
     const useCase = new GenerateChapterUseCase(
       mockProjectRepo,
       mockMetadataRepo,
-      mockLLMProvider
+      mockLLMProvider,
+      mockContentConverter
     );
 
     await expect(
@@ -214,7 +245,8 @@ describe('GenerateChapterUseCase', () => {
     const useCase = new GenerateChapterUseCase(
       mockProjectRepo,
       mockMetadataRepo,
-      mockLLMProvider
+      mockLLMProvider,
+      mockContentConverter
     );
 
     await expect(
@@ -273,7 +305,8 @@ describe('GenerateChapterUseCase', () => {
     const useCase = new GenerateChapterUseCase(
       mockProjectRepo,
       mockMetadataRepo,
-      mockLLMProvider
+      mockLLMProvider,
+      mockContentConverter
     );
 
     // Execute
