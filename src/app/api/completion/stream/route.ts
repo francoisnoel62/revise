@@ -2,15 +2,15 @@
 // ABOUTME: Uses Server-Sent Events (SSE) to stream AI-generated text
 
 import { NextRequest } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/infrastructure/auth/authOptions';
+import { auth } from '@/infrastructure/auth/auth-config';
+import {
+  getProviderRepository,
+  getMetadataRepository,
+  getPromptRepository,
+  createLLMProvider,
+} from '@/infrastructure/config/providers';
 import { TipTapContentService } from '@/infrastructure/document/utils/TipTapContentService';
-import { MongoDBMetadataRepository } from '@/infrastructure/persistence/MongoDBMetadataRepository';
-import { MongoDBProviderRepository } from '@/infrastructure/persistence/MongoDBProviderRepository';
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
-import { AnthropicProvider } from '@/infrastructure/ai/AnthropicProvider';
-import { FilePromptRepository } from '@/infrastructure/prompts/FilePromptRepository';
-import { getDbConnection } from '@/infrastructure/persistence/mongodb';
 import { metadataCache, CachedMetadata } from '@/infrastructure/cache/MetadataCache';
 import {
   NarrativeAnalysis,
@@ -18,6 +18,8 @@ import {
   Characters,
   Plot,
 } from '@/domain';
+import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
+import { ContentConverter } from '@/domain/interfaces/ContentConverter';
 
 export const runtime = 'nodejs';
 
@@ -28,8 +30,8 @@ interface CompletionRequest {
 }
 
 export async function POST(request: NextRequest) {
-  // 1. Authenticate
-  const session = await getServerSession(authOptions);
+  // 1. Authenticate using Auth.js
+  const session = await auth();
   if (!session?.user?.id) {
     return new Response('Unauthorized', { status: 401 });
   }
@@ -50,10 +52,9 @@ export async function POST(request: NextRequest) {
     return new Response('Missing required fields', { status: 400 });
   }
 
-  // 3. Get LLM provider
-  const db = await getDbConnection();
-  const providerRepo = new MongoDBProviderRepository(db);
-  const promptRepo = new FilePromptRepository();
+  // 3. Get LLM provider via composition root
+  const providerRepo = await getProviderRepository();
+  const promptRepo = getPromptRepository();
 
   // Try to get user's configured provider
   const providers = await providerRepo.findByOwnerId(userId);
@@ -62,21 +63,9 @@ export async function POST(request: NextRequest) {
   let llmProvider;
 
   if (defaultProvider) {
-    const decryptedKey = defaultProvider.getDecryptedApiKey();
-    if (defaultProvider.getType() === 'anthropic') {
-      llmProvider = new AnthropicProvider(
-        decryptedKey,
-        promptRepo,
-        defaultProvider.getModel()
-      );
-    } else {
-      llmProvider = new OpenAIProvider(
-        decryptedKey,
-        promptRepo,
-        defaultProvider.getModel()
-      );
-    }
+    llmProvider = createLLMProvider(defaultProvider);
   } else if (process.env.OPENAI_API_KEY) {
+    // Fallback to environment variable (development only)
     llmProvider = new OpenAIProvider(
       process.env.OPENAI_API_KEY,
       promptRepo,
@@ -90,7 +79,7 @@ export async function POST(request: NextRequest) {
   let metadata = metadataCache.get(userId, projectId);
 
   if (!metadata) {
-    const metadataRepo = new MongoDBMetadataRepository(db);
+    const metadataRepo = await getMetadataRepository();
     const contentConverter = new TipTapContentService();
     metadata = await loadProjectMetadata(
       metadataRepo,
@@ -146,22 +135,12 @@ export async function POST(request: NextRequest) {
  * Load relevant project metadata for completion context.
  */
 async function loadProjectMetadata(
-  metadataRepo: MongoDBMetadataRepository,
-  contentConverter: TipTapContentService,
+  metadataRepo: MetadataRepository,
+  contentConverter: ContentConverter,
   ownerId: string,
   projectId: string
-): Promise<{
-  narrative?: NarrativeAnalysis;
-  stylisticDNA?: StylisticDNA;
-  characters?: Characters;
-  plot?: Plot;
-}> {
-  const result: {
-    narrative?: NarrativeAnalysis;
-    stylisticDNA?: StylisticDNA;
-    characters?: Characters;
-    plot?: Plot;
-  } = {};
+): Promise<CachedMetadata> {
+  const result: CachedMetadata = {};
 
   try {
     const metadataList = await metadataRepo.findByProjectId(ownerId, projectId);
