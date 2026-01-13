@@ -8,6 +8,7 @@ import { Characters } from '../value-objects/Characters';
 import { Plot } from '../value-objects/Plot';
 import { Worldbuilding } from '../value-objects/Worldbuilding';
 import { Synthesis } from '../value-objects/Synthesis';
+import { ChapterSummaries } from '../value-objects/ChapterSummaries';
 
 /**
  * Test connection result.
@@ -123,4 +124,14 @@ export interface LLMProvider {
       worldbuilding?: Worldbuilding;
     }
   ): Promise<Synthesis>;
+
+  /**
+   * Generates chapter summaries for each chapter in the text.
+   * Creates a structured summary (max 6 sentences) per chapter.
+   *
+   * @param fullText The complete text with chapter markers
+   * @returns Promise resolving to structured ChapterSummaries
+   * @throws Error if generation fails or API is unavailable
+   */
+  generateChapterSummaries(fullText: string): Promise<ChapterSummaries>;
 }

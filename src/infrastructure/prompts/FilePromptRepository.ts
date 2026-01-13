@@ -64,6 +64,13 @@ export class FilePromptRepository implements PromptRepository {
   }
 
   /**
+   * Read the chapter summaries prompt from markdown file.
+   */
+  async getChapterSummariesPrompt(): Promise<string> {
+    return this.readPromptFile('chapter-summaries.md', 'chapter summaries');
+  }
+
+  /**
    * Helper method to read a prompt file from the metadata directory.
    */
   private async readPromptFile(filename: string, promptType?: string): Promise<string> {

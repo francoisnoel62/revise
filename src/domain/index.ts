@@ -30,6 +30,10 @@ export {
   type CharacterSummary,
   type NarrativeDirection,
 } from './value-objects/Synthesis';
+export {
+  type ChapterSummaries,
+  type ChapterSummary as ChapterSummaryItem,
+} from './value-objects/ChapterSummaries';
 
 // Interfaces
 export type { LLMProvider, ConnectionTestResult } from './interfaces/LLMProvider';

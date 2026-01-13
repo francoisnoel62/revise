@@ -49,6 +49,12 @@ export const METADATA_TYPES: Record<string, MetadataTypeDefinition> = {
     description: 'Analyse éditoriale globale et recommandations',
     isBuiltIn: true,
   },
+  'chapter-summaries': {
+    key: 'chapter-summaries',
+    name: 'Résumés des Chapitres',
+    description: 'Résumé structuré de chaque chapitre (max 6 phrases)',
+    isBuiltIn: true,
+  },
 } as const;
 
 export function isValidMetadataType(key: string): boolean {

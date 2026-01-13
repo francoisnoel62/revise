@@ -19,6 +19,7 @@ import {
   generatePlotAction,
   generateWorldbuildingAction,
   generateSynthesisAction,
+  generateChapterSummariesAction,
 } from '@/app/actions/metadata-actions';
 import { loadProjectAction } from '@/app/actions/project-actions';
 import { listProvidersAction, SafeProvider } from '@/app/actions/provider-actions';
@@ -86,6 +87,7 @@ export default function MetadataListPage() {
   const hasPlot = metadata.some((m) => m.typeKey === 'plot');
   const hasWorldbuilding = metadata.some((m) => m.typeKey === 'worldbuilding');
   const hasSynthesis = metadata.some((m) => m.typeKey === 'synthesis');
+  const hasChapterSummaries = metadata.some((m) => m.typeKey === 'chapter-summaries');
 
   const handleGenerateNarrativeAnalysis = async (providerId: string) => {
     if (!providerId) {
@@ -151,6 +153,7 @@ export default function MetadataListPage() {
       'plot': generatePlotAction,
       'worldbuilding': generateWorldbuildingAction,
       'synthesis': generateSynthesisAction,
+      'chapter-summaries': generateChapterSummariesAction,
     };
 
     const generateAction = actionMap[typeKey];
@@ -259,6 +262,12 @@ export default function MetadataListPage() {
     hasSynthesis
   );
 
+  const handleGenerateChapterSummaries = createGenerateHandler(
+    'chapter-summaries',
+    generateChapterSummariesAction,
+    hasChapterSummaries
+  );
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -276,6 +285,7 @@ export default function MetadataListPage() {
   const plotType = getMetadataType('plot');
   const worldbuildingType = getMetadataType('worldbuilding');
   const synthesisType = getMetadataType('synthesis');
+  const chapterSummariesType = getMetadataType('chapter-summaries');
 
   return (
     <div className="min-h-screen bg-background">
@@ -401,6 +411,20 @@ export default function MetadataListPage() {
               providers={providers}
               defaultProviderId={projectProviderId}
               onGenerate={handleGenerateSynthesis}
+            />
+          )}
+
+          {/* Generate Chapter Summaries card (only if doesn't exist) */}
+          {chapterSummariesType && !hasChapterSummaries && (
+            <GenerateCard
+              typeKey="chapter-summaries"
+              title={chapterSummariesType.name}
+              description={chapterSummariesType.description}
+              isGenerating={generatingType === 'chapter-summaries'}
+              isAnyGenerating={generatingType !== null}
+              providers={providers}
+              defaultProviderId={projectProviderId}
+              onGenerate={handleGenerateChapterSummaries}
             />
           )}
         </div>
