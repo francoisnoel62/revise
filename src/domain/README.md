@@ -2,7 +2,7 @@
 
 Pure business logic with zero framework dependencies.
 
-**Status**: ✅ Phase 3.6 Complete (60+ tests passing, 97%+ coverage)
+**Status**: ✅ Phase 3.7 Complete (75+ tests passing, 97%+ coverage)
 
 ## Rules:
 - No imports from Next.js, React, or any external frameworks
@@ -12,9 +12,29 @@ Pure business logic with zero framework dependencies.
 
 ## Contents:
 
-### Entities (✅ Phase 3 Enhanced)
+### Entities (✅ Phase 3.7 Enhanced)
 
-#### `ProjectMetadata` ⭐ NEW (Phase 3.6)
+#### `CorrectionHistory` ⭐ NEW (Phase 3.7)
+**Purpose**: Represents an AI rewrite history entry with proposals
+
+**Responsibilities**:
+- Tracks selected text that was rewritten
+- Stores all 3 AI-generated proposals
+- Links to project and chapter
+- Timestamps for when correction was made
+- Immutable once created
+
+**Key Methods**:
+- `getId()`, `getProjectId()`, `getChapterId()`, `getSelectedText()`
+- `getProposals()` - Returns array of 3 RewriteProposal objects
+- `getCreatedAt()` - Timestamp of correction
+- `static create(id, projectId, chapterId, selectedText, proposals)` - Factory method
+
+**Tests**: 15+ tests covering entity creation and validation
+
+---
+
+#### `ProjectMetadata` (Phase 3.6)
 **Purpose**: Represents metadata document with analysis content
 
 **Responsibilities**:
@@ -243,7 +263,7 @@ Pure business logic with zero framework dependencies.
 
 ---
 
-#### `MetadataRepository` ⭐ NEW (Phase 3.6)
+#### `MetadataRepository` (Phase 3.6)
 **Contract**: Metadata persistence abstraction with multi-tenant support
 
 **Methods**:
@@ -259,7 +279,22 @@ Pure business logic with zero framework dependencies.
 
 ---
 
-#### `PromptRepository` ⭐ NEW (Phase 3.6)
+#### `CorrectionHistoryRepository` ⭐ NEW (Phase 3.7)
+**Contract**: Correction history persistence abstraction with multi-tenant support
+
+**Methods**:
+- `save(userId, history)` → `Promise<CorrectionHistory>`
+- `listByChapter(userId, projectId, chapterId)` → `Promise<CorrectionHistory[]>`
+- `listByProject(userId, projectId)` → `Promise<CorrectionHistory[]>`
+- `delete(userId, historyId)` → `Promise<void>`
+
+**Implementation**: `MongoDBCorrectionHistoryRepository` (MongoDB Atlas)
+
+**Multi-Tenant Isolation**: All methods require `userId` to ensure data isolation
+
+---
+
+#### `PromptRepository` (Phase 3.6)
 **Contract**: AI prompt loading from version-controlled files
 
 **Methods**:
@@ -312,11 +347,12 @@ Pure business logic with zero framework dependencies.
 ## Testing
 
 **Coverage**: 97%+ (excellent)
-**Tests**: 60+ tests passing
+**Tests**: 75+ tests passing
 
 All domain logic has near-perfect test coverage with isolated unit tests:
-- ProjectMetadata: 10+ tests (CRUD, caching logic, hash validation) ⭐ NEW (Phase 3.6)
-- MetadataType: 3+ tests (validation) ⭐ NEW (Phase 3.6)
+- CorrectionHistory: 15+ tests (entity creation, validation) ⭐ NEW (Phase 3.7)
+- ProjectMetadata: 10+ tests (CRUD, caching logic, hash validation) (Phase 3.6)
+- MetadataType: 3+ tests (validation) (Phase 3.6)
 - User: 5+ tests (validation, creation) (Phase 3)
 - Chapter: 15 tests (content management, metadata, validation)
 - Project: 25+ tests (collection management, business rules, owner tracking)
@@ -341,6 +377,14 @@ All domain logic has near-perfect test coverage with isolated unit tests:
 - Enforces invariants (minimum 1 chapter)
 - Transactional boundaries for consistency
 
+## Phase 3.7 Achievements
+
+✅ **CorrectionHistory entity** for tracking AI rewrites per chapter
+✅ **CorrectionHistoryRepository interface** for history persistence
+✅ **15+ new tests** for correction history domain logic
+✅ **75+ total tests** with comprehensive coverage
+✅ Zero framework dependencies maintained
+
 ## Phase 3.6 Achievements
 
 ✅ **ProjectMetadata entity** with TipTap JSON storage and content hash tracking
@@ -349,7 +393,6 @@ All domain logic has near-perfect test coverage with isolated unit tests:
 ✅ **LLMProvider interface enhanced** with 6 new analysis methods
 ✅ **MetadataRepository interface** for metadata persistence
 ✅ **PromptRepository interface** for version-controlled AI prompts
-✅ **60+ tests** with comprehensive coverage
 ✅ Zero framework dependencies maintained
 
 ## Phase 3.5 Achievements

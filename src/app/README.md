@@ -2,7 +2,7 @@
 
 Next.js App Router pages, layouts, UI components, and state management.
 
-**Status**: ✅ Phase 3.6 Complete (110+ component tests + 15+ store tests + 65+ server action tests)
+**Status**: ✅ Phase 3.7 Complete (140+ component tests + 20+ store tests + 75+ server action tests)
 
 ## Rules:
 - Depends on Application and Domain layers
@@ -212,7 +212,7 @@ Next.js App Router pages, layouts, UI components, and state management.
 - `testProviderConnectionAction` → `TestProviderConnectionUseCase`
 - `validateProviderAction` → `ValidateProviderUseCase`
 
-**`app/actions/metadata-actions.ts`** ⭐ NEW (Phase 3.6 - delegates to Metadata Use Cases):
+**`app/actions/metadata-actions.ts`** (Phase 3.6 - delegates to Metadata Use Cases):
 - `createMetadataAction` → `CreateMetadataUseCase`
 - `loadMetadataAction` → `LoadMetadataUseCase`
 - `listMetadataAction` → `ListMetadataUseCase`
@@ -226,12 +226,18 @@ Next.js App Router pages, layouts, UI components, and state management.
 - `generateWorldbuildingAction` → `GenerateWorldbuildingUseCase`
 - `generateSynthesisAction` → `GenerateSynthesisUseCase`
 
+**`app/actions/correction-history-actions.ts`** ⭐ NEW (Phase 3.7):
+- `saveCorrectionHistoryAction` → `SaveCorrectionHistoryUseCase`
+- `listCorrectionHistoryAction` → `ListCorrectionHistoryUseCase`
+- `deleteCorrectionHistoryAction` → `DeleteCorrectionHistoryUseCase`
+
 **`app/actions/utils.ts`** (Dependency Injection):
 - `getRepository()` - Project repository
 - `getProviderRepo()` - Provider repository
 - `getUserRepo()` - User repository
-- `getMetadataRepo()` - Metadata repository ⭐ NEW (Phase 3.6)
-- `getPromptRepo()` - Prompt repository ⭐ NEW (Phase 3.6)
+- `getMetadataRepo()` - Metadata repository (Phase 3.6)
+- `getCorrectionHistoryRepo()` - Correction history repository ⭐ NEW (Phase 3.7)
+- `getPromptRepo()` - Prompt repository (Phase 3.6)
 - `getLLMProviderFactory()` - LLM provider factory
 - `getIdGenerator()` - UUID generator
 
@@ -246,18 +252,19 @@ Next.js App Router pages, layouts, UI components, and state management.
 
 ### State Management ⭐ ENHANCED (Phase 3)
 
-#### `store/projectStore.ts` (Zustand - Server-Backed)
+#### `store/projectStore.ts` (Zustand - Server-Backed) ⭐ ENHANCED (Phase 3.7)
 **Purpose**: Global state for project and chapter management with MongoDB persistence
 
 **State**:
-- `project`: Project entity (chapters collection) - **loaded from MongoDB** ⭐
-- `activeContent`: Current chapter content (TipTap JSON) - **auto-saved to MongoDB** ⭐
-- `isLoading`: Loading state for async operations ⭐ NEW
-- `error`: Error messages from server actions ⭐ NEW
+- `project`: Project entity (chapters collection) - **loaded from MongoDB**
+- `activeContent`: Current chapter content (TipTap JSON) - **auto-saved to MongoDB**
+- `correctionHistory`: Array of CorrectionHistory - **cached per chapter** ⭐ NEW (Phase 3.7)
+- `isLoading`: Loading state for async operations
+- `error`: Error messages from server actions
 
-**Actions** (Phase 3 - Server-Backed):
-- `loadProject(projectId)` - Loads project from MongoDB via server action ⭐ NEW
-- `createProject()` - Creates new project in MongoDB ⭐ NEW
+**Actions** (Phase 3/3.7 - Server-Backed):
+- `loadProject(projectId)` - Loads project from MongoDB via server action
+- `createProject()` - Creates new project in MongoDB
 - `setProject(project)` - Sets loaded project
 - `setActiveChapter(chapterId)` - Navigate chapters (auto-saves to MongoDB)
 - `addChapter()` - Create new chapter (persists to MongoDB)
@@ -265,7 +272,9 @@ Next.js App Router pages, layouts, UI components, and state management.
 - `reorderChapters(fromIndex, toIndex)` - Drag & drop (persists to MongoDB)
 - `updateActiveContent(content)` - Content edits (triggers auto-save)
 - `saveCurrentChapter()` - Force save to MongoDB
-- `updateChapterTitle(chapterId, title)` - Rename chapter (persists to MongoDB) ⭐ NEW
+- `updateChapterTitle(chapterId, title)` - Rename chapter (persists to MongoDB)
+- `loadCorrectionHistory(chapterId)` - Load history for chapter ⭐ NEW (Phase 3.7)
+- `saveCorrectionHistory(entry)` - Save new history entry ⭐ NEW (Phase 3.7)
 
 **Design**:
 - No business logic (delegates to server actions)
@@ -448,8 +457,13 @@ Next.js App Router pages, layouts, UI components, and state management.
 
 #### Editor Components (`components/editor/`)
 
-**`TextEditor` ⭐ ENHANCED**
-**Purpose**: TipTap rich text editor with JSON storage
+**`TextEditor` ⭐ ENHANCED (Phase 3.7)**
+**Purpose**: TipTap rich text editor with JSON storage and live statistics
+
+**Phase 3.7 Enhancements**:
+- **CharacterCount extension** - Live word/character count ⭐ NEW
+- **Word count display** in editor header
+- Integration with FormattingToolbar undo/redo buttons
 
 **Phase 2 Enhancements**:
 - TipTap JSON content format (not plain text)
@@ -465,21 +479,27 @@ Next.js App Router pages, layouts, UI components, and state management.
 - `onEditorReady`: Callback with editor instance
 - `placeholder`: Optional placeholder text
 
-**Tests**: 8 tests covering editing, selection, formatting
+**Tests**: 10+ tests covering editing, selection, formatting, word count
 
 ---
 
-**`FormattingToolbar` ⭐ NEW**
-**Purpose**: Rich text formatting controls
+**`FormattingToolbar` ⭐ ENHANCED (Phase 3.7)**
+**Purpose**: Rich text formatting controls with undo/redo and history
+
+**Phase 3.7 Enhancements**:
+- **Undo/Redo buttons** - Visual buttons in addition to keyboard shortcuts ⭐ NEW
+- **History button** - Opens CorrectionHistoryDialog ⭐ NEW
+- **Word/character count display** ⭐ NEW
 
 **Features**:
 - Bold (Ctrl+B), Italic (Ctrl+I), Underline (Ctrl+U), Highlight (Ctrl+Shift+H)
+- Undo (Ctrl+Z), Redo (Ctrl+Shift+Z) with visual buttons
 - Active state indicators (button highlights when format applied)
 - Disabled state when format cannot be applied
 - Icons from lucide-react
 - Integrated with TipTap editor instance
 
-**Tests**: 9 tests covering all formatting actions
+**Tests**: 12+ tests covering all formatting actions and new buttons
 
 ---
 
@@ -524,16 +544,17 @@ Next.js App Router pages, layouts, UI components, and state management.
 
 #### Proposals Components
 
-**`ProposalsSheet` ⭐ NEW**
+**`ProposalsSheet` ⭐ ENHANCED (Phase 3.7)**
 **Purpose**: Right-side dismissible panel for AI proposals
 
 **Features**:
 - Dismissible Sheet (shadcn/ui)
-- Displays 5 AI-generated proposals
+- Displays **3 AI-generated proposals** (épuré, lyrique, amplifié) ⭐ UPDATED
 - Individual "Insérer" button per proposal
-- Optional style labels
+- Style labels for each proposal
 - Scrollable content (ScrollArea)
 - Auto-closes after insertion
+- **Correction history auto-saved on insert** ⭐ NEW (Phase 3.7)
 
 **Props**:
 - `open`: Sheet visibility
@@ -542,6 +563,20 @@ Next.js App Router pages, layouts, UI components, and state management.
 - `onClose`: Close sheet handler
 
 **Tests**: 10 tests covering display, insertion, and UX flows
+
+---
+
+**`LoadingOverlay`** ⭐ NEW (Phase 3.7)
+**Purpose**: Loading overlay with author quotes during AI rewrite
+
+**Features**:
+- Progress bar animation
+- **100 famous author quotes** rotating every 3 seconds
+- Covers full editor area during AI processing
+- Graceful fade in/out animations
+- Accessible loading state
+
+**Tests**: 5+ tests covering loading states and quote rotation
 
 ---
 
@@ -555,10 +590,46 @@ Next.js App Router pages, layouts, UI components, and state management.
 
 ---
 
+#### History Components ⭐ NEW (Phase 3.7)
+
+**`CorrectionHistoryDialog`**
+**Purpose**: Dialog displaying correction history for the current chapter
+
+**Features**:
+- Accordion UI for each correction entry
+- Shows original text and all 3 proposals
+- Copy to clipboard functionality
+- Search/filter by text content
+- Filter by date range
+- Sorted by newest first
+- Empty state when no history
+
+**Tests**: 10+ tests covering dialog and history display
+
+---
+
+**`CorrectionHistoryTable`** (internal component)
+**Purpose**: Renders the accordion list of history entries
+
+**Features**:
+- Expandable accordion items
+- Original text display
+- Proposal cards with copy button
+- Timestamp formatting
+- Accessible keyboard navigation
+
+**Tests**: Integrated with CorrectionHistoryDialog tests
+
+---
+
 #### Document Components
 
-**`DocumentControls` ⭐ ENHANCED**
-**Purpose**: Import/export controls with loading states
+**`DocumentControls` ⭐ ENHANCED (Phase 3.7)**
+**Purpose**: Import/export controls with format selection
+
+**Phase 3.7 Enhancements**:
+- **Format selection dropdown** - DOCX or PDF export ⭐ NEW
+- PDF export with full typography support
 
 **Phase 2 Enhancements**:
 - Loading states during import/export (spinner + disabled)
@@ -568,11 +639,11 @@ Next.js App Router pages, layouts, UI components, and state management.
 
 **Props**:
 - `onImport`: Async import handler (receives FormData)
-- `onExport`: Async export handler
+- `onExport`: Async export handler (receives format: 'docx' | 'pdf')
 - `importing`: Loading state for import
 - `exporting`: Loading state for export
 
-**Tests**: 3 tests covering import/export flows
+**Tests**: 5+ tests covering import/export flows and format selection
 
 ---
 
@@ -753,6 +824,20 @@ Next.js App Router pages, layouts, UI components, and state management.
 ✅ **Session management** - JWT-based sessions with Auth.js
 ✅ **Multi-tenant support** - All actions filter by userId
 
+## Phase 3.7 Achievements
+
+✅ **PDF Export** - Format selection dropdown with DOCX/PDF options
+✅ **CorrectionHistoryDialog** - Accordion UI for viewing rewrite history
+✅ **LoadingOverlay** - Progress bar with 100 famous author quotes
+✅ **FormattingToolbar Enhanced** - Undo/Redo buttons, history button, word count
+✅ **TextEditor Enhanced** - CharacterCount extension, word/character statistics
+✅ **3 Proposals** - Reduced from 5 to 3 (épuré, lyrique, amplifié)
+✅ **correction-history-actions.ts** - Server actions for history CRUD
+✅ **getCorrectionHistoryRepo()** - New dependency injection helper
+✅ **Store correction history cache** - Per-chapter history caching
+✅ **235+ tests passing** - 140+ component + 20+ store + 75+ server action tests (up from 190+)
+✅ **Clean Architecture Maintained** - All new UI follows established patterns
+
 ## Phase 3.6 Achievements
 
 ✅ **Metadata List Page** - List all metadata analyses for a project
@@ -762,7 +847,6 @@ Next.js App Router pages, layouts, UI components, and state management.
 ✅ **metadata-actions.ts** - Server actions delegating to 12 metadata use cases
 ✅ **getMetadataRepo() & getPromptRepo()** - New dependency injection helpers
 ✅ **Rate limiting extended** - Now covers metadata generation (5-second cooldown)
-✅ **190+ tests passing** - 120+ component + 15+ store + 55+ server action tests (up from 155+)
 ✅ **Clean Architecture Maintained** - All new UI follows established patterns
 
 ## Phase 3.5 Achievements

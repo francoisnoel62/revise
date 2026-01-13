@@ -2,7 +2,7 @@
 
 Implements domain interfaces with concrete external services.
 
-**Status**: ✅ Phase 3.6 Complete (100+ unit tests + 20+ integration tests)
+**Status**: ✅ Phase 3.7 Complete (130+ unit tests + 24+ integration tests)
 
 ## Rules:
 - Implements interfaces defined in Domain layer
@@ -13,9 +13,14 @@ Implements domain interfaces with concrete external services.
 
 ### AI Provider (✅ Phase 3.5 Enhanced)
 
-#### `OpenAIProvider` ⭐ ENHANCED (Phase 3.6)
+#### `OpenAIProvider` ⭐ ENHANCED (Phase 3.7)
 **Implements**: `LLMProvider` interface
-**Technology**: OpenAI SDK with GPT-4o-mini
+**Technology**: OpenAI SDK with GPT-4o-mini/GPT-5-nano + o-series reasoning models
+
+**Phase 3.7 Enhancements**:
+- ✅ **3 proposals** instead of 5 (épuré, lyrique, amplifié) - 40% token reduction
+- ✅ **GPT-5 nano support** - gpt-5-nano-2025-08-07 with 400K context
+- ✅ **o-series reasoning models** - Proper API parameters (max_completion_tokens, no temperature)
 
 **Phase 3.6 Enhancements**:
 - ✅ `generateNarrativeAnalysis()` - POV, structure, temporality, voice analysis
@@ -119,7 +124,25 @@ Implements domain interfaces with concrete external services.
 
 ---
 
-### Document Exporters (✅ Phase 2 Enhanced)
+### Document Exporters (✅ Phase 3.7 Enhanced)
+
+#### `PdfExporter` ⭐ NEW (Phase 3.7)
+**Implements**: `DocumentExporter` interface
+**Technology**: pdf-lib npm package
+
+**Purpose**: Export projects to PDF format with full typography support
+
+**Features**:
+- A4 page styling matching editor (794px width equivalent)
+- Full typography preservation (font, size, alignment, indent)
+- **Special character support** - Turkish (ş, ğ, ı), Polish (ł, ą), Czech (č, ř), etc.
+- Multi-chapter export with page breaks
+- Chapter titles as H1 headings
+- Professional document layout
+
+**Tests**: 10+ tests covering export and special characters
+
+---
 
 #### `DocxExporter`
 **Implements**: `DocumentExporter` interface
@@ -279,7 +302,7 @@ Implements domain interfaces with concrete external services.
 
 ---
 
-#### `MongoDBMetadataRepository` ⭐ NEW (Phase 3.6)
+#### `MongoDBMetadataRepository` (Phase 3.6)
 **Implements**: `MetadataRepository` interface
 **Technology**: MongoDB Atlas with official Node.js driver
 
@@ -304,6 +327,35 @@ Implements domain interfaces with concrete external services.
 - Timestamps (createdAt, updatedAt)
 
 **Tests**: 15+ tests covering CRUD operations and multi-tenant isolation
+
+---
+
+#### `MongoDBCorrectionHistoryRepository` ⭐ NEW (Phase 3.7)
+**Implements**: `CorrectionHistoryRepository` interface
+**Technology**: MongoDB Atlas with official Node.js driver
+
+**Purpose**: Correction history storage with multi-tenant isolation
+
+**Methods**:
+- `save(userId, history)` - Creates history document
+- `listByChapter(userId, projectId, chapterId)` - Lists history for chapter
+- `listByProject(userId, projectId)` - Lists all history for project
+- `delete(userId, historyId)` - Deletes history entry
+
+**Multi-Tenant Security**:
+- All queries filter by `ownerId`
+- Enforced at database query level
+
+**Indexing**:
+- Indexes on (ownerId, projectId, chapterId) for efficient queries
+- Sorted by createdAt descending (newest first)
+
+**Serialization**:
+- Uses `correction-history-serializer` utilities
+- Stores proposals array with text content
+- Timestamps (createdAt)
+
+**Tests**: 10+ tests covering CRUD operations and multi-tenant isolation
 
 ---
 
@@ -563,6 +615,17 @@ All infrastructure operations exceed targets:
 
 ---
 
+## Phase 3.7 Achievements
+
+✅ **PdfExporter** - PDF export with full typography and special character support
+✅ **MongoDBCorrectionHistoryRepository** - Correction history storage with indexing
+✅ **GPT-5 nano support** - gpt-5-nano-2025-08-07 with 400K context
+✅ **o-series reasoning models** - Proper API parameters (max_completion_tokens)
+✅ **3 proposals** - Reduced from 5 to 3 (épuré, lyrique, amplifié)
+✅ **Correction history serialization** - CorrectionHistory ↔ MongoDB document conversion
+✅ **130+ unit tests** + 24 integration tests (up from 120+ and 24)
+✅ **Clean Architecture Maintained** - All new infrastructure follows established patterns
+
 ## Phase 3.6 Achievements
 
 ✅ **AnthropicProvider** - Full Claude integration with all 6 analysis types
@@ -571,7 +634,6 @@ All infrastructure operations exceed targets:
 ✅ **FilePromptRepository** - Version-controlled AI prompts from markdown files
 ✅ **Text Hashing Utility** - SHA-256 content hashing for cache invalidation
 ✅ **Metadata Serialization** - ProjectMetadata ↔ MongoDB document conversion
-✅ **120+ unit tests** + 24 integration tests (up from 70+ and 4)
 ✅ **Dual Provider Testing** - Comprehensive tests for both OpenAI and Anthropic
 ✅ **Clean Architecture Maintained** - All new infrastructure follows established patterns
 

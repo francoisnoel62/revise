@@ -2,7 +2,7 @@
 
 Orchestrates domain logic through use cases.
 
-**Status**: ✅ Phase 3.6 Complete (70+ tests passing, 100% coverage)
+**Status**: ✅ Phase 3.7 Complete (100+ tests passing, 100% coverage)
 
 ## Rules:
 - Depends only on Domain layer
@@ -368,6 +368,58 @@ Orchestrates domain logic through use cases.
 
 ---
 
+### Correction History Use Cases ⭐ NEW (Phase 3.7)
+
+---
+
+#### `SaveCorrectionHistoryUseCase`
+**Purpose**: Save AI rewrite history entry after proposals are generated
+
+**Dependencies**: `CorrectionHistoryRepository`, `IdGenerator` interfaces
+**Input**: User ID, project ID, chapter ID, selected text, proposals array
+**Output**: Created `CorrectionHistory` entity
+
+**Workflow**:
+1. Generate unique history ID
+2. Create CorrectionHistory entity
+3. Persist to repository
+4. Return created history
+
+**Tests**: 5+ tests covering save scenarios
+
+---
+
+#### `ListCorrectionHistoryUseCase`
+**Purpose**: List correction history for a project or chapter
+
+**Dependencies**: `CorrectionHistoryRepository` interface
+**Input**: User ID, project ID, optional chapter ID
+**Output**: Array of `CorrectionHistory` entities
+
+**Workflow**:
+1. Query repository by project/chapter
+2. Filter by user ownership
+3. Return sorted list (newest first)
+
+**Tests**: 5+ tests covering list scenarios
+
+---
+
+#### `DeleteCorrectionHistoryUseCase`
+**Purpose**: Delete a correction history entry
+
+**Dependencies**: `CorrectionHistoryRepository` interface
+**Input**: User ID, history ID
+**Output**: void
+
+**Workflow**:
+1. Validate ownership
+2. Delete from repository
+
+**Tests**: 4+ tests covering deletion
+
+---
+
 ### Phase 2 Use Cases (✅ Implemented)
 
 ---
@@ -544,21 +596,22 @@ Orchestrates domain logic through use cases.
 
 ---
 
-#### `RewriteTextUseCase` (✅ Enhanced for Rich Text)
-**Purpose**: Core AI rewriting functionality with formatting support
+#### `RewriteTextUseCase` (✅ Enhanced for Phase 3.7)
+**Purpose**: Core AI rewriting functionality with formatting support and history tracking
 
-**Dependencies**: `LLMProvider` interface
-**Input**: `TextDocument` (or Chapter content), `TextSelection`
-**Output**: Array of 3 `RewriteProposal` objects
+**Dependencies**: `LLMProvider`, `CorrectionHistoryRepository` interfaces
+**Input**: `TextDocument` (or Chapter content), `TextSelection`, user/project/chapter IDs
+**Output**: Array of 3 `RewriteProposal` objects (history auto-saved)
 
 **Features**:
 - Extracts context around selection (200 chars before/after)
 - Validates selection boundaries
 - Returns exactly 3 distinct proposals (épuré, lyrique, amplifié)
+- **Automatically saves correction history** ⭐ NEW (Phase 3.7)
 - Performance tracking in development mode
 - Works with both plain text and TipTap JSON
 
-**Tests**: 5 tests covering context extraction, validation, and proposals
+**Tests**: 8+ tests covering context extraction, validation, proposals, and history
 
 **Note**: Works with both Phase 1 (TextDocument) and Phase 2 (Chapter) entities.
 
@@ -567,10 +620,14 @@ Orchestrates domain logic through use cases.
 ## Testing
 
 **Coverage**: 100% (perfect)
-**Tests**: 90+ tests passing ⭐ ENHANCED (Phase 3.6)
+**Tests**: 100+ tests passing ⭐ ENHANCED (Phase 3.7)
 
 All use cases tested with mocked dependencies following Clean Architecture principles:
-- **Metadata Use Cases**: 60+ tests ⭐ NEW (Phase 3.6)
+- **Correction History Use Cases**: 14+ tests ⭐ NEW (Phase 3.7)
+  - SaveCorrectionHistoryUseCase: 5 tests
+  - ListCorrectionHistoryUseCase: 5 tests
+  - DeleteCorrectionHistoryUseCase: 4 tests
+- **Metadata Use Cases**: 60+ tests (Phase 3.6)
   - Metadata CRUD: 25+ tests (Create, Load, List, UpdateContent, UpdateTitle, Delete)
   - Generation Use Cases: 35+ tests (6 analysis types with caching logic)
 - **Project CRUD Use Cases**: 23+ tests (Phase 3.5)
@@ -616,13 +673,20 @@ All use cases tested with mocked dependencies following Clean Architecture princ
 - Infrastructure errors propagated with context
 - Use cases throw domain exceptions
 
+## Phase 3.7 Achievements
+
+✅ **3 Correction History Use Cases** - Save, List, Delete with multi-tenant isolation
+✅ **RewriteTextUseCase Enhanced** - Now auto-saves correction history
+✅ **14+ new tests** for correction history use cases
+✅ **100+ tests passing** with 100% coverage (up from 90+)
+✅ **Clean Architecture Maintained** - All new use cases follow established patterns
+
 ## Phase 3.6 Achievements
 
 ✅ **12 Metadata Use Cases** - 6 CRUD + 6 Generation use cases
 ✅ **Intelligent Caching** - SHA-256 content hashing for all generation use cases
 ✅ **Dual Provider Support** - Works with both OpenAI and Anthropic
 ✅ **Context-Aware Generation** - Synthesis and Worldbuilding use previous analyses
-✅ **90+ tests passing** with 100% coverage (up from 60+)
 ✅ **Clean Architecture Maintained** - All new use cases follow established patterns
 ✅ **Version-Controlled Prompts** - AI prompts loaded via PromptRepository interface
 
