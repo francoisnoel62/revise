@@ -7,6 +7,7 @@ import { LLMProviderFactory } from '@/domain/interfaces/LLMProviderFactory';
 import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import { OpenAIProvider } from './OpenAIProvider';
 import { AnthropicProvider } from './AnthropicProvider';
+import { GoogleProvider } from './GoogleProvider';
 
 /**
  * Factory implementation for creating LLM providers.
@@ -28,8 +29,7 @@ export class LLMProviderFactoryImpl implements LLMProviderFactory {
         return new AnthropicProvider(apiKey, this.promptRepository, model);
 
       case 'google':
-        // TODO: Implement GoogleProvider
-        throw new Error('Google provider not yet implemented');
+        return new GoogleProvider(apiKey, this.promptRepository, model);
 
       default:
         throw new Error(`Unsupported provider type: ${provider.getType()}`);

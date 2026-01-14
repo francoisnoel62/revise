@@ -38,11 +38,24 @@ vi.mock('@anthropic-ai/sdk', () => ({
   },
 }));
 
+// Mock Google Generative AI SDK to avoid browser environment check
+vi.mock('@google/generative-ai', () => ({
+  GoogleGenerativeAI: class {
+    getGenerativeModel() {
+      return {
+        generateContent: vi.fn(),
+        generateContentStream: vi.fn(),
+      };
+    }
+  },
+}));
+
 import { getAuthProvider, getProjectRepository, createLLMProvider } from './providers';
 import { AuthJsProvider } from '@/infrastructure/auth/AuthJsProvider';
 import { InMemoryProjectRepository } from '@/infrastructure/persistence/InMemoryProjectRepository';
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
 import { AnthropicProvider } from '@/infrastructure/ai/AnthropicProvider';
+import { GoogleProvider } from '@/infrastructure/ai/GoogleProvider';
 import { Provider } from '@/domain/entities/Provider';
 
 describe('providers', () => {
@@ -70,8 +83,7 @@ describe('providers', () => {
         'Test OpenAI',
         'openai',
         'sk-test-key',
-        'gpt-4o',
-        false
+        'gpt-4o'
       );
 
       const llmProvider = createLLMProvider(provider);
@@ -88,8 +100,7 @@ describe('providers', () => {
         'Test Anthropic',
         'anthropic',
         'sk-ant-test-key',
-        'claude-sonnet-4-5-20250929',
-        false
+        'claude-sonnet-4-5-20250929'
       );
 
       const llmProvider = createLLMProvider(provider);
@@ -99,18 +110,38 @@ describe('providers', () => {
       expect(llmProvider.getModel()).toBe('claude-sonnet-4-5-20250929');
     });
 
-    it('throws error for unsupported provider type', () => {
+    it('creates GoogleProvider for google type', () => {
       const provider = Provider.create(
         'test-id',
         'user-123',
-        'Test Mistral',
-        'mistral',
-        'test-key',
-        'mistral-large',
-        false
+        'Test Google',
+        'google',
+        'AIza-test-key',
+        'gemini-3-flash'
       );
 
-      expect(() => createLLMProvider(provider)).toThrow('Mistral provider not yet implemented');
+      const llmProvider = createLLMProvider(provider);
+
+      expect(llmProvider).toBeInstanceOf(GoogleProvider);
+      expect(llmProvider.getProviderName()).toBe('Google AI');
+      expect(llmProvider.getModel()).toBe('gemini-3-flash');
+    });
+
+    it('throws error for unsupported provider type', () => {
+      // Create a provider and manually override its type to test error handling
+      const provider = Provider.create(
+        'test-id',
+        'user-123',
+        'Test Unknown',
+        'openai', // Valid type to pass creation
+        'test-key',
+        'test-model'
+      );
+
+      // Override getType to return an invalid type
+      vi.spyOn(provider, 'getType').mockReturnValue('invalid' as never);
+
+      expect(() => createLLMProvider(provider)).toThrow('Unsupported provider type: invalid');
     });
   });
 });
