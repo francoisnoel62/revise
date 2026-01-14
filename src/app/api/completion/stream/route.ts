@@ -55,16 +55,29 @@ export async function POST(request: NextRequest) {
   // 3. Get LLM provider via composition root
   const providerRepo = await getProviderRepository();
   const promptRepo = getPromptRepository();
+  const { getProjectRepository } = await import('@/infrastructure/config/providers');
+  const projectRepo = await getProjectRepository();
 
-  // Try to get user's configured provider (use first available)
+  // Get project to find its selected provider
+  const project = await projectRepo.findById(userId, projectId);
+  const projectProviderId = project?.getProviderId();
+
+  // Get providers and find the one assigned to this project
   const providers = await providerRepo.listProviders(userId);
-  const defaultProvider = providers[0];
+  let selectedProvider = projectProviderId
+    ? providers.find((p) => p.getId() === projectProviderId)
+    : null;
+
+  // Fallback to first provider if project has no provider set
+  if (!selectedProvider) {
+    selectedProvider = providers[0];
+  }
 
   let llmProvider;
 
-  if (defaultProvider) {
-    console.log('[Autocomplete] Using provider:', defaultProvider.getName(), '(', defaultProvider.getType(), ')', 'model:', defaultProvider.getModel());
-    llmProvider = createLLMProvider(defaultProvider);
+  if (selectedProvider) {
+    console.log('[Autocomplete] Using provider:', selectedProvider.getName(), '(', selectedProvider.getType(), ')', 'model:', selectedProvider.getModel());
+    llmProvider = createLLMProvider(selectedProvider);
   } else if (process.env.OPENAI_API_KEY) {
     // Fallback to environment variable (development only)
     llmProvider = new OpenAIProvider(

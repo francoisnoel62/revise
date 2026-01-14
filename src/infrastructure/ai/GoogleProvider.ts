@@ -1468,6 +1468,8 @@ INSTRUCTIONS FINALES:
       userPrompt += `\n\n[APRÈS]\n${textAfterCursor}`;
     }
 
+    console.log('[GoogleProvider] generateCompletionStream starting...');
+
     const result = await this.model.generateContentStream({
       contents: [
         {
@@ -1481,10 +1483,14 @@ INSTRUCTIONS FINALES:
       },
     });
 
+    console.log('[GoogleProvider] Got stream result, iterating...');
     let isFirstChunk = true;
+    let chunkIndex = 0;
 
     for await (const chunk of result.stream) {
+      chunkIndex++;
       const content = chunk.text();
+      console.log(`[GoogleProvider] Chunk ${chunkIndex}:`, content ? `"${content.substring(0, 50)}..."` : '(empty)');
       if (content) {
         // Clean up first chunk if it starts with quotes
         if (isFirstChunk) {
@@ -1497,5 +1503,6 @@ INSTRUCTIONS FINALES:
         yield content;
       }
     }
+    console.log('[GoogleProvider] Stream finished, total chunks:', chunkIndex);
   }
 }
