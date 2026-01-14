@@ -22,6 +22,7 @@ import { InMemoryProjectRepository } from '@/infrastructure/persistence/InMemory
 import { FilePromptRepository } from '@/infrastructure/prompts/FilePromptRepository';
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
 import { AnthropicProvider } from '@/infrastructure/ai/AnthropicProvider';
+import { GoogleProvider } from '@/infrastructure/ai/GoogleProvider';
 import { DocxParser } from '@/infrastructure/document/parsers/DocxParser';
 import { CompositeDocumentParser } from '@/infrastructure/document/parsers/CompositeParser';
 import { DocxExporter } from '@/infrastructure/document/exporters/DocxExporter';
@@ -136,17 +137,8 @@ export function createLLMProvider(provider: Provider): LLMProvider {
     case 'anthropic':
       return new AnthropicProvider(apiKey, promptRepo, model);
 
-    case 'mistral':
-      // TODO Phase 2: Implement MistralProvider
-      throw new Error('Mistral provider not yet implemented');
-
-    case 'cohere':
-      // TODO Phase 2: Implement CohereProvider
-      throw new Error('Cohere provider not yet implemented');
-
     case 'google':
-      // TODO Phase 2: Implement GoogleProvider
-      throw new Error('Google provider not yet implemented');
+      return new GoogleProvider(apiKey, promptRepo, model);
 
     default:
       throw new Error(`Unsupported provider type: ${provider.getType()}`);

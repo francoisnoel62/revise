@@ -153,15 +153,11 @@ export class OpenAIProvider implements LLMProvider {
   }
 
   /**
-   * Check if model is a reasoning model (GPT-5, o1, o3) with different API requirements.
+   * Check if model is a reasoning model (GPT-5.x) with different API requirements.
    * These models don't support temperature, top_p, response_format, max_tokens, etc.
    */
   private isReasoningModel(): boolean {
-    return (
-      this.model.startsWith('gpt-5') ||
-      this.model.startsWith('o1') ||
-      this.model.startsWith('o3')
-    );
+    return this.model.startsWith('gpt-5');
   }
 
   /**

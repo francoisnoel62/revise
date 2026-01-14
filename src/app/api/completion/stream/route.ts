@@ -55,15 +55,29 @@ export async function POST(request: NextRequest) {
   // 3. Get LLM provider via composition root
   const providerRepo = await getProviderRepository();
   const promptRepo = getPromptRepository();
+  const { getProjectRepository } = await import('@/infrastructure/config/providers');
+  const projectRepo = await getProjectRepository();
 
-  // Try to get user's configured provider (use first available)
+  // Get project to find its selected provider
+  const project = await projectRepo.loadProject(userId, projectId);
+  const projectProviderId = project?.getProviderId();
+
+  // Get providers and find the one assigned to this project
   const providers = await providerRepo.listProviders(userId);
-  const defaultProvider = providers[0];
+  let selectedProvider = projectProviderId
+    ? providers.find((p) => p.getId() === projectProviderId)
+    : null;
+
+  // Fallback to first provider if project has no provider set
+  if (!selectedProvider) {
+    selectedProvider = providers[0];
+  }
 
   let llmProvider;
 
-  if (defaultProvider) {
-    llmProvider = createLLMProvider(defaultProvider);
+  if (selectedProvider) {
+    console.log('[Autocomplete] Using provider:', selectedProvider.getName(), '(', selectedProvider.getType(), ')', 'model:', selectedProvider.getModel());
+    llmProvider = createLLMProvider(selectedProvider);
   } else if (process.env.OPENAI_API_KEY) {
     // Fallback to environment variable (development only)
     llmProvider = new OpenAIProvider(
@@ -96,22 +110,27 @@ export async function POST(request: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
+        console.log('[Autocomplete] Starting stream...');
         const generator = llmProvider.generateCompletionStream(
           textBeforeCursor,
           textAfterCursor,
           metadata
         );
 
+        let chunkCount = 0;
         for await (const chunk of generator) {
+          chunkCount++;
           // Send as Server-Sent Event
           const data = `data: ${JSON.stringify({ text: chunk })}\n\n`;
           controller.enqueue(encoder.encode(data));
         }
+        console.log('[Autocomplete] Stream finished, chunks received:', chunkCount);
 
         // Send done event
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         controller.close();
       } catch (error) {
+        console.error('[Autocomplete] Stream error:', error);
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
         controller.enqueue(

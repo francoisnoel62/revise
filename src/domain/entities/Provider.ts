@@ -4,12 +4,7 @@
 /**
  * Supported AI provider types.
  */
-export type ProviderType =
-  | 'openai'
-  | 'anthropic'
-  | 'mistral'
-  | 'cohere'
-  | 'google';
+export type ProviderType = 'openai' | 'anthropic' | 'google';
 
 /**
  * Domain entity representing an AI provider configuration.
