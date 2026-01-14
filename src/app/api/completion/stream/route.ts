@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
   const projectRepo = await getProjectRepository();
 
   // Get project to find its selected provider
-  const project = await projectRepo.findById(userId, projectId);
+  const project = await projectRepo.loadProject(userId, projectId);
   const projectProviderId = project?.getProviderId();
 
   // Get providers and find the one assigned to this project
