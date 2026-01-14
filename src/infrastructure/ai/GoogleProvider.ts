@@ -1327,12 +1327,17 @@ INSTRUCTIONS FINALES:
     }
 
     try {
+      // Use low thinking level for autocomplete (reduces latency from 17+ seconds to ~1 second)
+      // Gemini 3 Pro defaults to "high" thinking which causes very long delays
       const result = await this.client.models.generateContent({
         model: this.modelName,
         contents: `${systemPrompt}\n\n---\n\n${userPrompt}`,
         config: {
           temperature: 0.7,
           maxOutputTokens: 256,
+          thinkingConfig: {
+            thinkingLevel: 'low',
+          },
         },
       });
 
@@ -1426,14 +1431,19 @@ INSTRUCTIONS FINALES:
       userPrompt += `\n\n[APRÈS]\n${textAfterCursor}`;
     }
 
-    console.log('[GoogleProvider] generateCompletionStream starting...');
+    console.log('[GoogleProvider] generateCompletionStream starting with model:', this.modelName);
 
+    // Use low thinking level for autocomplete (reduces latency from 17+ seconds to ~1 second)
+    // Gemini 3 Pro defaults to "high" thinking which causes very long delays
     const response = await this.client.models.generateContentStream({
       model: this.modelName,
       contents: `${systemPrompt}\n\n---\n\n${userPrompt}`,
       config: {
         temperature: 0.7,
         maxOutputTokens: 256,
+        thinkingConfig: {
+          thinkingLevel: 'low',
+        },
       },
     });
 

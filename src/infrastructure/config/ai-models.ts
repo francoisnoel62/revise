@@ -69,14 +69,14 @@ export const AI_MODELS: Record<ProviderType, ModelInfo[]> = {
     {
       id: 'gemini-3-flash-preview',
       name: 'Gemini 3 Flash',
-      description: 'Fast reasoning with efficiency and 1M context',
+      description: 'Fast reasoning with free tier and 1M context',
       contextWindow: 1000000,
       recommended: true,
     },
     {
       id: 'gemini-3-pro-preview',
       name: 'Gemini 3 Pro',
-      description: 'Most advanced reasoning model for complex tasks',
+      description: 'Advanced reasoning (requires billing enabled)',
       contextWindow: 1000000,
     },
   ],
