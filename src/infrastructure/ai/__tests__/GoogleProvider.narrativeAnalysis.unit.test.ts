@@ -53,7 +53,7 @@ describe('GoogleProvider.generateNarrativeAnalysis (Unit)', () => {
       getNarrativeAnalysisPrompt: vi.fn().mockResolvedValue('Test prompt'),
     } as unknown as PromptRepository;
 
-    provider = new GoogleProvider('test-key', mockPromptRepo, 'gemini-3-flash');
+    provider = new GoogleProvider('test-key', mockPromptRepo, 'gemini-2.5-flash');
   });
 
   describe('JSON parsing', () => {
@@ -297,7 +297,7 @@ ${JSON.stringify(validNarrativeAnalysisResponse, null, 2)}
     });
 
     it('should return correct model', () => {
-      expect(provider.getModel()).toBe('gemini-3-flash');
+      expect(provider.getModel()).toBe('gemini-2.5-flash');
     });
   });
 });

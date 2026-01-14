@@ -117,14 +117,14 @@ describe('providers', () => {
         'Test Google',
         'google',
         'AIza-test-key',
-        'gemini-3-flash'
+        'gemini-2.5-flash'
       );
 
       const llmProvider = createLLMProvider(provider);
 
       expect(llmProvider).toBeInstanceOf(GoogleProvider);
       expect(llmProvider.getProviderName()).toBe('Google AI');
-      expect(llmProvider.getModel()).toBe('gemini-3-flash');
+      expect(llmProvider.getModel()).toBe('gemini-2.5-flash');
     });
 
     it('throws error for unsupported provider type', () => {

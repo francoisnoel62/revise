@@ -40,7 +40,7 @@ export class GoogleProvider implements LLMProvider {
   constructor(
     apiKey: string,
     promptRepository: PromptRepository,
-    model: string = 'gemini-3-flash'
+    model: string = 'gemini-2.5-flash'
   ) {
     this.client = new GoogleGenerativeAI(apiKey);
     this.modelName = model;
