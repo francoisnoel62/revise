@@ -38,15 +38,13 @@ vi.mock('@anthropic-ai/sdk', () => ({
   },
 }));
 
-// Mock Google Generative AI SDK to avoid browser environment check
-vi.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: class {
-    getGenerativeModel() {
-      return {
-        generateContent: vi.fn(),
-        generateContentStream: vi.fn(),
-      };
-    }
+// Mock new @google/genai SDK
+vi.mock('@google/genai', () => ({
+  GoogleGenAI: class {
+    models = {
+      generateContent: vi.fn(),
+      generateContentStream: vi.fn(),
+    };
   },
 }));
 

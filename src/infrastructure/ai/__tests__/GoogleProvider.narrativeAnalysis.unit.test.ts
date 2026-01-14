@@ -4,24 +4,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GoogleProvider } from '../GoogleProvider';
 import type { PromptRepository } from '@/domain/interfaces/PromptRepository';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Create mock functions outside of vi.mock
 const mockGenerateContent = vi.fn();
 const mockGenerateContentStream = vi.fn();
 
-// Mock Google Generative AI SDK
-vi.mock('@google/generative-ai', () => {
-  const MockGoogleGenerativeAI = class {
-    getGenerativeModel() {
-      return {
+// Mock new @google/genai SDK
+vi.mock('@google/genai', () => {
+  return {
+    GoogleGenAI: class {
+      models = {
         generateContent: mockGenerateContent,
         generateContentStream: mockGenerateContentStream,
       };
-    }
-  };
-  return {
-    GoogleGenerativeAI: MockGoogleGenerativeAI,
+    },
   };
 });
 
@@ -59,9 +55,7 @@ describe('GoogleProvider.generateNarrativeAnalysis (Unit)', () => {
   describe('JSON parsing', () => {
     it('should parse valid JSON response', async () => {
       mockGenerateContent.mockResolvedValue({
-        response: {
-          text: () => JSON.stringify(validNarrativeAnalysisResponse),
-        },
+        text: JSON.stringify(validNarrativeAnalysisResponse),
       });
 
       const result = await provider.generateNarrativeAnalysis('Test text');
@@ -75,9 +69,7 @@ ${JSON.stringify(validNarrativeAnalysisResponse, null, 2)}
 \`\`\``;
 
       mockGenerateContent.mockResolvedValue({
-        response: {
-          text: () => jsonWithCodeBlock,
-        },
+        text: jsonWithCodeBlock,
       });
 
       const result = await provider.generateNarrativeAnalysis('Test text');
@@ -91,9 +83,7 @@ ${JSON.stringify(validNarrativeAnalysisResponse, null, 2)}
 \`\`\``;
 
       mockGenerateContent.mockResolvedValue({
-        response: {
-          text: () => jsonWithCodeBlock,
-        },
+        text: jsonWithCodeBlock,
       });
 
       const result = await provider.generateNarrativeAnalysis('Test text');
@@ -105,9 +95,7 @@ ${JSON.stringify(validNarrativeAnalysisResponse, null, 2)}
       const jsonWithWhitespace = `\n\n  ${JSON.stringify(validNarrativeAnalysisResponse)}  \n\n`;
 
       mockGenerateContent.mockResolvedValue({
-        response: {
-          text: () => jsonWithWhitespace,
-        },
+        text: jsonWithWhitespace,
       });
 
       const result = await provider.generateNarrativeAnalysis('Test text');
@@ -124,9 +112,7 @@ ${JSON.stringify(validNarrativeAnalysisResponse, null, 2)}
       };
 
       mockGenerateContent.mockResolvedValue({
-        response: {
-          text: () => JSON.stringify(invalidResponse),
-        },
+        text: JSON.stringify(invalidResponse),
       });
 
       await expect(provider.generateNarrativeAnalysis('Test text')).rejects.toThrow(
@@ -141,9 +127,7 @@ ${JSON.stringify(validNarrativeAnalysisResponse, null, 2)}
       };
 
       mockGenerateContent.mockResolvedValue({
-        response: {
-          text: () => JSON.stringify(invalidResponse),
-        },
+        text: JSON.stringify(invalidResponse),
       });
 
       await expect(provider.generateNarrativeAnalysis('Test text')).rejects.toThrow(
@@ -158,9 +142,7 @@ ${JSON.stringify(validNarrativeAnalysisResponse, null, 2)}
       };
 
       mockGenerateContent.mockResolvedValue({
-        response: {
-          text: () => JSON.stringify(invalidResponse),
-        },
+        text: JSON.stringify(invalidResponse),
       });
 
       await expect(provider.generateNarrativeAnalysis('Test text')).rejects.toThrow(
@@ -175,9 +157,7 @@ ${JSON.stringify(validNarrativeAnalysisResponse, null, 2)}
       };
 
       mockGenerateContent.mockResolvedValue({
-        response: {
-          text: () => JSON.stringify(invalidResponse),
-        },
+        text: JSON.stringify(invalidResponse),
       });
 
       await expect(provider.generateNarrativeAnalysis('Test text')).rejects.toThrow(
@@ -192,9 +172,7 @@ ${JSON.stringify(validNarrativeAnalysisResponse, null, 2)}
       };
 
       mockGenerateContent.mockResolvedValue({
-        response: {
-          text: () => JSON.stringify(invalidResponse),
-        },
+        text: JSON.stringify(invalidResponse),
       });
 
       await expect(provider.generateNarrativeAnalysis('Test text')).rejects.toThrow(
@@ -209,9 +187,7 @@ ${JSON.stringify(validNarrativeAnalysisResponse, null, 2)}
       };
 
       mockGenerateContent.mockResolvedValue({
-        response: {
-          text: () => JSON.stringify(invalidResponse),
-        },
+        text: JSON.stringify(invalidResponse),
       });
 
       await expect(provider.generateNarrativeAnalysis('Test text')).rejects.toThrow(
@@ -226,9 +202,7 @@ ${JSON.stringify(validNarrativeAnalysisResponse, null, 2)}
       };
 
       mockGenerateContent.mockResolvedValue({
-        response: {
-          text: () => JSON.stringify(invalidResponse),
-        },
+        text: JSON.stringify(invalidResponse),
       });
 
       await expect(provider.generateNarrativeAnalysis('Test text')).rejects.toThrow(
@@ -240,9 +214,7 @@ ${JSON.stringify(validNarrativeAnalysisResponse, null, 2)}
   describe('error handling', () => {
     it('should throw error when response is not valid JSON', async () => {
       mockGenerateContent.mockResolvedValue({
-        response: {
-          text: () => 'This is not JSON',
-        },
+        text: 'This is not JSON',
       });
 
       await expect(provider.generateNarrativeAnalysis('Test text')).rejects.toThrow(
@@ -252,9 +224,7 @@ ${JSON.stringify(validNarrativeAnalysisResponse, null, 2)}
 
     it('should throw error when response is empty', async () => {
       mockGenerateContent.mockResolvedValue({
-        response: {
-          text: () => '',
-        },
+        text: '',
       });
 
       await expect(provider.generateNarrativeAnalysis('Test text')).rejects.toThrow(
@@ -280,9 +250,7 @@ ${JSON.stringify(validNarrativeAnalysisResponse, null, 2)}
   describe('prompt repository integration', () => {
     it('should call prompt repository to get base prompt', async () => {
       mockGenerateContent.mockResolvedValue({
-        response: {
-          text: () => JSON.stringify(validNarrativeAnalysisResponse),
-        },
+        text: JSON.stringify(validNarrativeAnalysisResponse),
       });
 
       await provider.generateNarrativeAnalysis('Test text');

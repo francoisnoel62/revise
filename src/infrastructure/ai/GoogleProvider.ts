@@ -1,7 +1,7 @@
 // ABOUTME: Concrete implementation of LLMProvider using Google Gemini API for text rewriting
 // ABOUTME: Generates 3 stylistically distinct proposals using carefully crafted prompt
 
-import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { LLMProvider, ConnectionTestResult } from '@/domain/interfaces/LLMProvider';
 import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
@@ -32,8 +32,7 @@ interface NarrativeAnalysisResponse {
 }
 
 export class GoogleProvider implements LLMProvider {
-  private client: GoogleGenerativeAI;
-  private model: GenerativeModel;
+  private client: GoogleGenAI;
   private modelName: string;
   private promptRepository: PromptRepository;
 
@@ -42,9 +41,8 @@ export class GoogleProvider implements LLMProvider {
     promptRepository: PromptRepository,
     model: string = 'gemini-3-flash-preview'
   ) {
-    this.client = new GoogleGenerativeAI(apiKey);
+    this.client = new GoogleGenAI({ apiKey });
     this.modelName = model;
-    this.model = this.client.getGenerativeModel({ model });
     this.promptRepository = promptRepository;
   }
 
@@ -81,22 +79,17 @@ export class GoogleProvider implements LLMProvider {
     const userPrompt = this.buildUserPrompt(text, context);
 
     try {
-      const result = await this.model.generateContent({
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: `${systemPrompt}\n\n---\n\n${userPrompt}` }],
-          },
-        ],
-        generationConfig: {
+      const result = await this.client.models.generateContent({
+        model: this.modelName,
+        contents: `${systemPrompt}\n\n---\n\n${userPrompt}`,
+        config: {
           temperature: 0.85,
           topP: 0.92,
           maxOutputTokens: 4096,
         },
       });
 
-      const response = result.response;
-      const content = response.text();
+      const content = result.text;
 
       if (!content) {
         throw new Error('Empty response from Google AI');
@@ -194,9 +187,10 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans aucun texte avant ou après.
   async testConnection(): Promise<ConnectionTestResult> {
     try {
       // Simple minimal API call to validate key
-      await this.model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: 'Test' }] }],
-        generationConfig: { maxOutputTokens: 1 },
+      await this.client.models.generateContent({
+        model: this.modelName,
+        contents: 'Test',
+        config: { maxOutputTokens: 1 },
       });
       return { valid: true };
     } catch (error) {
@@ -241,20 +235,16 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans aucun texte avant ou après.
     const systemPrompt = this.enhancePromptForGoogle(basePrompt);
 
     try {
-      const result = await this.model.generateContent({
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: `${systemPrompt}\n\n---\n\nTEXTE À ANALYSER:\n\n${fullText}` }],
-          },
-        ],
-        generationConfig: {
+      const result = await this.client.models.generateContent({
+        model: this.modelName,
+        contents: `${systemPrompt}\n\n---\n\nTEXTE À ANALYSER:\n\n${fullText}`,
+        config: {
           temperature: 0.3,
           maxOutputTokens: 4096,
         },
       });
 
-      const content = result.response.text();
+      const content = result.text;
       if (!content) {
         throw new Error('Empty response from Google AI');
       }
@@ -368,20 +358,16 @@ INSTRUCTIONS FINALES:
     const systemPrompt = this.enhanceStylisticDNAPromptForGoogle(basePrompt);
 
     try {
-      const result = await this.model.generateContent({
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: `${systemPrompt}\n\n---\n\nTEXTE À ANALYSER:\n\n${fullText}` }],
-          },
-        ],
-        generationConfig: {
+      const result = await this.client.models.generateContent({
+        model: this.modelName,
+        contents: `${systemPrompt}\n\n---\n\nTEXTE À ANALYSER:\n\n${fullText}`,
+        config: {
           temperature: 0.3,
           maxOutputTokens: 4096,
         },
       });
 
-      const content = result.response.text();
+      const content = result.text;
       if (!content) {
         throw new Error('Empty response from Google AI');
       }
@@ -473,20 +459,16 @@ INSTRUCTIONS:
     const systemPrompt = this.enhanceCharactersPromptForGoogle(basePrompt);
 
     try {
-      const result = await this.model.generateContent({
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: `${systemPrompt}\n\n---\n\nTEXTE À ANALYSER:\n\n${fullText}` }],
-          },
-        ],
-        generationConfig: {
+      const result = await this.client.models.generateContent({
+        model: this.modelName,
+        contents: `${systemPrompt}\n\n---\n\nTEXTE À ANALYSER:\n\n${fullText}`,
+        config: {
           temperature: 0.3,
           maxOutputTokens: 8192,
         },
       });
 
-      const content = result.response.text();
+      const content = result.text;
       if (!content) {
         throw new Error('Empty response from Google AI');
       }
@@ -607,20 +589,16 @@ INSTRUCTIONS:
     const systemPrompt = this.enhancePlotPromptForGoogle(basePrompt);
 
     try {
-      const result = await this.model.generateContent({
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: `${systemPrompt}\n\n---\n\nTEXTE À ANALYSER:\n\n${fullText}` }],
-          },
-        ],
-        generationConfig: {
+      const result = await this.client.models.generateContent({
+        model: this.modelName,
+        contents: `${systemPrompt}\n\n---\n\nTEXTE À ANALYSER:\n\n${fullText}`,
+        config: {
           temperature: 0.3,
           maxOutputTokens: 8192,
         },
       });
 
-      const content = result.response.text();
+      const content = result.text;
       if (!content) {
         throw new Error('Empty response from Google AI');
       }
@@ -768,20 +746,16 @@ INSTRUCTIONS:
     const systemPrompt = this.enhanceWorldbuildingPromptForGoogle(basePrompt);
 
     try {
-      const result = await this.model.generateContent({
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: `${systemPrompt}\n\n---\n\nTEXTE À ANALYSER:\n\n${fullText}` }],
-          },
-        ],
-        generationConfig: {
+      const result = await this.client.models.generateContent({
+        model: this.modelName,
+        contents: `${systemPrompt}\n\n---\n\nTEXTE À ANALYSER:\n\n${fullText}`,
+        config: {
           temperature: 0.3,
           maxOutputTokens: 6144,
         },
       });
 
-      const content = result.response.text();
+      const content = result.text;
       if (!content) {
         throw new Error('Empty response from Google AI');
       }
@@ -931,20 +905,16 @@ INSTRUCTIONS:
     const userPrompt = `TEXTE:\n\n${fullText}${contextInfo}`;
 
     try {
-      const result = await this.model.generateContent({
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: `${systemPrompt}\n\n---\n\n${userPrompt}` }],
-          },
-        ],
-        generationConfig: {
+      const result = await this.client.models.generateContent({
+        model: this.modelName,
+        contents: `${systemPrompt}\n\n---\n\n${userPrompt}`,
+        config: {
           temperature: 0.3,
           maxOutputTokens: 8192,
         },
       });
 
-      const content = result.response.text();
+      const content = result.text;
       if (!content) {
         throw new Error('Empty response from Google AI');
       }
@@ -1114,20 +1084,16 @@ INSTRUCTIONS:
     const systemPrompt = this.enhanceChapterSummariesPromptForGoogle(basePrompt);
 
     try {
-      const result = await this.model.generateContent({
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: `${systemPrompt}\n\n---\n\nTEXTE À ANALYSER:\n\n${fullText}` }],
-          },
-        ],
-        generationConfig: {
+      const result = await this.client.models.generateContent({
+        model: this.modelName,
+        contents: `${systemPrompt}\n\n---\n\nTEXTE À ANALYSER:\n\n${fullText}`,
+        config: {
           temperature: 0.3,
           maxOutputTokens: 4096,
         },
       });
 
-      const content = result.response.text();
+      const content = result.text;
       if (!content) {
         throw new Error('Empty response from Google AI');
       }
@@ -1212,20 +1178,16 @@ INSTRUCTIONS SUPPLÉMENTAIRES:
     const tokenLimit = generationType === 'chapter-full' ? 4096 : 2048;
 
     try {
-      const result = await this.model.generateContent({
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: `${systemPrompt}\n\n---\n\nTEXTE EXISTANT:\n\n${fullText}` }],
-          },
-        ],
-        generationConfig: {
+      const result = await this.client.models.generateContent({
+        model: this.modelName,
+        contents: `${systemPrompt}\n\n---\n\nTEXTE EXISTANT:\n\n${fullText}`,
+        config: {
           temperature: 0.75,
           maxOutputTokens: tokenLimit,
         },
       });
 
-      const content = result.response.text();
+      const content = result.text;
       if (!content) {
         throw new Error('Empty response from Google AI');
       }
@@ -1365,20 +1327,16 @@ INSTRUCTIONS FINALES:
     }
 
     try {
-      const result = await this.model.generateContent({
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: `${systemPrompt}\n\n---\n\n${userPrompt}` }],
-          },
-        ],
-        generationConfig: {
+      const result = await this.client.models.generateContent({
+        model: this.modelName,
+        contents: `${systemPrompt}\n\n---\n\n${userPrompt}`,
+        config: {
           temperature: 0.7,
           maxOutputTokens: 256,
         },
       });
 
-      const content = result.response.text();
+      const content = result.text;
       if (!content) {
         throw new Error('Empty response from Google AI');
       }
@@ -1470,26 +1428,22 @@ INSTRUCTIONS FINALES:
 
     console.log('[GoogleProvider] generateCompletionStream starting...');
 
-    const result = await this.model.generateContentStream({
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: `${systemPrompt}\n\n---\n\n${userPrompt}` }],
-        },
-      ],
-      generationConfig: {
+    const response = await this.client.models.generateContentStream({
+      model: this.modelName,
+      contents: `${systemPrompt}\n\n---\n\n${userPrompt}`,
+      config: {
         temperature: 0.7,
         maxOutputTokens: 256,
       },
     });
 
-    console.log('[GoogleProvider] Got stream result, iterating...');
+    console.log('[GoogleProvider] Got stream response, iterating...');
     let isFirstChunk = true;
     let chunkIndex = 0;
 
-    for await (const chunk of result.stream) {
+    for await (const chunk of response) {
       chunkIndex++;
-      const content = chunk.text();
+      const content = chunk.text;
       console.log(`[GoogleProvider] Chunk ${chunkIndex}:`, content ? `"${content.substring(0, 50)}..."` : '(empty)');
       if (content) {
         // Clean up first chunk if it starts with quotes
