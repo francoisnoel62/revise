@@ -1,7 +1,7 @@
 // ABOUTME: Concrete implementation of LLMProvider using Google Gemini API for text rewriting
 // ABOUTME: Generates 3 stylistically distinct proposals using carefully crafted prompt
 
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import { LLMProvider, ConnectionTestResult } from '@/domain/interfaces/LLMProvider';
 import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
@@ -1336,7 +1336,7 @@ INSTRUCTIONS FINALES:
           temperature: 0.7,
           maxOutputTokens: 256,
           thinkingConfig: {
-            thinkingLevel: 'low',
+            thinkingLevel: ThinkingLevel.LOW,
           },
         },
       });
@@ -1442,7 +1442,7 @@ INSTRUCTIONS FINALES:
         temperature: 0.7,
         maxOutputTokens: 256,
         thinkingConfig: {
-          thinkingLevel: 'low',
+          thinkingLevel: ThinkingLevel.LOW,
         },
       },
     });
