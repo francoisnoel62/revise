@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
   let llmProvider;
 
   if (defaultProvider) {
+    console.log('[Autocomplete] Using provider:', defaultProvider.getName(), '(', defaultProvider.getType(), ')', 'model:', defaultProvider.getModel());
     llmProvider = createLLMProvider(defaultProvider);
   } else if (process.env.OPENAI_API_KEY) {
     // Fallback to environment variable (development only)
@@ -96,22 +97,27 @@ export async function POST(request: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
+        console.log('[Autocomplete] Starting stream...');
         const generator = llmProvider.generateCompletionStream(
           textBeforeCursor,
           textAfterCursor,
           metadata
         );
 
+        let chunkCount = 0;
         for await (const chunk of generator) {
+          chunkCount++;
           // Send as Server-Sent Event
           const data = `data: ${JSON.stringify({ text: chunk })}\n\n`;
           controller.enqueue(encoder.encode(data));
         }
+        console.log('[Autocomplete] Stream finished, chunks received:', chunkCount);
 
         // Send done event
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         controller.close();
       } catch (error) {
+        console.error('[Autocomplete] Stream error:', error);
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
         controller.enqueue(
