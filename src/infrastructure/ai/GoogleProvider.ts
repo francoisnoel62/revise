@@ -1178,16 +1178,22 @@ INSTRUCTIONS SUPPLÉMENTAIRES:
     const tokenLimit = generationType === 'chapter-full' ? 4096 : 2048;
 
     try {
+      // Use low thinking level for faster response (Gemini 3 Pro defaults to high)
       const result = await this.client.models.generateContent({
         model: this.modelName,
         contents: `${systemPrompt}\n\n---\n\nTEXTE EXISTANT:\n\n${fullText}`,
         config: {
           temperature: 0.75,
           maxOutputTokens: tokenLimit,
+          thinkingConfig: {
+            thinkingLevel: ThinkingLevel.LOW,
+          },
         },
       });
 
       const content = result.text;
+      console.log('[GoogleProvider] generateChapter raw response:', content?.substring(0, 500));
+
       if (!content) {
         throw new Error('Empty response from Google AI');
       }
@@ -1283,16 +1289,20 @@ INSTRUCTIONS FINALES:
     generationType: ChapterGenerationTypeKey
   ): ChapterGeneration {
     const jsonContent = this.extractJson(content);
+    console.log('[GoogleProvider] Extracted JSON:', jsonContent.substring(0, 300));
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let parsed: any;
     try {
       parsed = JSON.parse(jsonContent);
-    } catch {
-      throw new Error('Failed to parse chapter generation response from Google AI');
+    } catch (e) {
+      console.error('[GoogleProvider] JSON parse failed. Raw content:', content.substring(0, 500));
+      console.error('[GoogleProvider] Extracted content:', jsonContent.substring(0, 500));
+      throw new Error(`Failed to parse chapter generation response from Google AI: ${e instanceof Error ? e.message : 'unknown error'}`);
     }
 
     if (!parsed.content || typeof parsed.content !== 'string') {
+      console.error('[GoogleProvider] Missing content field. Parsed:', JSON.stringify(parsed).substring(0, 300));
       throw new Error('Invalid response: missing content');
     }
 
