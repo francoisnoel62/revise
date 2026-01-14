@@ -27,16 +27,8 @@ export class LLMProviderFactoryImpl implements LLMProviderFactory {
       case 'anthropic':
         return new AnthropicProvider(apiKey, this.promptRepository, model);
 
-      case 'mistral':
-        // TODO Phase 2: Implement MistralProvider
-        throw new Error('Mistral provider not yet implemented');
-
-      case 'cohere':
-        // TODO Phase 2: Implement CohereProvider
-        throw new Error('Cohere provider not yet implemented');
-
       case 'google':
-        // TODO Phase 2: Implement GoogleProvider
+        // TODO: Implement GoogleProvider
         throw new Error('Google provider not yet implemented');
 
       default:

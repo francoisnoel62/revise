@@ -19,28 +19,28 @@ export interface ModelInfo {
 export const AI_MODELS: Record<ProviderType, ModelInfo[]> = {
   openai: [
     {
-      id: 'gpt-5-nano-2025-08-07',
-      name: 'GPT-5 Nano',
-      description: 'Latest GPT-5 generation, fast with 400K context and 128K output tokens',
+      id: 'gpt-5.2',
+      name: 'GPT-5.2',
+      description: 'Flagship model for coding and agentic tasks',
       contextWindow: 400000,
       recommended: true,
     },
     {
-      id: 'gpt-4o-mini',
-      name: 'GPT-4o Mini',
-      description: 'Fast and cost-effective model for most use cases',
-      contextWindow: 128000,
+      id: 'gpt-5-mini',
+      name: 'GPT-5 Mini',
+      description: 'Fast, cost-efficient for well-defined tasks',
+      contextWindow: 400000,
+    },
+    {
+      id: 'gpt-5-nano',
+      name: 'GPT-5 Nano',
+      description: 'Fastest, cheapest - ideal for summarization',
+      contextWindow: 400000,
     },
     {
       id: 'gpt-4o',
       name: 'GPT-4o',
-      description: 'Most capable model with superior writing quality',
-      contextWindow: 128000,
-    },
-    {
-      id: 'gpt-4-turbo',
-      name: 'GPT-4 Turbo',
-      description: 'Previous generation high-performance model',
+      description: 'Previous generation, still very capable',
       contextWindow: 128000,
     },
   ],
@@ -64,86 +64,20 @@ export const AI_MODELS: Record<ProviderType, ModelInfo[]> = {
       description: 'Premium model combining maximum intelligence with practical performance',
       contextWindow: 200000,
     },
-    {
-      id: 'claude-sonnet-4-20250514',
-      name: 'Claude Sonnet 4 (Legacy)',
-      description: 'Previous generation high-performance model',
-      contextWindow: 200000,
-    },
-    {
-      id: 'claude-3-7-sonnet-20250219',
-      name: 'Claude 3.7 Sonnet (Legacy)',
-      description: 'Legacy model with 200K context',
-      contextWindow: 200000,
-    },
-    {
-      id: 'claude-3-haiku-20240307',
-      name: 'Claude 3 Haiku (Legacy)',
-      description: 'Fast legacy model',
-      contextWindow: 200000,
-    },
-  ],
-  mistral: [
-    {
-      id: 'mistral-large-latest',
-      name: 'Mistral Large',
-      description: 'Most capable Mistral model for complex tasks',
-      contextWindow: 128000,
-      recommended: true,
-    },
-    {
-      id: 'mistral-medium-latest',
-      name: 'Mistral Medium',
-      description: 'Balanced performance for general use',
-      contextWindow: 32000,
-    },
-    {
-      id: 'mistral-small-latest',
-      name: 'Mistral Small',
-      description: 'Fast and cost-effective',
-      contextWindow: 32000,
-    },
-  ],
-  cohere: [
-    {
-      id: 'command-r-plus',
-      name: 'Command R+',
-      description: 'Most capable Cohere model for advanced writing',
-      contextWindow: 128000,
-      recommended: true,
-    },
-    {
-      id: 'command-r',
-      name: 'Command R',
-      description: 'Balanced performance for general tasks',
-      contextWindow: 128000,
-    },
-    {
-      id: 'command',
-      name: 'Command',
-      description: 'Previous generation model',
-      contextWindow: 4096,
-    },
   ],
   google: [
     {
-      id: 'gemini-1.5-pro',
-      name: 'Gemini 1.5 Pro',
-      description: 'Most capable Google model with extensive context',
-      contextWindow: 2000000,
+      id: 'gemini-3-pro',
+      name: 'Gemini 3 Pro',
+      description: 'Most advanced reasoning model with 1M context',
+      contextWindow: 1000000,
       recommended: true,
     },
     {
-      id: 'gemini-1.5-flash',
-      name: 'Gemini 1.5 Flash',
-      description: 'Fast and efficient for quick tasks',
+      id: 'gemini-3-flash',
+      name: 'Gemini 3 Flash',
+      description: 'Fast reasoning with efficiency',
       contextWindow: 1000000,
-    },
-    {
-      id: 'gemini-pro',
-      name: 'Gemini Pro',
-      description: 'Previous generation model',
-      contextWindow: 32000,
     },
   ],
 };
@@ -189,8 +123,6 @@ export function getModelInfo(
 export const PROVIDER_NAMES: Record<ProviderType, string> = {
   openai: 'OpenAI',
   anthropic: 'Anthropic',
-  mistral: 'Mistral AI',
-  cohere: 'Cohere',
   google: 'Google AI',
 };
 
@@ -200,7 +132,5 @@ export const PROVIDER_NAMES: Record<ProviderType, string> = {
 export const PROVIDER_DOCS: Record<ProviderType, string> = {
   openai: 'https://platform.openai.com/api-keys',
   anthropic: 'https://console.anthropic.com/settings/keys',
-  mistral: 'https://console.mistral.ai/api-keys',
-  cohere: 'https://dashboard.cohere.com/api-keys',
-  google: 'https://makersuite.google.com/app/apikey',
+  google: 'https://aistudio.google.com/apikey',
 };
