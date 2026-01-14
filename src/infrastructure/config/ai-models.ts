@@ -67,22 +67,16 @@ export const AI_MODELS: Record<ProviderType, ModelInfo[]> = {
   ],
   google: [
     {
-      id: 'gemini-2.5-flash',
-      name: 'Gemini 2.5 Flash',
-      description: 'Fast multimodal model with 1M context window',
+      id: 'gemini-3-flash-preview',
+      name: 'Gemini 3 Flash',
+      description: 'Fast reasoning with efficiency and 1M context',
       contextWindow: 1000000,
       recommended: true,
     },
     {
-      id: 'gemini-2.5-pro-preview-05-06',
-      name: 'Gemini 2.5 Pro',
-      description: 'Most capable model for complex reasoning tasks',
-      contextWindow: 1000000,
-    },
-    {
-      id: 'gemini-2.0-flash',
-      name: 'Gemini 2.0 Flash',
-      description: 'Previous generation, fast and efficient',
+      id: 'gemini-3-pro-preview',
+      name: 'Gemini 3 Pro',
+      description: 'Most advanced reasoning model for complex tasks',
       contextWindow: 1000000,
     },
   ],
