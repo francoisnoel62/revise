@@ -211,8 +211,6 @@ export function ProviderForm({ provider, onSuccess, onCancel }: ProviderFormProp
             <SelectContent>
               <SelectItem value="openai">OpenAI</SelectItem>
               <SelectItem value="anthropic">Anthropic</SelectItem>
-              <SelectItem value="mistral">Mistral AI</SelectItem>
-              <SelectItem value="cohere">Cohere</SelectItem>
               <SelectItem value="google">Google AI</SelectItem>
             </SelectContent>
           </Select>
