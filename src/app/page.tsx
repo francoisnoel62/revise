@@ -218,7 +218,7 @@ export default function LandingPage() {
               <Check className="h-5 w-5 text-green-600" />
               Disponible maintenant
             </h3>
-            <div className="grid gap-6 md:grid-cols-3 max-w-5xl mx-auto">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
               <FeatureCard
                 icon={Pen}
                 title="Scène"
@@ -228,13 +228,31 @@ export default function LandingPage() {
               <FeatureCard
                 icon={RefreshCw}
                 title="Réécrire"
-                description="Réécrit un passage selon vos consignes, avec 5 variantes stylistiques distinctes. Vous choisissez, vous insérez."
+                description="Réécrit un passage selon vos consignes, avec 3 variantes stylistiques distinctes. Vous choisissez, vous insérez."
                 available={true}
               />
               <FeatureCard
                 icon={MessageSquare}
                 title="Feedback"
                 description="Analyse votre texte selon 5 axes narratifs (intrigue, personnages, rythme, voix, cohérence) avec recommandations concrètes."
+                available={true}
+              />
+              <FeatureCard
+                icon={Eye}
+                title="Describe"
+                description="Génère des descriptions immersives adaptées à votre style et au ton de votre projet."
+                available={true}
+              />
+              <FeatureCard
+                icon={BookOpen}
+                title="Story Bible"
+                description="Structurez votre univers : personnages, lieux, chronologie, règles du monde. Tout centralisé."
+                available={true}
+              />
+              <FeatureCard
+                icon={Pen}
+                title="Write"
+                description="Autocomplétion longue (~300 mots) qui écrit dans votre voix, pas celle d'un modèle générique."
                 available={true}
               />
             </div>
@@ -246,25 +264,7 @@ export default function LandingPage() {
               <Sparkles className="h-5 w-5 text-primary" />
               Bientôt disponible
             </h3>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
-              <FeatureCard
-                icon={Eye}
-                title="Describe"
-                description="Génère des descriptions immersives adaptées à votre style et au ton de votre projet."
-                available={false}
-              />
-              <FeatureCard
-                icon={BookOpen}
-                title="Story Bible"
-                description="Structurez votre univers : personnages, lieux, chronologie, règles du monde. Tout centralisé."
-                available={false}
-              />
-              <FeatureCard
-                icon={Pen}
-                title="Write"
-                description="Autocomplétion longue (~300 mots) qui écrit dans votre voix, pas celle d'un modèle générique."
-                available={false}
-              />
+            <div className="grid gap-6 md:grid-cols-3 max-w-5xl mx-auto">
               <FeatureCard
                 icon={Lightbulb}
                 title="Brainstorm"
