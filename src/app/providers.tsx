@@ -1,10 +1,11 @@
 // ABOUTME: Client-side providers wrapper for the application.
-// ABOUTME: Provides session context for Auth.js and auto-signout on tab close.
+// ABOUTME: Provides session context for Auth.js, auto-signout on tab close, and cookie consent.
 
 'use client';
 
 import { useEffect } from 'react';
 import { SessionProvider, useSession } from 'next-auth/react';
+import { CookieConsent } from '@/components/ui/cookie-consent';
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -44,6 +45,7 @@ export function Providers({ children }: ProvidersProps) {
     <SessionProvider>
       <AutoSignOut />
       {children}
+      <CookieConsent variant="default" />
     </SessionProvider>
   );
 }
