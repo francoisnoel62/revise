@@ -82,7 +82,7 @@ describe('RewriteLoadingOverlay', () => {
     render(<RewriteLoadingOverlay isVisible={true} />);
 
     const blockquote = document.querySelector('blockquote');
-    const initialQuote = blockquote?.textContent;
+    const _initialQuote = blockquote?.textContent;
 
     // Advance timer by 3 seconds to trigger quote rotation
     act(() => {

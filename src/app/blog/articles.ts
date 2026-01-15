@@ -1991,7 +1991,7 @@ Faites-les compter.
     excerpt: 'L\'intelligence artificielle peut-elle vraiment améliorer votre écriture ? Analyse approfondie des capacités réelles de l\'IA en réécriture, des pièges à éviter, et des stratégies pour en tirer le meilleur sans perdre votre voix d\'auteur.',
     date: '2026-01-15',
     readingTime: 14,
-    content: \`
+    content: `
 ## L'IA dans l'écriture : entre fantasme et réalité
 
 L'intelligence artificielle a envahi le monde de l'écriture avec la subtilité d'un éléphant dans un magasin de porcelaine. En quelques années, nous sommes passés de correcteurs orthographiques basiques à des systèmes capables de générer des textes entiers, de traduire instantanément, de résumer des documents de 500 pages, et — ce qui nous intéresse ici — de réécrire des passages selon différents styles.
@@ -2197,7 +2197,7 @@ C'est là que réside la différence entre utiliser l'IA et être utilisé par e
 ---
 
 *Cet article fait partie de notre série sur les outils d'écriture modernes. Revise a été conçu avec ces principes en tête : proposer des variations sans imposer de direction, stimuler votre créativité sans la remplacer, vous aider à écrire votre meilleur texte — pas le nôtre.*
-    \`.trim()
+    `.trim()
   }
 ];
 

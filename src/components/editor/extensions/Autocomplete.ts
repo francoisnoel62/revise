@@ -290,6 +290,7 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
   },
 
   addProseMirrorPlugins() {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const extension = this;
 
     return [
@@ -301,7 +302,7 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
             return DecorationSet.empty;
           },
 
-          apply(tr, oldDecorations) {
+          apply(tr, _oldDecorations) {
             const { isLoading, suggestion } = extension.storage;
 
             // Clear decorations if not loading and no suggestion
