@@ -662,7 +662,18 @@ export default function LandingPage() {
               </Link>
             </div>
           </div>
-          <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
+          <div className="mt-8 pt-8 border-t flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6">
+              <Link href="/mentions-legales" className="hover:text-foreground transition-colors">
+                Mentions légales
+              </Link>
+              <Link href="/politique-confidentialite" className="hover:text-foreground transition-colors">
+                Confidentialité
+              </Link>
+              <Link href="/politique-cookies" className="hover:text-foreground transition-colors">
+                Cookies
+              </Link>
+            </div>
             <p>&copy; {new Date().getFullYear()} Revise. Tous droits réservés.</p>
           </div>
         </div>
