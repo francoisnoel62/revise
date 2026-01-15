@@ -18,6 +18,7 @@ export interface UserRepository {
 
   /**
    * Create a new user.
+   * New users are created with isApproved=false by default.
    * @throws Error if email already exists
    */
   create(registration: UserRegistration): Promise<SafeUser>;
@@ -26,4 +27,16 @@ export interface UserRepository {
    * Check if email is already registered.
    */
   emailExists(email: string): Promise<boolean>;
+
+  /**
+   * Approve a user, allowing them to sign in.
+   * @returns true if user was approved, false if user not found
+   */
+  approveUser(userId: string): Promise<boolean>;
+
+  /**
+   * Delete a user (used for rejection).
+   * @returns true if user was deleted, false if user not found
+   */
+  deleteUser(userId: string): Promise<boolean>;
 }

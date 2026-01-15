@@ -1,7 +1,8 @@
 // ABOUTME: Use case for registering a new user.
-// ABOUTME: Handles user creation with input validation and email uniqueness check.
+// ABOUTME: Handles user creation, validation, and admin notification email.
 
 import { UserRepository, SafeUser } from '@/domain/interfaces/UserRepository';
+import { EmailService } from '@/domain/interfaces/EmailService';
 
 export interface RegisterUserInput {
   email: string;
@@ -30,7 +31,10 @@ export class EmailAlreadyExistsError extends Error {
 }
 
 export class RegisterUserUseCase {
-  constructor(private userRepository: UserRepository) {}
+  constructor(
+    private userRepository: UserRepository,
+    private emailService?: EmailService
+  ) {}
 
   async execute(input: RegisterUserInput): Promise<SafeUser> {
     // 1. Validate input
@@ -41,12 +45,19 @@ export class RegisterUserUseCase {
       throw new EmailAlreadyExistsError(input.email);
     }
 
-    // 3. Create user
-    return this.userRepository.create({
+    // 3. Create user (with isApproved=false)
+    const user = await this.userRepository.create({
       email: input.email,
       password: input.password,
       name: input.name,
     });
+
+    // 4. Send notification email to admin
+    if (this.emailService) {
+      await this.emailService.sendRegistrationNotification(user);
+    }
+
+    return user;
   }
 
   private validateInput(input: RegisterUserInput): void {

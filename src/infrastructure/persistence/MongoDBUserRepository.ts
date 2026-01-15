@@ -14,6 +14,8 @@ interface UserDocument {
   email: string;
   passwordHash: string;
   name?: string;
+  isApproved: boolean;
+  approvedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -37,6 +39,8 @@ export class MongoDBUserRepository implements UserRepository {
       email: doc.email,
       passwordHash: doc.passwordHash,
       name: doc.name,
+      isApproved: doc.isApproved ?? false,
+      approvedAt: doc.approvedAt,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     };
@@ -52,6 +56,8 @@ export class MongoDBUserRepository implements UserRepository {
       email: doc.email,
       passwordHash: doc.passwordHash,
       name: doc.name,
+      isApproved: doc.isApproved ?? false,
+      approvedAt: doc.approvedAt,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     };
@@ -75,6 +81,7 @@ export class MongoDBUserRepository implements UserRepository {
       email,
       passwordHash,
       name: registration.name,
+      isApproved: false, // New users require approval
       createdAt: now,
       updatedAt: now,
     };
@@ -85,6 +92,7 @@ export class MongoDBUserRepository implements UserRepository {
       id: doc._id,
       email: doc.email,
       name: doc.name,
+      isApproved: doc.isApproved,
     };
   }
 
@@ -93,6 +101,25 @@ export class MongoDBUserRepository implements UserRepository {
       email: email.toLowerCase(),
     });
     return count > 0;
+  }
+
+  async approveUser(userId: string): Promise<boolean> {
+    const result = await this.collection.updateOne(
+      { _id: userId },
+      {
+        $set: {
+          isApproved: true,
+          approvedAt: new Date(),
+          updatedAt: new Date(),
+        },
+      }
+    );
+    return result.matchedCount > 0;
+  }
+
+  async deleteUser(userId: string): Promise<boolean> {
+    const result = await this.collection.deleteOne({ _id: userId });
+    return result.deletedCount > 0;
   }
 
   /**
