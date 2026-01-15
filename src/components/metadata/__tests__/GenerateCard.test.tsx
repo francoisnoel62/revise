@@ -34,6 +34,7 @@ describe('GenerateCard', () => {
     title: 'Analyse Narrative',
     description: 'Point de vue, structure narrative',
     isGenerating: false,
+    isAnyGenerating: false,
     providers: mockProviders,
     onGenerate: mockOnGenerate,
   };
@@ -50,7 +51,7 @@ describe('GenerateCard', () => {
 
   it('should render provider select dropdown', () => {
     render(<GenerateCard {...defaultProps} />);
-    expect(screen.getByLabelText('AI Provider')).toBeInTheDocument();
+    expect(screen.getByLabelText('Provider IA')).toBeInTheDocument();
   });
 
   it('should call onGenerate with selected provider ID when button clicked', () => {
@@ -74,7 +75,7 @@ describe('GenerateCard', () => {
   });
 
   it('should show loading state when generating', () => {
-    render(<GenerateCard {...defaultProps} isGenerating={true} />);
+    render(<GenerateCard {...defaultProps} isGenerating={true} isAnyGenerating={true} />);
 
     expect(screen.getByText('Génération en cours...')).toBeInTheDocument();
     const button = screen.getByRole('button', { name: /Génération en cours/i });
@@ -90,7 +91,7 @@ describe('GenerateCard', () => {
   });
 
   it('should disable controls when generating', () => {
-    render(<GenerateCard {...defaultProps} isGenerating={true} />);
+    render(<GenerateCard {...defaultProps} isGenerating={true} isAnyGenerating={true} />);
 
     const button = screen.getByRole('button');
     expect(button).toBeDisabled();

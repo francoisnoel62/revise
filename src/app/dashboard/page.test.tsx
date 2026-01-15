@@ -58,7 +58,7 @@ describe('DashboardPage', () => {
 
     render(<DashboardPage />);
 
-    expect(screen.getByText('Loading projects...')).toBeInTheDocument();
+    expect(screen.getByText('Chargement des projets...')).toBeInTheDocument();
   });
 
   it('displays projects after loading', async () => {
@@ -84,7 +84,7 @@ describe('DashboardPage', () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('No projects yet')).toBeInTheDocument();
+      expect(screen.getByText('Aucun projet')).toBeInTheDocument();
     });
   });
 
@@ -99,17 +99,17 @@ describe('DashboardPage', () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('No projects yet')).toBeInTheDocument();
+      expect(screen.getByText('Aucun projet')).toBeInTheDocument();
     });
 
     const createButton = screen.getByRole('button', {
-      name: /create your first project/i,
+      name: /créer votre premier projet/i,
     });
     await user.click(createButton);
 
     // Dialog should be open
     expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByLabelText(/title/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/titre/i)).toBeInTheDocument();
   });
 
   it('creates project with title from dialog', async () => {
@@ -136,21 +136,21 @@ describe('DashboardPage', () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('No projects yet')).toBeInTheDocument();
+      expect(screen.getByText('Aucun projet')).toBeInTheDocument();
     });
 
     // Open dialog
     const createButton = screen.getByRole('button', {
-      name: /create your first project/i,
+      name: /créer votre premier projet/i,
     });
     await user.click(createButton);
 
     // Fill in title
-    const titleInput = screen.getByLabelText(/title/i);
+    const titleInput = screen.getByLabelText(/titre/i);
     await user.type(titleInput, 'My Novel');
 
     // Submit
-    const submitButton = screen.getByRole('button', { name: /^create$/i });
+    const submitButton = screen.getByRole('button', { name: /^créer$/i });
     await user.click(submitButton);
 
     expect(createProjectAction).toHaveBeenCalledWith('My Novel');

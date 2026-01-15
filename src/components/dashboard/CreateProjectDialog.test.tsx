@@ -30,7 +30,7 @@ describe('CreateProjectDialog', () => {
     renderDialog();
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('New Project')).toBeInTheDocument();
+    expect(screen.getByText('Nouveau projet')).toBeInTheDocument();
   });
 
   it('does not render dialog when closed', () => {
@@ -42,24 +42,24 @@ describe('CreateProjectDialog', () => {
   it('has title input field', () => {
     renderDialog();
 
-    expect(screen.getByLabelText(/title/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/my novel/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/titre/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/mon roman/i)).toBeInTheDocument();
   });
 
   it('has file upload button', () => {
     renderDialog();
 
-    expect(screen.getByText(/import a \.docx file/i)).toBeInTheDocument();
+    expect(screen.getByText(/importer un fichier \.docx/i)).toBeInTheDocument();
   });
 
   it('calls onCreateProject with title when submitted', async () => {
     const user = userEvent.setup();
     renderDialog();
 
-    const titleInput = screen.getByLabelText(/title/i);
+    const titleInput = screen.getByLabelText(/titre/i);
     await user.type(titleInput, 'My Great Novel');
 
-    const submitButton = screen.getByRole('button', { name: /^create$/i });
+    const submitButton = screen.getByRole('button', { name: /^créer$/i });
     await user.click(submitButton);
 
     expect(mockOnCreateProject).toHaveBeenCalledWith('My Great Novel', null);
@@ -69,7 +69,7 @@ describe('CreateProjectDialog', () => {
     const user = userEvent.setup();
     renderDialog();
 
-    const submitButton = screen.getByRole('button', { name: /^create$/i });
+    const submitButton = screen.getByRole('button', { name: /^créer$/i });
     await user.click(submitButton);
 
     expect(mockOnCreateProject).toHaveBeenCalledWith('Nouveau projet', null);
@@ -102,11 +102,11 @@ describe('CreateProjectDialog', () => {
 
     expect(screen.getByText('my-draft.docx')).toBeInTheDocument();
 
-    const removeButton = screen.getByRole('button', { name: /remove file/i });
+    const removeButton = screen.getByRole('button', { name: /supprimer le fichier/i });
     await user.click(removeButton);
 
     expect(screen.queryByText('my-draft.docx')).not.toBeInTheDocument();
-    expect(screen.getByText(/import a \.docx file/i)).toBeInTheDocument();
+    expect(screen.getByText(/importer un fichier \.docx/i)).toBeInTheDocument();
   });
 
   it('calls onCreateProject with file when submitted', async () => {
@@ -120,7 +120,7 @@ describe('CreateProjectDialog', () => {
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     await user.upload(fileInput, file);
 
-    const submitButton = screen.getByRole('button', { name: /^create$/i });
+    const submitButton = screen.getByRole('button', { name: /^créer$/i });
     await user.click(submitButton);
 
     expect(mockOnCreateProject).toHaveBeenCalledWith('Nouveau projet', file);
@@ -129,16 +129,16 @@ describe('CreateProjectDialog', () => {
   it('disables inputs when creating', () => {
     renderDialog({ isCreating: true });
 
-    expect(screen.getByLabelText(/title/i)).toBeDisabled();
-    expect(screen.getByRole('button', { name: /creating/i })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /cancel/i })).toBeDisabled();
+    expect(screen.getByLabelText(/titre/i)).toBeDisabled();
+    expect(screen.getByRole('button', { name: /création/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /annuler/i })).toBeDisabled();
   });
 
   it('closes dialog on cancel', async () => {
     const user = userEvent.setup();
     renderDialog();
 
-    const cancelButton = screen.getByRole('button', { name: /cancel/i });
+    const cancelButton = screen.getByRole('button', { name: /annuler/i });
     await user.click(cancelButton);
 
     expect(mockOnOpenChange).toHaveBeenCalledWith(false);
@@ -149,11 +149,11 @@ describe('CreateProjectDialog', () => {
     renderDialog();
 
     // Fill in some data first
-    const titleInput = screen.getByLabelText(/title/i);
+    const titleInput = screen.getByLabelText(/titre/i);
     await user.type(titleInput, 'Some Title');
 
     // Click cancel
-    const cancelButton = screen.getByRole('button', { name: /cancel/i });
+    const cancelButton = screen.getByRole('button', { name: /annuler/i });
     await user.click(cancelButton);
 
     // Should call onOpenChange with false
