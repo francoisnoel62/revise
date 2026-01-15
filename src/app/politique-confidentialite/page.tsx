@@ -51,9 +51,9 @@ export default function PolitiqueConfidentialitePage() {
               <h2 className="text-2xl font-semibold">1. Responsable du traitement</h2>
               <p>Le responsable du traitement des données personnelles est :</p>
               <ul className="list-none space-y-2 pl-0">
-                <li><strong>Nom / Raison sociale :</strong> <span className="text-primary">[À COMPLÉTER]</span></li>
-                <li><strong>Adresse :</strong> <span className="text-primary">[À COMPLÉTER]</span></li>
-                <li><strong>Email de contact (DPO) :</strong> <span className="text-primary">[À COMPLÉTER]</span></li>
+                <li><strong>Nom :</strong> François Fanfan</li>
+                <li><strong>Localisation :</strong> Rebecques, France</li>
+                <li><strong>Email de contact :</strong> <a href="mailto:francoisnoel62@gmail.com" className="text-primary hover:underline">francoisnoel62@gmail.com</a></li>
               </ul>
             </section>
 
@@ -253,7 +253,7 @@ export default function PolitiqueConfidentialitePage() {
 
               <p className="mt-4">
                 Pour exercer ces droits, contactez-nous à :{' '}
-                <span className="text-primary">[EMAIL DPO À COMPLÉTER]</span>
+                <a href="mailto:francoisnoel62@gmail.com" className="text-primary hover:underline">francoisnoel62@gmail.com</a>
               </p>
 
               <p className="mt-4">
@@ -311,8 +311,8 @@ export default function PolitiqueConfidentialitePage() {
                 contactez-nous :
               </p>
               <ul className="list-none space-y-2 pl-0">
-                <li><strong>Email :</strong> <span className="text-primary">[À COMPLÉTER]</span></li>
-                <li><strong>Adresse :</strong> <span className="text-primary">[À COMPLÉTER]</span></li>
+                <li><strong>Email :</strong> <a href="mailto:francoisnoel62@gmail.com" className="text-primary hover:underline">francoisnoel62@gmail.com</a></li>
+                <li><strong>Localisation :</strong> Rebecques, France</li>
               </ul>
             </section>
           </div>

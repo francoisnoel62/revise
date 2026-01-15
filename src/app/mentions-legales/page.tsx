@@ -44,27 +44,23 @@ export default function MentionsLegalesPage() {
               <h2 className="text-2xl font-semibold">1. Éditeur du site</h2>
               <p>
                 Le site <strong>Revise</strong> (accessible à l&apos;adresse{' '}
-                <span className="text-primary">[URL DU SITE]</span>) est édité par :
+                <a href="https://revise.studio" className="text-primary hover:underline">https://revise.studio</a>) est édité par :
               </p>
               <ul className="list-none space-y-2 pl-0">
-                <li><strong>Nom / Raison sociale :</strong> <span className="text-primary">[À COMPLÉTER]</span></li>
-                <li><strong>Forme juridique :</strong> <span className="text-primary">[À COMPLÉTER - ex: SAS, SARL, Auto-entrepreneur]</span></li>
-                <li><strong>Capital social :</strong> <span className="text-primary">[À COMPLÉTER si applicable]</span></li>
-                <li><strong>Adresse du siège social :</strong> <span className="text-primary">[À COMPLÉTER]</span></li>
-                <li><strong>SIRET :</strong> <span className="text-primary">[À COMPLÉTER]</span></li>
-                <li><strong>Numéro TVA intracommunautaire :</strong> <span className="text-primary">[À COMPLÉTER si applicable]</span></li>
-                <li><strong>Email :</strong> <span className="text-primary">[À COMPLÉTER]</span></li>
-                <li><strong>Téléphone :</strong> <span className="text-primary">[À COMPLÉTER]</span></li>
+                <li><strong>Nom :</strong> François Fanfan</li>
+                <li><strong>Statut :</strong> Personne physique</li>
+                <li><strong>Localisation :</strong> Rebecques, France</li>
+                <li><strong>Email :</strong> <a href="mailto:francoisnoel62@gmail.com" className="text-primary hover:underline">francoisnoel62@gmail.com</a></li>
               </ul>
             </section>
 
             <section className="space-y-4">
               <h2 className="text-2xl font-semibold">2. Directeur de la publication</h2>
               <p>
-                <strong>Nom :</strong> <span className="text-primary">[À COMPLÉTER]</span>
+                <strong>Nom :</strong> François Fanfan
               </p>
               <p>
-                <strong>Contact :</strong> <span className="text-primary">[À COMPLÉTER]</span>
+                <strong>Contact :</strong> <a href="mailto:francoisnoel62@gmail.com" className="text-primary hover:underline">francoisnoel62@gmail.com</a>
               </p>
             </section>
 
@@ -147,7 +143,7 @@ export default function MentionsLegalesPage() {
               <h2 className="text-2xl font-semibold">8. Contact</h2>
               <p>
                 Pour toute question relative aux présentes mentions légales, vous pouvez nous
-                contacter à l&apos;adresse : <span className="text-primary">[EMAIL À COMPLÉTER]</span>
+                contacter à l&apos;adresse : <a href="mailto:francoisnoel62@gmail.com" className="text-primary hover:underline">francoisnoel62@gmail.com</a>
               </p>
             </section>
           </div>

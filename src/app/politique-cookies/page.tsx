@@ -279,7 +279,7 @@ export default function PolitiqueCookiesPage() {
               <h2 className="text-2xl font-semibold">8. Contact</h2>
               <p>
                 Pour toute question concernant notre utilisation des cookies, contactez-nous à :{' '}
-                <span className="text-primary">[EMAIL À COMPLÉTER]</span>
+                <a href="mailto:francoisnoel62@gmail.com" className="text-primary hover:underline">francoisnoel62@gmail.com</a>
               </p>
             </section>
           </div>
