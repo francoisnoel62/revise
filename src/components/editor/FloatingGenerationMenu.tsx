@@ -79,7 +79,7 @@ export function FloatingGenerationMenu({
   ];
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+    <div className="absolute inset-0 flex items-start justify-center pt-16 pointer-events-none z-10">
       <Card className="pointer-events-auto shadow-lg max-w-md">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg">
