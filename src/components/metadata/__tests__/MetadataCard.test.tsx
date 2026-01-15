@@ -165,7 +165,7 @@ describe('MetadataCard', () => {
       // Check dialog is open
       await waitFor(() => {
         expect(screen.getByText(`Régénérer ${mockMetadata.title}`)).toBeInTheDocument();
-        expect(screen.getByText('AI Provider')).toBeInTheDocument();
+        expect(screen.getByText('Provider IA')).toBeInTheDocument();
       });
     });
 

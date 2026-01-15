@@ -2,7 +2,7 @@
 // ABOUTME: Verifies rendering, accept/decline behavior, and cookie persistence
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { CookieConsent } from './cookie-consent';
 
 describe('CookieConsent', () => {

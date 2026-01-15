@@ -55,8 +55,8 @@ describe('ProjectCard', () => {
     );
 
     expect(screen.getByText('Test Project')).toBeInTheDocument();
-    expect(screen.getByText('5 chapters')).toBeInTheDocument();
-    expect(screen.getByText('2.5k words')).toBeInTheDocument();
+    expect(screen.getByText('5 chapitres')).toBeInTheDocument();
+    expect(screen.getByText('2.5k mots')).toBeInTheDocument();
   });
 
   it('calls onOpen when clicked', async () => {
@@ -94,11 +94,11 @@ describe('ProjectCard', () => {
     await user.click(menuButton);
 
     // Click delete
-    const deleteOption = screen.getByText('Delete');
+    const deleteOption = screen.getByText('Supprimer');
     await user.click(deleteOption);
 
     // Check dialog appears
-    expect(screen.getByText('Delete project?')).toBeInTheDocument();
+    expect(screen.getByText('Supprimer le projet ?')).toBeInTheDocument();
   });
 
   it('deletes project when confirmed', async () => {
@@ -120,10 +120,10 @@ describe('ProjectCard', () => {
 
     // Open menu and click delete
     await user.click(screen.getByRole('button', { name: '' }));
-    await user.click(screen.getByText('Delete'));
+    await user.click(screen.getByText('Supprimer'));
 
     // Confirm deletion
-    await user.click(screen.getByRole('button', { name: /^delete$/i }));
+    await user.click(screen.getByRole('button', { name: /supprimer/i }));
 
     await waitFor(() => {
       expect(deleteProjectAction).toHaveBeenCalledWith('proj-1');
@@ -150,15 +150,15 @@ describe('ProjectCard', () => {
 
     // Open menu and click rename
     await user.click(screen.getByRole('button', { name: '' }));
-    await user.click(screen.getByText('Rename'));
+    await user.click(screen.getByText('Renommer'));
 
     // Change title
-    const input = screen.getByPlaceholderText('Project title');
+    const input = screen.getByPlaceholderText('Titre du projet');
     await user.clear(input);
     await user.type(input, 'New Title');
 
     // Save
-    await user.click(screen.getByRole('button', { name: /save/i }));
+    await user.click(screen.getByRole('button', { name: /enregistrer/i }));
 
     await waitFor(() => {
       expect(updateProjectTitleAction).toHaveBeenCalledWith('proj-1', 'New Title');

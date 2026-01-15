@@ -3,9 +3,12 @@
 
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { Progress } from '@/components/ui/progress';
 import AUTHOR_QUOTES from '@/data/author-quotes.json';
+
+// Shuffle quotes once at module load time for variety (pure at render time)
+const shuffledQuotes = [...AUTHOR_QUOTES].sort(() => Math.random() - 0.5);
 
 interface RewriteLoadingOverlayProps {
   isVisible: boolean;
@@ -15,14 +18,10 @@ export function RewriteLoadingOverlay({ isVisible }: RewriteLoadingOverlayProps)
   const [progress, setProgress] = useState(0);
   const [quoteIndex, setQuoteIndex] = useState(0);
 
-  // Shuffle quotes on mount for variety
-  const shuffledQuotes = useMemo(() => {
-    return [...AUTHOR_QUOTES].sort(() => Math.random() - 0.5);
-  }, []);
-
   // Animate progress bar
   useEffect(() => {
     if (!isVisible) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setProgress(0);
       return;
     }
@@ -43,6 +42,7 @@ export function RewriteLoadingOverlay({ isVisible }: RewriteLoadingOverlayProps)
   // Rotate quotes every 3 seconds
   useEffect(() => {
     if (!isVisible) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setQuoteIndex(0);
       return;
     }
@@ -52,7 +52,7 @@ export function RewriteLoadingOverlay({ isVisible }: RewriteLoadingOverlayProps)
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [isVisible, shuffledQuotes.length]);
+  }, [isVisible]);
 
   if (!isVisible) return null;
 

@@ -36,8 +36,8 @@ function renderMarkdown(content: string): React.ReactNode {
   const lines = content.split('\n');
   const elements: React.ReactNode[] = [];
   let currentParagraph: string[] = [];
-  let inBlockquote = false;
-  let inList = false;
+  let _inBlockquote = false;
+  let _inList = false;
   let listItems: string[] = [];
   let key = 0;
 
@@ -63,7 +63,7 @@ function renderMarkdown(content: string): React.ReactNode {
         </ul>
       );
       listItems = [];
-      inList = false;
+      _inList = false;
     }
   };
 
@@ -81,7 +81,7 @@ function renderMarkdown(content: string): React.ReactNode {
     if (!trimmedLine) {
       flushParagraph();
       flushList();
-      inBlockquote = false;
+      _inBlockquote = false;
       continue;
     }
 
@@ -129,14 +129,14 @@ function renderMarkdown(content: string): React.ReactNode {
           dangerouslySetInnerHTML={{ __html: formatInlineMarkdown(quoteText) }}
         />
       );
-      inBlockquote = true;
+      _inBlockquote = true;
       continue;
     }
 
     // List item
     if (trimmedLine.startsWith('- ')) {
       flushParagraph();
-      inList = true;
+      _inList = true;
       listItems.push(trimmedLine.slice(2));
       continue;
     }
