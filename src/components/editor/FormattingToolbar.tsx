@@ -44,6 +44,7 @@ interface FormattingToolbarProps {
   onHistoryClick?: () => void;
   autocompleteEnabled?: boolean;
   onAutocompleteChange?: (enabled: boolean) => void;
+  showAIFeatures?: boolean;
 }
 
 export function FormattingToolbar({
@@ -58,6 +59,7 @@ export function FormattingToolbar({
   onHistoryClick,
   autocompleteEnabled = true,
   onAutocompleteChange,
+  showAIFeatures = true,
 }: FormattingToolbarProps) {
   if (!editor) return null;
 
@@ -238,7 +240,7 @@ export function FormattingToolbar({
         </Button>
       </div>
 
-      {onRewrite && (
+      {showAIFeatures && onRewrite && (
         <div className="flex items-center gap-2 ml-auto">
           <Button
             variant={hasSelection && selectedProviderId ? 'default' : 'ghost'}

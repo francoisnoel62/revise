@@ -13,7 +13,7 @@ export { ExportProjectUseCase } from './use-cases/ExportProjectUseCase';
 // Project CRUD Use Cases (Phase 3)
 export { CreateProjectUseCase } from './use-cases/CreateProjectUseCase';
 export type { CreateProjectInput } from './use-cases/CreateProjectUseCase';
-export { NoValidProvidersError, InvalidProviderError } from './use-cases/CreateProjectUseCase';
+export { InvalidProviderError } from './use-cases/CreateProjectUseCase';
 export { LoadProjectUseCase } from './use-cases/LoadProjectUseCase';
 export type { LoadProjectInput } from './use-cases/LoadProjectUseCase';
 export { ProjectNotFoundError } from './use-cases/LoadProjectUseCase';

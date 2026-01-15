@@ -15,18 +15,21 @@ interface FloatingGenerationMenuProps {
   editor: Editor | null;
   projectId: string;
   isVisible: boolean;
+  showAIFeatures?: boolean;
 }
 
 export function FloatingGenerationMenu({
   editor,
   projectId,
   isVisible,
+  showAIFeatures = true,
 }: FloatingGenerationMenuProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeType, setActiveType] = useState<ChapterGenerationTypeKey | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  if (!isVisible || !editor) return null;
+  // Hide if AI features are disabled or not visible
+  if (!showAIFeatures || !isVisible || !editor) return null;
 
   const handleGenerate = async (generationType: ChapterGenerationTypeKey) => {
     setIsGenerating(true);
