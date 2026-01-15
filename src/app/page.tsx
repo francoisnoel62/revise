@@ -664,6 +664,9 @@ export default function LandingPage() {
           </div>
           <div className="mt-8 pt-8 border-t flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
             <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6">
+              <Link href="/blog" className="hover:text-foreground transition-colors">
+                Blog
+              </Link>
               <Link href="/mentions-legales" className="hover:text-foreground transition-colors">
                 Mentions légales
               </Link>
