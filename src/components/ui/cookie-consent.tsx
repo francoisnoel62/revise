@@ -164,7 +164,7 @@ export function CookieConsent({
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             <a
-              href="/legal/privacy-policy"
+              href="/politique-cookies"
               className="text-primary underline underline-offset-4 hover:text-primary/80"
             >
               En savoir plus

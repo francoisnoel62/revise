@@ -127,7 +127,7 @@ describe('CookieConsent', () => {
     expect(screen.queryByText('Nous utilisons des cookies')).not.toBeInTheDocument();
   });
 
-  it('should contain a link to privacy policy in default variant', async () => {
+  it('should contain a link to cookie policy in default variant', async () => {
     render(<CookieConsent />);
 
     await act(async () => {
@@ -135,6 +135,6 @@ describe('CookieConsent', () => {
     });
 
     const link = screen.getByText('En savoir plus');
-    expect(link).toHaveAttribute('href', '/legal/privacy-policy');
+    expect(link).toHaveAttribute('href', '/politique-cookies');
   });
 });
