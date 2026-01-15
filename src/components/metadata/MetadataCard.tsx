@@ -280,7 +280,7 @@ export function MetadataCard({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 py-4">
-            <Label htmlFor="regenerate-provider-select">AI Provider</Label>
+            <Label htmlFor="regenerate-provider-select">Provider IA</Label>
             <Select
               value={selectedProviderId}
               onValueChange={setSelectedProviderId}

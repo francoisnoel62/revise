@@ -48,7 +48,7 @@ export function ProviderCard({ provider, onEdit, onDelete, onValidated }: Provid
         setValidationError(result.error);
       }
     } catch {
-      setValidationError('Failed to validate provider');
+      setValidationError('Impossible de valider le provider');
     } finally {
       setIsValidating(false);
     }
@@ -72,18 +72,18 @@ export function ProviderCard({ provider, onEdit, onDelete, onValidated }: Provid
                 ) : (
                   <RefreshCw className="mr-2 h-4 w-4" />
                 )}
-                Validate
+                Valider
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onEdit(provider)}>
                 <Edit className="mr-2 h-4 w-4" />
-                Edit
+                Modifier
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => onDelete(provider)}
                 className="text-red-600"
               >
                 <Trash className="mr-2 h-4 w-4" />
-                Delete
+                Supprimer
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -93,12 +93,12 @@ export function ProviderCard({ provider, onEdit, onDelete, onValidated }: Provid
           {provider.isValid ? (
             <Badge variant="default" className="bg-green-600">
               <CheckCircle className="mr-1 h-3 w-3" />
-              Valid
+              Valide
             </Badge>
           ) : (
             <Badge variant="destructive">
               <XCircle className="mr-1 h-3 w-3" />
-              Invalid
+              Invalide
             </Badge>
           )}
         </CardTitle>
@@ -107,18 +107,18 @@ export function ProviderCard({ provider, onEdit, onDelete, onValidated }: Provid
       <CardContent>
         <div className="grid gap-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Model:</span>
+            <span className="text-muted-foreground">Modèle :</span>
             <span className="font-medium">{provider.model}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">API Key:</span>
+            <span className="text-muted-foreground">Clé API :</span>
             <span className="font-mono text-xs">{provider.maskedApiKey}</span>
           </div>
           {provider.lastTested && (
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Last Tested:</span>
+              <span className="text-muted-foreground">Dernier test :</span>
               <span className="text-xs">
-                {new Date(provider.lastTested).toLocaleDateString()}
+                {new Date(provider.lastTested).toLocaleDateString('fr-FR')}
               </span>
             </div>
           )}

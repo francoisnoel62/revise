@@ -79,19 +79,19 @@ export function CreateProjectDialog({
       <DialogContent>
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>New Project</DialogTitle>
+            <DialogTitle>Nouveau projet</DialogTitle>
             <DialogDescription>
-              Create a new writing project. You can optionally import a draft.
+              Créez un nouveau projet d&apos;écriture. Vous pouvez importer un brouillon.
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
             {/* Title input */}
             <div className="grid gap-2">
-              <Label htmlFor="title">Title</Label>
+              <Label htmlFor="title">Titre</Label>
               <Input
                 id="title"
-                placeholder="My novel..."
+                placeholder="Mon roman..."
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 disabled={isCreating}
@@ -101,7 +101,7 @@ export function CreateProjectDialog({
 
             {/* File upload */}
             <div className="grid gap-2">
-              <Label htmlFor="file">Draft (optional)</Label>
+              <Label htmlFor="file">Brouillon (optionnel)</Label>
               <input
                 ref={fileInputRef}
                 id="file"
@@ -125,7 +125,7 @@ export function CreateProjectDialog({
                     disabled={isCreating}
                   >
                     <X className="h-4 w-4" />
-                    <span className="sr-only">Remove file</span>
+                    <span className="sr-only">Supprimer le fichier</span>
                   </Button>
                 </div>
               ) : (
@@ -137,7 +137,7 @@ export function CreateProjectDialog({
                   disabled={isCreating}
                 >
                   <Upload className="mr-2 h-4 w-4" />
-                  Import a .docx file
+                  Importer un fichier .docx
                 </Button>
               )}
             </div>
@@ -150,10 +150,10 @@ export function CreateProjectDialog({
               onClick={() => handleOpenChange(false)}
               disabled={isCreating}
             >
-              Cancel
+              Annuler
             </Button>
             <Button type="submit" disabled={isCreating}>
-              {isCreating ? 'Creating...' : 'Create'}
+              {isCreating ? 'Création...' : 'Créer'}
             </Button>
           </DialogFooter>
         </form>

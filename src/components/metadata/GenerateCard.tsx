@@ -64,7 +64,7 @@ export function GenerateCard({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="provider-select">AI Provider</Label>
+          <Label htmlFor="provider-select">Provider IA</Label>
           <Select
             value={selectedProviderId}
             onValueChange={setSelectedProviderId}

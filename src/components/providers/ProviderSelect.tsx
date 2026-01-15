@@ -24,7 +24,7 @@ export interface ProviderSelectProps {
 export function ProviderSelect({
   value,
   onValueChange,
-  placeholder = 'Select a provider...',
+  placeholder = 'Sélectionner un provider...',
   disabled = false,
   showValidationStatus = true,
 }: ProviderSelectProps) {
@@ -77,7 +77,7 @@ export function ProviderSelect({
       <Combobox
         options={[]}
         value=""
-        placeholder="Loading providers..."
+        placeholder="Chargement des providers..."
         disabled={true}
       />
     );
@@ -87,7 +87,7 @@ export function ProviderSelect({
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <AlertCircle className="h-4 w-4" />
-        <span>No providers configured. Add one in your user menu.</span>
+        <span>Aucun provider configuré. Ajoutez-en un dans le menu utilisateur.</span>
       </div>
     );
   }
@@ -100,8 +100,8 @@ export function ProviderSelect({
         onValueChange={(newValue) => onValueChange?.(newValue || null)}
         placeholder={placeholder}
         disabled={disabled}
-        searchPlaceholder="Search providers..."
-        emptyText="No providers found."
+        searchPlaceholder="Rechercher des providers..."
+        emptyText="Aucun provider trouvé."
       />
       {selectedProvider && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -109,19 +109,19 @@ export function ProviderSelect({
             <>
               <Badge variant="default" className="bg-green-600">
                 <CheckCircle className="mr-1 h-3 w-3" />
-                Valid
+                Valide
               </Badge>
-              <span>Model: {selectedProvider.model}</span>
+              <span>Modèle : {selectedProvider.model}</span>
             </>
           ) : (
             <>
               <Badge variant="destructive">
                 <XCircle className="mr-1 h-3 w-3" />
-                Invalid
+                Invalide
               </Badge>
               <span>
-                This provider is not valid. Please test the connection in your
-                provider settings.
+                Ce provider n&apos;est pas valide. Testez la connexion dans les
+                paramètres du provider.
               </span>
             </>
           )}

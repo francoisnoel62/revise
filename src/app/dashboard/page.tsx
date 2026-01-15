@@ -114,7 +114,7 @@ export default function DashboardPage() {
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
           <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading projects...</p>
+          <p className="text-muted-foreground">Chargement des projets...</p>
         </div>
       </div>
     );
@@ -127,14 +127,14 @@ export default function DashboardPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold">My Projects</h1>
+              <h1 className="text-2xl font-bold">Mes projets</h1>
               <p className="text-muted-foreground">
-                {projects.length} project{projects.length !== 1 ? 's' : ''}
+                {projects.length} projet{projects.length !== 1 ? 's' : ''}
               </p>
             </div>
             <Button onClick={handleOpenDialog}>
               <Plus className="h-4 w-4 mr-2" />
-              New Project
+              Nouveau projet
             </Button>
           </div>
         </div>

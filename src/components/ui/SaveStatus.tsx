@@ -11,7 +11,7 @@ export function SaveStatus() {
   if (error) {
     return (
       <span className="text-xs text-red-600">
-        Error: {error}
+        Erreur : {error}
       </span>
     );
   }
@@ -19,7 +19,7 @@ export function SaveStatus() {
   if (isSaving) {
     return (
       <span className="text-xs text-muted-foreground animate-pulse">
-        Saving...
+        Enregistrement...
       </span>
     );
   }
@@ -27,7 +27,7 @@ export function SaveStatus() {
   if (hasUnsavedChanges) {
     return (
       <span className="text-xs text-amber-600">
-        Unsaved changes
+        Modifications non enregistrées
       </span>
     );
   }
@@ -35,7 +35,7 @@ export function SaveStatus() {
   if (lastSavedAt) {
     return (
       <span className="text-xs text-muted-foreground">
-        Saved {formatRelativeTime(lastSavedAt)}
+        Enregistré {formatRelativeTime(lastSavedAt)}
       </span>
     );
   }
@@ -46,8 +46,8 @@ export function SaveStatus() {
 function formatRelativeTime(date: Date): string {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
 
-  if (seconds < 5) return 'just now';
-  if (seconds < 60) return `${seconds}s ago`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  return date.toLocaleTimeString();
+  if (seconds < 5) return 'à l\'instant';
+  if (seconds < 60) return `il y a ${seconds}s`;
+  if (seconds < 3600) return `il y a ${Math.floor(seconds / 60)}m`;
+  return date.toLocaleTimeString('fr-FR');
 }

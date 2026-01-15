@@ -99,11 +99,11 @@ export function ProjectCard({ project, onOpen, onDeleted, onRenamed }: ProjectCa
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
     if (diffDays === 0) {
-      return 'Today';
+      return 'Aujourd\'hui';
     } else if (diffDays === 1) {
-      return 'Yesterday';
+      return 'Hier';
     } else if (diffDays < 7) {
-      return `${diffDays} days ago`;
+      return `Il y a ${diffDays} jours`;
     } else {
       return date.toLocaleDateString();
     }
@@ -111,9 +111,9 @@ export function ProjectCard({ project, onOpen, onDeleted, onRenamed }: ProjectCa
 
   const formatWordCount = (count: number) => {
     if (count >= 1000) {
-      return `${(count / 1000).toFixed(1)}k words`;
+      return `${(count / 1000).toFixed(1)}k mots`;
     }
-    return `${count} words`;
+    return `${count} mots`;
   };
 
   return (
@@ -126,7 +126,7 @@ export function ProjectCard({ project, onOpen, onDeleted, onRenamed }: ProjectCa
           <div className="flex-1 min-w-0">
             <CardTitle className="text-lg truncate">{project.title}</CardTitle>
             <CardDescription>
-              {project.chapterCount} chapter{project.chapterCount !== 1 ? 's' : ''}
+              {project.chapterCount} chapitre{project.chapterCount !== 1 ? 's' : ''}
             </CardDescription>
           </div>
           <DropdownMenu>
@@ -144,7 +144,7 @@ export function ProjectCard({ project, onOpen, onDeleted, onRenamed }: ProjectCa
                 }}
               >
                 <Pencil className="h-4 w-4 mr-2" />
-                Rename
+                Renommer
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleOpenMetadata}>
                 <FileText className="h-4 w-4 mr-2" />
@@ -159,7 +159,7 @@ export function ProjectCard({ project, onOpen, onDeleted, onRenamed }: ProjectCa
                 className="text-red-600"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                Delete
+                Supprimer
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -176,20 +176,20 @@ export function ProjectCard({ project, onOpen, onDeleted, onRenamed }: ProjectCa
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete project?</AlertDialogTitle>
+            <AlertDialogTitle>Supprimer le projet ?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete &quot;{project.title}&quot; and all its chapters.
-              This action cannot be undone.
+              Cette action supprimera définitivement &quot;{project.title}&quot; et tous ses chapitres.
+              Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isDeleting}
               className="bg-red-600 hover:bg-red-700"
             >
-              {isDeleting ? 'Deleting...' : 'Delete'}
+              {isDeleting ? 'Suppression...' : 'Supprimer'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -199,22 +199,22 @@ export function ProjectCard({ project, onOpen, onDeleted, onRenamed }: ProjectCa
       <Dialog open={showRenameDialog} onOpenChange={setShowRenameDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Rename project</DialogTitle>
+            <DialogTitle>Renommer le projet</DialogTitle>
           </DialogHeader>
           <Input
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
-            placeholder="Project title"
+            placeholder="Titre du projet"
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleRename();
             }}
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowRenameDialog(false)}>
-              Cancel
+              Annuler
             </Button>
             <Button onClick={handleRename} disabled={isRenaming || !newTitle.trim()}>
-              {isRenaming ? 'Saving...' : 'Save'}
+              {isRenaming ? 'Enregistrement...' : 'Enregistrer'}
             </Button>
           </DialogFooter>
         </DialogContent>

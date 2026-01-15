@@ -83,7 +83,7 @@ export function ProviderForm({ provider, onSuccess, onCancel }: ProviderFormProp
   // Handle test connection
   const handleTestConnection = async () => {
     if (!apiKey) {
-      setError('API key is required to test connection');
+      setError('La clé API est requise pour tester la connexion');
       return;
     }
 
@@ -107,7 +107,7 @@ export function ProviderForm({ provider, onSuccess, onCancel }: ProviderFormProp
         setError(result.error);
       }
     } catch {
-      setError('Failed to test connection');
+      setError('Impossible de tester la connexion');
     } finally {
       setIsTesting(false);
     }
@@ -145,7 +145,7 @@ export function ProviderForm({ provider, onSuccess, onCancel }: ProviderFormProp
       } else {
         // Create new provider
         if (!apiKey) {
-          setError('API key is required');
+          setError('La clé API est requise');
           setIsSubmitting(false);
           return;
         }
@@ -168,7 +168,7 @@ export function ProviderForm({ provider, onSuccess, onCancel }: ProviderFormProp
         setError(result.error);
       }
     } catch {
-      setError('Failed to save provider');
+      setError('Impossible de sauvegarder le provider');
     } finally {
       setIsSubmitting(false);
     }
@@ -182,18 +182,18 @@ export function ProviderForm({ provider, onSuccess, onCancel }: ProviderFormProp
       {/* Provider Name */}
       <div className="space-y-2">
         <Label htmlFor="name">
-          Provider Name
+          Nom du provider
           <span className="text-destructive ml-1">*</span>
         </Label>
         <Input
           id="name"
-          placeholder="e.g., My OpenAI Key, Production Account"
+          placeholder="ex. Ma clé OpenAI, Compte production"
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
         />
         <p className="text-xs text-muted-foreground">
-          A friendly name to identify this provider configuration
+          Un nom pour identifier cette configuration de provider
         </p>
       </div>
 
@@ -201,7 +201,7 @@ export function ProviderForm({ provider, onSuccess, onCancel }: ProviderFormProp
       {!isEditing && (
         <div className="space-y-2">
           <Label htmlFor="provider-type">
-            Provider Type
+            Type de provider
             <span className="text-destructive ml-1">*</span>
           </Label>
           <Select value={providerType} onValueChange={handleProviderTypeChange}>
@@ -215,14 +215,14 @@ export function ProviderForm({ provider, onSuccess, onCancel }: ProviderFormProp
             </SelectContent>
           </Select>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>Need an API key?</span>
+            <span>Besoin d&apos;une clé API ?</span>
             <a
               href={providerDocUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="text-primary hover:underline inline-flex items-center gap-1"
             >
-              Get {providerName} API Key
+              Obtenir une clé {providerName}
               <ExternalLink className="h-3 w-3" />
             </a>
           </div>
@@ -232,18 +232,18 @@ export function ProviderForm({ provider, onSuccess, onCancel }: ProviderFormProp
       {/* Model Selection */}
       <div className="space-y-2">
         <Label htmlFor="model">
-          Model
+          Modèle
           <span className="text-destructive ml-1">*</span>
         </Label>
         <Combobox
           options={availableModels.map((m) => ({
             value: m.id,
-            label: `${m.name}${m.recommended ? ' (Recommended)' : ''}`,
+            label: `${m.name}${m.recommended ? ' (Recommandé)' : ''}`,
           }))}
           value={model}
           onValueChange={setModel}
-          placeholder="Select a model..."
-          searchPlaceholder="Search models..."
+          placeholder="Sélectionner un modèle..."
+          searchPlaceholder="Rechercher des modèles..."
         />
         {model && (
           <p className="text-xs text-muted-foreground">
@@ -255,19 +255,19 @@ export function ProviderForm({ provider, onSuccess, onCancel }: ProviderFormProp
       {/* API Key */}
       <div className="space-y-2">
         <Label htmlFor="api-key">
-          API Key
+          Clé API
           {!isEditing && <span className="text-destructive ml-1">*</span>}
         </Label>
         <PasswordInput
           id="api-key"
-          placeholder={isEditing ? 'Leave blank to keep current key' : 'sk-...'}
+          placeholder={isEditing ? 'Laisser vide pour conserver la clé actuelle' : 'sk-...'}
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
           required={!isEditing}
         />
         {isEditing && (
           <p className="text-xs text-muted-foreground">
-            Leave blank to keep your existing API key
+            Laisser vide pour conserver votre clé API existante
           </p>
         )}
       </div>
@@ -281,7 +281,7 @@ export function ProviderForm({ provider, onSuccess, onCancel }: ProviderFormProp
           disabled={!apiKey || isTesting}
         >
           {isTesting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Test Connection
+          Tester la connexion
         </Button>
         {testResult && (
           <div className="flex items-center gap-2 text-sm">
@@ -310,11 +310,11 @@ export function ProviderForm({ provider, onSuccess, onCancel }: ProviderFormProp
       {/* Form Actions */}
       <div className="flex justify-end gap-2 pt-4">
         <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
+          Annuler
         </Button>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {isEditing ? 'Update Provider' : 'Create Provider'}
+          {isEditing ? 'Mettre à jour' : 'Créer le provider'}
         </Button>
       </div>
     </form>

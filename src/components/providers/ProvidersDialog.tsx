@@ -77,7 +77,7 @@ export function ProvidersDialog({ open, onOpenChange }: ProvidersDialogProps) {
         setError(result.error);
       }
     } catch {
-      setError('Failed to load providers');
+      setError('Impossible de charger les providers');
     } finally {
       setIsLoading(false);
     }
@@ -118,7 +118,7 @@ export function ProvidersDialog({ open, onOpenChange }: ProvidersDialogProps) {
         setError(result.error);
       }
     } catch {
-      setError('Failed to delete provider');
+      setError('Impossible de supprimer le provider');
     } finally {
       setIsDeleting(false);
     }
@@ -160,16 +160,16 @@ export function ProvidersDialog({ open, onOpenChange }: ProvidersDialogProps) {
         <DialogContent className="max-w-3xl max-h-[80vh]">
           <DialogHeader>
             <DialogTitle>
-              {mode === 'list' && 'My AI Providers'}
-              {mode === 'create' && 'Add AI Provider'}
-              {mode === 'edit' && 'Edit AI Provider'}
+              {mode === 'list' && 'Mes providers IA'}
+              {mode === 'create' && 'Ajouter un provider IA'}
+              {mode === 'edit' && 'Modifier le provider IA'}
             </DialogTitle>
             <DialogDescription>
               {mode === 'list' &&
-                'Manage your AI provider API keys and configurations.'}
+                'Gérez vos clés API et configurations de providers IA.'}
               {mode === 'create' &&
-                'Configure a new AI provider for your writing projects.'}
-              {mode === 'edit' && 'Update your AI provider configuration.'}
+                'Configurez un nouveau provider IA pour vos projets d\'écriture.'}
+              {mode === 'edit' && 'Mettez à jour la configuration de votre provider IA.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -179,12 +179,12 @@ export function ProvidersDialog({ open, onOpenChange }: ProvidersDialogProps) {
               <div className="flex justify-between items-center">
                 <p className="text-sm text-muted-foreground">
                   {providers.length === 0
-                    ? 'No providers configured yet'
-                    : `${providers.length} provider${providers.length !== 1 ? 's' : ''} configured`}
+                    ? 'Aucun provider configuré'
+                    : `${providers.length} provider${providers.length !== 1 ? 's' : ''} configuré${providers.length !== 1 ? 's' : ''}`}
                 </p>
                 <Button onClick={handleCreate} size="sm">
                   <Plus className="mr-2 h-4 w-4" />
-                  Add Provider
+                  Ajouter un provider
                 </Button>
               </div>
 
@@ -201,11 +201,11 @@ export function ProvidersDialog({ open, onOpenChange }: ProvidersDialogProps) {
               ) : providers.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-muted-foreground mb-4">
-                    Add your first AI provider to start using AI-powered rewrites.
+                    Ajoutez votre premier provider IA pour utiliser les réécritures assistées.
                   </p>
                   <Button onClick={handleCreate}>
                     <Plus className="mr-2 h-4 w-4" />
-                    Add Your First Provider
+                    Ajouter votre premier provider
                   </Button>
                 </div>
               ) : (
@@ -243,15 +243,15 @@ export function ProvidersDialog({ open, onOpenChange }: ProvidersDialogProps) {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Provider?</AlertDialogTitle>
+            <AlertDialogTitle>Supprimer le provider ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete{' '}
-              <strong>{providerToDelete?.name}</strong>? This action cannot be
-              undone.
+              Êtes-vous sûr de vouloir supprimer{' '}
+              <strong>{providerToDelete?.name}</strong> ? Cette action est
+              irréversible.
               {providerToDelete && !providerToDelete.isValid && (
                 <p className="mt-2 text-yellow-600">
-                  Note: This provider is marked as invalid. Deleting it may affect
-                  projects using it.
+                  Note : Ce provider est marqué comme invalide. Le supprimer peut
+                  affecter les projets qui l&apos;utilisent.
                 </p>
               )}
             </AlertDialogDescription>
@@ -262,14 +262,14 @@ export function ProvidersDialog({ open, onOpenChange }: ProvidersDialogProps) {
             </Alert>
           )}
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Delete
+              Supprimer
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
