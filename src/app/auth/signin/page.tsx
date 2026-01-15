@@ -26,7 +26,7 @@ function SignInForm() {
   // Check for registration success
   useEffect(() => {
     if (searchParams.get('registered') === 'true') {
-      setSuccessMessage('Account created successfully. Please sign in.');
+      setSuccessMessage('Compte créé avec succès. Veuillez vous connecter.');
     }
   }, [searchParams]);
 
@@ -52,7 +52,7 @@ function SignInForm() {
       });
 
       if (result?.error) {
-        setError('Invalid email or password');
+        setError('Email ou mot de passe incorrect');
         return;
       }
 
@@ -61,7 +61,7 @@ function SignInForm() {
       router.push(callbackUrl);
       router.refresh();
     } catch {
-      setError('An error occurred. Please try again.');
+      setError('Une erreur est survenue. Veuillez réessayer.');
     } finally {
       setIsLoading(false);
     }
@@ -72,9 +72,9 @@ function SignInForm() {
       <div className="mx-auto w-full max-w-md space-y-6 p-6">
         {/* Header */}
         <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold">Welcome back</h1>
+          <h1 className="text-3xl font-bold">Bon retour</h1>
           <p className="text-muted-foreground">
-            Sign in to your account to continue
+            Connectez-vous à votre compte pour continuer
           </p>
         </div>
 
@@ -98,7 +98,7 @@ function SignInForm() {
               id="email"
               name="email"
               type="email"
-              placeholder="you@example.com"
+              placeholder="vous@exemple.com"
               value={formData.email}
               onChange={handleChange}
               required
@@ -108,12 +108,12 @@ function SignInForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">Mot de passe</Label>
             <Input
               id="password"
               name="password"
               type="password"
-              placeholder="Your password"
+              placeholder="Votre mot de passe"
               value={formData.password}
               onChange={handleChange}
               required
@@ -123,15 +123,15 @@ function SignInForm() {
           </div>
 
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? 'Signing in...' : 'Sign in'}
+            {isLoading ? 'Connexion...' : 'Se connecter'}
           </Button>
         </form>
 
         {/* Footer */}
         <p className="text-center text-sm text-muted-foreground">
-          Don&apos;t have an account?{' '}
+          Vous n&apos;avez pas de compte ?{' '}
           <Link href="/auth/signup" className="text-primary hover:underline">
-            Create one
+            Créer un compte
           </Link>
         </p>
       </div>

@@ -32,7 +32,7 @@ export function UserMenu() {
   if (!session?.user) {
     return (
       <Button variant="outline" size="sm" onClick={() => router.push('/auth/signin')}>
-        Sign in
+        Se connecter
       </Button>
     );
   }
@@ -68,16 +68,16 @@ export function UserMenu() {
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => router.push('/dashboard')}>
           <FolderOpen className="mr-2 h-4 w-4" />
-          My Projects
+          Mes projets
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setProvidersDialogOpen(true)}>
           <Key className="mr-2 h-4 w-4" />
-          My Providers
+          Mes providers
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
           <LogOut className="mr-2 h-4 w-4" />
-          Sign out
+          Se déconnecter
         </DropdownMenuItem>
       </DropdownMenuContent>
       <ProvidersDialog

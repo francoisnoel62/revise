@@ -241,7 +241,7 @@ function EditorContent() {
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
           <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading project...</p>
+          <p className="text-muted-foreground">Chargement du projet...</p>
         </div>
       </div>
     );
@@ -275,7 +275,7 @@ function EditorContent() {
           {/* Left: navigation */}
           <div className="flex items-center gap-2">
             <Link href="/dashboard">
-              <Button variant="ghost" size="icon" title="Back to projects">
+              <Button variant="ghost" size="icon" title="Retour aux projets">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
@@ -285,7 +285,7 @@ function EditorContent() {
           <div className="text-center">
             <h1 className="text-lg font-semibold">{project.title}</h1>
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <span>{project.chapters.find((c) => c.id === project.activeChapterId)?.title || 'Untitled'}</span>
+              <span>{project.chapters.find((c) => c.id === project.activeChapterId)?.title || 'Sans titre'}</span>
               <span>·</span>
               <SaveStatus />
               <span>·</span>
@@ -372,7 +372,7 @@ export default function EditorPage() {
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
           <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">Chargement...</p>
         </div>
       </div>
     }>

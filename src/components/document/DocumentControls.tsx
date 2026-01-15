@@ -69,7 +69,7 @@ export function DocumentControls() {
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Export failed:', error);
-      alert(error instanceof Error ? error.message : 'Export failed');
+      alert(error instanceof Error ? error.message : 'Échec de l\'export');
     } finally {
       setIsExporting(false);
     }
@@ -82,7 +82,7 @@ export function DocumentControls() {
           {isExporting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Exporting...
+              Export en cours...
             </>
           ) : (
             <>

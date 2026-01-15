@@ -37,13 +37,13 @@ export default function SignUpPage() {
 
     // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setError('Les mots de passe ne correspondent pas');
       return;
     }
 
     // Validate password strength
     if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters');
+      setError('Le mot de passe doit contenir au moins 8 caractères');
       return;
     }
 
@@ -65,7 +65,7 @@ export default function SignUpPage() {
       setRegisteredEmail(formData.email);
       setIsPendingApproval(true);
     } catch {
-      setError('An error occurred. Please try again.');
+      setError('Une erreur est survenue. Veuillez réessayer.');
     } finally {
       setIsLoading(false);
     }
@@ -121,9 +121,9 @@ export default function SignUpPage() {
       <div className="mx-auto w-full max-w-md space-y-6 p-6">
         {/* Header */}
         <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold">Create an account</h1>
+          <h1 className="text-3xl font-bold">Créer un compte</h1>
           <p className="text-muted-foreground">
-            Enter your details to get started
+            Entrez vos informations pour commencer
           </p>
         </div>
 
@@ -136,12 +136,12 @@ export default function SignUpPage() {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="name">Name (optional)</Label>
+            <Label htmlFor="name">Nom (optionnel)</Label>
             <Input
               id="name"
               name="name"
               type="text"
-              placeholder="Your name"
+              placeholder="Votre nom"
               value={formData.name}
               onChange={handleChange}
               disabled={isLoading}
@@ -154,7 +154,7 @@ export default function SignUpPage() {
               id="email"
               name="email"
               type="email"
-              placeholder="you@example.com"
+              placeholder="vous@exemple.com"
               value={formData.email}
               onChange={handleChange}
               required
@@ -163,12 +163,12 @@ export default function SignUpPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">Mot de passe</Label>
             <Input
               id="password"
               name="password"
               type="password"
-              placeholder="At least 8 characters"
+              placeholder="Au moins 8 caractères"
               value={formData.password}
               onChange={handleChange}
               required
@@ -178,12 +178,12 @@ export default function SignUpPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
             <Input
               id="confirmPassword"
               name="confirmPassword"
               type="password"
-              placeholder="Confirm your password"
+              placeholder="Confirmez votre mot de passe"
               value={formData.confirmPassword}
               onChange={handleChange}
               required
@@ -192,15 +192,15 @@ export default function SignUpPage() {
           </div>
 
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? 'Creating account...' : 'Create account'}
+            {isLoading ? 'Création du compte...' : 'Créer un compte'}
           </Button>
         </form>
 
         {/* Footer */}
         <p className="text-center text-sm text-muted-foreground">
-          Already have an account?{' '}
+          Vous avez déjà un compte ?{' '}
           <Link href="/auth/signin" className="text-primary hover:underline">
-            Sign in
+            Se connecter
           </Link>
         </p>
       </div>
