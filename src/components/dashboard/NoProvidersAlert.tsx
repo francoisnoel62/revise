@@ -3,14 +3,14 @@
 import * as React from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Key } from 'lucide-react';
+import { Info, Key } from 'lucide-react';
 import { ProvidersDialog } from '@/components/providers/ProvidersDialog';
 import { listProvidersAction } from '@/app/actions/provider-actions';
 
 /**
- * NoProvidersAlert component - alerts users when they have no AI providers configured.
- * Displays on dashboard and provides quick access to provider configuration.
- * Auto-hides when user has at least one provider.
+ * NoProvidersAlert component - informational alert when no AI providers are configured.
+ * Displays on dashboard to inform users that AI features are available if they configure a provider.
+ * Auto-hides when user has at least one valid provider.
  */
 export function NoProvidersAlert() {
   const [hasProviders, setHasProviders] = React.useState<boolean | null>(null);
@@ -42,24 +42,25 @@ export function NoProvidersAlert() {
 
   return (
     <>
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Configurez votre fournisseur IA</AlertTitle>
-        <AlertDescription>
+      <Alert variant="default" className="border-blue-200 bg-blue-50">
+        <Info className="h-4 w-4 text-blue-600" />
+        <AlertTitle className="text-blue-900">Fonctionnalités IA disponibles</AlertTitle>
+        <AlertDescription className="text-blue-800">
           <p className="mb-3">
-            Vous devez configurer au moins un fournisseur IA (OpenAI, Anthropic, etc.) pour créer des projets et utiliser la réécriture de texte. Ajoutez votre clé API pour commencer.
+            Configurez un fournisseur IA (OpenAI, Anthropic, etc.) pour débloquer la réécriture de texte, la génération de chapitres et l&apos;analyse de métadonnées.
           </p>
           <div className="flex gap-2">
-            <Button size="sm" onClick={() => setDialogOpen(true)}>
+            <Button size="sm" onClick={() => setDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
               <Key className="mr-2 h-4 w-4" />
-              Ajouter un fournisseur
+              Configurer un fournisseur
             </Button>
             <Button
               size="sm"
               variant="ghost"
               onClick={() => setIsDismissed(true)}
+              className="text-blue-700 hover:text-blue-900 hover:bg-blue-100"
             >
-              Ignorer
+              Plus tard
             </Button>
           </div>
         </AlertDescription>

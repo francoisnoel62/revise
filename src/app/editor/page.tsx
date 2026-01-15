@@ -54,8 +54,11 @@ function EditorContent() {
 
   // Provider state
   const [providers, setProviders] = useState<SafeProvider[]>([]);
-  const [providersLoading, setProvidersLoading] = useState(false);
+  const [providersLoading, setProvidersLoading] = useState(true);
   const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
+
+  // Calculate if user has valid AI providers (for showing/hiding AI features)
+  const hasAIProviders = providers.filter((p) => p.isValid).length > 0;
 
   // History dialog state
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
@@ -316,6 +319,7 @@ function EditorContent() {
               onHistoryClick={() => setShowHistoryDialog(true)}
               autocompleteEnabled={autocompleteEnabled}
               onAutocompleteChange={setAutocompleteEnabled}
+              showAIFeatures={hasAIProviders}
             />
           </div>
         </div>
@@ -330,11 +334,12 @@ function EditorContent() {
               onEditorReady={(editorInstance) => setEditor(editorInstance)}
               autocompleteEnabled={autocompleteEnabled}
             />
-            {/* Show AI generation menu when editor is empty */}
+            {/* Show AI generation menu when editor is empty and AI features are available */}
             <FloatingGenerationMenu
               editor={editor}
               projectId={project.id}
               isVisible={editor?.isEmpty ?? false}
+              showAIFeatures={hasAIProviders}
             />
           </div>
         </div>

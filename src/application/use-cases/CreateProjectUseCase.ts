@@ -1,5 +1,5 @@
 // ABOUTME: Use case for creating a new project.
-// ABOUTME: Validates provider configuration before project creation.
+// ABOUTME: Validates provider configuration if a provider is specified.
 
 import { Project } from '@/domain/entities/Project';
 import { ProjectRepository } from '@/domain/interfaces/ProjectRepository';
@@ -9,18 +9,6 @@ export interface CreateProjectInput {
   ownerId: string;
   title?: string;
   providerId?: string;
-}
-
-/**
- * Error thrown when user has no valid providers configured.
- */
-export class NoValidProvidersError extends Error {
-  constructor() {
-    super(
-      'Vous devez configurer au moins un fournisseur IA avant de créer un projet. Rendez-vous dans "Mon profil" > "Mes fournisseurs".'
-    );
-    this.name = 'NoValidProvidersError';
-  }
 }
 
 /**
@@ -40,15 +28,7 @@ export class CreateProjectUseCase {
   ) {}
 
   async execute(input: CreateProjectInput): Promise<Project> {
-    // 1. Check if user has at least one valid provider
-    const providers = await this.providerRepository.listProviders(input.ownerId);
-    const validProviders = providers.filter((p) => p.isValidProvider());
-
-    if (validProviders.length === 0) {
-      throw new NoValidProvidersError();
-    }
-
-    // 2. Validate selected provider if provided
+    // 1. Validate selected provider if provided (AI is optional)
     if (input.providerId) {
       const provider = await this.providerRepository.findById(
         input.ownerId,
@@ -66,18 +46,18 @@ export class CreateProjectUseCase {
       }
     }
 
-    // 3. Create project
+    // 2. Create project
     const project = Project.createEmpty(
       input.ownerId,
       input.title || 'Nouveau projet'
     );
 
-    // 4. Set provider if provided
+    // 3. Set provider if provided
     if (input.providerId) {
       project.setProviderId(input.providerId);
     }
 
-    // 5. Persist
+    // 4. Persist
     await this.projectRepository.createProject(input.ownerId, project);
 
     return project;
