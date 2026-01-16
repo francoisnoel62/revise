@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { registerUserAction } from '@/app/actions/auth-actions';
 
 export default function SignUpPage() {
@@ -22,6 +23,7 @@ export default function SignUpPage() {
     password: '',
     confirmPassword: '',
   });
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
@@ -34,6 +36,12 @@ export default function SignUpPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validate terms acceptance
+    if (!acceptTerms) {
+      setError('Vous devez accepter les conditions d\'utilisation et la politique de confidentialité');
+      return;
+    }
 
     // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
@@ -191,7 +199,27 @@ export default function SignUpPage() {
             />
           </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <div className="flex items-start space-x-2">
+            <Checkbox
+              id="acceptTerms"
+              checked={acceptTerms}
+              onCheckedChange={(checked) => setAcceptTerms(checked === true)}
+              disabled={isLoading}
+              className="mt-1"
+            />
+            <Label htmlFor="acceptTerms" className="text-sm font-normal leading-relaxed">
+              J&apos;accepte les{' '}
+              <Link href="/conditions-generales-utilisation" className="text-primary hover:underline" target="_blank">
+                Conditions Générales d&apos;Utilisation
+              </Link>{' '}
+              et la{' '}
+              <Link href="/politique-confidentialite" className="text-primary hover:underline" target="_blank">
+                Politique de confidentialité
+              </Link>
+            </Label>
+          </div>
+
+          <Button type="submit" className="w-full" disabled={isLoading || !acceptTerms}>
             {isLoading ? 'Création du compte...' : 'Créer un compte'}
           </Button>
         </form>

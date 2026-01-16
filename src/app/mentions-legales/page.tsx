@@ -152,6 +152,12 @@ export default function MentionsLegalesPage() {
           <div className="mt-12 pt-8 border-t">
             <p className="text-sm text-muted-foreground mb-4">Voir aussi :</p>
             <div className="flex flex-wrap gap-4">
+              <Link href="/conditions-generales-utilisation" className="text-sm text-primary hover:underline">
+                Conditions Générales d&apos;Utilisation
+              </Link>
+              <Link href="/conditions-generales-vente" className="text-sm text-primary hover:underline">
+                Conditions Générales de Vente
+              </Link>
               <Link href="/politique-confidentialite" className="text-sm text-primary hover:underline">
                 Politique de confidentialité
               </Link>

@@ -667,6 +667,12 @@ export default function LandingPage() {
               <Link href="/blog" className="hover:text-foreground transition-colors">
                 Blog
               </Link>
+              <Link href="/conditions-generales-utilisation" className="hover:text-foreground transition-colors">
+                CGU
+              </Link>
+              <Link href="/conditions-generales-vente" className="hover:text-foreground transition-colors">
+                CGV
+              </Link>
               <Link href="/mentions-legales" className="hover:text-foreground transition-colors">
                 Mentions légales
               </Link>
