@@ -28,16 +28,13 @@ export class MongoDBBlogArticleRepository implements BlogArticleRepository {
    */
   async ensureIndexes(): Promise<void> {
     // Unique index on slug for URL lookups
-    await this.collection.createIndex({ slug: 1 }, { name: 'slug', unique: true });
+    await this.collection.createIndex({ slug: 1 }, { unique: true });
 
     // Compound index for listing published articles sorted by date
-    await this.collection.createIndex(
-      { isPublished: 1, publishedAt: -1 },
-      { name: 'isPublished_publishedAt' }
-    );
+    await this.collection.createIndex({ isPublished: 1, publishedAt: -1 });
 
     // Index for listing all articles sorted by update date (admin)
-    await this.collection.createIndex({ updatedAt: -1 }, { name: 'updatedAt' });
+    await this.collection.createIndex({ updatedAt: -1 });
   }
 
   // ============================================
