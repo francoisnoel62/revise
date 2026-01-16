@@ -18,6 +18,9 @@ interface PageProps {
 // Revalidate every hour for ISR
 export const revalidate = 3600;
 
+// Allow dynamic rendering for slugs not generated at build time
+export const dynamicParams = true;
+
 export async function generateStaticParams() {
   const result = await getPublishedArticlesAction();
   if (!result.success) {
