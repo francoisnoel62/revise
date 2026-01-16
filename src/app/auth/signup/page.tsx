@@ -39,7 +39,7 @@ export default function SignUpPage() {
 
     // Validate terms acceptance
     if (!acceptTerms) {
-      setError('Vous devez accepter les conditions d\'utilisation et la politique de confidentialité');
+      setError('Vous devez accepter les conditions générales');
       return;
     }
 
@@ -201,24 +201,21 @@ export default function SignUpPage() {
             />
           </div>
 
-          <div className="flex items-start space-x-2">
-            <Checkbox
-              id="acceptTerms"
-              checked={acceptTerms}
-              onCheckedChange={(checked) => setAcceptTerms(checked === true)}
-              disabled={isLoading}
-              className="mt-1"
-            />
-            <Label htmlFor="acceptTerms" className="text-sm font-normal leading-relaxed">
-              J&apos;accepte les{' '}
-              <Link href="/conditions-generales-utilisation" className="text-primary hover:underline" target="_blank">
-                Conditions Générales d&apos;Utilisation
-              </Link>{' '}
-              et la{' '}
-              <Link href="/politique-confidentialite" className="text-primary hover:underline" target="_blank">
-                Politique de confidentialité
-              </Link>
-            </Label>
+          <div className="rounded-lg bg-muted p-4">
+            <div className="flex items-center space-x-3">
+              <Checkbox
+                id="acceptTerms"
+                checked={acceptTerms}
+                onCheckedChange={(checked) => setAcceptTerms(checked === true)}
+                disabled={isLoading}
+              />
+              <Label htmlFor="acceptTerms" className="text-sm font-normal cursor-pointer">
+                J&apos;accepte les{' '}
+                <Link href="/conditions-generales-utilisation" className="text-primary hover:underline" target="_blank">
+                  conditions générales
+                </Link>
+              </Label>
+            </div>
           </div>
 
           <Button type="submit" className="w-full" disabled={isLoading || !acceptTerms}>
