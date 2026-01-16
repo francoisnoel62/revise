@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { LogOut, FolderOpen, Key } from 'lucide-react';
+import { LogOut, FolderOpen, Key, Settings } from 'lucide-react';
 import { ProvidersDialog } from '@/components/providers/ProvidersDialog';
 
 export function UserMenu() {
@@ -73,6 +73,10 @@ export function UserMenu() {
         <DropdownMenuItem onClick={() => setProvidersDialogOpen(true)}>
           <Key className="mr-2 h-4 w-4" />
           Mes providers
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => router.push('/settings')}>
+          <Settings className="mr-2 h-4 w-4" />
+          Paramètres
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="text-red-600">

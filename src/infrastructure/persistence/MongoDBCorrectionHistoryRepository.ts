@@ -105,4 +105,11 @@ export class MongoDBCorrectionHistoryRepository implements CorrectionHistoryRepo
       ownerId,
     });
   }
+
+  async deleteAllByOwner(ownerId: string): Promise<number> {
+    const result = await this.collection.deleteMany({
+      ownerId,
+    });
+    return result.deletedCount;
+  }
 }

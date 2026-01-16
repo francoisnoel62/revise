@@ -17,6 +17,8 @@ interface UserDocument {
   isApproved: boolean;
   isAdmin: boolean;
   approvedAt?: Date;
+  termsAcceptedAt?: Date;
+  privacyAcceptedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,6 +45,8 @@ export class MongoDBUserRepository implements UserRepository {
       isApproved: doc.isApproved ?? false,
       isAdmin: doc.isAdmin ?? false,
       approvedAt: doc.approvedAt,
+      termsAcceptedAt: doc.termsAcceptedAt,
+      privacyAcceptedAt: doc.privacyAcceptedAt,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     };
@@ -61,6 +65,8 @@ export class MongoDBUserRepository implements UserRepository {
       isApproved: doc.isApproved ?? false,
       isAdmin: doc.isAdmin ?? false,
       approvedAt: doc.approvedAt,
+      termsAcceptedAt: doc.termsAcceptedAt,
+      privacyAcceptedAt: doc.privacyAcceptedAt,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     };
@@ -86,6 +92,8 @@ export class MongoDBUserRepository implements UserRepository {
       name: registration.name,
       isApproved: false, // New users require approval
       isAdmin: false, // Admin status must be granted manually
+      termsAcceptedAt: registration.acceptedTerms ? now : undefined,
+      privacyAcceptedAt: registration.acceptedPrivacy ? now : undefined,
       createdAt: now,
       updatedAt: now,
     };

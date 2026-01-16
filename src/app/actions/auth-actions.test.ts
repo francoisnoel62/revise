@@ -24,7 +24,7 @@ describe('auth-actions', () => {
   });
 
   describe('registerUserAction', () => {
-    it('creates user with valid input', async () => {
+    it('creates user with valid input and consent', async () => {
       mockUserRepo.emailExists.mockResolvedValue(false);
       mockUserRepo.create.mockResolvedValue({
         id: 'user-123',
@@ -35,7 +35,9 @@ describe('auth-actions', () => {
       const result = await registerUserAction(
         'test@example.com',
         'password123',
-        'Test User'
+        'Test User',
+        true, // acceptedTerms
+        true  // acceptedPrivacy
       );
 
       expect(result.success).toBe(true);
@@ -47,7 +49,13 @@ describe('auth-actions', () => {
     it('rejects duplicate email', async () => {
       mockUserRepo.emailExists.mockResolvedValue(true);
 
-      const result = await registerUserAction('existing@example.com', 'password123');
+      const result = await registerUserAction(
+        'existing@example.com',
+        'password123',
+        undefined,
+        true,
+        true
+      );
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -56,7 +64,13 @@ describe('auth-actions', () => {
     });
 
     it('rejects short password', async () => {
-      const result = await registerUserAction('test@example.com', 'short');
+      const result = await registerUserAction(
+        'test@example.com',
+        'short',
+        undefined,
+        true,
+        true
+      );
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -65,11 +79,47 @@ describe('auth-actions', () => {
     });
 
     it('rejects invalid email', async () => {
-      const result = await registerUserAction('invalid-email', 'password123');
+      const result = await registerUserAction(
+        'invalid-email',
+        'password123',
+        undefined,
+        true,
+        true
+      );
 
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error).toContain('Invalid email');
+      }
+    });
+
+    it('rejects registration without terms acceptance', async () => {
+      const result = await registerUserAction(
+        'test@example.com',
+        'password123',
+        'Test User',
+        false, // acceptedTerms = false
+        true
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain('Terms of Service');
+      }
+    });
+
+    it('rejects registration without privacy acceptance', async () => {
+      const result = await registerUserAction(
+        'test@example.com',
+        'password123',
+        'Test User',
+        true,
+        false // acceptedPrivacy = false
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain('Privacy Policy');
       }
     });
   });

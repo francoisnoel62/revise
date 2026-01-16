@@ -187,4 +187,18 @@ export class MongoDBProviderRepository implements ProviderRepository {
       throw new Error('Failed to check provider usage');
     }
   }
+
+  async deleteAllByOwner(userId: string): Promise<number> {
+    try {
+      const result = await this.collection.deleteMany({
+        ownerId: userId,
+      });
+      return result.deletedCount;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to delete providers: ${error.message}`);
+      }
+      throw new Error('Failed to delete providers');
+    }
+  }
 }

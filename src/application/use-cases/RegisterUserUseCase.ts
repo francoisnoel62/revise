@@ -8,6 +8,8 @@ export interface RegisterUserInput {
   email: string;
   password: string;
   name?: string;
+  acceptedTerms: boolean;
+  acceptedPrivacy: boolean;
 }
 
 /**
@@ -50,6 +52,8 @@ export class RegisterUserUseCase {
       email: input.email,
       password: input.password,
       name: input.name,
+      acceptedTerms: input.acceptedTerms,
+      acceptedPrivacy: input.acceptedPrivacy,
     });
 
     // 4. Send notification email to admin
@@ -69,6 +73,15 @@ export class RegisterUserUseCase {
     // Validate password length
     if (!input.password || input.password.length < 8) {
       throw new ValidationError('Password must be at least 8 characters');
+    }
+
+    // Validate terms and privacy acceptance (RGPD compliance)
+    if (!input.acceptedTerms) {
+      throw new ValidationError('You must accept the Terms of Service');
+    }
+
+    if (!input.acceptedPrivacy) {
+      throw new ValidationError('You must accept the Privacy Policy');
     }
   }
 }

@@ -59,4 +59,12 @@ export interface CorrectionHistoryRepository {
    * @param projectId - The project ID
    */
   deleteByProjectId(ownerId: string, projectId: string): Promise<void>;
+
+  /**
+   * Delete all correction history owned by a user.
+   * Used for RGPD account deletion.
+   * @param ownerId - User ID whose history to delete
+   * @returns Number of history entries deleted
+   */
+  deleteAllByOwner(ownerId: string): Promise<number>;
 }

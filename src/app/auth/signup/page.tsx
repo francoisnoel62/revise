@@ -61,7 +61,9 @@ export default function SignUpPage() {
       const result = await registerUserAction(
         formData.email,
         formData.password,
-        formData.name || undefined
+        formData.name || undefined,
+        acceptTerms,
+        acceptTerms // Privacy is accepted with the same checkbox
       );
 
       if (!result.success) {

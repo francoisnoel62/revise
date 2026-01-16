@@ -49,4 +49,12 @@ export interface ProjectRepository {
    * @throws Error if project not found or not owned
    */
   updateChapter(userId: string, projectId: string, chapter: Chapter): Promise<void>;
+
+  /**
+   * Delete all projects owned by a user.
+   * Used for RGPD account deletion.
+   * @param userId The user whose projects to delete
+   * @returns Number of projects deleted
+   */
+  deleteAllByOwner(userId: string): Promise<number>;
 }

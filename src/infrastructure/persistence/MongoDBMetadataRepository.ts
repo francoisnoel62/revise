@@ -131,4 +131,11 @@ export class MongoDBMetadataRepository implements MetadataRepository {
       ownerId,
     });
   }
+
+  async deleteAllByOwner(ownerId: string): Promise<number> {
+    const result = await this.collection.deleteMany({
+      ownerId,
+    });
+    return result.deletedCount;
+  }
 }

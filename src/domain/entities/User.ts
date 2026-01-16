@@ -13,6 +13,8 @@ export interface User {
   isApproved: boolean;
   isAdmin: boolean;
   approvedAt?: Date;
+  termsAcceptedAt?: Date;
+  privacyAcceptedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -24,6 +26,8 @@ export interface UserRegistration {
   email: string;
   password: string;
   name?: string;
+  acceptedTerms: boolean;
+  acceptedPrivacy: boolean;
 }
 
 /**

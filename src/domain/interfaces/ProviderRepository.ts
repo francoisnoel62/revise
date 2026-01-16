@@ -64,4 +64,13 @@ export interface ProviderRepository {
    * @returns True if provider is used by at least one project
    */
   isUsedByProjects(userId: string, providerId: string): Promise<boolean>;
+
+  /**
+   * Delete all providers owned by a user.
+   * Used for RGPD account deletion.
+   *
+   * @param userId The user whose providers to delete
+   * @returns Number of providers deleted
+   */
+  deleteAllByOwner(userId: string): Promise<number>;
 }
