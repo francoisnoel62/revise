@@ -40,8 +40,7 @@ export interface UserDataExport {
     type: string;
     title: string;
     content: unknown;
-    createdAt: string;
-    updatedAt: string;
+    lastEdited: string;
   }>;
   correctionHistory: Array<{
     id: string;
@@ -101,11 +100,10 @@ export async function exportUserDataAction(): Promise<ActionResult<UserDataExpor
         allMetadata.push({
           id: meta.getId(),
           projectId: meta.getProjectId(),
-          type: meta.getType().key,
+          type: meta.getTypeKey(),
           title: meta.getTitle(),
           content: meta.getContent(),
-          createdAt: meta.getCreatedAt().toISOString(),
-          updatedAt: meta.getUpdatedAt().toISOString(),
+          lastEdited: meta.getProperties().lastEdited.toISOString(),
         });
       }
 
