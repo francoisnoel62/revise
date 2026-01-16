@@ -48,6 +48,7 @@ describe('SaveCorrectionHistoryUseCase', () => {
       delete: vi.fn().mockResolvedValue(undefined),
       deleteByChapterId: vi.fn().mockResolvedValue(undefined),
       deleteByProjectId: vi.fn().mockResolvedValue(undefined),
+      deleteAllByOwner: vi.fn().mockResolvedValue(0),
     };
 
     mockProjectRepository = {
@@ -57,6 +58,7 @@ describe('SaveCorrectionHistoryUseCase', () => {
       updateProject: vi.fn().mockResolvedValue(createMockProject()),
       deleteProject: vi.fn().mockResolvedValue(undefined),
       updateChapter: vi.fn().mockResolvedValue(undefined),
+      deleteAllByOwner: vi.fn().mockResolvedValue(0),
     };
 
     mockIdGenerator = {

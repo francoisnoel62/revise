@@ -46,9 +46,8 @@ export interface UserDataExport {
     id: string;
     projectId: string;
     chapterId: string;
-    originalText: string;
-    selectedProposal: string;
-    proposalStyle: string;
+    selectedText: string;
+    proposals: string[];
     createdAt: string;
   }>;
   providers: Array<{
@@ -113,9 +112,8 @@ export async function exportUserDataAction(): Promise<ActionResult<UserDataExpor
           id: history.getId(),
           projectId: history.getProjectId(),
           chapterId: history.getChapterId(),
-          originalText: history.getOriginalText(),
-          selectedProposal: history.getSelectedProposal(),
-          proposalStyle: history.getProposalStyle(),
+          selectedText: history.getSelectedText(),
+          proposals: history.getProposals(),
           createdAt: history.getCreatedAt().toISOString(),
         });
       }

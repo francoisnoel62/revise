@@ -10,6 +10,7 @@ describe('ListMetadataUseCase', () => {
     update: vi.fn(),
     delete: vi.fn(),
     deleteByProjectId: vi.fn(),
+    deleteAllByOwner: vi.fn(),
   };
 
   const mockProjectRepository = {
@@ -19,6 +20,7 @@ describe('ListMetadataUseCase', () => {
     deleteProject: vi.fn(),
     listProjects: vi.fn(),
     updateChapter: vi.fn(),
+    deleteAllByOwner: vi.fn(),
   };
 
   let useCase: ListMetadataUseCase;

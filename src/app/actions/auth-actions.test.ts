@@ -16,6 +16,8 @@ describe('auth-actions', () => {
     findById: vi.fn(),
     create: vi.fn(),
     emailExists: vi.fn(),
+    approveUser: vi.fn(),
+    deleteUser: vi.fn(),
   };
 
   beforeEach(() => {

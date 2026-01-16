@@ -12,9 +12,11 @@ describe('CreateProjectUseCase', () => {
   const createMockProjectRepository = (): ProjectRepository => ({
     createProject: vi.fn().mockResolvedValue(undefined),
     loadProject: vi.fn(),
-    saveProject: vi.fn(),
     listProjects: vi.fn(),
+    updateProject: vi.fn(),
     deleteProject: vi.fn(),
+    updateChapter: vi.fn(),
+    deleteAllByOwner: vi.fn(),
   });
 
   const createMockProviderRepository = (): ProviderRepository => ({
@@ -23,6 +25,8 @@ describe('CreateProjectUseCase', () => {
     listProviders: vi.fn().mockResolvedValue([]),
     update: vi.fn(),
     delete: vi.fn(),
+    isUsedByProjects: vi.fn(),
+    deleteAllByOwner: vi.fn(),
   });
 
   const createValidProvider = (id: string): Provider => {

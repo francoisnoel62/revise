@@ -76,6 +76,17 @@ export class InMemoryProjectRepository implements ProjectRepository {
     project.touch();
   }
 
+  async deleteAllByOwner(userId: string): Promise<number> {
+    let count = 0;
+    for (const [id, project] of this.projects) {
+      if (project.getOwnerId() === userId) {
+        this.projects.delete(id);
+        count++;
+      }
+    }
+    return count;
+  }
+
   // Test helpers
   clear(): void {
     this.projects.clear();
