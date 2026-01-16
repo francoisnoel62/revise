@@ -1,5 +1,5 @@
 // ABOUTME: Contact form component for the landing page
-// ABOUTME: Allows visitors to send messages to the team
+// ABOUTME: Allows visitors to send messages to the team via server action
 
 'use client';
 
@@ -9,10 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Send, CheckCircle } from 'lucide-react';
+import { submitContactFormAction } from '@/app/actions/contact-actions';
 
 export function ContactForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -26,17 +28,28 @@ export function ContactForm() {
       ...prev,
       [e.target.name]: e.target.value,
     }));
+    setError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
 
-    // Simulate form submission (replace with actual API call)
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      const result = await submitContactFormAction(formData);
 
-    setIsLoading(false);
-    setIsSubmitted(true);
+      if (!result.success) {
+        setError(result.error || 'Une erreur est survenue');
+        return;
+      }
+
+      setIsSubmitted(true);
+    } catch {
+      setError('Une erreur est survenue. Veuillez réessayer.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (isSubmitted) {
@@ -65,6 +78,12 @@ export function ContactForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">
+              {error}
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="name">Nom</Label>
             <Input

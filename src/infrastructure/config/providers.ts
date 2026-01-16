@@ -8,6 +8,7 @@ import { ProviderRepository } from '@/domain/interfaces/ProviderRepository';
 import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
 import { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
 import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository';
+import { ContactMessageRepository } from '@/domain/interfaces/ContactMessageRepository';
 import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import { LLMProvider } from '@/domain/interfaces/LLMProvider';
 import { DocumentParser } from '@/domain/interfaces/DocumentParser';
@@ -20,6 +21,7 @@ import { MongoDBProviderRepository } from '@/infrastructure/persistence/MongoDBP
 import { MongoDBMetadataRepository } from '@/infrastructure/persistence/MongoDBMetadataRepository';
 import { MongoDBCorrectionHistoryRepository } from '@/infrastructure/persistence/MongoDBCorrectionHistoryRepository';
 import { MongoDBBlogArticleRepository } from '@/infrastructure/persistence/MongoDBBlogArticleRepository';
+import { MongoDBContactMessageRepository } from '@/infrastructure/persistence/MongoDBContactMessageRepository';
 import { InMemoryProjectRepository } from '@/infrastructure/persistence/InMemoryProjectRepository';
 import { FilePromptRepository } from '@/infrastructure/prompts/FilePromptRepository';
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
@@ -119,6 +121,20 @@ export async function getBlogArticleRepository(): Promise<BlogArticleRepository>
     await blogArticleRepoInstance.ensureIndexes();
   }
   return blogArticleRepoInstance;
+}
+
+/**
+ * Get the contact message repository.
+ */
+let contactMessageRepoInstance: MongoDBContactMessageRepository | null = null;
+
+export async function getContactMessageRepository(): Promise<ContactMessageRepository> {
+  if (!contactMessageRepoInstance) {
+    const db = await getDatabase();
+    contactMessageRepoInstance = new MongoDBContactMessageRepository(db);
+    await contactMessageRepoInstance.ensureIndexes();
+  }
+  return contactMessageRepoInstance;
 }
 
 /**
