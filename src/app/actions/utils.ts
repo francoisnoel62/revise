@@ -11,6 +11,7 @@ import {
   getUserRepository,
   getMetadataRepository,
   getCorrectionHistoryRepository,
+  getBlogArticleRepository,
   getPromptRepository,
   createLLMProvider,
   getDocxParser,
@@ -25,6 +26,7 @@ import { ProviderRepository } from '@/domain/interfaces/ProviderRepository';
 import { UserRepository } from '@/domain/interfaces/UserRepository';
 import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
 import { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
+import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository';
 import { LLMProviderFactory } from '@/domain/interfaces/LLMProviderFactory';
 import { IdGenerator } from '@/domain/interfaces/IdGenerator';
 import { LLMProvider } from '@/domain/interfaces/LLMProvider';
@@ -72,6 +74,44 @@ export async function getAuthenticatedUserId(): Promise<
 }
 
 /**
+ * Get authenticated admin user ID or return error result.
+ * Verifies both authentication and admin status.
+ */
+export async function getAuthenticatedAdminId(): Promise<
+  { userId: string } | { error: ActionResult<never> }
+> {
+  // First check basic authentication
+  const auth = await getAuthenticatedUserId();
+  if ('error' in auth) {
+    return auth;
+  }
+
+  // Then verify admin status
+  const userRepo = await getUserRepository();
+  const user = await userRepo.findById(auth.userId);
+
+  if (!user) {
+    return {
+      error: {
+        success: false,
+        error: 'User not found',
+      },
+    };
+  }
+
+  if (!user.isAdmin) {
+    return {
+      error: {
+        success: false,
+        error: 'Admin access required',
+      },
+    };
+  }
+
+  return { userId: auth.userId };
+}
+
+/**
  * Get project repository instance.
  */
 export async function getRepository(): Promise<ProjectRepository> {
@@ -104,6 +144,13 @@ export async function getMetadataRepo(): Promise<MetadataRepository> {
  */
 export async function getCorrectionHistoryRepo(): Promise<CorrectionHistoryRepository> {
   return await getCorrectionHistoryRepository();
+}
+
+/**
+ * Get blog article repository instance.
+ */
+export async function getBlogArticleRepo(): Promise<BlogArticleRepository> {
+  return await getBlogArticleRepository();
 }
 
 /**

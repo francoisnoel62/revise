@@ -15,6 +15,7 @@ interface UserDocument {
   passwordHash: string;
   name?: string;
   isApproved: boolean;
+  isAdmin: boolean;
   approvedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -40,6 +41,7 @@ export class MongoDBUserRepository implements UserRepository {
       passwordHash: doc.passwordHash,
       name: doc.name,
       isApproved: doc.isApproved ?? false,
+      isAdmin: doc.isAdmin ?? false,
       approvedAt: doc.approvedAt,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
@@ -57,6 +59,7 @@ export class MongoDBUserRepository implements UserRepository {
       passwordHash: doc.passwordHash,
       name: doc.name,
       isApproved: doc.isApproved ?? false,
+      isAdmin: doc.isAdmin ?? false,
       approvedAt: doc.approvedAt,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
@@ -82,6 +85,7 @@ export class MongoDBUserRepository implements UserRepository {
       passwordHash,
       name: registration.name,
       isApproved: false, // New users require approval
+      isAdmin: false, // Admin status must be granted manually
       createdAt: now,
       updatedAt: now,
     };
@@ -93,6 +97,7 @@ export class MongoDBUserRepository implements UserRepository {
       email: doc.email,
       name: doc.name,
       isApproved: doc.isApproved,
+      isAdmin: doc.isAdmin,
     };
   }
 

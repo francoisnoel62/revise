@@ -1,34 +1,44 @@
 // ABOUTME: Page dynamique pour afficher un article de blog
-// ABOUTME: Charge l'article par son slug et affiche le contenu formaté en markdown
+// ABOUTME: Charge l'article par son slug depuis MongoDB avec ISR
 
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Calendar, Clock } from 'lucide-react';
-import { getArticleBySlug, getAllSlugs } from '../articles';
+import {
+  getArticleBySlugAction,
+  getPublishedArticlesAction,
+} from '@/app/actions/blog-actions';
 import { Metadata } from 'next';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+// Revalidate every hour for ISR
+export const revalidate = 3600;
+
 export async function generateStaticParams() {
-  return getAllSlugs().map((slug) => ({ slug }));
+  const result = await getPublishedArticlesAction();
+  if (!result.success) {
+    return [];
+  }
+  return result.data.map((article) => ({ slug: article.slug }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const article = getArticleBySlug(slug);
+  const result = await getArticleBySlugAction(slug);
 
-  if (!article) {
+  if (!result.success) {
     return {
       title: 'Article non trouvé - Revise',
     };
   }
 
   return {
-    title: `${article.title} - Blog Revise`,
-    description: article.excerpt,
+    title: `${result.data.title} - Blog Revise`,
+    description: result.data.excerpt,
   };
 }
 
@@ -46,7 +56,11 @@ function renderMarkdown(content: string): React.ReactNode {
       const text = currentParagraph.join(' ');
       if (text.trim()) {
         elements.push(
-          <p key={key++} className="mb-4" dangerouslySetInnerHTML={{ __html: formatInlineMarkdown(text) }} />
+          <p
+            key={key++}
+            className="mb-4"
+            dangerouslySetInnerHTML={{ __html: formatInlineMarkdown(text) }}
+          />
         );
       }
       currentParagraph = [];
@@ -58,7 +72,10 @@ function renderMarkdown(content: string): React.ReactNode {
       elements.push(
         <ul key={key++} className="list-disc pl-6 mb-4 space-y-1">
           {listItems.map((item, i) => (
-            <li key={i} dangerouslySetInnerHTML={{ __html: formatInlineMarkdown(item) }} />
+            <li
+              key={i}
+              dangerouslySetInnerHTML={{ __html: formatInlineMarkdown(item) }}
+            />
           ))}
         </ul>
       );
@@ -71,7 +88,10 @@ function renderMarkdown(content: string): React.ReactNode {
     return text
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
       .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-      .replace(/`([^`]+)`/g, '<code class="bg-muted px-1 py-0.5 rounded text-sm">$1</code>');
+      .replace(
+        /`([^`]+)`/g,
+        '<code class="bg-muted px-1 py-0.5 rounded text-sm">$1</code>'
+      );
   };
 
   for (const line of lines) {
@@ -154,11 +174,13 @@ function renderMarkdown(content: string): React.ReactNode {
 
 export default async function BlogArticlePage({ params }: PageProps) {
   const { slug } = await params;
-  const article = getArticleBySlug(slug);
+  const result = await getArticleBySlugAction(slug);
 
-  if (!article) {
+  if (!result.success) {
     notFound();
   }
+
+  const article = result.data;
 
   return (
     <div className="min-h-screen bg-background">
@@ -189,11 +211,13 @@ export default async function BlogArticlePage({ params }: PageProps) {
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
-                {new Date(article.date).toLocaleDateString('fr-FR', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric'
-                })}
+                {article.publishedAt
+                  ? new Date(article.publishedAt).toLocaleDateString('fr-FR', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })
+                  : 'Non publié'}
               </span>
               <span className="flex items-center gap-1">
                 <Clock className="h-4 w-4" />

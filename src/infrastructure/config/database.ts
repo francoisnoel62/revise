@@ -56,6 +56,12 @@ async function createIndexes(db: Db): Promise<void> {
   // Users collection indexes
   const users = db.collection('users');
   await users.createIndex({ email: 1 }, { unique: true });
+
+  // Blog articles collection indexes
+  const blogArticles = db.collection('blog_articles');
+  await blogArticles.createIndex({ slug: 1 }, { unique: true });
+  await blogArticles.createIndex({ isPublished: 1, publishedAt: -1 });
+  await blogArticles.createIndex({ updatedAt: -1 });
 }
 
 /**

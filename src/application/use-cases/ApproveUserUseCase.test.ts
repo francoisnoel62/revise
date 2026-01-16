@@ -22,6 +22,7 @@ describe('ApproveUserUseCase', () => {
     passwordHash: 'hashed-password',
     name: 'Test User',
     isApproved: false,
+    isAdmin: false,
     createdAt: new Date(),
     updatedAt: new Date(),
   };

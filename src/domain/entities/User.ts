@@ -11,6 +11,7 @@ export interface User {
   passwordHash: string;
   name?: string;
   isApproved: boolean;
+  isAdmin: boolean;
   approvedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -33,4 +34,5 @@ export interface SafeUser {
   email: string;
   name?: string;
   isApproved: boolean;
+  isAdmin: boolean;
 }

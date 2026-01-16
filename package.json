@@ -16,7 +16,8 @@
     "verify": "powershell -ExecutionPolicy Bypass -File scripts/verify-setup.ps1",
     "db:start": "docker compose up -d",
     "db:stop": "docker compose down",
-    "db:logs": "docker compose logs -f mongodb"
+    "db:logs": "docker compose logs -f mongodb",
+    "seed:blog": "npx tsx scripts/seed-blog-articles.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
