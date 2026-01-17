@@ -2,6 +2,7 @@
 // ABOUTME: Public reads (no auth), admin-only writes (verified in server actions)
 
 import { BlogArticle } from '../entities/BlogArticle';
+import { PaginatedResult } from './PaginatedResult';
 
 export interface BlogArticleRepository {
   // ============================================
@@ -21,6 +22,17 @@ export interface BlogArticleRepository {
    * @returns Array of published articles
    */
   findAllPublished(): Promise<BlogArticle[]>;
+
+  /**
+   * Get published articles with pagination, sorted by publishedAt descending.
+   * @param page - Page number (1-indexed)
+   * @param pageSize - Number of items per page
+   * @returns Paginated result with articles and metadata
+   */
+  findAllPublishedPaginated(
+    page: number,
+    pageSize: number
+  ): Promise<PaginatedResult<BlogArticle>>;
 
   // ============================================
   // ADMIN METHODS (caller must verify admin status)
