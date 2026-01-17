@@ -2,7 +2,7 @@
 
 Next.js App Router pages, layouts, UI components, and state management.
 
-**Status**: ✅ Phase 3.7 Complete (140+ component tests + 20+ store tests + 75+ server action tests)
+**Status**: ✅ Phase 4.1 Complete (180+ component tests + 25+ store tests + 90+ server action tests)
 
 ## Rules:
 - Depends on Application and Domain layers
@@ -13,7 +13,7 @@ Next.js App Router pages, layouts, UI components, and state management.
 
 ## Contents:
 
-### App Router ⭐ ENHANCED (Phase 3.5)
+### App Router ⭐ ENHANCED (Phase 4.1)
 
 ---
 
@@ -109,7 +109,7 @@ Next.js App Router pages, layouts, UI components, and state management.
 
 ---
 
-#### `app/project/[projectId]/metadata/[metadataId]/page.tsx` ⭐ NEW (Phase 3.6)
+#### `app/project/[projectId]/metadata/[metadataId]/page.tsx` (Phase 3.6)
 **Purpose**: Rich text editor for metadata content
 
 **Features**:
@@ -134,7 +134,119 @@ Next.js App Router pages, layouts, UI components, and state management.
 
 ---
 
-#### `app/page.tsx` ⭐ ENHANCED (Phase 3.5)
+#### `app/blog/page.tsx` ⭐ NEW (Phase 4.0)
+**Purpose**: Blog article list page
+
+**Features**:
+- Lists all published blog articles
+- Article cards with title, excerpt, date
+- Category/tag filtering
+- Responsive grid layout
+- SEO metadata
+
+**Tests**: 5+ tests covering list display
+
+---
+
+#### `app/blog/[slug]/page.tsx` ⭐ NEW (Phase 4.0)
+**Purpose**: Individual blog article page
+
+**Features**:
+- Full article content rendering
+- Author and date display
+- Social sharing buttons
+- Related articles suggestions
+- SEO metadata with Open Graph
+
+**Tests**: 5+ tests covering article rendering
+
+---
+
+#### `app/admin/blog/page.tsx` ⭐ NEW (Phase 4.0)
+**Purpose**: Admin blog management page
+
+**Features**:
+- List all articles (published and drafts)
+- Create new article
+- Edit existing article
+- Delete article with confirmation
+- Publish/unpublish toggle
+- Admin access protection
+
+**Server Actions**:
+- `listBlogArticlesAction` → `ListBlogArticlesUseCase`
+- `createBlogArticleAction` → `CreateBlogArticleUseCase`
+- `updateBlogArticleAction` → `UpdateBlogArticleUseCase`
+- `deleteBlogArticleAction` → `DeleteBlogArticleUseCase`
+
+**Tests**: 10+ tests covering admin CRUD
+
+---
+
+#### `app/settings/page.tsx` ⭐ NEW (Phase 3.11)
+**Purpose**: User account settings page
+
+**Features**:
+- Account deletion with password confirmation
+- Data export (RGPD Article 20)
+- Profile information display
+- Consent information
+- Danger zone for destructive actions
+
+**Server Actions**:
+- `deleteUserAccountAction` → `DeleteUserAccountUseCase`
+- `exportUserDataAction` → Data export utility
+
+**Tests**: 8+ tests covering settings actions
+
+---
+
+#### Legal Pages ⭐ NEW (Phase 3.11)
+
+**`app/mentions-legales/page.tsx`** - Legal mentions (LCEN compliance)
+**`app/politique-confidentialite/page.tsx`** - Privacy policy (RGPD)
+**`app/politique-cookies/page.tsx`** - Cookie policy
+**`app/cgu/page.tsx`** - Terms of use
+**`app/cgv/page.tsx`** - Terms of sale
+
+**Features**:
+- Static legal content pages
+- Proper formatting and sections
+- Back navigation
+- French legal compliance
+
+---
+
+#### `app/api/approve/route.ts` ⭐ NEW (Phase 3.8)
+**Purpose**: User approval API endpoint
+
+**Features**:
+- Handles approve/reject actions
+- HMAC token validation
+- Redirects after action
+- Error handling
+
+**Methods**:
+- GET `/api/approve?action=approve&userId=xxx&token=yyy`
+- GET `/api/approve?action=reject&userId=xxx&token=yyy`
+
+---
+
+#### `app/api/completion/stream/route.ts` ⭐ NEW (Phase 4.1)
+**Purpose**: Streaming autocompletion endpoint
+
+**Features**:
+- Server-Sent Events (SSE) response
+- Streaming completion tokens
+- Project metadata context
+- Rate limiting
+
+**Methods**:
+- POST with { projectId, text, position }
+
+---
+
+#### `app/page.tsx` (Landing/Editor Page)
 **Purpose**: Main editor page with project loading from database
 
 **Phase 3.5 Enhancements**:
@@ -809,6 +921,36 @@ Next.js App Router pages, layouts, UI components, and state management.
 - Modern, clean interface
 
 ---
+
+## Phase 4.1 Achievements
+
+✅ **FloatingGenerationMenu** - AI chapter generation UI for empty chapters
+✅ **Autocomplete TipTap extension** - Ghost text with streaming support
+✅ **completion/stream API route** - SSE endpoint for autocompletion
+✅ **useHasAIProviders hook** - Centralized provider availability check
+✅ **180+ component tests** + 25+ store tests + 90+ server action tests
+
+## Phase 4.0 Achievements
+
+✅ **Blog pages** - List and article pages
+✅ **Admin blog management** - CRUD interface
+✅ **blog-actions.ts** - Server actions for blog CRUD
+✅ **BlogCard component** - Article display
+
+## Phase 3.11 Achievements
+
+✅ **Settings page** - Account deletion and data export
+✅ **Legal pages** - CGU, CGV, mentions, privacy, cookies
+✅ **CookieConsent component** - RGPD cookie banner
+✅ **ContactForm component** - Landing page integration
+✅ **Terms checkbox** on signup form
+✅ **user-actions.ts** - Delete account, export data
+
+## Phase 3.8 Achievements
+
+✅ **Approval API route** - `/api/approve` with HMAC validation
+✅ **Pending approval message** - Signup feedback
+✅ **Auth pages translated** - French localization
 
 ## Phase 3 Achievements
 

@@ -10,13 +10,63 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Select text → Trigger rewrite → Receive 3 stylistically distinct proposals → Insert chosen version instantly
 - Success metric: Users prefer this flow over copy-pasting to ChatGPT
 
-### MVP Status: Phase 3.7 Complete ✅
+### MVP Status: Phase 4.1 Complete ✅
 
-**Phase 3 Persistence & User Authentication**, **Phase 3.5 AI Provider Management**, **Phase 3.6 Metadata Analysis System**, and **Phase 3.7 UX Enhancements** are **fully implemented and tested** with comprehensive MongoDB integration, Auth.js authentication, multi-tenant project management, flexible AI provider configuration, intelligent narrative analysis, PDF export, and correction history.
+**All phases through 4.1 are fully implemented and tested**, including: MongoDB persistence, Auth.js authentication, multi-tenant projects, AI provider management, metadata analysis (7 types), PDF export, correction history, user registration approval, RGPD compliance, blog section, AI text generation, and autocompletion.
 
 **Implemented features:**
 
-**Phase 3.7 - UX Enhancements:** (NEW - January 2026)
+**Phase 4.1 - AI Text Generation & Autocompletion:** (January 2026)
+- **AI Chapter Generation** - Generate chapter beginnings from empty chapters using project metadata context
+- **Streaming Autocompletion** - Press Tab to trigger, Tab again to accept (real-time streaming)
+- **FloatingGenerationMenu** - Context-aware generation options for empty chapters
+- **MetadataCache** - TTL-based caching (5 min) for metadata to reduce database queries
+- **GenerateChapterUseCase** - Loads all project metadata for contextual content generation
+- **GenerateCompletionUseCase** - Generates completions using project context
+- **ContentConverter interface** - Clean Architecture abstraction for TipTap conversion
+- **TipTapContentService** - Infrastructure implementation for content conversion
+- **Autocomplete TipTap extension** - Ghost text display with streaming support
+
+**Phase 4.0 - Blog Section:** (January 2026)
+- **Blog pages** - `/blog` list and `/blog/[slug]` article pages
+- **6+ SEO articles** (2700-3600 words each) on writing techniques
+- **Admin blog management** - `/admin/blog` for CRUD operations
+- **BlogArticle entity** - Domain entity with slug, title, content, metadata
+- **MongoDBBlogArticleRepository** - Persistence with indexes
+- **dynamicParams** enabled for post-deployment article seeding
+
+**Phase 3.11 - RGPD/LCEN Compliance:** (January 2026)
+- **Legal pages** - CGU, CGV, mentions légales, politique confidentialité, politique cookies
+- **Cookie consent banner** - CookieConsent component with 3 variants
+- **Consent timestamps** - termsAcceptedAt, privacyAcceptedAt stored on User
+- **Account deletion** - DeleteUserAccountUseCase with cascade delete
+- **Data export** - exportUserDataAction for RGPD Article 20 portability
+- **Settings page** - `/settings` with account deletion and data export UI
+- **deleteAllByOwner** method on all repositories
+- **Terms checkbox** on signup form with validation
+- **Contact form** - ContactMessage entity, repository, and landing page integration
+
+**Phase 3.8 - User Registration Approval:** (January 2026)
+- **Admin approval workflow** - Users must be approved before signing in
+- **Email notifications** - ResendEmailService for approval request emails
+- **HMAC token validation** - Secure approval/rejection links
+- **ApproveUserUseCase** - Handles approval with token verification
+- **isApproved/approvedAt fields** on User entity
+- **API route** `/api/approve` for handling approval actions
+- **Signup feedback** - Pending approval message after registration
+
+**Phase 3.9 - French Translation:** (January 2026)
+- Sign-in/sign-up pages fully translated
+- Dashboard (titles, counters, empty states)
+- Error messages in French
+
+**Phase 3.10 - Optional AI Provider:** (January 2026)
+- **Project creation without provider** - CreateProjectUseCase no longer requires provider
+- **Informational NoProvidersAlert** - Non-blocking banner instead of error
+- **AI features hidden gracefully** when no valid provider available
+- **useHasAIProviders hook** - Centralized provider availability check
+
+**Phase 3.7 - UX Enhancements:** (January 2026)
 - **PDF Export** with full typography support (pdf-lib), A4 styling matching editor
 - **Correction History** - Track and view all AI rewrites per chapter with searchable accordion UI
 - **Character/Word Count** - Live statistics in editor header (TipTap CharacterCount extension)
@@ -131,36 +181,40 @@ This project MUST follow Clean Architecture principles adapted to Next.js:
 
 1. **Domain Layer** (`src/domain`)
    - Pure business logic, zero framework dependencies
-   - Entities: `Chapter`, `Project`, `ProjectMetadata`, `Provider`, `User`, `CorrectionHistory`
-   - Value Objects: `TextSelection`, `RewriteProposal`, `MetadataType` + 6 analysis types
-   - Interfaces: All external contracts (repositories, providers, parsers, exporters)
+   - Entities: `Chapter`, `Project`, `ProjectMetadata`, `Provider`, `User`, `CorrectionHistory`, `BlogArticle`, `ContactMessage`
+   - Value Objects: `TextSelection`, `RewriteProposal`, `MetadataType` + 7 analysis types (including chapter-summaries)
+   - Interfaces: All external contracts (repositories, providers, parsers, exporters, email service)
 
 2. **Application Layer** (`src/application/use-cases`)
-   - **40 Use Cases** orchestrating domain logic:
+   - **55+ Use Cases** orchestrating domain logic:
      - **Project CRUD** (6): Create, Load, List, Delete, UpdateTitle, UpdateProvider
      - **Chapter Operations** (8): Import, Export, Switch, Add, Remove, Reorder, UpdateContent, UpdateTitle
      - **Provider Management** (6): Create, Update, Delete, List, TestConnection, Validate
      - **Metadata CRUD** (6): Create, Load, List, UpdateContent, UpdateTitle, Delete
-     - **Metadata Generation** (6): Generate each of 6 analysis types with caching
+     - **Metadata Generation** (7): Generate each of 7 analysis types with caching (including chapter-summaries)
      - **Correction History** (3): Save, List, Delete (per-chapter history tracking)
-     - **User Registration** (1): RegisterUser with validation
+     - **User Management** (3): RegisterUser, ApproveUser, DeleteUserAccount
+     - **AI Generation** (2): GenerateChapter, GenerateCompletion
+     - **Blog CRUD** (4): Create, Update, Delete, List blog articles
+     - **Contact** (1): SubmitContactForm
      - **Legacy** (4): RewriteText, ImportDocument, ExportDocument, SwitchChapter
 
 3. **Infrastructure Layer** (`src/infrastructure`)
-   - **AI Providers**: OpenAIProvider, AnthropicProvider (both support 6 metadata analysis types + GPT-5/o-series)
-   - **Persistence**: 5 MongoDB repositories (Project, User, Provider, Metadata, CorrectionHistory) + InMemory (legacy)
-   - **Document**: DocxParser, DocxExporter, PdfExporter, TipTap conversion utilities
-   - **Security**: Encryption (AES-256-GCM), Auth.js provider, bcrypt password hashing
-   - **Prompts**: FilePromptRepository (load from `/docs/prompt/metadata/*.md`)
-   - **Utilities**: UUIDGenerator, text hashing (SHA-256), serialization
+   - **AI Providers**: OpenAIProvider, AnthropicProvider (support 7 metadata analysis types + chapter generation + autocompletion + GPT-5/o-series)
+   - **Persistence**: 7 MongoDB repositories (Project, User, Provider, Metadata, CorrectionHistory, BlogArticle, ContactMessage) + InMemory (legacy)
+   - **Document**: DocxParser, DocxExporter, PdfExporter, TipTap conversion utilities, TipTapContentService
+   - **Security**: Encryption (AES-256-GCM), Auth.js provider, bcrypt password hashing, HMAC token generation
+   - **Email**: ResendEmailService for approval notifications
+   - **Prompts**: FilePromptRepository (load from `/docs/prompt/metadata/*.md` and `/docs/prompt/chapter-generation/*.md`)
+   - **Utilities**: UUIDGenerator, text hashing (SHA-256), serialization, MetadataCache (TTL-based)
 
 4. **Interface Layer** (`src/app`, `src/components`)
-   - **Pages** (6): Dashboard, Editor, Metadata List, Metadata Editor, Sign In, Sign Up
-   - **Components** (~35): Organized by feature (editor, navigation, proposals, providers, metadata, dashboard, document, history)
-   - **Server Actions** (8): All delegate to Use Cases (project, chapter, auth, provider, metadata, correction-history, import, export, rewrite)
+   - **Pages** (15+): Dashboard, Editor, Metadata List/Editor, Sign In/Up, Blog List/Article, Admin Blog, Settings, Legal pages (CGU, CGV, Mentions, Confidentialité, Cookies)
+   - **Components** (~50): Organized by feature (editor, navigation, proposals, providers, metadata, dashboard, document, history, blog, auth, legal)
+   - **Server Actions** (12+): All delegate to Use Cases (project, chapter, auth, provider, metadata, correction-history, blog, contact, user, import, export, rewrite)
    - **Dependency Injection**: `utils.ts` centralizes all repository/factory getters
-   - **State**: Zustand store (server-backed with correction history cache)
-   - **Hooks**: useAutosave (1s debounce)
+   - **State**: Zustand store (server-backed with correction history cache and metadata cache)
+   - **Hooks**: useAutosave (1s debounce), useHasAIProviders
 
 ### Dependency Rules
 - Domain depends on nothing
@@ -241,7 +295,7 @@ If a feature isn't essential to the **selection → replacement loop**, it's exc
 - ✅ Content Update: < 100ms → **0.10ms** (1000x faster than target)
 - ✅ Keystroke Latency: < 100ms → **< 100ms** (immediate)
 
-**Test Results**: 520+ passed + 32 skipped (552+ total, 94% pass rate) | 66+ test files passed + 14 skipped (80+ total)
+**Test Results**: 580+ passed (600+ total, 95%+ pass rate) | 85+ test files
 
 ## Development Guidelines
 
@@ -385,17 +439,17 @@ These rules are **MANDATORY** for all code contributions. They ensure code quali
 
 ### Testing Requirements
 
-**Current Status**: 520+ passed + 32 skipped (552+ total, 94% pass rate, 80+ test files)
+**Current Status**: 580+ passed (600+ total, 95%+ pass rate, 85+ test files)
 
 **Coverage**:
-- Overall: 40.8% (v8 measurement)
+- Overall: 42% (v8 measurement)
 - Domain entities: 92%+ (Chapter: 95.9%, Project: 97.3%, ProjectMetadata: 90.5%)
 - Application use cases: **100%**
 - Critical paths: 90%+
 
 **Test Types**:
 - **Unit tests**: Domain + Application layers with mocked dependencies
-- **Integration tests**: Real API calls (OpenAI & Anthropic) - 12 provider-specific tests for 6 metadata analysis types
+- **Integration tests**: Real API calls (OpenAI & Anthropic) - 24+ provider-specific tests for 7 metadata analysis types + generation
 - **Component tests**: React Testing Library
 - **Performance tests**: All targets validated
 
@@ -426,12 +480,18 @@ npm run test:e2e          # Playwright E2E (when implemented)
 - ✅ **Phase 3.5**: Multi-provider AI support (OpenAI, Anthropic), encrypted credentials, Clean Architecture completion (9.5/10 score)
 - ✅ **Phase 3.6**: Metadata Analysis System (6 AI-powered analysis types with intelligent caching)
 - ✅ **Phase 3.7**: UX Enhancements (PDF export, correction history, word count, author quotes, 3 proposals)
+- ✅ **Phase 3.8**: User registration approval system with email notifications
+- ✅ **Phase 3.9**: French translation (sign-in, sign-up, dashboard)
+- ✅ **Phase 3.10**: Optional AI provider (create projects without provider)
+- ✅ **Phase 3.11**: RGPD/LCEN compliance (legal pages, cookie consent, account deletion, data export)
+- ✅ **Phase 4.0**: Blog section with SEO articles and admin management
+- ✅ **Phase 4.1**: AI text generation for chapters + streaming autocompletion
 
-**Planned Features** (Phase 4+):
+**Planned Features** (Phase 5+):
 - Search across chapters, chapter templates
 - Version history, user preferences
-- Real-time collaboration, comments/annotations, team workspaces (Phase 5)
-- Voice memory, custom AI prompts, streaming responses (Phase 6)
+- Real-time collaboration, comments/annotations, team workspaces (Phase 6)
+- Voice memory, custom AI prompts (Phase 7)
 
 **For detailed roadmap**, see [README.md#roadmap](README.md#roadmap)
 

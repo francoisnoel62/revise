@@ -436,7 +436,9 @@ If your selected provider fails:
 
 ### Do I need to configure providers to use Revise?
 
-**No.** You can still use the `OPENAI_API_KEY` environment variable as a fallback. However, provider management gives you more flexibility and better security.
+**No.** You can create and edit projects without any AI provider configured. The AI features (rewrite, autocompletion, metadata analysis) will simply be hidden until you add a provider. This allows you to start writing immediately and add AI capabilities later.
+
+For development, you can still use the `OPENAI_API_KEY` environment variable as a fallback.
 
 ### Can I export/import provider configurations?
 
@@ -444,7 +446,14 @@ If your selected provider fails:
 
 ### What happens if I delete my account?
 
-**All your providers and encrypted keys are permanently deleted.** Projects remain, but lose their provider associations.
+**All your data is permanently deleted**, including:
+- All providers and encrypted API keys
+- All projects and chapters
+- All metadata analyses
+- All correction history
+- All blog articles (if admin)
+
+This follows RGPD requirements for data deletion. Export your data before deleting your account if you need a backup.
 
 ---
 
