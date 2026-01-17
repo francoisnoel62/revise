@@ -63,4 +63,12 @@ export interface MetadataRepository {
    * @param projectId - The project ID
    */
   deleteByProjectId(ownerId: string, projectId: string): Promise<void>;
+
+  /**
+   * Delete all metadata owned by a user.
+   * Used for RGPD account deletion.
+   * @param ownerId - User ID whose metadata to delete
+   * @returns Number of metadata documents deleted
+   */
+  deleteAllByOwner(ownerId: string): Promise<number>;
 }

@@ -10,6 +10,7 @@ describe('UpdateMetadataContentUseCase', () => {
     update: vi.fn(),
     delete: vi.fn(),
     deleteByProjectId: vi.fn(),
+    deleteAllByOwner: vi.fn(),
   };
 
   let useCase: UpdateMetadataContentUseCase;

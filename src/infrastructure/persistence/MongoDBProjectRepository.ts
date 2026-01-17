@@ -112,4 +112,11 @@ export class MongoDBProjectRepository implements ProjectRepository {
       throw new Error(`Project or chapter not found, or not owned`);
     }
   }
+
+  async deleteAllByOwner(userId: string): Promise<number> {
+    const result = await this.collection.deleteMany({
+      ownerId: userId,
+    });
+    return result.deletedCount;
+  }
 }

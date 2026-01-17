@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { registerUserAction } from '@/app/actions/auth-actions';
 
 export default function SignUpPage() {
@@ -22,6 +23,7 @@ export default function SignUpPage() {
     password: '',
     confirmPassword: '',
   });
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
@@ -34,6 +36,12 @@ export default function SignUpPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validate terms acceptance
+    if (!acceptTerms) {
+      setError('Vous devez accepter les conditions générales');
+      return;
+    }
 
     // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
@@ -53,7 +61,9 @@ export default function SignUpPage() {
       const result = await registerUserAction(
         formData.email,
         formData.password,
-        formData.name || undefined
+        formData.name || undefined,
+        acceptTerms,
+        acceptTerms // Privacy is accepted with the same checkbox
       );
 
       if (!result.success) {
@@ -191,7 +201,24 @@ export default function SignUpPage() {
             />
           </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <div className="rounded-lg bg-muted p-4">
+            <div className="flex items-center space-x-3">
+              <Checkbox
+                id="acceptTerms"
+                checked={acceptTerms}
+                onCheckedChange={(checked) => setAcceptTerms(checked === true)}
+                disabled={isLoading}
+              />
+              <Label htmlFor="acceptTerms" className="text-sm font-normal cursor-pointer">
+                J&apos;accepte les{' '}
+                <Link href="/conditions-generales-utilisation" className="text-primary hover:underline" target="_blank">
+                  conditions générales
+                </Link>
+              </Label>
+            </div>
+          </div>
+
+          <Button type="submit" className="w-full" disabled={isLoading || !acceptTerms}>
             {isLoading ? 'Création du compte...' : 'Créer un compte'}
           </Button>
         </form>

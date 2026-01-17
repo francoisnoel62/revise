@@ -35,6 +35,7 @@ describe('DeleteCorrectionHistoryUseCase', () => {
       delete: vi.fn().mockResolvedValue(undefined),
       deleteByChapterId: vi.fn().mockResolvedValue(undefined),
       deleteByProjectId: vi.fn().mockResolvedValue(undefined),
+      deleteAllByOwner: vi.fn().mockResolvedValue(0),
     };
 
     useCase = new DeleteCorrectionHistoryUseCase(mockHistoryRepository);

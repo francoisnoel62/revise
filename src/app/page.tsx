@@ -4,6 +4,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { ContactForm } from '@/components/landing/ContactForm';
 import {
   Pen,
   RefreshCw,
@@ -23,7 +24,8 @@ import {
   Music,
   Check,
   Quote,
-  Heart
+  Heart,
+  Mail
 } from 'lucide-react';
 
 export const metadata = {
@@ -643,6 +645,25 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Contact Section */}
+      <section id="contact" className="py-20 md:py-28 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <Mail className="h-6 w-6 text-primary" />
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Contactez-nous
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Une question sur Revise ? Une idée de fonctionnalité ?
+              Nous adorons échanger avec nos utilisateurs.
+            </p>
+          </div>
+          <ContactForm />
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="py-12 border-t">
         <div className="container mx-auto px-4">
@@ -666,6 +687,12 @@ export default function LandingPage() {
             <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6">
               <Link href="/blog" className="hover:text-foreground transition-colors">
                 Blog
+              </Link>
+              <Link href="/conditions-generales-utilisation" className="hover:text-foreground transition-colors">
+                CGU
+              </Link>
+              <Link href="/conditions-generales-vente" className="hover:text-foreground transition-colors">
+                CGV
               </Link>
               <Link href="/mentions-legales" className="hover:text-foreground transition-colors">
                 Mentions légales
