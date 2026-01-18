@@ -5,6 +5,10 @@ import { Db, Collection } from 'mongodb';
 import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository';
 import { BlogArticle } from '@/domain/entities/BlogArticle';
 import {
+  PaginatedResult,
+  createPaginatedResult,
+} from '@/domain/interfaces/PaginatedResult';
+import {
   BlogArticleDocument,
   serializeBlogArticle,
   deserializeBlogArticle,
@@ -58,6 +62,26 @@ export class MongoDBBlogArticleRepository implements BlogArticleRepository {
       .toArray();
 
     return docs.map(deserializeBlogArticle);
+  }
+
+  async findAllPublishedPaginated(
+    page: number,
+    pageSize: number
+  ): Promise<PaginatedResult<BlogArticle>> {
+    const skip = (page - 1) * pageSize;
+
+    const [docs, totalCount] = await Promise.all([
+      this.collection
+        .find({ isPublished: true })
+        .sort({ publishedAt: -1 })
+        .skip(skip)
+        .limit(pageSize)
+        .toArray(),
+      this.collection.countDocuments({ isPublished: true }),
+    ]);
+
+    const articles = docs.map(deserializeBlogArticle);
+    return createPaginatedResult(articles, totalCount, page, pageSize);
   }
 
   // ============================================

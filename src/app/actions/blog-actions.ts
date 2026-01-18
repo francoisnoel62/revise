@@ -11,11 +11,25 @@ import {
   withErrorHandling,
 } from './utils';
 import { LoadPublishedBlogArticlesUseCase } from '@/application/use-cases/LoadPublishedBlogArticlesUseCase';
+import { LoadPublishedBlogArticlesPaginatedUseCase } from '@/application/use-cases/LoadPublishedBlogArticlesPaginatedUseCase';
 import { LoadBlogArticleBySlugUseCase } from '@/application/use-cases/LoadBlogArticleBySlugUseCase';
 import { CreateBlogArticleUseCase } from '@/application/use-cases/CreateBlogArticleUseCase';
 import { UpdateBlogArticleUseCase } from '@/application/use-cases/UpdateBlogArticleUseCase';
 import { DeleteBlogArticleUseCase } from '@/application/use-cases/DeleteBlogArticleUseCase';
 import { ListAllBlogArticlesUseCase } from '@/application/use-cases/ListAllBlogArticlesUseCase';
+
+/**
+ * Serialized paginated result for client transport.
+ */
+export interface SerializedPaginatedResult<T> {
+  items: T[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
 
 /**
  * Serialized blog article for client transport.
@@ -81,6 +95,33 @@ export async function getPublishedArticlesAction(): Promise<
     const useCase = new LoadPublishedBlogArticlesUseCase(repo);
     const { articles } = await useCase.execute();
     return articles.map(serializeArticle);
+  });
+}
+
+/**
+ * Get published blog articles with pagination.
+ * Used by the public blog list page.
+ * @param page - Page number (1-indexed)
+ * @param pageSize - Number of items per page (default: 5)
+ */
+export async function getPublishedArticlesPaginatedAction(
+  page: number = 1,
+  pageSize: number = 5
+): Promise<ActionResult<SerializedPaginatedResult<SerializedBlogArticle>>> {
+  return withErrorHandling(async () => {
+    const repo = await getBlogArticleRepo();
+    const useCase = new LoadPublishedBlogArticlesPaginatedUseCase(repo);
+    const { articles } = await useCase.execute({ page, pageSize });
+
+    return {
+      items: articles.items.map(serializeArticle),
+      totalCount: articles.totalCount,
+      page: articles.page,
+      pageSize: articles.pageSize,
+      totalPages: articles.totalPages,
+      hasNextPage: articles.hasNextPage,
+      hasPreviousPage: articles.hasPreviousPage,
+    };
   });
 }
 
