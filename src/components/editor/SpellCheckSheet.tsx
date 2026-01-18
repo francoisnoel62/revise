@@ -3,7 +3,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -56,6 +56,18 @@ export function SpellCheckSheet({
   loading = false,
 }: SpellCheckSheetProps) {
   const [appliedCorrections, setAppliedCorrections] = useState<Set<number>>(new Set());
+
+  // Lock body scroll when sheet is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [open]);
 
   const handleApplyCorrection = (index: number, original: string, corrected: string) => {
     onApplyCorrection(original, corrected);
