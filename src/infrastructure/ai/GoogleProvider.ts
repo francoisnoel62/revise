@@ -1522,11 +1522,10 @@ INSTRUCTIONS FINALES:
     try {
       const result = await this.client.models.generateContent({
         model: this.modelName,
-        contents: `${systemPrompt}\n\n---\n\nTEXTE À VÉRIFIER:\n\n${text}`,
+        contents: `${systemPrompt}\n\nTEXTE:\n${text}`,
         config: {
-          temperature: 0.1, // Low temperature for accuracy
-          maxOutputTokens: 8192, // Higher limit to handle long texts
-          // Disable thinking mode to get direct JSON response
+          temperature: 0.1,
+          maxOutputTokens: 4096, // Reduced since we don't ask for full corrected text
           thinkingConfig: {
             thinkingLevel: ThinkingLevel.LOW,
           },
@@ -1595,71 +1594,36 @@ INSTRUCTIONS FINALES:
 
   private buildSpellCheckSystemPrompt(language?: string): string {
     const langHint = language
-      ? `La langue du texte est: ${language}.`
-      : 'Détecte automatiquement la langue du texte.';
+      ? `Langue: ${language}.`
+      : 'Détecte la langue automatiquement.';
 
-    return `Tu es un correcteur orthographique et grammatical expert. Ton rôle est d'identifier et corriger les erreurs d'orthographe, de grammaire, de ponctuation et de style.
+    return `Correcteur orthographique expert. ${langHint}
 
-${langHint}
+Trouve les erreurs d'orthographe, grammaire, ponctuation. Ignore les choix stylistiques intentionnels.
 
-RÈGLES IMPORTANTES:
-- Analyse le texte pour trouver TOUTES les erreurs (orthographe, grammaire, ponctuation, style)
-- Ne modifie PAS le sens du texte
-- Ne modifie PAS le style intentionnel de l'auteur
-- Concentre-toi sur les vraies erreurs, pas les choix stylistiques
-- Sois précis dans tes explications
+Types: "spelling", "grammar", "punctuation", "style"
 
-TYPES D'ERREURS:
-- "spelling": Fautes d'orthographe (ex: "apartement" → "appartement")
-- "grammar": Erreurs grammaticales (ex: accords, conjugaisons, syntaxe)
-- "punctuation": Erreurs de ponctuation (ex: virgules manquantes, espaces)
-- "style": Problèmes de style mineurs (ex: répétitions gênantes, pléonasmes)
+Réponds UNIQUEMENT en JSON:
+{"corrections":[{"original":"erreur","corrected":"correction","type":"spelling|grammar|punctuation|style","explanation":"pourquoi"}],"summary":"X erreurs"}
 
-FORMAT DE SORTIE (JSON):
-Réponds UNIQUEMENT avec un objet JSON valide, sans aucun texte avant ou après.
-{
-  "corrections": [
-    {
-      "original": "le mot ou phrase avec l'erreur",
-      "corrected": "le mot ou phrase corrigé",
-      "type": "spelling" | "grammar" | "punctuation" | "style",
-      "explanation": "Explication brève de l'erreur et de la correction"
-    }
-  ],
-  "correctedText": "Le texte complet avec toutes les corrections appliquées",
-  "summary": "Résumé bref: X erreurs trouvées (Y orthographe, Z grammaire, etc.)"
-}
-
-INSTRUCTIONS FINALES:
-- Si le texte ne contient aucune erreur, retourne un tableau corrections vide et le texte original dans correctedText
-- Retourne UNIQUEMENT le JSON valide, sans commentaires ni code blocks markdown`;
+Si aucune erreur: {"corrections":[],"summary":"Aucune erreur"}`;
   }
 
   private parseSpellCheckResponse(content: string, originalText?: string): SpellCheckResult {
-    // Handle null/undefined/empty content
     if (!content || content.trim() === '') {
-      console.error('[GoogleProvider] Empty content received from Gemini');
       throw new Error('Empty response from Google AI');
     }
-
-    console.log('[GoogleProvider] parseSpellCheckResponse raw content:', content.substring(0, 500));
 
     let parsed: SpellCheckResponse;
 
     try {
       const jsonContent = this.extractJson(content);
-      console.log('[GoogleProvider] parseSpellCheckResponse extracted JSON:', jsonContent.substring(0, 500));
-
-      // Handle case where JSON extraction fails
       if (!jsonContent || jsonContent.trim() === '') {
         throw new Error('Could not extract JSON from response');
       }
-
       parsed = JSON.parse(jsonContent);
     } catch (e) {
-      console.error('[GoogleProvider] JSON parse error:', e instanceof Error ? e.message : 'unknown');
-      console.error('[GoogleProvider] Raw content was:', content.substring(0, 1000));
-      throw new Error(`Failed to parse spell check response from Google AI: ${e instanceof Error ? e.message : 'unknown error'}`);
+      throw new Error(`Failed to parse spell check response: ${e instanceof Error ? e.message : 'unknown'}`);
     }
 
     // Validate and provide defaults for missing fields
@@ -1670,11 +1634,6 @@ INSTRUCTIONS FINALES:
     // Handle corrections - default to empty array if missing
     const rawCorrections = Array.isArray(parsed.corrections) ? parsed.corrections : [];
 
-    // Handle correctedText - default to original text if missing
-    const correctedText = typeof parsed.correctedText === 'string' && parsed.correctedText.trim()
-      ? parsed.correctedText
-      : originalText || '(Texte corrigé non disponible)';
-
     // Handle summary - provide default if missing
     const summary = typeof parsed.summary === 'string' && parsed.summary.trim()
       ? parsed.summary
@@ -1684,14 +1643,12 @@ INSTRUCTIONS FINALES:
     const corrections: SpellCheckCorrection[] = [];
     for (const c of rawCorrections) {
       if (!c.original || !c.corrected || !c.type || !c.explanation) {
-        console.warn('[GoogleProvider] Skipping malformed correction:', c);
-        continue; // Skip malformed corrections
+        continue; // Skip malformed corrections silently
       }
 
       const validTypes: CorrectionType[] = ['spelling', 'grammar', 'style', 'punctuation'];
       if (!validTypes.includes(c.type)) {
-        console.warn('[GoogleProvider] Skipping correction with invalid type:', c.type);
-        continue; // Skip invalid types
+        continue; // Skip invalid types silently
       }
 
       corrections.push(
@@ -1702,6 +1659,12 @@ INSTRUCTIONS FINALES:
           explanation: c.explanation,
         })
       );
+    }
+
+    // Reconstruct corrected text by applying all corrections to original
+    let correctedText = originalText || '';
+    for (const correction of corrections) {
+      correctedText = correctedText.replace(correction.original, correction.corrected);
     }
 
     return {

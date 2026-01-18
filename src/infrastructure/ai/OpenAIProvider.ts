@@ -1678,7 +1678,7 @@ INSTRUCTIONS FINALES:
         throw new Error('Empty response from OpenAI');
       }
 
-      return this.parseSpellCheckResponse(content);
+      return this.parseSpellCheckResponse(content, text);
     } catch (error) {
       if (error instanceof Error) {
         throw error;
@@ -1689,49 +1689,23 @@ INSTRUCTIONS FINALES:
 
   private buildSpellCheckSystemPrompt(language?: string): string {
     const langHint = language
-      ? `La langue du texte est: ${language}.`
-      : 'Détecte automatiquement la langue du texte.';
+      ? `Langue: ${language}.`
+      : 'Détecte la langue automatiquement.';
 
-    return `Tu es un correcteur orthographique et grammatical expert. Ton rôle est d'identifier et corriger les erreurs d'orthographe, de grammaire, de ponctuation et de style.
+    return `Correcteur orthographique expert. ${langHint}
 
-${langHint}
+Trouve les erreurs d'orthographe, grammaire, ponctuation. Ignore les choix stylistiques intentionnels.
 
-RÈGLES IMPORTANTES:
-- Analyse le texte pour trouver TOUTES les erreurs (orthographe, grammaire, ponctuation, style)
-- Ne modifie PAS le sens du texte
-- Ne modifie PAS le style intentionnel de l'auteur
-- Concentre-toi sur les vraies erreurs, pas les choix stylistiques
-- Sois précis dans tes explications
+Types: "spelling", "grammar", "punctuation", "style"
 
-TYPES D'ERREURS:
-- "spelling": Fautes d'orthographe (ex: "apartement" → "appartement")
-- "grammar": Erreurs grammaticales (ex: accords, conjugaisons, syntaxe)
-- "punctuation": Erreurs de ponctuation (ex: virgules manquantes, espaces)
-- "style": Problèmes de style mineurs (ex: répétitions gênantes, pléonasmes)
+Réponds en JSON:
+{"corrections":[{"original":"erreur","corrected":"correction","type":"spelling|grammar|punctuation|style","explanation":"pourquoi"}],"summary":"X erreurs"}
 
-FORMAT DE SORTIE (JSON):
-{
-  "corrections": [
-    {
-      "original": "le mot ou phrase avec l'erreur",
-      "corrected": "le mot ou phrase corrigé",
-      "type": "spelling" | "grammar" | "punctuation" | "style",
-      "explanation": "Explication brève de l'erreur et de la correction"
-    }
-  ],
-  "correctedText": "Le texte complet avec toutes les corrections appliquées",
-  "summary": "Résumé bref: X erreurs trouvées (Y orthographe, Z grammaire, etc.)"
-}
-
-INSTRUCTIONS FINALES:
-- Si le texte ne contient aucune erreur, retourne un tableau corrections vide et le texte original dans correctedText
-- Retourne UNIQUEMENT le JSON valide, sans commentaires`;
+Si aucune erreur: {"corrections":[],"summary":"Aucune erreur"}`;
   }
 
-  private parseSpellCheckResponse(content: string): SpellCheckResult {
-    // Handle null/undefined/empty content
+  private parseSpellCheckResponse(content: string, originalText?: string): SpellCheckResult {
     if (!content || content.trim() === '') {
-      console.error('[OpenAIProvider] Empty content received');
       throw new Error('Empty response from OpenAI');
     }
 
@@ -1741,39 +1715,27 @@ INSTRUCTIONS FINALES:
       const jsonContent = this.isReasoningModel() ? this.extractJson(content) : content;
       parsed = JSON.parse(jsonContent);
     } catch (e) {
-      console.error('[OpenAIProvider] JSON parse error:', e instanceof Error ? e.message : 'unknown');
-      console.error('[OpenAIProvider] Raw content was:', content.substring(0, 1000));
-      throw new Error(`Failed to parse spell check response: ${e instanceof Error ? e.message : 'unknown error'}`);
+      throw new Error(`Failed to parse spell check response: ${e instanceof Error ? e.message : 'unknown'}`);
     }
 
-    // Validate and provide defaults for missing fields
     if (!parsed || typeof parsed !== 'object') {
       throw new Error('Invalid response: expected an object');
     }
 
-    // Handle corrections - default to empty array if missing
     const rawCorrections = Array.isArray(parsed.corrections) ? parsed.corrections : [];
-
-    // Handle correctedText - default to original text hint if missing
-    const correctedText = typeof parsed.correctedText === 'string' && parsed.correctedText.trim()
-      ? parsed.correctedText
-      : '(Texte corrigé non disponible)';
-
-    // Handle summary - provide default if missing
     const summary = typeof parsed.summary === 'string' && parsed.summary.trim()
       ? parsed.summary
       : `${rawCorrections.length} correction(s) trouvée(s)`;
 
-    // Convert to SpellCheckCorrection objects
     const corrections: SpellCheckCorrection[] = [];
     for (const c of rawCorrections) {
       if (!c.original || !c.corrected || !c.type || !c.explanation) {
-        continue; // Skip malformed corrections
+        continue;
       }
 
       const validTypes: CorrectionType[] = ['spelling', 'grammar', 'style', 'punctuation'];
       if (!validTypes.includes(c.type)) {
-        continue; // Skip invalid types
+        continue;
       }
 
       corrections.push(
@@ -1784,6 +1746,12 @@ INSTRUCTIONS FINALES:
           explanation: c.explanation,
         })
       );
+    }
+
+    // Reconstruct corrected text by applying all corrections
+    let correctedText = originalText || '';
+    for (const correction of corrections) {
+      correctedText = correctedText.replace(correction.original, correction.corrected);
     }
 
     return {
