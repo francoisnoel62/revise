@@ -3,7 +3,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -37,6 +37,7 @@ interface SpellCheckSheetProps {
   result: SpellCheckResultDTO | null;
   onApplyCorrection: (original: string, corrected: string) => void;
   onApplyAll: (correctedText: string) => void;
+  onNavigateToCorrection?: (original: string) => void;
   loading?: boolean;
 }
 
@@ -53,21 +54,10 @@ export function SpellCheckSheet({
   result,
   onApplyCorrection,
   onApplyAll,
+  onNavigateToCorrection,
   loading = false,
 }: SpellCheckSheetProps) {
   const [appliedCorrections, setAppliedCorrections] = useState<Set<number>>(new Set());
-
-  // Lock body scroll when sheet is open
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [open]);
 
   const handleApplyCorrection = (index: number, original: string, corrected: string) => {
     onApplyCorrection(original, corrected);
@@ -150,6 +140,7 @@ export function SpellCheckSheet({
                     onApply={() =>
                       handleApplyCorrection(index, correction.original, correction.corrected)
                     }
+                    onNavigate={() => onNavigateToCorrection?.(correction.original)}
                   />
                 ))}
               </div>
@@ -173,22 +164,31 @@ interface CorrectionCardProps {
   correction: SpellCheckCorrectionDTO;
   applied: boolean;
   onApply: () => void;
+  onNavigate?: () => void;
 }
 
-function CorrectionCard({ correction, applied, onApply }: CorrectionCardProps) {
+function CorrectionCard({ correction, applied, onApply, onNavigate }: CorrectionCardProps) {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = async () => {
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Don't trigger navigation
     await navigator.clipboard.writeText(correction.corrected);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleApply = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Don't trigger navigation
+    onApply();
+  };
+
   return (
     <div
-      className={`border rounded-lg p-3 transition-opacity ${
+      className={`border rounded-lg p-3 transition-all cursor-pointer hover:border-blue-300 hover:shadow-sm ${
         applied ? 'opacity-50 bg-slate-50' : 'bg-white'
       }`}
+      onClick={onNavigate}
+      title="Cliquez pour naviguer vers cette correction"
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <Badge variant="outline" className={typeColors[correction.type]}>
@@ -207,7 +207,7 @@ function CorrectionCard({ correction, applied, onApply }: CorrectionCardProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={onApply}
+            onClick={handleApply}
             disabled={applied}
             className="h-7 w-7 p-0"
             title="Appliquer cette correction"

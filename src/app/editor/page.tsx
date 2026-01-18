@@ -393,6 +393,56 @@ function EditorContent() {
     }
   };
 
+  // Navigate to a correction in the editor (scroll and highlight without replacing)
+  const handleNavigateToCorrection = (original: string) => {
+    if (!editor) return;
+
+    const { state } = editor;
+    let pos = 0;
+    let found = false;
+
+    state.doc.descendants((node, nodePos) => {
+      if (found) return false;
+      if (node.isText && node.text) {
+        const textIndex = node.text.indexOf(original);
+        if (textIndex !== -1) {
+          pos = nodePos + textIndex;
+          found = true;
+          return false;
+        }
+      }
+      return true;
+    });
+
+    if (found) {
+      // Select the text and scroll into view
+      editor
+        .chain()
+        .focus()
+        .setTextSelection({ from: pos, to: pos + original.length })
+        .scrollIntoView()
+        .run();
+
+      // Highlight temporarily
+      editor
+        .chain()
+        .setTextSelection({ from: pos, to: pos + original.length })
+        .setHighlight({ color: '#fef08a' }) // yellow-200
+        .run();
+
+      // Remove highlight after 3 seconds
+      setTimeout(() => {
+        if (editor) {
+          editor
+            .chain()
+            .setTextSelection({ from: pos, to: pos + original.length })
+            .unsetHighlight()
+            .run();
+        }
+      }, 3000);
+    }
+  };
+
   // Apply all spell check corrections
   const handleApplyAllCorrections = (correctedText: string) => {
     if (!editor) return;
@@ -599,6 +649,7 @@ function EditorContent() {
         result={spellCheckResult}
         onApplyCorrection={handleApplyCorrection}
         onApplyAll={handleApplyAllCorrections}
+        onNavigateToCorrection={handleNavigateToCorrection}
         loading={spellCheckLoading}
       />
     </main>
