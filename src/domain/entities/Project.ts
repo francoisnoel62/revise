@@ -15,6 +15,7 @@ export class Project {
   private chapters: Chapter[];
   private activeChapterId: string | null;
   private providerId: string | null;
+  private autoSpellCheck: boolean;
   private readonly createdAt: Date;
   private updatedAt: Date;
   private isPublished: boolean;
@@ -34,6 +35,7 @@ export class Project {
     providerId: string | null,
     createdAt: Date,
     updatedAt: Date,
+autoSpellCheck: boolean = false,
     isPublished: boolean = false,
     shareToken: string | null = null,
     publishedAt: Date | null = null
@@ -44,6 +46,7 @@ export class Project {
     this.chapters = [...chapters];
     this.activeChapterId = activeChapterId ?? (chapters.length > 0 ? chapters[0].getId() : null);
     this.providerId = providerId;
+    this.autoSpellCheck = autoSpellCheck;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
     this.isPublished = isPublished;
@@ -58,7 +61,8 @@ export class Project {
     ownerId: string,
     title: string = 'Nouveau projet',
     chapters: Chapter[] = [],
-    providerId: string | null = null
+    providerId: string | null = null,
+    autoSpellCheck: boolean = false
   ): Project {
     const now = new Date();
     return new Project(
@@ -69,7 +73,11 @@ export class Project {
       chapters.length > 0 ? chapters[0].getId() : null,
       providerId,
       now,
-      now
+      now,
+      autoSpellCheck,
+      false, // isPublished
+      null,  // shareToken
+      null   // publishedAt
     );
   }
 
@@ -131,6 +139,10 @@ export class Project {
     return this.providerId;
   }
 
+  getAutoSpellCheck(): boolean {
+    return this.autoSpellCheck;
+  }
+
   getChapterCount(): number {
     return this.chapters.length;
   }
@@ -186,6 +198,11 @@ export class Project {
 
   setProviderId(providerId: string | null): void {
     this.providerId = providerId;
+    this.touch();
+  }
+
+  setAutoSpellCheck(enabled: boolean): void {
+    this.autoSpellCheck = enabled;
     this.touch();
   }
 

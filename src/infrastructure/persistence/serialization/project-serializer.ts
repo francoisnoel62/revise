@@ -14,6 +14,7 @@ export interface ProjectDocument {
   chapters: ChapterDocument[];
   activeChapterId: string | null;
   providerId: string | null;
+  autoSpellCheck?: boolean;
   createdAt: Date;
   updatedAt: Date;
   isPublished: boolean;
@@ -47,6 +48,7 @@ export function serializeProject(project: Project): ProjectDocument {
     chapters: project.getChapters().map(serializeChapter),
     activeChapterId: project.getActiveChapterId(),
     providerId: project.getProviderId(),
+    autoSpellCheck: project.getAutoSpellCheck(),
     createdAt: project.getCreatedAt(),
     updatedAt: project.getUpdatedAt(),
     isPublished: project.getIsPublished(),
@@ -86,6 +88,7 @@ export function deserializeProject(doc: ProjectDocument): Project {
     doc.providerId ?? null,
     new Date(doc.createdAt),
     new Date(doc.updatedAt),
+doc.autoSpellCheck ?? false,
     doc.isPublished ?? false,
     doc.shareToken ?? null,
     doc.publishedAt ? new Date(doc.publishedAt) : null

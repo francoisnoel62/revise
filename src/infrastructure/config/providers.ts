@@ -9,6 +9,7 @@ import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
 import { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
 import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository';
 import { ContactMessageRepository } from '@/domain/interfaces/ContactMessageRepository';
+import { SpellCheckCacheRepository } from '@/domain/interfaces/SpellCheckCacheRepository';
 import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import { LLMProvider } from '@/domain/interfaces/LLMProvider';
 import { DocumentParser } from '@/domain/interfaces/DocumentParser';
@@ -22,6 +23,7 @@ import { MongoDBMetadataRepository } from '@/infrastructure/persistence/MongoDBM
 import { MongoDBCorrectionHistoryRepository } from '@/infrastructure/persistence/MongoDBCorrectionHistoryRepository';
 import { MongoDBBlogArticleRepository } from '@/infrastructure/persistence/MongoDBBlogArticleRepository';
 import { MongoDBContactMessageRepository } from '@/infrastructure/persistence/MongoDBContactMessageRepository';
+import { MongoDBSpellCheckCacheRepository } from '@/infrastructure/persistence/MongoDBSpellCheckCacheRepository';
 import { InMemoryProjectRepository } from '@/infrastructure/persistence/InMemoryProjectRepository';
 import { FilePromptRepository } from '@/infrastructure/prompts/FilePromptRepository';
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
@@ -138,6 +140,20 @@ export async function getContactMessageRepository(): Promise<ContactMessageRepos
     await contactMessageRepoInstance.ensureIndexes();
   }
   return contactMessageRepoInstance;
+}
+
+/**
+ * Get the spell check cache repository.
+ */
+let spellCheckCacheRepoInstance: MongoDBSpellCheckCacheRepository | null = null;
+
+export async function getSpellCheckCacheRepository(): Promise<SpellCheckCacheRepository> {
+  if (!spellCheckCacheRepoInstance) {
+    const db = await getDatabase();
+    spellCheckCacheRepoInstance = new MongoDBSpellCheckCacheRepository(db);
+    await spellCheckCacheRepoInstance.ensureIndexes();
+  }
+  return spellCheckCacheRepoInstance;
 }
 
 /**

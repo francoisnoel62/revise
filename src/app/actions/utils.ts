@@ -12,6 +12,7 @@ import {
   getMetadataRepository,
   getCorrectionHistoryRepository,
   getBlogArticleRepository,
+  getSpellCheckCacheRepository,
   getPromptRepository,
   createLLMProvider,
   getDocumentParser as getDocumentParserFromConfig,
@@ -28,6 +29,7 @@ import { UserRepository } from '@/domain/interfaces/UserRepository';
 import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
 import { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
 import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository';
+import { SpellCheckCacheRepository } from '@/domain/interfaces/SpellCheckCacheRepository';
 import { LLMProviderFactory } from '@/domain/interfaces/LLMProviderFactory';
 import { IdGenerator } from '@/domain/interfaces/IdGenerator';
 import { LLMProvider } from '@/domain/interfaces/LLMProvider';
@@ -153,6 +155,13 @@ export async function getCorrectionHistoryRepo(): Promise<CorrectionHistoryRepos
  */
 export async function getBlogArticleRepo(): Promise<BlogArticleRepository> {
   return await getBlogArticleRepository();
+}
+
+/**
+ * Get spell check cache repository instance.
+ */
+export async function getSpellCheckCacheRepo(): Promise<SpellCheckCacheRepository> {
+  return await getSpellCheckCacheRepository();
 }
 
 /**

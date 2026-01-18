@@ -37,6 +37,10 @@ interface FormattingToolbarProps {
   rewriteLoading?: boolean;
   onSpellCheck?: () => void;
   spellCheckLoading?: boolean;
+  spellCheckCount?: number;
+  spellCheckStale?: boolean;
+  autoSpellCheckEnabled?: boolean;
+  onAutoSpellCheckChange?: (enabled: boolean) => void;
   providers?: SafeProvider[];
   selectedProviderId?: string | null;
   onProviderChange?: (providerId: string | null) => void;
@@ -60,6 +64,10 @@ export function FormattingToolbar({
   rewriteLoading = false,
   onSpellCheck,
   spellCheckLoading = false,
+  spellCheckCount = 0,
+  spellCheckStale = false,
+  autoSpellCheckEnabled = false,
+  onAutoSpellCheckChange,
   providers = [],
   selectedProviderId = null,
   onProviderChange,
@@ -293,10 +301,32 @@ export function FormattingToolbar({
                   ? 'Configurez un fournisseur IA dans votre profil'
                   : 'Vérifier l\'orthographe et la grammaire'
               }
-              className="gap-1"
+              className="gap-1 relative"
             >
               <SpellCheck className="h-4 w-4" />
               <span className="hidden sm:inline">{spellCheckLoading ? 'Vérification...' : 'Vérifier'}</span>
+              {/* Badge showing correction count */}
+              {!spellCheckLoading && spellCheckCount > 0 && (
+                <span
+                  className={`absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 text-xs font-medium rounded-full flex items-center justify-center ${
+                    spellCheckStale
+                      ? 'bg-amber-100 text-amber-700 border border-amber-300'
+                      : 'bg-red-100 text-red-700 border border-red-300'
+                  }`}
+                  title={spellCheckStale ? 'Le contenu a changé - revérifier' : `${spellCheckCount} corrections`}
+                >
+                  {spellCheckStale ? '!' : spellCheckCount}
+                </span>
+              )}
+              {/* Green check when no errors and cache exists */}
+              {!spellCheckLoading && spellCheckCount === 0 && !spellCheckStale && (
+                <span
+                  className="absolute -top-1 -right-1 w-[18px] h-[18px] text-xs bg-green-100 text-green-700 border border-green-300 rounded-full flex items-center justify-center"
+                  title="Aucune erreur détectée"
+                >
+                  ✓
+                </span>
+              )}
             </Button>
           )}
           <AIMenuDropdown

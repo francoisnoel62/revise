@@ -128,6 +128,7 @@ describe('DashboardPage', () => {
         chapters: [],
         activeChapterId: null,
         providerId: null,
+        autoSpellCheck: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },

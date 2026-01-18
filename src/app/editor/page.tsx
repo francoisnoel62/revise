@@ -20,7 +20,12 @@ import { UserMenu } from '@/components/auth/UserMenu';
 import { Button } from '@/components/ui/button';
 import { Editor } from '@tiptap/react';
 import { rewriteText } from '@/app/actions/rewrite-text';
-import { checkSpellingAndGrammar } from '@/app/actions/spellcheck-actions';
+import {
+  checkSpellingWithCache,
+  updateCacheAfterCorrection,
+  loadSpellCheckCache,
+  updateAutoSpellCheck,
+} from '@/app/actions/spellcheck-cache-actions';
 import { listProvidersAction, SafeProvider } from '@/app/actions/provider-actions';
 import { updateProjectProviderAction } from '@/app/actions/project-actions';
 import { generateChapterAction } from '@/app/actions/chapter-generation-actions';
@@ -49,6 +54,19 @@ interface SpellCheckResultDTO {
   correctedText: string;
   hasErrors: boolean;
   summary: string;
+}
+
+interface SpellCheckCacheDTO {
+  id: string;
+  chapterId: string;
+  projectId: string;
+  contentHash: string;
+  corrections: SpellCheckCorrectionDTO[];
+  correctionCount: number;
+  hasErrors: boolean;
+  isStale: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 function EditorContent() {
@@ -98,6 +116,10 @@ function EditorContent() {
   const [spellCheckLoading, setSpellCheckLoading] = useState(false);
   const [spellCheckResult, setSpellCheckResult] = useState<SpellCheckResultDTO | null>(null);
   const [showSpellCheckSheet, setShowSpellCheckSheet] = useState(false);
+  const [spellCheckCount, setSpellCheckCount] = useState(0);
+  const [spellCheckStale, setSpellCheckStale] = useState(false);
+  const [autoSpellCheckEnabled, setAutoSpellCheckEnabled] = useState(false);
+  const [lastCheckedContentRef, setLastCheckedContentRef] = useState<string | null>(null);
 
   // Track initialization to prevent infinite loop
   const initializedRef = useRef(false);
@@ -153,9 +175,57 @@ function EditorContent() {
       providersLoadedRef.current = project.id;
       // Initialize selected provider from project
       setSelectedProviderId(project.providerId ?? null);
+      // Initialize auto spell check setting from project
+      setAutoSpellCheckEnabled(project.autoSpellCheck ?? false);
       loadProviders();
     }
-  }, [project?.id, project?.providerId]);
+  }, [project?.id, project?.providerId, project?.autoSpellCheck]);
+
+  // Load spell check cache and auto-check when chapter changes
+  useEffect(() => {
+    async function loadCacheAndAutoCheck() {
+      if (!project?.id || !project.activeChapterId || !selectedProviderId) return;
+
+      const activeChapter = project.chapters.find((c) => c.id === project.activeChapterId);
+      if (!activeChapter?.content) return;
+
+      // Try to load existing cache
+      const cacheResult = await loadSpellCheckCache(activeChapter.id, activeChapter.content);
+
+      if (cacheResult.success && cacheResult.data) {
+        // Cache exists
+        setSpellCheckCount(cacheResult.data.correctionCount);
+        setSpellCheckStale(cacheResult.data.isStale);
+        setLastCheckedContentRef(activeChapter.content);
+
+        // If cache is valid (not stale), use it
+        if (!cacheResult.data.isStale) {
+          // Convert cache to result format for the sheet
+          setSpellCheckResult({
+            corrections: cacheResult.data.corrections,
+            correctedText: '', // Not used for cached results
+            hasErrors: cacheResult.data.hasErrors,
+            summary: `${cacheResult.data.correctionCount} corrections trouvées`,
+          });
+        } else if (autoSpellCheckEnabled) {
+          // Cache is stale and auto-check is enabled - run fresh check
+          handleSpellCheckWithCache();
+        }
+      } else if (autoSpellCheckEnabled) {
+        // No cache exists and auto-check is enabled - run check
+        handleSpellCheckWithCache();
+      } else {
+        // No cache and no auto-check - reset state
+        setSpellCheckCount(0);
+        setSpellCheckStale(false);
+        setSpellCheckResult(null);
+        setLastCheckedContentRef(null);
+      }
+    }
+
+    loadCacheAndAutoCheck();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project?.activeChapterId, autoSpellCheckEnabled]);
 
   // Selection change handler
   const handleSelectionChange = (from: number, to: number) => {
@@ -298,8 +368,8 @@ function EditorContent() {
     setShowProposals(false);
   };
 
-  // Spell check handler
-  const handleSpellCheck = async () => {
+  // Spell check handler with caching
+  const handleSpellCheckWithCache = async () => {
     if (!project?.id || !project.activeChapterId) return;
 
     // Check if provider is selected
@@ -319,7 +389,11 @@ function EditorContent() {
     setSpellCheckResult(null);
 
     try {
-      const result = await checkSpellingAndGrammar(project.id, activeChapter.content);
+      const result = await checkSpellingWithCache(
+        project.id,
+        activeChapter.id,
+        activeChapter.content
+      );
 
       if (!result.success) {
         alert(`Erreur: ${result.error}`);
@@ -327,7 +401,18 @@ function EditorContent() {
         return;
       }
 
-      setSpellCheckResult(result.data);
+      // Update cache state
+      setSpellCheckCount(result.data.correctionCount);
+      setSpellCheckStale(false);
+      setLastCheckedContentRef(activeChapter.content);
+
+      // Convert cache result to SpellCheckResultDTO format
+      setSpellCheckResult({
+        corrections: result.data.corrections,
+        correctedText: '', // Reconstructed server-side when needed
+        hasErrors: result.data.hasErrors,
+        summary: `${result.data.correctionCount} corrections trouvées`,
+      });
     } catch (error) {
       alert('Une erreur est survenue lors de la vérification.');
       console.error(error);
@@ -337,9 +422,44 @@ function EditorContent() {
     }
   };
 
+  // Handle auto spell check toggle change
+  const handleAutoSpellCheckChange = async (enabled: boolean) => {
+    if (!project?.id) return;
+
+    // Update local state immediately for responsive UI
+    setAutoSpellCheckEnabled(enabled);
+
+    // Persist to database
+    const result = await updateAutoSpellCheck(project.id, enabled);
+    if (!result.success) {
+      // Revert on error
+      setAutoSpellCheckEnabled(!enabled);
+      alert(`Erreur: ${result.error}`);
+      return;
+    }
+
+    // If enabling and no cache exists, trigger spell check
+    if (enabled && spellCheckCount === 0 && !spellCheckLoading) {
+      handleSpellCheckWithCache();
+    }
+  };
+
+  // Detect content changes for stale indicator
+  useEffect(() => {
+    if (!project?.activeChapterId) return;
+
+    const activeChapter = project.chapters.find((c) => c.id === project.activeChapterId);
+    if (!activeChapter?.content || !lastCheckedContentRef) return;
+
+    // If content changed since last check, mark as stale
+    if (activeChapter.content !== lastCheckedContentRef && spellCheckCount > 0) {
+      setSpellCheckStale(true);
+    }
+  }, [project?.chapters, project?.activeChapterId, lastCheckedContentRef, spellCheckCount]);
+
   // Apply single spell check correction
-  const handleApplyCorrection = (original: string, corrected: string) => {
-    if (!editor) return;
+  const handleApplyCorrection = async (original: string, corrected: string) => {
+    if (!editor || !project?.activeChapterId) return;
 
     // Find and replace the text in the editor
     const content = editor.state.doc.textContent;
@@ -389,6 +509,41 @@ function EditorContent() {
               .run();
           }
         }, 2000);
+
+        // Update cache - remove applied correction without API call
+        // Need to wait a tick for editor content to update
+        setTimeout(async () => {
+          const activeChapter = project?.chapters.find((c) => c.id === project?.activeChapterId);
+          if (activeChapter) {
+            // Get updated content from editor
+            const newContent = editor.getJSON();
+            const newContentStr = JSON.stringify(newContent);
+
+            const cacheResult = await updateCacheAfterCorrection(
+              activeChapter.id,
+              original,
+              newContentStr
+            );
+
+            if (cacheResult.success && cacheResult.data) {
+              setSpellCheckCount(cacheResult.data.correctionCount);
+              setLastCheckedContentRef(newContentStr);
+              setSpellCheckStale(false);
+
+              // Update result to remove the applied correction
+              if (spellCheckResult) {
+                setSpellCheckResult({
+                  ...spellCheckResult,
+                  corrections: spellCheckResult.corrections.filter(
+                    (c) => c.original !== original
+                  ),
+                  hasErrors: cacheResult.data.correctionCount > 0,
+                  summary: `${cacheResult.data.correctionCount} corrections restantes`,
+                });
+              }
+            }
+          }
+        }, 100);
       }
     }
   };
@@ -556,8 +711,12 @@ function EditorContent() {
               hasSelection={hasSelection}
               onRewrite={handleRewrite}
               rewriteLoading={rewriteLoading}
-              onSpellCheck={handleSpellCheck}
+              onSpellCheck={handleSpellCheckWithCache}
               spellCheckLoading={spellCheckLoading}
+              spellCheckCount={spellCheckCount}
+              spellCheckStale={spellCheckStale}
+              autoSpellCheckEnabled={autoSpellCheckEnabled}
+              onAutoSpellCheckChange={handleAutoSpellCheckChange}
               providers={providers}
               selectedProviderId={selectedProviderId}
               onProviderChange={handleProviderChange}

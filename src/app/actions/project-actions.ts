@@ -29,6 +29,7 @@ export interface SerializedProject {
   chapters: SerializedChapter[];
   activeChapterId: string | null;
   providerId: string | null;
+  autoSpellCheck: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -65,6 +66,7 @@ function serializeProject(project: Project): SerializedProject {
     chapters: project.getChapters().map(serializeChapter),
     activeChapterId: project.getActiveChapterId(),
     providerId: project.getProviderId(),
+    autoSpellCheck: project.getAutoSpellCheck(),
     createdAt: project.getCreatedAt().toISOString(),
     updatedAt: project.getUpdatedAt().toISOString(),
   };

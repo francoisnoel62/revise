@@ -44,6 +44,7 @@ function serializeProject(project: Project): SerializedProject {
     })),
     activeChapterId: project.getActiveChapterId(),
     providerId: project.getProviderId(),
+    autoSpellCheck: project.getAutoSpellCheck(),
     createdAt: project.getCreatedAt().toISOString(),
     updatedAt: project.getUpdatedAt().toISOString(),
   };
