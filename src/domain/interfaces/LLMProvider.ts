@@ -11,6 +11,7 @@ import { Synthesis } from '../value-objects/Synthesis';
 import { ChapterSummaries } from '../value-objects/ChapterSummaries';
 import { ChapterGeneration } from '../value-objects/ChapterGeneration';
 import { ChapterGenerationTypeKey } from '../value-objects/ChapterGenerationType';
+import { SpellCheckResult } from '../value-objects/SpellCheckCorrection';
 
 /**
  * Test connection result.
@@ -202,4 +203,18 @@ export interface LLMProvider {
       plot?: Plot;
     }
   ): AsyncIterableIterator<string>;
+
+  /**
+   * Checks spelling and grammar in the provided text.
+   * Returns corrections with explanations and the corrected text.
+   *
+   * @param text The text to check for spelling and grammar errors
+   * @param language Optional language hint (e.g., 'fr', 'en')
+   * @returns Promise resolving to SpellCheckResult with corrections
+   * @throws Error if check fails or API is unavailable
+   */
+  checkSpellingAndGrammar(
+    text: string,
+    language?: string
+  ): Promise<SpellCheckResult>;
 }

@@ -14,6 +14,11 @@ import { Synthesis } from '@/domain/value-objects/Synthesis';
 import { ChapterSummaries } from '@/domain/value-objects/ChapterSummaries';
 import { ChapterGeneration } from '@/domain/value-objects/ChapterGeneration';
 import { ChapterGenerationTypeKey } from '@/domain/value-objects/ChapterGenerationType';
+import {
+  SpellCheckResult,
+  SpellCheckCorrection,
+  CorrectionType,
+} from '@/domain/value-objects/SpellCheckCorrection';
 
 interface ProposalResponse {
   proposals: Array<{
@@ -135,6 +140,17 @@ interface ChapterGenerationResponse {
   content: string;
   narrativeContext?: string;
   suggestions?: string[];
+}
+
+interface SpellCheckResponse {
+  corrections: Array<{
+    original: string;
+    corrected: string;
+    type: 'spelling' | 'grammar' | 'style' | 'punctuation';
+    explanation: string;
+  }>;
+  correctedText: string;
+  summary: string;
 }
 
 export class OpenAIProvider implements LLMProvider {
@@ -1628,5 +1644,139 @@ INSTRUCTIONS FINALES:
         yield content;
       }
     }
+  }
+
+  // ===========================
+  // SPELL CHECK AND GRAMMAR
+  // ===========================
+
+  /**
+   * Check spelling and grammar in the provided text.
+   */
+  async checkSpellingAndGrammar(
+    text: string,
+    language?: string
+  ): Promise<SpellCheckResult> {
+    const systemPrompt = this.buildSpellCheckSystemPrompt(language);
+    const userPrompt = text;
+
+    try {
+      const isReasoning = this.isReasoningModel();
+      const completion = await this.client.chat.completions.create({
+        model: this.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        ...this.getResponseFormatParam(),
+        ...(isReasoning ? {} : { temperature: 0.1 }), // Low temperature for accuracy
+        ...this.getTokenLimitParam(4096),
+      });
+
+      const content = completion.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('Empty response from OpenAI');
+      }
+
+      return this.parseSpellCheckResponse(content);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error during spell check');
+    }
+  }
+
+  private buildSpellCheckSystemPrompt(language?: string): string {
+    const langHint = language
+      ? `La langue du texte est: ${language}.`
+      : 'Détecte automatiquement la langue du texte.';
+
+    return `Tu es un correcteur orthographique et grammatical expert. Ton rôle est d'identifier et corriger les erreurs d'orthographe, de grammaire, de ponctuation et de style.
+
+${langHint}
+
+RÈGLES IMPORTANTES:
+- Analyse le texte pour trouver TOUTES les erreurs (orthographe, grammaire, ponctuation, style)
+- Ne modifie PAS le sens du texte
+- Ne modifie PAS le style intentionnel de l'auteur
+- Concentre-toi sur les vraies erreurs, pas les choix stylistiques
+- Sois précis dans tes explications
+
+TYPES D'ERREURS:
+- "spelling": Fautes d'orthographe (ex: "apartement" → "appartement")
+- "grammar": Erreurs grammaticales (ex: accords, conjugaisons, syntaxe)
+- "punctuation": Erreurs de ponctuation (ex: virgules manquantes, espaces)
+- "style": Problèmes de style mineurs (ex: répétitions gênantes, pléonasmes)
+
+FORMAT DE SORTIE (JSON):
+{
+  "corrections": [
+    {
+      "original": "le mot ou phrase avec l'erreur",
+      "corrected": "le mot ou phrase corrigé",
+      "type": "spelling" | "grammar" | "punctuation" | "style",
+      "explanation": "Explication brève de l'erreur et de la correction"
+    }
+  ],
+  "correctedText": "Le texte complet avec toutes les corrections appliquées",
+  "summary": "Résumé bref: X erreurs trouvées (Y orthographe, Z grammaire, etc.)"
+}
+
+INSTRUCTIONS FINALES:
+- Si le texte ne contient aucune erreur, retourne un tableau corrections vide et le texte original dans correctedText
+- Retourne UNIQUEMENT le JSON valide, sans commentaires`;
+  }
+
+  private parseSpellCheckResponse(content: string): SpellCheckResult {
+    let parsed: SpellCheckResponse;
+
+    try {
+      const jsonContent = this.isReasoningModel() ? this.extractJson(content) : content;
+      parsed = JSON.parse(jsonContent);
+    } catch {
+      throw new Error('Failed to parse spell check response');
+    }
+
+    if (!Array.isArray(parsed.corrections)) {
+      throw new Error('Invalid response: corrections must be an array');
+    }
+
+    if (!parsed.correctedText || typeof parsed.correctedText !== 'string') {
+      throw new Error('Invalid response: missing correctedText');
+    }
+
+    if (!parsed.summary || typeof parsed.summary !== 'string') {
+      throw new Error('Invalid response: missing summary');
+    }
+
+    // Convert to SpellCheckCorrection objects
+    const corrections: SpellCheckCorrection[] = [];
+    for (const c of parsed.corrections) {
+      if (!c.original || !c.corrected || !c.type || !c.explanation) {
+        continue; // Skip malformed corrections
+      }
+
+      const validTypes: CorrectionType[] = ['spelling', 'grammar', 'style', 'punctuation'];
+      if (!validTypes.includes(c.type)) {
+        continue; // Skip invalid types
+      }
+
+      corrections.push(
+        new SpellCheckCorrection({
+          original: c.original,
+          corrected: c.corrected,
+          type: c.type as CorrectionType,
+          explanation: c.explanation,
+        })
+      );
+    }
+
+    return {
+      corrections,
+      correctedText: parsed.correctedText,
+      hasErrors: corrections.length > 0,
+      summary: parsed.summary,
+    };
   }
 }

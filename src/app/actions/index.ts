@@ -5,3 +5,4 @@ export * from './utils';
 export * from './project-actions';
 export * from './chapter-actions';
 export * from './auth-actions';
+export * from './spellcheck-actions';

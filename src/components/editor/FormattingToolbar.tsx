@@ -24,6 +24,7 @@ import {
   IndentIncrease,
   Undo2,
   Redo2,
+  SpellCheck,
 } from 'lucide-react';
 import { AIMenuDropdown } from './AIMenuDropdown';
 import { SafeProvider } from '@/app/actions/provider-actions';
@@ -34,6 +35,8 @@ interface FormattingToolbarProps {
   hasSelection?: boolean;
   onRewrite?: () => void;
   rewriteLoading?: boolean;
+  onSpellCheck?: () => void;
+  spellCheckLoading?: boolean;
   providers?: SafeProvider[];
   selectedProviderId?: string | null;
   onProviderChange?: (providerId: string | null) => void;
@@ -55,6 +58,8 @@ export function FormattingToolbar({
   hasSelection = false,
   onRewrite,
   rewriteLoading = false,
+  onSpellCheck,
+  spellCheckLoading = false,
   providers = [],
   selectedProviderId = null,
   onProviderChange,
@@ -276,7 +281,24 @@ export function FormattingToolbar({
       </div>
 
       {showAIFeatures && onRewrite && onProviderChange && onHistoryClick && onAutocompleteChange && (
-        <div className="flex items-center ml-auto mt-1 md:mt-0">
+        <div className="flex items-center gap-1 ml-auto mt-1 md:mt-0">
+          {onSpellCheck && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onSpellCheck}
+              disabled={spellCheckLoading || !selectedProviderId}
+              title={
+                !selectedProviderId
+                  ? 'Configurez un fournisseur IA dans votre profil'
+                  : 'Vérifier l\'orthographe et la grammaire'
+              }
+              className="gap-1"
+            >
+              <SpellCheck className="h-4 w-4" />
+              <span className="hidden sm:inline">{spellCheckLoading ? 'Vérification...' : 'Vérifier'}</span>
+            </Button>
+          )}
           <AIMenuDropdown
             hasSelection={hasSelection}
             onRewrite={onRewrite}

@@ -20,6 +20,7 @@ import { UserMenu } from '@/components/auth/UserMenu';
 import { Button } from '@/components/ui/button';
 import { Editor } from '@tiptap/react';
 import { rewriteText } from '@/app/actions/rewrite-text';
+import { checkSpellingAndGrammar } from '@/app/actions/spellcheck-actions';
 import { listProvidersAction, SafeProvider } from '@/app/actions/provider-actions';
 import { updateProjectProviderAction } from '@/app/actions/project-actions';
 import { generateChapterAction } from '@/app/actions/chapter-generation-actions';
@@ -28,10 +29,26 @@ import { FloatingGenerationMenu } from '@/components/editor/FloatingGenerationMe
 import { PublishDialog } from '@/components/publish/PublishDialog';
 import { CommandPalette } from '@/components/editor/CommandPalette';
 import { ChapterGenerationTypeKey } from '@/domain';
+import { SpellCheckSheet } from '@/components/editor/SpellCheckSheet';
 
 interface Proposal {
   content: string;
   styleLabel?: string;
+}
+
+interface SpellCheckCorrectionDTO {
+  original: string;
+  corrected: string;
+  type: 'spelling' | 'grammar' | 'style' | 'punctuation';
+  explanation: string;
+  typeLabel: string;
+}
+
+interface SpellCheckResultDTO {
+  corrections: SpellCheckCorrectionDTO[];
+  correctedText: string;
+  hasErrors: boolean;
+  summary: string;
 }
 
 function EditorContent() {
@@ -76,6 +93,11 @@ function EditorContent() {
 
   // Command palette state
   const [showCommandPalette, setShowCommandPalette] = useState(false);
+
+  // Spell check state
+  const [spellCheckLoading, setSpellCheckLoading] = useState(false);
+  const [spellCheckResult, setSpellCheckResult] = useState<SpellCheckResultDTO | null>(null);
+  const [showSpellCheckSheet, setShowSpellCheckSheet] = useState(false);
 
   // Track initialization to prevent infinite loop
   const initializedRef = useRef(false);
@@ -276,6 +298,117 @@ function EditorContent() {
     setShowProposals(false);
   };
 
+  // Spell check handler
+  const handleSpellCheck = async () => {
+    if (!project?.id || !project.activeChapterId) return;
+
+    // Check if provider is selected
+    if (!selectedProviderId) {
+      alert('Veuillez sélectionner un fournisseur IA.');
+      return;
+    }
+
+    const activeChapter = project.chapters.find((c) => c.id === project.activeChapterId);
+    if (!activeChapter || !activeChapter.content) {
+      alert('Aucun contenu à vérifier.');
+      return;
+    }
+
+    setSpellCheckLoading(true);
+    setShowSpellCheckSheet(true);
+    setSpellCheckResult(null);
+
+    try {
+      const result = await checkSpellingAndGrammar(project.id, activeChapter.content);
+
+      if (!result.success) {
+        alert(`Erreur: ${result.error}`);
+        setShowSpellCheckSheet(false);
+        return;
+      }
+
+      setSpellCheckResult(result.data);
+    } catch (error) {
+      alert('Une erreur est survenue lors de la vérification.');
+      console.error(error);
+      setShowSpellCheckSheet(false);
+    } finally {
+      setSpellCheckLoading(false);
+    }
+  };
+
+  // Apply single spell check correction
+  const handleApplyCorrection = (original: string, corrected: string) => {
+    if (!editor) return;
+
+    // Find and replace the text in the editor
+    const content = editor.state.doc.textContent;
+    const index = content.indexOf(original);
+    if (index !== -1) {
+      // Need to find the position in the ProseMirror document
+      // This is a simplified approach - replace first occurrence
+      const { state } = editor;
+      let pos = 0;
+      let found = false;
+
+      state.doc.descendants((node, nodePos) => {
+        if (found) return false;
+        if (node.isText && node.text) {
+          const textIndex = node.text.indexOf(original);
+          if (textIndex !== -1) {
+            pos = nodePos + textIndex;
+            found = true;
+            return false;
+          }
+        }
+        return true;
+      });
+
+      if (found) {
+        editor
+          .chain()
+          .focus()
+          .setTextSelection({ from: pos, to: pos + original.length })
+          .insertContent(corrected)
+          .run();
+
+        // Highlight briefly
+        const newTo = pos + corrected.length;
+        editor
+          .chain()
+          .setTextSelection({ from: pos, to: newTo })
+          .setHighlight({ color: '#bbf7d0' }) // green-200
+          .run();
+
+        setTimeout(() => {
+          if (editor) {
+            editor
+              .chain()
+              .setTextSelection({ from: pos, to: newTo })
+              .unsetHighlight()
+              .run();
+          }
+        }, 2000);
+      }
+    }
+  };
+
+  // Apply all spell check corrections
+  const handleApplyAllCorrections = (correctedText: string) => {
+    if (!editor) return;
+
+    // Replace entire content with corrected text
+    // This preserves the structure better
+    editor
+      .chain()
+      .focus()
+      .selectAll()
+      .insertContent(correctedText)
+      .run();
+
+    setShowSpellCheckSheet(false);
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -373,6 +506,8 @@ function EditorContent() {
               hasSelection={hasSelection}
               onRewrite={handleRewrite}
               rewriteLoading={rewriteLoading}
+              onSpellCheck={handleSpellCheck}
+              spellCheckLoading={spellCheckLoading}
               providers={providers}
               selectedProviderId={selectedProviderId}
               onProviderChange={handleProviderChange}
@@ -456,6 +591,16 @@ function EditorContent() {
           onProviderChange={handleProviderChange}
         />
       )}
+
+      {/* Spell check sheet */}
+      <SpellCheckSheet
+        open={showSpellCheckSheet}
+        onOpenChange={setShowSpellCheckSheet}
+        result={spellCheckResult}
+        onApplyCorrection={handleApplyCorrection}
+        onApplyAll={handleApplyAllCorrections}
+        loading={spellCheckLoading}
+      />
     </main>
   );
 }
