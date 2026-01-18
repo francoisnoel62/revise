@@ -598,18 +598,57 @@ function EditorContent() {
     }
   };
 
-  // Apply all spell check corrections
-  const handleApplyAllCorrections = (correctedText: string) => {
-    if (!editor) return;
+  // Apply all spell check corrections sequentially
+  const handleApplyAllCorrections = async (
+    corrections: Array<{ original: string; corrected: string }>
+  ) => {
+    if (!editor || !project?.activeChapterId) return;
 
-    // Replace entire content with corrected text
-    // This preserves the structure better
-    editor
-      .chain()
-      .focus()
-      .selectAll()
-      .insertContent(correctedText)
-      .run();
+    // Apply each correction sequentially
+    for (const { original, corrected } of corrections) {
+      const { state } = editor;
+      let pos = 0;
+      let found = false;
+
+      state.doc.descendants((node, nodePos) => {
+        if (found) return false;
+        if (node.isText && node.text) {
+          const textIndex = node.text.indexOf(original);
+          if (textIndex !== -1) {
+            pos = nodePos + textIndex;
+            found = true;
+            return false;
+          }
+        }
+        return true;
+      });
+
+      if (found) {
+        editor
+          .chain()
+          .focus()
+          .setTextSelection({ from: pos, to: pos + original.length })
+          .insertContent(corrected)
+          .run();
+      }
+    }
+
+    // Update cache after all corrections applied
+    const activeChapter = project?.chapters.find((c) => c.id === project?.activeChapterId);
+    if (activeChapter) {
+      const newContent = editor.getJSON();
+      const newContentStr = JSON.stringify(newContent);
+
+      // Clear all corrections from cache
+      for (const { original } of corrections) {
+        await updateCacheAfterCorrection(activeChapter.id, original, newContentStr);
+      }
+
+      setSpellCheckCount(0);
+      setLastCheckedContentRef(newContentStr);
+      setSpellCheckStale(false);
+      setSpellCheckResult(null);
+    }
 
     setShowSpellCheckSheet(false);
   };

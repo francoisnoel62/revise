@@ -36,7 +36,7 @@ interface SpellCheckSheetProps {
   onOpenChange: (open: boolean) => void;
   result: SpellCheckResultDTO | null;
   onApplyCorrection: (original: string, corrected: string) => void;
-  onApplyAll: (correctedText: string) => void;
+  onApplyAll: (corrections: Array<{ original: string; corrected: string }>) => void;
   onNavigateToCorrection?: (original: string) => void;
   loading?: boolean;
 }
@@ -65,11 +65,18 @@ export function SpellCheckSheet({
   };
 
   const handleApplyAll = () => {
-    if (result?.correctedText) {
-      onApplyAll(result.correctedText);
-      // Mark all as applied
-      const allIndices = new Set(result.corrections.map((_, i) => i));
-      setAppliedCorrections(allIndices);
+    if (result?.corrections && result.corrections.length > 0) {
+      // Pass all corrections to be applied sequentially
+      const correctionsToApply = result.corrections
+        .filter((_, index) => !appliedCorrections.has(index))
+        .map((c) => ({ original: c.original, corrected: c.corrected }));
+
+      if (correctionsToApply.length > 0) {
+        onApplyAll(correctionsToApply);
+        // Mark all as applied
+        const allIndices = new Set(result.corrections.map((_, i) => i));
+        setAppliedCorrections(allIndices);
+      }
     }
   };
 
