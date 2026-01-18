@@ -1525,7 +1525,7 @@ INSTRUCTIONS FINALES:
         contents: `${systemPrompt}\n\n---\n\nTEXTE À VÉRIFIER:\n\n${text}`,
         config: {
           temperature: 0.1, // Low temperature for accuracy
-          maxOutputTokens: 4096,
+          maxOutputTokens: 8192, // Higher limit to handle long texts
         },
       });
 
@@ -1534,13 +1534,59 @@ INSTRUCTIONS FINALES:
         throw new Error('Empty response from Google AI');
       }
 
-      return this.parseSpellCheckResponse(content);
+      // Check for truncated response (missing closing brace)
+      const trimmed = content.trim();
+      if (!trimmed.endsWith('}') && !trimmed.endsWith('"}')) {
+        console.warn('[GoogleProvider] Response appears truncated, attempting repair');
+        // Try to repair by finding last complete JSON structure
+        const repairedContent = this.repairTruncatedJson(trimmed);
+        return this.parseSpellCheckResponse(repairedContent, text);
+      }
+
+      return this.parseSpellCheckResponse(content, text);
     } catch (error) {
       if (error instanceof Error) {
         throw error;
       }
       throw new Error('Unknown error during spell check');
     }
+  }
+
+  /**
+   * Attempt to repair truncated JSON by finding valid structure.
+   */
+  private repairTruncatedJson(content: string): string {
+    // Try to find the last complete field
+    // Look for summary field which should be near the end
+    const summaryMatch = content.match(/"summary"\s*:\s*"[^"]*"/);
+    if (summaryMatch) {
+      const summaryEnd = content.indexOf(summaryMatch[0]) + summaryMatch[0].length;
+      // Add closing brace if we found summary
+      return content.substring(0, summaryEnd) + '}';
+    }
+
+    // Look for correctedText field
+    const correctedTextMatch = content.match(/"correctedText"\s*:\s*"[^"]*"/);
+    if (correctedTextMatch) {
+      const ctEnd = content.indexOf(correctedTextMatch[0]) + correctedTextMatch[0].length;
+      // Try to include summary if partial
+      const afterCt = content.substring(ctEnd);
+      if (afterCt.includes('"summary"')) {
+        // Summary is incomplete, just close after correctedText
+        return content.substring(0, ctEnd) + ', "summary": "Vérification partielle"}';
+      }
+      return content.substring(0, ctEnd) + ', "summary": "Vérification effectuée"}';
+    }
+
+    // Last resort: try to close corrections array and add minimal fields
+    const correctionsEnd = content.lastIndexOf(']');
+    if (correctionsEnd !== -1) {
+      return content.substring(0, correctionsEnd + 1) +
+        ', "correctedText": "(Texte corrigé non disponible - réponse tronquée)", "summary": "Vérification partielle"}';
+    }
+
+    // Cannot repair, return as-is and let parser handle it
+    return content;
   }
 
   private buildSpellCheckSystemPrompt(language?: string): string {
@@ -1585,7 +1631,7 @@ INSTRUCTIONS FINALES:
 - Retourne UNIQUEMENT le JSON valide, sans commentaires ni code blocks markdown`;
   }
 
-  private parseSpellCheckResponse(content: string): SpellCheckResult {
+  private parseSpellCheckResponse(content: string, originalText?: string): SpellCheckResult {
     // Handle null/undefined/empty content
     if (!content || content.trim() === '') {
       console.error('[GoogleProvider] Empty content received from Gemini');
@@ -1620,10 +1666,10 @@ INSTRUCTIONS FINALES:
     // Handle corrections - default to empty array if missing
     const rawCorrections = Array.isArray(parsed.corrections) ? parsed.corrections : [];
 
-    // Handle correctedText - default to original text hint if missing
+    // Handle correctedText - default to original text if missing
     const correctedText = typeof parsed.correctedText === 'string' && parsed.correctedText.trim()
       ? parsed.correctedText
-      : '(Texte corrigé non disponible)';
+      : originalText || '(Texte corrigé non disponible)';
 
     // Handle summary - provide default if missing
     const summary = typeof parsed.summary === 'string' && parsed.summary.trim()
