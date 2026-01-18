@@ -1612,30 +1612,44 @@ INSTRUCTIONS FINALES:
   }
 
   private parseSpellCheckResponse(content: string): SpellCheckResult {
+    // Handle null/undefined/empty content
+    if (!content || content.trim() === '') {
+      console.error('[AnthropicProvider] Empty content received');
+      throw new Error('Empty response from Anthropic');
+    }
+
     let parsed: SpellCheckResponse;
 
     try {
       const jsonContent = this.extractJson(content);
       parsed = JSON.parse(jsonContent);
-    } catch {
-      throw new Error('Failed to parse spell check response from Anthropic');
+    } catch (e) {
+      console.error('[AnthropicProvider] JSON parse error:', e instanceof Error ? e.message : 'unknown');
+      console.error('[AnthropicProvider] Raw content was:', content.substring(0, 1000));
+      throw new Error(`Failed to parse spell check response from Anthropic: ${e instanceof Error ? e.message : 'unknown error'}`);
     }
 
-    if (!Array.isArray(parsed.corrections)) {
-      throw new Error('Invalid response: corrections must be an array');
+    // Validate and provide defaults for missing fields
+    if (!parsed || typeof parsed !== 'object') {
+      throw new Error('Invalid response: expected an object');
     }
 
-    if (!parsed.correctedText || typeof parsed.correctedText !== 'string') {
-      throw new Error('Invalid response: missing correctedText');
-    }
+    // Handle corrections - default to empty array if missing
+    const rawCorrections = Array.isArray(parsed.corrections) ? parsed.corrections : [];
 
-    if (!parsed.summary || typeof parsed.summary !== 'string') {
-      throw new Error('Invalid response: missing summary');
-    }
+    // Handle correctedText - default to original text hint if missing
+    const correctedText = typeof parsed.correctedText === 'string' && parsed.correctedText.trim()
+      ? parsed.correctedText
+      : '(Texte corrigé non disponible)';
+
+    // Handle summary - provide default if missing
+    const summary = typeof parsed.summary === 'string' && parsed.summary.trim()
+      ? parsed.summary
+      : `${rawCorrections.length} correction(s) trouvée(s)`;
 
     // Convert to SpellCheckCorrection objects
     const corrections: SpellCheckCorrection[] = [];
-    for (const c of parsed.corrections) {
+    for (const c of rawCorrections) {
       if (!c.original || !c.corrected || !c.type || !c.explanation) {
         continue; // Skip malformed corrections
       }
@@ -1657,9 +1671,9 @@ INSTRUCTIONS FINALES:
 
     return {
       corrections,
-      correctedText: parsed.correctedText,
+      correctedText,
       hasErrors: corrections.length > 0,
-      summary: parsed.summary,
+      summary,
     };
   }
 }
