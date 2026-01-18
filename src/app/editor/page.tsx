@@ -189,7 +189,13 @@ function EditorContent() {
       const activeChapter = project.chapters.find((c) => c.id === project.activeChapterId);
       if (!activeChapter?.content) return;
 
-      // Try to load existing cache
+      // Reset spell check state when chapter changes to avoid showing old data
+      setSpellCheckResult(null);
+      setSpellCheckCount(0);
+      setSpellCheckStale(false);
+      setLastCheckedContentRef(null);
+
+      // Try to load existing cache for this chapter
       const cacheResult = await loadSpellCheckCache(activeChapter.id, activeChapter.content);
 
       if (cacheResult.success && cacheResult.data) {
