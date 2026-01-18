@@ -2,7 +2,7 @@
 
 Pure business logic with zero framework dependencies.
 
-**Status**: ✅ Phase 3.7 Complete (75+ tests passing, 97%+ coverage)
+**Status**: ✅ Phase 4.1 Complete (90+ tests passing, 97%+ coverage)
 
 ## Rules:
 - No imports from Next.js, React, or any external frameworks
@@ -12,7 +12,7 @@ Pure business logic with zero framework dependencies.
 
 ## Contents:
 
-### Entities (✅ Phase 3.7 Enhanced)
+### Entities (✅ Phase 4.1 Enhanced)
 
 #### `CorrectionHistory` ⭐ NEW (Phase 3.7)
 **Purpose**: Represents an AI rewrite history entry with proposals
@@ -56,21 +56,66 @@ Pure business logic with zero framework dependencies.
 
 ---
 
-#### `User` (Phase 3)
-**Purpose**: Represents a user account with authentication credentials
+#### `User` (Phase 3, 3.8, 3.11)
+**Purpose**: Represents a user account with authentication, approval, and consent
 
 **Responsibilities**:
 - Manages user identity (unique ID, email)
 - Stores hashed password (bcrypt)
+- **Tracks approval status** (`isApproved`, `approvedAt`) ⭐ Phase 3.8
+- **Tracks RGPD consent** (`termsAcceptedAt`, `privacyAcceptedAt`) ⭐ Phase 3.11
 - Validates email format
 - Creation timestamp
 
 **Key Methods**:
 - `getId()`, `getEmail()`, `getHashedPassword()`, `getCreatedAt()`
-- `static create(id, email, hashedPassword)` - Factory method
+- `isApproved()`, `getApprovedAt()` ⭐ Phase 3.8
+- `getTermsAcceptedAt()`, `getPrivacyAcceptedAt()` ⭐ Phase 3.11
+- `approve()` - Returns new approved User instance ⭐ Phase 3.8
+- `static create(id, email, hashedPassword, consents)` - Factory method
 - Email validation at construction
 
-**Tests**: 5+ tests covering validation and creation
+**Tests**: 10+ tests covering validation, approval, and consent
+
+---
+
+#### `BlogArticle` ⭐ NEW (Phase 4.0)
+**Purpose**: Represents a blog article with slug, content, and metadata
+
+**Responsibilities**:
+- Manages article identity (unique ID, slug)
+- Stores title, content, excerpt
+- Tracks author and publication status
+- SEO metadata (description, keywords)
+- Timestamps (createdAt, updatedAt, publishedAt)
+
+**Key Methods**:
+- `getId()`, `getSlug()`, `getTitle()`, `getContent()`
+- `getExcerpt()`, `isPublished()`, `getPublishedAt()`
+- `publish()`, `unpublish()` - Returns new instance
+- `updateContent(content)` - Returns new instance
+- `static create(id, slug, title, content, ...)` - Factory method
+
+**Tests**: 8+ tests covering CRUD and publishing
+
+---
+
+#### `ContactMessage` ⭐ NEW (Phase 3.11)
+**Purpose**: Represents a contact form submission
+
+**Responsibilities**:
+- Manages contact identity (unique ID)
+- Stores sender info (name, email)
+- Message content and subject
+- Timestamps (createdAt)
+- Read/unread status
+
+**Key Methods**:
+- `getId()`, `getName()`, `getEmail()`, `getSubject()`, `getMessage()`
+- `isRead()`, `markAsRead()` - Returns new instance
+- `static create(id, name, email, subject, message)` - Factory method
+
+**Tests**: 5+ tests covering creation and validation
 
 ---
 
@@ -148,19 +193,19 @@ Pure business logic with zero framework dependencies.
 
 ---
 
-#### `MetadataType` ⭐ NEW (Phase 3.6)
-**Purpose**: Enum value object for 6 metadata analysis types
+#### `MetadataType` (Phase 3.6, 3.7)
+**Purpose**: Enum value object for 7 metadata analysis types
 
 **Responsibilities**:
 - Type-safe metadata type enumeration
 - Validation of metadata types
-- Supports: narrative_analysis, characters, plot, stylistic_dna, worldbuilding, synthesis
+- Supports: narrative_analysis, characters, plot, stylistic_dna, worldbuilding, **chapter_summaries** ⭐ NEW, synthesis
 
-**Tests**: 3+ tests for validation rules
+**Tests**: 5+ tests for validation rules
 
 ---
 
-#### `NarrativeAnalysis`, `Characters`, `Plot`, `StylisticDNA`, `Worldbuilding`, `Synthesis` ⭐ NEW (Phase 3.6)
+#### `NarrativeAnalysis`, `Characters`, `Plot`, `StylisticDNA`, `Worldbuilding`, `ChapterSummaries`, `Synthesis` (Phase 3.6, 3.7)
 **Purpose**: Structured value objects for each analysis type
 
 **Responsibilities**:
@@ -320,7 +365,60 @@ Pure business logic with zero framework dependencies.
 
 ---
 
-#### `IdGenerator` ⭐ NEW (Phase 3.5)
+#### `EmailService` ⭐ NEW (Phase 3.8)
+**Contract**: Email notification service abstraction
+
+**Methods**:
+- `sendApprovalRequest(user, approveUrl, rejectUrl)` → `Promise<void>`
+- `sendApprovalConfirmation(user)` → `Promise<void>`
+- `sendRejectionNotification(user)` → `Promise<void>`
+
+**Implementation**: `ResendEmailService` (Resend API)
+
+---
+
+#### `BlogArticleRepository` ⭐ NEW (Phase 4.0)
+**Contract**: Blog article persistence abstraction
+
+**Methods**:
+- `create(article)` → `Promise<BlogArticle>`
+- `findBySlug(slug)` → `Promise<BlogArticle | null>`
+- `findById(id)` → `Promise<BlogArticle | null>`
+- `listPublished()` → `Promise<BlogArticle[]>`
+- `listAll()` → `Promise<BlogArticle[]>`
+- `update(article)` → `Promise<BlogArticle>`
+- `delete(id)` → `Promise<void>`
+
+**Implementation**: `MongoDBBlogArticleRepository`
+
+---
+
+#### `ContactMessageRepository` ⭐ NEW (Phase 3.11)
+**Contract**: Contact message persistence abstraction
+
+**Methods**:
+- `create(message)` → `Promise<ContactMessage>`
+- `findById(id)` → `Promise<ContactMessage | null>`
+- `listAll()` → `Promise<ContactMessage[]>`
+- `delete(id)` → `Promise<void>`
+
+**Implementation**: `MongoDBContactMessageRepository`
+
+---
+
+#### `ContentConverter` ⭐ NEW (Phase 4.1)
+**Contract**: Content conversion service abstraction
+
+**Methods**:
+- `toPlainText(tiptapJson)` → `string`
+- `toHtml(tiptapJson)` → `string`
+- `fromHtml(html)` → TipTap JSON
+
+**Implementation**: `TipTapContentService`
+
+---
+
+#### `IdGenerator` (Phase 3.5)
 **Contract**: UUID generation abstraction
 
 **Methods**:
@@ -377,12 +475,37 @@ All domain logic has near-perfect test coverage with isolated unit tests:
 - Enforces invariants (minimum 1 chapter)
 - Transactional boundaries for consistency
 
+## Phase 4.1 Achievements
+
+✅ **ContentConverter interface** for TipTap content conversion
+✅ **ChapterSummaries metadata type** (7th analysis type)
+✅ Zero framework dependencies maintained
+
+## Phase 4.0 Achievements
+
+✅ **BlogArticle entity** for blog content management
+✅ **BlogArticleRepository interface** for article persistence
+✅ **8+ new tests** for blog domain logic
+
+## Phase 3.11 Achievements
+
+✅ **ContactMessage entity** for contact form submissions
+✅ **ContactMessageRepository interface** for message persistence
+✅ **User entity enhanced** with RGPD consent timestamps
+✅ **5+ new tests** for contact message domain logic
+
+## Phase 3.8 Achievements
+
+✅ **EmailService interface** for approval notifications
+✅ **User entity enhanced** with approval status (isApproved, approvedAt)
+✅ **10+ new tests** for approval domain logic
+
 ## Phase 3.7 Achievements
 
 ✅ **CorrectionHistory entity** for tracking AI rewrites per chapter
 ✅ **CorrectionHistoryRepository interface** for history persistence
 ✅ **15+ new tests** for correction history domain logic
-✅ **75+ total tests** with comprehensive coverage
+✅ **90+ total tests** with comprehensive coverage
 ✅ Zero framework dependencies maintained
 
 ## Phase 3.6 Achievements

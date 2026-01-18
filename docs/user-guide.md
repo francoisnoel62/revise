@@ -8,20 +8,26 @@ Revise est un outil d'aide à l'écriture minimaliste qui vous permet de réécr
 
 ### Création de Compte
 
-1. Visitez la page d'inscription (Sign Up)
+1. Visitez la page d'inscription
 2. Entrez votre adresse email
 3. Choisissez un mot de passe sécurisé
-4. Cliquez sur "Créer un compte"
-5. Vous êtes automatiquement connecté et redirigé vers le tableau de bord
+4. Cochez la case d'acceptation des CGU et de la politique de confidentialité
+5. Cliquez sur "Créer un compte"
+6. Un email est envoyé à l'administrateur pour approbation
+7. **Attendez l'email de confirmation d'approbation** avant de vous connecter
+
+**Note**: Votre compte doit être approuvé par un administrateur avant de pouvoir vous connecter.
 
 ### Connexion
 
-1. Visitez la page de connexion (Sign In)
+1. Visitez la page de connexion
 2. Entrez votre email et mot de passe
 3. Cliquez sur "Se connecter"
 4. Vous êtes redirigé vers votre tableau de bord
 
 **Note**: Votre session reste active même après fermeture du navigateur.
+
+**Si vous ne pouvez pas vous connecter**: Vérifiez que votre compte a été approuvé par l'administrateur.
 
 ## Tableau de Bord
 
@@ -125,6 +131,26 @@ Toutes vos modifications sont **automatiquement sauvegardées** dans MongoDB Atl
 6. Le texte original est remplacé et l'historique est sauvegardé automatiquement
 7. Utilisez Ctrl+Z pour annuler si besoin
 
+### Génération de Texte IA
+
+**Pour les chapitres vides** :
+1. Quand vous créez un nouveau chapitre vide, un menu de génération apparaît
+2. Cliquez sur "Générer le début du chapitre"
+3. L'IA utilise le contexte de votre projet (métadonnées, analyses) pour générer un début cohérent
+4. Le texte généré s'insère automatiquement
+
+**Note** : Pour de meilleurs résultats, générez d'abord les analyses de votre manuscrit (personnages, intrigue, style).
+
+### Autocomplétion IA
+
+1. Écrivez une phrase ou un début de paragraphe
+2. Appuyez sur **Tab** pour déclencher l'autocomplétion
+3. Un texte "fantôme" gris apparaît pour prévisualiser la suggestion
+4. Appuyez à nouveau sur **Tab** pour accepter la suggestion
+5. Ou continuez à écrire pour ignorer la suggestion
+
+**Note** : L'autocomplétion utilise le contexte de votre projet pour des suggestions plus pertinentes.
+
 ### Historique des Corrections
 
 1. Cliquez sur l'icône d'historique dans la barre d'outils
@@ -151,13 +177,47 @@ Le compteur de mots et de caractères est affiché en temps réel dans l'en-têt
 
 **Note**: L'export sert désormais de **sauvegarde supplémentaire** ou pour partager votre travail. Vos projets sont déjà sauvegardés automatiquement dans le cloud.
 
+### Paramètres du Compte
+
+Accédez à vos paramètres via le menu utilisateur > "Paramètres".
+
+**Export de vos données** (RGPD) :
+1. Allez dans les Paramètres
+2. Cliquez sur "Exporter mes données"
+3. Un fichier JSON avec toutes vos données est téléchargé
+
+**Suppression de compte** :
+1. Allez dans les Paramètres
+2. Cliquez sur "Supprimer mon compte"
+3. Confirmez la suppression
+4. **Attention** : Cette action est irréversible et supprime toutes vos données (projets, chapitres, analyses, historique)
+
 ### Déconnexion
 
 1. Cliquez sur le menu utilisateur en haut à droite
-2. Sélectionnez "Sign out"
+2. Sélectionnez "Se déconnecter"
 3. Vous êtes déconnecté et redirigé vers la page de connexion
 
 **Note**: Vos projets restent sauvegardés et accessibles lors de votre prochaine connexion.
+
+## Blog & Ressources
+
+La section Blog est accessible depuis la page d'accueil et propose des articles sur l'écriture de fiction :
+
+- Techniques narratives (cliffhangers, structure)
+- Création de personnages
+- Méthodes d'écriture (architecte vs jardinier)
+- Conseils éditoriaux
+- L'IA comme outil d'écriture
+
+## Pages Légales
+
+Disponibles en bas de page :
+- **CGU** : Conditions Générales d'Utilisation
+- **CGV** : Conditions Générales de Vente
+- **Mentions légales** : Informations légales LCEN
+- **Politique de confidentialité** : Traitement des données RGPD
+- **Politique cookies** : Utilisation des cookies
 
 ## Limitations Connues
 
@@ -166,6 +226,7 @@ Le compteur de mots et de caractères est affiché en temps réel dans l'en-têt
 - **Undo/Redo**: L'historique d'annulation est partagé entre tous les chapitres
 - **Import Typographique**: La police, taille et alignement sont partiellement préservés à l'import (limitations de mammoth)
 - **Collaboration**: Pas encore de collaboration en temps réel entre utilisateurs
+- **Approbation compte**: Nécessite une validation manuelle par l'administrateur
 
 ## Résolution de Problèmes
 
@@ -213,6 +274,9 @@ Le compteur de mots et de caractères est affiché en temps réel dans l'en-têt
 **Édition** :
 - **Ctrl+Z**: Annuler (également disponible via bouton dans la toolbar)
 - **Ctrl+Shift+Z**: Refaire (également disponible via bouton dans la toolbar)
+
+**IA** :
+- **Tab**: Déclencher l'autocomplétion / Accepter la suggestion
 
 **Navigation** :
 - **Esc**: Fermer les panneaux (chapitres ou propositions)

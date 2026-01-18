@@ -2,7 +2,7 @@
 
 Implements domain interfaces with concrete external services.
 
-**Status**: ✅ Phase 3.7 Complete (130+ unit tests + 24+ integration tests)
+**Status**: ✅ Phase 4.1 Complete (160+ unit tests + 30+ integration tests)
 
 ## Rules:
 - Implements interfaces defined in Domain layer
@@ -11,11 +11,16 @@ Implements domain interfaces with concrete external services.
 
 ## Contents:
 
-### AI Provider (✅ Phase 3.5 Enhanced)
+### AI Provider (✅ Phase 4.1 Enhanced)
 
-#### `OpenAIProvider` ⭐ ENHANCED (Phase 3.7)
+#### `OpenAIProvider` ⭐ ENHANCED (Phase 4.1)
 **Implements**: `LLMProvider` interface
 **Technology**: OpenAI SDK with GPT-4o-mini/GPT-5-nano + o-series reasoning models
+
+**Phase 4.1 Enhancements**:
+- ✅ **Chapter generation** - Generate chapter beginnings from metadata context
+- ✅ **Autocompletion** - Streaming completion suggestions
+- ✅ **generateChapterSummaries()** - Chapter-by-chapter summaries + narrative arc
 
 **Phase 3.7 Enhancements**:
 - ✅ **3 proposals** instead of 5 (épuré, lyrique, amplifié) - 40% token reduction
@@ -30,7 +35,7 @@ Implements domain interfaces with concrete external services.
 - ✅ `generateWorldbuilding()` - Themes and symbolism
 - ✅ `generateSynthesis()` - Meta-analysis with editorial feedback
 
-**Tests**: 20+ tests (unit + integration) covering all 6 metadata analysis types + text rewriting
+**Tests**: 25+ tests (unit + integration) covering all 7 metadata analysis types + text rewriting + generation
 
 ---
 
@@ -201,7 +206,68 @@ Implements domain interfaces with concrete external services.
 
 ---
 
-### Authentication ⭐ NEW (Phase 3)
+### Email Service ⭐ NEW (Phase 3.8)
+
+#### `ResendEmailService`
+**Implements**: `EmailService` interface
+**Technology**: Resend API
+
+**Purpose**: Send email notifications for user registration approval
+
+**Methods**:
+- `sendApprovalRequest(user, approveUrl, rejectUrl)` - Send approval email to admin
+- `sendApprovalConfirmation(user)` - Notify user of approval
+- `sendRejectionNotification(user)` - Notify user of rejection
+
+**Features**:
+- Resend API integration
+- HTML email templates
+- HMAC token URLs for secure approval links
+- Environment-based configuration (RESEND_API_KEY, ADMIN_EMAIL)
+
+**Tests**: 8+ tests covering email sending and templates
+
+---
+
+### Content Conversion ⭐ NEW (Phase 4.1)
+
+#### `TipTapContentService`
+**Implements**: `ContentConverter` interface
+**Technology**: TipTap utilities
+
+**Purpose**: Convert between TipTap JSON and other formats
+
+**Methods**:
+- `toPlainText(tiptapJson)` - Extract plain text for AI prompts
+- `toHtml(tiptapJson)` - Convert to HTML for rendering
+- `fromHtml(html)` - Parse HTML to TipTap JSON
+
+**Tests**: 10+ tests covering conversion scenarios
+
+---
+
+### Caching ⭐ NEW (Phase 4.1)
+
+#### `MetadataCache`
+**Purpose**: TTL-based caching for project metadata
+
+**Features**:
+- 5-minute TTL for metadata documents
+- Per-project cache keys
+- Automatic invalidation on content change
+- In-memory storage (Map)
+- Thread-safe access
+
+**Methods**:
+- `get(projectId)` - Get cached metadata array
+- `set(projectId, metadata)` - Cache metadata with TTL
+- `invalidate(projectId)` - Clear cache for project
+
+**Tests**: 5+ tests covering caching behavior
+
+---
+
+### Authentication (Phase 3, 3.8 Enhanced)
 
 #### `AuthJsProvider`
 **Implements**: `AuthProvider` interface
@@ -356,6 +422,45 @@ Implements domain interfaces with concrete external services.
 - Timestamps (createdAt)
 
 **Tests**: 10+ tests covering CRUD operations and multi-tenant isolation
+
+---
+
+#### `MongoDBBlogArticleRepository` ⭐ NEW (Phase 4.0)
+**Implements**: `BlogArticleRepository` interface
+**Technology**: MongoDB Atlas with official Node.js driver
+
+**Purpose**: Blog article storage
+
+**Methods**:
+- `create(article)` - Creates blog article
+- `findBySlug(slug)` - Loads article by URL slug
+- `findById(id)` - Loads article by ID
+- `listPublished()` - Lists published articles (sorted by date)
+- `listAll()` - Lists all articles (admin)
+- `update(article)` - Updates article
+- `delete(id)` - Deletes article
+
+**Indexing**:
+- Unique index on `slug`
+- Index on `publishedAt` for listing
+
+**Tests**: 10+ tests covering CRUD operations
+
+---
+
+#### `MongoDBContactMessageRepository` ⭐ NEW (Phase 3.11)
+**Implements**: `ContactMessageRepository` interface
+**Technology**: MongoDB Atlas with official Node.js driver
+
+**Purpose**: Contact form message storage
+
+**Methods**:
+- `create(message)` - Creates contact message
+- `findById(id)` - Loads message by ID
+- `listAll()` - Lists all messages (admin)
+- `delete(id)` - Deletes message
+
+**Tests**: 5+ tests covering CRUD operations
 
 ---
 
@@ -615,6 +720,33 @@ All infrastructure operations exceed targets:
 
 ---
 
+## Phase 4.1 Achievements
+
+✅ **TipTapContentService** - Content conversion implementation
+✅ **MetadataCache** - TTL-based caching for metadata
+✅ **Chapter generation prompts** - `/docs/prompt/chapter-generation/`
+✅ **Autocompletion streaming** - SSE-based completion delivery
+✅ **OpenAI/Anthropic enhanced** - Generation and completion methods
+✅ **160+ unit tests** + 30+ integration tests
+
+## Phase 4.0 Achievements
+
+✅ **MongoDBBlogArticleRepository** - Blog storage with slug indexing
+✅ **10+ new tests** for blog persistence
+
+## Phase 3.11 Achievements
+
+✅ **MongoDBContactMessageRepository** - Contact form storage
+✅ **deleteAllByOwner()** on all repositories - RGPD cascade delete support
+✅ **User serialization enhanced** - Consent timestamps
+
+## Phase 3.8 Achievements
+
+✅ **ResendEmailService** - Email notifications via Resend API
+✅ **HMAC token generation** - Secure approval link creation
+✅ **User serialization enhanced** - Approval status fields
+✅ **8+ new tests** for email service
+
 ## Phase 3.7 Achievements
 
 ✅ **PdfExporter** - PDF export with full typography and special character support
@@ -623,7 +755,6 @@ All infrastructure operations exceed targets:
 ✅ **o-series reasoning models** - Proper API parameters (max_completion_tokens)
 ✅ **3 proposals** - Reduced from 5 to 3 (épuré, lyrique, amplifié)
 ✅ **Correction history serialization** - CorrectionHistory ↔ MongoDB document conversion
-✅ **130+ unit tests** + 24 integration tests (up from 120+ and 24)
 ✅ **Clean Architecture Maintained** - All new infrastructure follows established patterns
 
 ## Phase 3.6 Achievements

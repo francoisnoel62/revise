@@ -13,27 +13,36 @@ Pure business logic with no framework dependencies.
 **Entities**:
 - `Chapter` - Single chapter with rich text content (TipTap JSON)
 - `Project` - Aggregate managing chapter collection with owner tracking
-- `ProjectMetadata` - Metadata document with TipTap JSON content and content hash ⭐ NEW (Phase 3.6)
+- `ProjectMetadata` - Metadata document with TipTap JSON content and content hash (Phase 3.6)
 - `Provider` - AI provider configuration with encrypted credentials (Phase 3.5)
-- `User` - User entity with email and hashed password
+- `User` - User entity with email, hashed password, approval status, and consent timestamps (Phase 3.8, 3.11)
+- `CorrectionHistory` - AI rewrite history entry with proposals (Phase 3.7)
+- `BlogArticle` - Blog article with slug, content, and metadata (Phase 4.0)
+- `ContactMessage` - Contact form submission (Phase 3.11)
 - `TextDocument` - Legacy single document (Phase 1)
 
 **Value Objects**:
 - `TextSelection` - Selection range
 - `RewriteProposal` - AI-generated proposal
-- `MetadataType` - Enum for 6 analysis types ⭐ NEW (Phase 3.6)
-- `NarrativeAnalysis`, `Characters`, `Plot`, `StylisticDNA`, `Worldbuilding`, `Synthesis` ⭐ NEW (Phase 3.6)
+- `MetadataType` - Enum for 7 analysis types (including chapter-summaries) (Phase 3.6, 3.7)
+- `NarrativeAnalysis`, `Characters`, `Plot`, `StylisticDNA`, `Worldbuilding`, `ChapterSummaries`, `Synthesis` (Phase 3.6, 3.7)
 
 **Interfaces**:
 - `DocumentParser` - Parse documents to entities
 - `DocumentExporter` - Export entities to documents
-- `LLMProvider` - AI rewriting + 6 metadata analysis methods ⭐ ENHANCED (Phase 3.6)
+- `LLMProvider` - AI rewriting + 7 metadata analysis methods + chapter generation + completion (Phase 3.6, 4.1)
 - `ProjectRepository` - Persistence abstraction with multi-tenant support
 - `ProviderRepository` - Provider storage with encryption (Phase 3.5)
-- `MetadataRepository` - Metadata storage with multi-tenant isolation ⭐ NEW (Phase 3.6)
-- `PromptRepository` - Load AI prompts from markdown files ⭐ NEW (Phase 3.6)
-- `UserRepository` - User management and authentication
+- `MetadataRepository` - Metadata storage with multi-tenant isolation (Phase 3.6)
+- `CorrectionHistoryRepository` - Correction history storage (Phase 3.7)
+- `BlogArticleRepository` - Blog article persistence (Phase 4.0)
+- `ContactMessageRepository` - Contact form persistence (Phase 3.11)
+- `PromptRepository` - Load AI prompts from markdown files (Phase 3.6)
+- `UserRepository` - User management, authentication, and approval (Phase 3, 3.8)
 - `AuthProvider` - Authentication service abstraction
+- `EmailService` - Email notification service (Phase 3.8)
+- `ApprovalTokenGenerator` - HMAC token generation for approval links (Phase 3.8)
+- `ContentConverter` - TipTap content conversion abstraction (Phase 4.1)
 - `IdGenerator` - UUID generation abstraction (Phase 3.5)
 - `LLMProviderFactory` - Factory for creating LLM providers (Phase 3.5)
 
@@ -68,11 +77,23 @@ Use cases orchestrating domain logic.
 - `ValidateProviderUseCase` - Validate provider
 
 **User Use Cases**:
-- `RegisterUserUseCase` - User registration
+- `RegisterUserUseCase` - User registration with consent validation
+- `ApproveUserUseCase` - Admin approval with HMAC token validation (Phase 3.8)
+- `DeleteUserAccountUseCase` - Account deletion with cascade delete (Phase 3.11)
 
-**Metadata Use Cases** ⭐ NEW (Phase 3.6):
+**Metadata Use Cases** (Phase 3.6, 3.7):
 - **CRUD**: `CreateMetadata`, `LoadMetadata`, `ListMetadata`, `UpdateMetadataContent`, `UpdateMetadataTitle`, `DeleteMetadata`
-- **Generation**: `GenerateNarrativeAnalysis`, `GenerateCharacters`, `GeneratePlot`, `GenerateStylisticDNA`, `GenerateWorldbuilding`, `GenerateSynthesis` (all with intelligent caching)
+- **Generation**: `GenerateNarrativeAnalysis`, `GenerateCharacters`, `GeneratePlot`, `GenerateStylisticDNA`, `GenerateWorldbuilding`, `GenerateChapterSummaries`, `GenerateSynthesis` (all with intelligent caching)
+
+**AI Generation Use Cases** (Phase 4.1):
+- `GenerateChapterUseCase` - Generate chapter content from metadata context
+- `GenerateCompletionUseCase` - Generate autocompletion suggestions
+
+**Blog Use Cases** (Phase 4.0):
+- `CreateBlogArticleUseCase`, `UpdateBlogArticleUseCase`, `DeleteBlogArticleUseCase`, `ListBlogArticlesUseCase`
+
+**Contact Use Cases** (Phase 3.11):
+- `SubmitContactFormUseCase` - Save contact form submissions
 
 **Legacy Use Cases**:
 - `RewriteTextUseCase` - AI rewriting
@@ -84,67 +105,92 @@ External service implementations.
 **Document**:
 - `DocxParser` - Mammoth-based parser with chapter splitting
 - `DocxExporter` - docx library exporter with full typography support
+- `PdfExporter` - PDF export with full typography (Phase 3.7)
+- `TipTapContentService` - TipTap content manipulation (Phase 4.1)
 - TipTap conversion utilities (HTML ↔ JSON)
 
 **AI**:
-- `OpenAIProvider` - GPT-4o-mini + 6 metadata analysis types ⭐ ENHANCED (Phase 3.6)
-- `AnthropicProvider` - Claude + 6 metadata analysis types ⭐ NEW (Phase 3.6)
+- `OpenAIProvider` - GPT-4o-mini/GPT-5 + 7 analysis types + generation + completion (Phase 3.6, 4.1)
+- `AnthropicProvider` - Claude + 7 analysis types + generation (Phase 3.6, 4.1)
 - `LLMProviderFactoryImpl` - Factory for creating LLM providers (Phase 3.5)
 
 **Utils**:
 - `UUIDGenerator` - IdGenerator implementation using crypto.randomUUID() (Phase 3.5)
-- `text-hash` - SHA-256 content hashing for cache invalidation ⭐ NEW (Phase 3.6)
+- `text-hash` - SHA-256 content hashing for cache invalidation (Phase 3.6)
+- `MetadataCache` - TTL-based caching for metadata (Phase 4.1)
 
-**Encryption** ⭐ NEW (Phase 3.5):
+**Encryption** (Phase 3.5):
 - AES-256-GCM utilities - API key encryption/decryption
 - Key masking utilities - Client-safe API key display
+- HMAC token generation for approval links (Phase 3.8)
 
-**Authentication** (Phase 3):
+**Email** (Phase 3.8):
+- `ResendEmailService` - Email notifications via Resend API
+
+**Authentication** (Phase 3, 3.8):
 - `AuthJsProvider` - Auth.js implementation
 - `auth-config` - NextAuth v5 configuration
 - Middleware for route protection
+- User approval workflow integration (Phase 3.8)
 
-**Persistence** (Phase 3, 3.5 & 3.6):
+**Persistence** (Phase 3, 3.5, 3.6, 3.7, 4.0):
 - `MongoDBProjectRepository` - MongoDB Atlas persistence with multi-tenant isolation
 - `MongoDBProviderRepository` - Provider storage with encrypted credentials (Phase 3.5)
-- `MongoDBMetadataRepository` - Metadata storage with multi-tenant isolation ⭐ NEW (Phase 3.6)
-- `MongoDBUserRepository` - User management with bcrypt password hashing
+- `MongoDBMetadataRepository` - Metadata storage with multi-tenant isolation (Phase 3.6)
+- `MongoDBCorrectionHistoryRepository` - Correction history storage (Phase 3.7)
+- `MongoDBBlogArticleRepository` - Blog article storage (Phase 4.0)
+- `MongoDBContactMessageRepository` - Contact form storage (Phase 3.11)
+- `MongoDBUserRepository` - User management with bcrypt, approval, consent
 - `InMemoryProjectRepository` - Ephemeral storage (testing/legacy)
-- Project serialization utilities for MongoDB storage
-- Provider serialization utilities for MongoDB storage (Phase 3.5)
-- Metadata serialization utilities for MongoDB storage ⭐ NEW (Phase 3.6)
+- All repositories support `deleteAllByOwner()` for RGPD compliance (Phase 3.11)
+- Serialization utilities for all entity types
 
-**Prompts** ⭐ NEW (Phase 3.6):
-- `FilePromptRepository` - Load AI prompts from markdown files in `/docs/prompt/metadata/`
+**Prompts** (Phase 3.6, 4.1):
+- `FilePromptRepository` - Load AI prompts from markdown files in `/docs/prompt/`
 
 **Configuration**:
-- Environment configuration (including ENCRYPTION_KEY ⭐ NEW)
+- Environment configuration (ENCRYPTION_KEY, RESEND_API_KEY, ADMIN_EMAIL)
 - Database connection management
 - Provider factory pattern
-- Centralized AI models configuration ⭐ NEW (Phase 3.5)
+- Centralized AI models configuration (Phase 3.5)
 
 ### Interface Layer (`src/app/`, `src/components/`)
 
 React components and UI.
 
 **Pages**:
-- `page.tsx` - Editor page (improved header with project title, DocumentControls, UserMenu) ⭐ ENHANCED
-- `dashboard/page.tsx` - Project management dashboard (with CreateProjectDialog) ⭐ ENHANCED
-- `project/[projectId]/metadata/page.tsx` - Metadata list page ⭐ NEW (Phase 3.6)
-- `project/[projectId]/metadata/[metadataId]/page.tsx` - Metadata editor ⭐ NEW (Phase 3.6)
-- `auth/signin/page.tsx` - Sign-in page
-- `auth/signup/page.tsx` - Sign-up page
+- `page.tsx` - Editor page with header (project title, DocumentControls, UserMenu)
+- `dashboard/page.tsx` - Project management dashboard (CreateProjectDialog)
+- `project/[projectId]/metadata/page.tsx` - Metadata list page (Phase 3.6)
+- `project/[projectId]/metadata/[metadataId]/page.tsx` - Metadata editor (Phase 3.6)
+- `auth/signin/page.tsx` - Sign-in page (French, Phase 3.9)
+- `auth/signup/page.tsx` - Sign-up page (French, consent checkbox, Phase 3.9, 3.11)
+- `blog/page.tsx` - Blog list page (Phase 4.0)
+- `blog/[slug]/page.tsx` - Blog article page (Phase 4.0)
+- `admin/blog/page.tsx` - Admin blog management (Phase 4.0)
+- `settings/page.tsx` - User settings (account deletion, data export, Phase 3.11)
+- `mentions-legales/page.tsx` - Legal mentions (Phase 3.11)
+- `politique-confidentialite/page.tsx` - Privacy policy (Phase 3.11)
+- `politique-cookies/page.tsx` - Cookie policy (Phase 3.11)
+- `cgu/page.tsx` - Terms of use (Phase 3.11)
+- `cgv/page.tsx` - Terms of sale (Phase 3.11)
+- `api/approve/route.ts` - User approval endpoint (Phase 3.8)
+- `api/completion/stream/route.ts` - Autocompletion SSE endpoint (Phase 4.1)
 
 **Components**:
 - **Auth**: `UserMenu` - User profile dropdown with sign-out and provider access
-- **Dashboard**: `CreateProjectDialog` (Phase 3.5), `ProjectCard`, `EmptyState`, `NoProvidersAlert`
-- **Editor**: `TextEditor` - TipTap editor with A4 styling, `FormattingToolbar` - Rich text and typography controls
+- **Dashboard**: `CreateProjectDialog`, `ProjectCard`, `EmptyState`, `NoProvidersAlert`
+- **Editor**: `TextEditor` (TipTap + CharacterCount + Autocomplete), `FormattingToolbar` (with undo/redo buttons)
 - **Navigation**: `ChaptersSheet` - Chapter navigation with drag & drop
-- **Proposals**: `ProposalsSheet` - AI proposals display
-- **Providers**: `ProvidersDialog`, `ProviderForm`, `ProviderCard` (Phase 3.5)
-- **Metadata**: `GenerateCard`, `MetadataCard` ⭐ NEW (Phase 3.6)
-- **Document**: `DocumentControls` - Import/export, `SaveStatus` - Auto-save indicator
-- **UI**: shadcn/ui components (Sheet, Button, Card, Dialog, Input, Label, PasswordInput, etc.)
+- **Proposals**: `ProposalsSheet`, `LoadingOverlay` (author quotes, Phase 3.7)
+- **Providers**: `ProvidersDialog`, `ProviderForm`, `ProviderCard`
+- **Metadata**: `GenerateCard`, `MetadataCard` (Phase 3.6)
+- **History**: `CorrectionHistoryDialog`, `CorrectionHistoryTable` (Phase 3.7)
+- **Blog**: `BlogCard`, `BlogArticle` (Phase 4.0)
+- **Legal**: `CookieConsent` (3 variants), `ContactForm` (Phase 3.11)
+- **Generation**: `FloatingGenerationMenu` (Phase 4.1)
+- **Document**: `DocumentControls` (DOCX/PDF export), `SaveStatus`
+- **UI**: shadcn/ui components (Sheet, Button, Card, Dialog, Input, Label, etc.)
 
 **State**:
 - `projectStore` - Zustand store (server-backed)
@@ -154,19 +200,28 @@ React components and UI.
 - `chapter-actions` - Add, remove, update, reorder (→ Chapter Use Cases)
 - `auth-actions` - Sign in, sign up, sign out (→ RegisterUserUseCase)
 - `provider-actions` - CRUD + test connections (→ Provider Use Cases)
-- `metadata-actions` - CRUD + generate analyses (→ Metadata Use Cases) ⭐ NEW (Phase 3.6)
+- `metadata-actions` - CRUD + generate analyses (→ Metadata Use Cases, Phase 3.6)
+- `correction-history-actions` - Save, list, delete (→ CorrectionHistory Use Cases, Phase 3.7)
+- `blog-actions` - Blog article CRUD (→ Blog Use Cases, Phase 4.0)
+- `contact-actions` - Contact form submission (→ SubmitContactFormUseCase, Phase 3.11)
+- `user-actions` - Account deletion, data export (→ DeleteUserAccountUseCase, Phase 3.11)
 
 **Dependency Injection** (`utils.ts`):
 - `getRepository()` - Project repository
 - `getProviderRepo()` - Provider repository
 - `getUserRepo()` - User repository
-- `getMetadataRepo()` - Metadata repository ⭐ NEW (Phase 3.6)
-- `getPromptRepo()` - Prompt repository ⭐ NEW (Phase 3.6)
+- `getMetadataRepo()` - Metadata repository (Phase 3.6)
+- `getCorrectionHistoryRepo()` - Correction history repository (Phase 3.7)
+- `getBlogArticleRepo()` - Blog article repository (Phase 4.0)
+- `getContactMessageRepo()` - Contact message repository (Phase 3.11)
+- `getPromptRepo()` - Prompt repository (Phase 3.6)
+- `getEmailService()` - Email service (Phase 3.8)
 - `getLLMProviderFactory()` - LLM provider factory
 - `getIdGenerator()` - UUID generator
 
 **Hooks**:
 - `useAutosave` - Auto-save hook with 1-second debounce
+- `useHasAIProviders` - Check provider availability (Phase 3.10)
 
 ## Data Flow
 
@@ -312,45 +367,80 @@ We use Repository pattern for swappable persistence.
 
 ## Testing Strategy
 
-- **Unit Tests**: Domain and application layers (~350+ tests)
-- **Integration Tests**: Infrastructure and store (~130+ tests including 12 provider-specific)
+- **Unit Tests**: Domain and application layers (~400+ tests)
+- **Integration Tests**: Infrastructure and store (~180+ tests including 24+ provider-specific)
 - **E2E Tests**: Complete workflows (10+ tests planned)
-- **Coverage Achieved**: 40.8% global, 92%+ domain entities, 100% use cases
-- **Total Tests**: 481 passed + 32 skipped (513 total, 94% pass rate, 77 test files)
+- **Coverage Achieved**: 42% global, 92%+ domain entities, 100% use cases
+- **Total Tests**: 580+ passed (600+ total, 95%+ pass rate, 85+ test files)
+
+## Phase 4.1 Complete ✅
+
+**AI Text Generation & Autocompletion**:
+- ✅ **AI Chapter Generation** - Generate chapter beginnings from metadata context
+- ✅ **Streaming Autocompletion** - Tab to trigger, Tab to accept
+- ✅ **FloatingGenerationMenu** - Context-aware generation for empty chapters
+- ✅ **MetadataCache** - TTL-based caching (5 min)
+- ✅ **GenerateChapterUseCase** - Load metadata context for generation
+- ✅ **GenerateCompletionUseCase** - Autocompletion suggestions
+- ✅ **ContentConverter interface** - Clean Architecture abstraction
+- ✅ **Autocomplete TipTap extension** - Ghost text with streaming
+
+## Phase 4.0 Complete ✅
+
+**Blog Section**:
+- ✅ **Blog pages** - List and article pages
+- ✅ **6+ SEO articles** - Writing techniques content
+- ✅ **Admin blog management** - CRUD interface
+- ✅ **BlogArticle entity** - Domain entity
+- ✅ **MongoDBBlogArticleRepository** - Persistence
+
+## Phase 3.11 Complete ✅
+
+**RGPD/LCEN Compliance**:
+- ✅ **Legal pages** - CGU, CGV, mentions, privacy, cookies
+- ✅ **Cookie consent banner** - 3 variants
+- ✅ **Consent timestamps** - User consent tracking
+- ✅ **Account deletion** - Cascade delete with deleteAllByOwner
+- ✅ **Data export** - RGPD Article 20 portability
+- ✅ **Settings page** - Account management UI
+- ✅ **Contact form** - Landing page integration
+
+## Phase 3.8 Complete ✅
+
+**User Registration Approval**:
+- ✅ **Admin approval workflow** - Users must be approved
+- ✅ **Email notifications** - ResendEmailService
+- ✅ **HMAC token validation** - Secure approval links
+- ✅ **ApproveUserUseCase** - Token verification
+- ✅ **isApproved/approvedAt fields** - User entity extension
+
+## Phase 3.7 Complete ✅
+
+**UX Enhancements**:
+- ✅ **PDF Export** - Full typography support
+- ✅ **Correction History** - Accordion UI per chapter
+- ✅ **Character/Word Count** - Live statistics
+- ✅ **Undo/Redo Toolbar Buttons** - Visual controls
+- ✅ **Loading Overlay** - 100 author quotes
+- ✅ **3 Proposals** - Reduced from 5 (épuré, lyrique, amplifié)
+- ✅ **GPT-5 & o-series Support** - Reasoning model parameters
 
 ## Phase 3.6 Complete ✅
 
 **Metadata Analysis System**:
-- ✅ **6 AI-Powered Analysis Types** - Narrative Analysis, Characters, Plot, Stylistic DNA, Worldbuilding, Synthesis
-- ✅ **Intelligent Caching** - SHA-256 content hashing with automatic regeneration detection
-- ✅ **Dual Provider Support** - OpenAI (GPT-4o-mini) and Anthropic (Claude) for all analyses
-- ✅ **12 New Use Cases** - 6 CRUD + 6 Generation use cases with caching logic
-- ✅ **ProjectMetadata Entity** - TipTap JSON storage with content hash tracking
-- ✅ **MongoDBMetadataRepository** - Multi-tenant metadata storage with serialization
-- ✅ **FilePromptRepository** - Load AI prompts from markdown files
-- ✅ **Text Hashing Utility** - SHA-256 hashing for cache invalidation
-- ✅ **Metadata UI Pages** - List view and rich text editor
-- ✅ **Metadata Components** - GenerateCard, MetadataCard with loading states
-- ✅ **Enhanced AI Providers** - OpenAI & Anthropic support all 6 analysis types
-- ✅ **7 Value Objects** - MetadataType + 6 analysis-specific value objects
-- ✅ **Rate Limiting** - 5-second cooldown for metadata generation
-- ✅ **Comprehensive Testing** - 481 tests (513 total with 32 skipped) including integration tests for both providers
-- ✅ **Clean Architecture Maintained** - All new code follows established patterns
+- ✅ **7 AI-Powered Analysis Types** - Including chapter-summaries
+- ✅ **Intelligent Caching** - SHA-256 content hashing
+- ✅ **Dual Provider Support** - OpenAI & Anthropic
+- ✅ **13 Use Cases** - 6 CRUD + 7 Generation
+- ✅ **FilePromptRepository** - Version-controlled prompts
 
 ## Phase 3.5 Complete ✅
 
 **Clean Architecture Finalized**:
-- ✅ **AI Provider Management** - Multiple providers with encrypted credentials
-- ✅ **All Use Cases Created** - Complete separation of concerns (Project, Provider, User)
-- ✅ **Dependency Injection** - Centralized via utils.ts (getRepository, getProviderRepo, etc.)
-- ✅ **Domain Abstractions** - IdGenerator, LLMProviderFactory interfaces
-- ✅ **Infrastructure Implementations** - UUIDGenerator, LLMProviderFactoryImpl
-- ✅ **Provider Components** - ProvidersDialog, ProviderForm, ProviderCard
-- ✅ **CreateProjectDialog** - New project creation with title input
-- ✅ **Improved Header Layout** - Better project visibility and navigation
-- ✅ **Encryption System** - AES-256-GCM for API keys
-- ✅ **Rate Limiting** - Connection testing (1 per 5 seconds)
-- ✅ **MongoDBProviderRepository** - Encrypted provider storage
+- ✅ **AI Provider Management** - Encrypted credentials
+- ✅ **All Use Cases Created** - Complete separation
+- ✅ **Dependency Injection** - Centralized via utils.ts
+- ✅ **MongoDBProviderRepository** - Encrypted storage
 
 ## Phase 3 Complete ✅
 
@@ -360,20 +450,17 @@ We use Repository pattern for swappable persistence.
 - ✅ Multi-tenant data isolation
 - ✅ Auto-save to database
 - ✅ Dashboard project management
-- ✅ Session management
 
-## Future Enhancements (Phase 4+)
+## Future Enhancements (Phase 5+)
 
-**Phase 4 Candidates**:
+**Phase 5 Candidates**:
 - Search across chapters (full-text)
 - Per-chapter undo/redo (independent history)
 - Chapter templates
 - Writing goals/statistics
-- Export individual chapters
-- Project sharing between users
 - Version history
 
-**Phase 5+**:
+**Phase 6+**:
 - Real-time collaboration
 - Comments and annotations
 - Team workspaces

@@ -81,14 +81,15 @@ High-level project information.
 - Keyboard shortcuts: See README.md → Usage
 
 ### Testing
-- Test coverage: **520+ passed + 32 skipped (552+ total, 94% pass rate)**
-- Test files: 80+ files (66+ passed, 14 skipped)
+- Test coverage: **580+ passed (600+ total, 95%+ pass rate)**
+- Test files: 85+ files
 - Unit tests: Vitest + React Testing Library
 - Integration tests: Real API calls (OpenAI & Anthropic)
-- Provider-specific integration tests: 12 tests (6 OpenAI + 6 Anthropic) - conditional
+- Provider-specific integration tests: 24+ tests (7 analysis types + generation) - conditional
 - Correction history tests: 39 unit tests (entity, use cases, edge cases)
+- Blog/legal/approval tests: New tests for all Phase 3.8-4.1 features
 - E2E tests: Playwright (setup ready)
-- Coverage: 40.8% global, 92%+ domain entities, 100% use cases
+- Coverage: 42% global, 92%+ domain entities, 100% use cases
 - See [API Reference](./developer/api-reference.md#testing) for examples
 
 ## 🔍 Find What You Need
@@ -128,6 +129,53 @@ High-level project information.
 → [Provider Management](./user/provider-management.md#troubleshooting)
 
 ## 🆕 What's New
+
+### Phase 4.1 - AI Text Generation & Autocompletion (January 2026) ✅
+
+**AI-Powered Content Generation**:
+- ✅ AI Chapter Generation - Generate chapter beginnings from empty chapters using project metadata context
+- ✅ Streaming Autocompletion - Press Tab to trigger, Tab again to accept (real-time ghost text)
+- ✅ FloatingGenerationMenu - Context-aware generation options for empty chapters
+- ✅ MetadataCache - TTL-based caching (5 min) for metadata to reduce database queries
+
+**Technical Achievements**:
+- ✅ GenerateChapterUseCase with full metadata context loading
+- ✅ GenerateCompletionUseCase for autocompletion
+- ✅ ContentConverter interface (Clean Architecture abstraction)
+- ✅ TipTapContentService infrastructure implementation
+- ✅ Autocomplete TipTap extension with streaming support
+- ✅ SSE endpoint `/api/completion/stream` for real-time completion
+
+### Phase 4.0 - Blog Section (January 2026) ✅
+
+**Blog Features**:
+- ✅ Blog pages - `/blog` list and `/blog/[slug]` article pages
+- ✅ 6+ SEO articles (2700-3600 words each) on writing techniques
+- ✅ Admin blog management - `/admin/blog` for CRUD operations
+
+**Technical Achievements**:
+- ✅ BlogArticle entity with slug, title, content, metadata
+- ✅ MongoDBBlogArticleRepository with indexes
+- ✅ dynamicParams enabled for post-deployment article seeding
+
+### Phase 3.11 - RGPD/LCEN Compliance (January 2026) ✅
+
+**Legal Compliance**:
+- ✅ Legal pages - CGU, CGV, mentions légales, politique confidentialité, politique cookies
+- ✅ Cookie consent banner - CookieConsent component with 3 variants
+- ✅ Consent timestamps - termsAcceptedAt, privacyAcceptedAt stored on User
+- ✅ Account deletion - DeleteUserAccountUseCase with cascade delete
+- ✅ Data export - exportUserDataAction for RGPD Article 20 portability
+- ✅ Settings page - `/settings` with account deletion and data export UI
+- ✅ Contact form - ContactMessage entity, repository, and landing page integration
+
+### Phase 3.8 - User Registration Approval (January 2026) ✅
+
+**Approval System**:
+- ✅ Admin approval workflow - Users must be approved before signing in
+- ✅ Email notifications - ResendEmailService for approval request emails
+- ✅ HMAC token validation - Secure approval/rejection links
+- ✅ ApproveUserUseCase - Handles approval with token verification
 
 ### Phase 3.7 - UX Enhancements (January 2026) ✅
 
@@ -271,6 +319,6 @@ docs/
 
 ---
 
-**Documentation Version**: Phase 3.7 (January 2026)
-**Last Updated**: January 13, 2026
-**Status**: Complete ✅ - UX Enhancements (PDF export, correction history, 3 proposals, 520+ tests)
+**Documentation Version**: Phase 4.1 (January 2026)
+**Last Updated**: January 17, 2026
+**Status**: Complete ✅ - AI Generation, Blog, RGPD, Approval System (580+ tests)

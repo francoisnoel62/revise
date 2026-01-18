@@ -2,7 +2,7 @@
 
 Orchestrates domain logic through use cases.
 
-**Status**: ✅ Phase 3.7 Complete (100+ tests passing, 100% coverage)
+**Status**: ✅ Phase 4.1 Complete (130+ tests passing, 100% coverage)
 
 ## Rules:
 - Depends only on Domain layer
@@ -217,29 +217,176 @@ Orchestrates domain logic through use cases.
 
 ---
 
-### User Use Cases ⭐ NEW (Phase 3.5)
+### User Use Cases (Phase 3.5, 3.8, 3.11)
 
 ---
 
-#### `RegisterUserUseCase`
-**Purpose**: User registration with validation
+#### `RegisterUserUseCase` (Enhanced Phase 3.8, 3.11)
+**Purpose**: User registration with validation, consent tracking, and approval notification
 
-**Dependencies**: `UserRepository` interface
-**Input**: Email, password
-**Output**: Created `User` entity
+**Dependencies**: `UserRepository`, `EmailService` interfaces
+**Input**: Email, password, consent (termsAccepted, privacyAccepted)
+**Output**: Created `User` entity (pending approval)
 
 **Workflow**:
 1. Validate email format
-2. Check if email already exists
-3. Hash password with bcrypt
-4. Create User entity
-5. Persist to UserRepository
+2. Validate consent (both must be accepted) ⭐ Phase 3.11
+3. Check if email already exists
+4. Hash password with bcrypt
+5. Create User entity with consent timestamps
+6. Persist to UserRepository
+7. Send approval request email to admin ⭐ Phase 3.8
 
-**Tests**: 6+ tests covering registration and validation
+**Tests**: 10+ tests covering registration, consent, and email
 
 ---
 
-### Metadata Use Cases ⭐ NEW (Phase 3.6)
+#### `ApproveUserUseCase` ⭐ NEW (Phase 3.8)
+**Purpose**: Admin approval of user registration with HMAC token validation
+
+**Dependencies**: `UserRepository` interface
+**Input**: User ID, action (approve/reject), HMAC token
+**Output**: Updated `User` entity
+
+**Workflow**:
+1. Validate HMAC token (prevents tampering)
+2. Load user by ID
+3. If approve: Set isApproved=true, approvedAt=now
+4. If reject: Delete user account
+5. Persist changes
+
+**Tests**: 8+ tests covering approval, rejection, and token validation
+
+---
+
+#### `DeleteUserAccountUseCase` ⭐ NEW (Phase 3.11)
+**Purpose**: RGPD-compliant account deletion with cascade delete
+
+**Dependencies**: `UserRepository`, `ProjectRepository`, `MetadataRepository`, `CorrectionHistoryRepository`, `ProviderRepository` interfaces
+**Input**: User ID, password confirmation
+**Output**: void
+
+**Workflow**:
+1. Validate password
+2. Delete all user's projects (ProjectRepository.deleteAllByOwner)
+3. Delete all user's metadata (MetadataRepository.deleteAllByOwner)
+4. Delete all user's correction history (CorrectionHistoryRepository.deleteAllByOwner)
+5. Delete all user's providers (ProviderRepository.deleteAllByOwner)
+6. Delete user account (UserRepository.delete)
+
+**Tests**: 10+ tests covering cascade deletion and validation
+
+---
+
+### AI Generation Use Cases ⭐ NEW (Phase 4.1)
+
+---
+
+#### `GenerateChapterUseCase`
+**Purpose**: Generate chapter content using project metadata context
+
+**Dependencies**: `ProjectRepository`, `MetadataRepository`, `LLMProvider`, `ContentConverter` interfaces
+**Input**: User ID, project ID, chapter ID
+**Output**: Generated content (TipTap JSON)
+
+**Workflow**:
+1. Load project and chapter
+2. Load all project metadata (narrative, characters, plot, style, worldbuilding)
+3. Build context prompt with metadata
+4. Generate content via LLM
+5. Convert to TipTap JSON format
+
+**Tests**: 6+ tests covering generation and context loading
+
+---
+
+#### `GenerateCompletionUseCase`
+**Purpose**: Generate autocompletion suggestions
+
+**Dependencies**: `MetadataRepository`, `LLMProvider`, `ContentConverter` interfaces
+**Input**: User ID, project ID, current text, cursor position
+**Output**: Completion suggestion string
+
+**Workflow**:
+1. Load cached metadata for project (MetadataCache)
+2. Extract context around cursor
+3. Generate completion via LLM (streaming)
+4. Return completion text
+
+**Tests**: 6+ tests covering completion and caching
+
+---
+
+### Blog Use Cases ⭐ NEW (Phase 4.0)
+
+---
+
+#### `CreateBlogArticleUseCase`
+**Purpose**: Create new blog article
+
+**Dependencies**: `BlogArticleRepository`, `IdGenerator` interfaces
+**Input**: Slug, title, content, excerpt, metadata
+**Output**: Created `BlogArticle` entity
+
+**Tests**: 5+ tests covering creation
+
+---
+
+#### `UpdateBlogArticleUseCase`
+**Purpose**: Update existing blog article
+
+**Dependencies**: `BlogArticleRepository` interface
+**Input**: Article ID, updates (title, content, excerpt, etc.)
+**Output**: Updated `BlogArticle` entity
+
+**Tests**: 5+ tests covering updates
+
+---
+
+#### `DeleteBlogArticleUseCase`
+**Purpose**: Delete blog article
+
+**Dependencies**: `BlogArticleRepository` interface
+**Input**: Article ID
+**Output**: void
+
+**Tests**: 3+ tests covering deletion
+
+---
+
+#### `ListBlogArticlesUseCase`
+**Purpose**: List blog articles (published or all)
+
+**Dependencies**: `BlogArticleRepository` interface
+**Input**: Filter (published only, all)
+**Output**: Array of `BlogArticle` entities
+
+**Tests**: 4+ tests covering listing
+
+---
+
+### Contact Use Cases ⭐ NEW (Phase 3.11)
+
+---
+
+#### `SubmitContactFormUseCase`
+**Purpose**: Save contact form submission
+
+**Dependencies**: `ContactMessageRepository`, `IdGenerator` interfaces
+**Input**: Name, email, subject, message
+**Output**: Created `ContactMessage` entity
+
+**Workflow**:
+1. Validate input (email format, required fields)
+2. Generate unique ID
+3. Create ContactMessage entity
+4. Persist to repository
+
+**Tests**: 5+ tests covering submission and validation
+
+---
+
+### Metadata Use Cases (Phase 3.6, 3.7)
 
 ---
 
@@ -673,12 +820,36 @@ All use cases tested with mocked dependencies following Clean Architecture princ
 - Infrastructure errors propagated with context
 - Use cases throw domain exceptions
 
+## Phase 4.1 Achievements
+
+✅ **GenerateChapterUseCase** - AI chapter generation with metadata context
+✅ **GenerateCompletionUseCase** - Streaming autocompletion with caching
+✅ **12+ new tests** for AI generation use cases
+✅ **130+ tests passing** with 100% coverage
+
+## Phase 4.0 Achievements
+
+✅ **4 Blog Use Cases** - Create, Update, Delete, List blog articles
+✅ **17+ new tests** for blog use cases
+
+## Phase 3.11 Achievements
+
+✅ **DeleteUserAccountUseCase** - RGPD cascade delete
+✅ **SubmitContactFormUseCase** - Contact form handling
+✅ **RegisterUserUseCase Enhanced** - Consent validation
+✅ **15+ new tests** for RGPD use cases
+
+## Phase 3.8 Achievements
+
+✅ **ApproveUserUseCase** - Admin approval with HMAC tokens
+✅ **RegisterUserUseCase Enhanced** - Email approval notifications
+✅ **8+ new tests** for approval use cases
+
 ## Phase 3.7 Achievements
 
 ✅ **3 Correction History Use Cases** - Save, List, Delete with multi-tenant isolation
 ✅ **RewriteTextUseCase Enhanced** - Now auto-saves correction history
 ✅ **14+ new tests** for correction history use cases
-✅ **100+ tests passing** with 100% coverage (up from 90+)
 ✅ **Clean Architecture Maintained** - All new use cases follow established patterns
 
 ## Phase 3.6 Achievements

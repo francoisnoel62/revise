@@ -6,8 +6,8 @@
 
 **Débloquez. Explorez. Réécrivez. Sans quitter votre flow.**
 
-[![Tests](https://img.shields.io/badge/tests-520%20passed%20%7C%2032%20skipped-success?style=flat-square)](https://github.com/yourusername/revise)
-[![Coverage](https://img.shields.io/badge/coverage-40.8%25-blue?style=flat-square)](https://github.com/yourusername/revise)
+[![Tests](https://img.shields.io/badge/tests-580%2B%20passed-success?style=flat-square)](https://github.com/yourusername/revise)
+[![Coverage](https://img.shields.io/badge/coverage-42%25-blue?style=flat-square)](https://github.com/yourusername/revise)
 [![Architecture](https://img.shields.io/badge/architecture-9.5%2F10-purple?style=flat-square)](https://github.com/yourusername/revise)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
@@ -100,6 +100,8 @@ Pas de chat. Pas d'explications. Pas de friction. Vous restez dans votre flow.
 - **Export multi-format** : DOCX et PDF avec typographie préservée
 - **Auto-save** : Vers MongoDB, debounce 1 seconde
 - **Historique des corrections** : Retrouvez toutes vos réécritures par chapitre
+- **Génération de texte IA** : Générez le début d'un chapitre vide avec contexte du projet
+- **Autocomplétion IA** : Appuyez sur Tab pour compléter vos phrases (streaming temps réel)
 
 ### 📄 Expérience d'écriture A4
 
@@ -112,7 +114,7 @@ Pas de chat. Pas d'explications. Pas de friction. Vous restez dans votre flow.
 
 ### 🧠 Analyse de manuscrit par IA
 
-Six types d'analyse pour comprendre votre texte en profondeur :
+Sept types d'analyse pour comprendre votre texte en profondeur :
 
 | Analyse | Ce qu'elle révèle |
 |---------|-------------------|
@@ -121,6 +123,7 @@ Six types d'analyse pour comprendre votre texte en profondeur :
 | **Intrigue** | Structure, conflits, progression, fils narratifs |
 | **ADN Stylistique** | Registre, syntaxe, figures de style, règles d'écriture |
 | **Worldbuilding** | Thèmes, symbolisme, décor, contexte social |
+| **Résumés des chapitres** | Résumé concis de chaque chapitre + arc narratif global |
 | **Synthèse** | Méta-analyse avec feedback éditorial |
 
 > **Cache intelligent** : Les analyses ne se régénèrent que si votre contenu change réellement (hash SHA-256).
@@ -143,12 +146,28 @@ Apportez votre propre clé API :
   <img src="https://img.shields.io/badge/Google_AI-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Google AI" />
 </p>
 
-### 🔐 Sécurité
+### 🔐 Sécurité & Conformité RGPD
 
 - **Chiffrement AES-256-GCM** des clés API
 - **Isolation multi-tenant** par utilisateur
 - **Auth.js + bcrypt** (12 rounds)
 - **Clés jamais exposées** côté client
+- **Approbation des inscriptions** par administrateur avec email de notification
+- **Consentement RGPD** enregistré avec timestamps
+- **Suppression de compte** avec effacement de toutes les données associées
+- **Export des données personnelles** (Article 20 RGPD)
+- **Pages légales complètes** : CGU, CGV, Mentions légales, Politique de confidentialité, Politique cookies
+- **Bannière de cookies** conforme RGPD
+
+### 📝 Blog
+
+Section blog intégrée avec articles SEO pour les auteurs :
+
+- **Techniques d'écriture** : Cliffhangers, méthodes plotter/pantser
+- **Création de personnages** : Antagonistes, arcs de transformation, personnages secondaires
+- **Conseils éditoriaux** : Ce que recherchent les éditeurs
+- **IA & écriture** : L'IA comme outil de réécriture
+- **Admin blog** : Interface d'administration pour gérer les articles
 
 ---
 
@@ -186,10 +205,16 @@ cp .env.example .env.local
 # 🔐 Requis : Auth & Chiffrement
 AUTH_SECRET=votre-secret-aleatoire-min-32-chars
 ENCRYPTION_KEY=votre-cle-chiffrement-32-caracteres
+NEXT_PUBLIC_APP_URL=https://votre-domaine.com
 
 # 🗄️ Requis : Base de données
 MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net
 MONGODB_DB_NAME=revise
+
+# 📧 Requis : Emails (système d'approbation)
+RESEND_API_KEY=re_votre-cle-resend
+ADMIN_EMAIL=admin@votre-domaine.com
+EMAIL_FROM=noreply@votre-domaine.com
 
 # 🤖 Optionnel : Provider IA par défaut (configurable via UI)
 OPENAI_API_KEY=sk-votre-cle-api
@@ -247,6 +272,7 @@ graph LR
 | Tiret cadratin (—) | `Ctrl/⌘ + K` |
 | Annuler | `Ctrl/⌘ + Z` |
 | Rétablir | `Ctrl/⌘ + Shift + Z` |
+| Autocomplétion | `Tab` (trigger), `Tab` (accepter) |
 
 ---
 
@@ -257,19 +283,24 @@ Clean Architecture stricte avec séparation par couches :
 ```
 src/
 ├── domain/           # Logique métier pure (zéro dépendance)
-│   ├── entities/     # Chapter, Project, Provider, User, ProjectMetadata
+│   ├── entities/     # Chapter, Project, Provider, User, ProjectMetadata, CorrectionHistory, BlogArticle, ContactMessage
 │   ├── value-objects/# TextSelection, RewriteProposal, MetadataType...
 │   └── interfaces/   # Contrats repositories & services
 │
 ├── application/      # Use cases orchestrant le domaine
-│   └── use-cases/    # 25+ use cases
+│   └── use-cases/    # 50+ use cases
 │
 ├── infrastructure/   # Implémentations externes
 │   ├── ai/           # Providers OpenAI, Anthropic
-│   ├── persistence/  # Repositories MongoDB
-│   └── document/     # Import/export DOCX
+│   ├── persistence/  # Repositories MongoDB (7 repositories)
+│   ├── email/        # Service email Resend
+│   └── document/     # Import/export DOCX/PDF
 │
 └── app/              # Couche interface Next.js
+    ├── (auth)/       # Pages signin, signup
+    ├── blog/         # Section blog
+    ├── admin/        # Administration blog
+    └── settings/     # Paramètres utilisateur
 ```
 
 > Cette architecture a permis d'ajouter la persistence (Phase 3), la gestion des providers (Phase 3.5) et l'analyse de manuscrit (Phase 3.6) **sans refactorer le code existant**.
@@ -279,20 +310,20 @@ src/
 ## 🧪 Tests
 
 ```bash
-npm test                  # 520+ tests passed + 32 skipped (552+ total)
-npm run test:coverage     # Rapport de couverture (40.8%)
+npm test                  # 580+ tests passed
+npm run test:coverage     # Rapport de couverture (42%)
 npm run test:integration  # Tests avec vraies APIs (OpenAI & Anthropic)
 npm run test:e2e          # Tests end-to-end (Playwright)
 ```
 
 | Statistiques | Valeur |
 |--------------|--------|
-| Tests totaux | 552+ (520+ passed, 32 skipped) |
-| Fichiers de test | 80+ (66+ passed, 14 skipped) |
-| Couverture globale | 40.8% (v8) |
+| Tests totaux | 600+ |
+| Fichiers de test | 85+ |
+| Couverture globale | 42% (v8) |
 | Couverture domaine | 92%+ (entités) |
 | Couverture application | **100%** (use cases) |
-| Tests d'intégration | 12 provider-specific (conditional) |
+| Tests d'intégration | 24+ provider-specific (conditional) |
 
 ---
 
@@ -306,8 +337,14 @@ npm run test:e2e          # Tests end-to-end (Playwright)
 - [x] Phase 3.5 : Multi-providers, chiffrement, Clean Architecture
 - [x] Phase 3.6 : Analyse de manuscrit IA (6 types)
 - [x] Phase 3.7 : Export PDF, historique des corrections, UX améliorée
+- [x] Phase 3.8 : Système d'approbation des inscriptions avec emails
+- [x] Phase 3.9 : Traduction FR complète
+- [x] Phase 3.10 : Création projet sans provider IA obligatoire
+- [x] Phase 3.11 : Conformité RGPD/LCEN (pages légales, cookies, suppression compte)
+- [x] Phase 4.0 : Section blog avec articles SEO
+- [x] Phase 4.1 : Génération de texte IA + autocomplétion
 
-### 🔜 Phase 4
+### 🔜 Phase 5
 
 - [ ] Recherche full-text dans les chapitres
 - [ ] Templates de chapitres
