@@ -1526,6 +1526,10 @@ INSTRUCTIONS FINALES:
         config: {
           temperature: 0.1, // Low temperature for accuracy
           maxOutputTokens: 8192, // Higher limit to handle long texts
+          // Disable thinking mode to get direct JSON response
+          thinkingConfig: {
+            thinkingLevel: ThinkingLevel.LOW,
+          },
         },
       });
 
