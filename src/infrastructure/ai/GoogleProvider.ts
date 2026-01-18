@@ -75,13 +75,23 @@ export class GoogleProvider implements LLMProvider {
       text = codeBlockMatch[1].trim();
     }
 
-    // If no code block, try to find JSON object directly
-    if (!text.startsWith('{')) {
-      const jsonStart = text.indexOf('{');
-      const jsonEnd = text.lastIndexOf('}');
-      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-        text = text.slice(jsonStart, jsonEnd + 1);
-      }
+    // Check if text already starts with valid JSON
+    if (text.startsWith('{') || text.startsWith('[')) {
+      return text;
+    }
+
+    // Try to find JSON object { ... }
+    const jsonObjStart = text.indexOf('{');
+    const jsonObjEnd = text.lastIndexOf('}');
+    if (jsonObjStart !== -1 && jsonObjEnd !== -1 && jsonObjEnd > jsonObjStart) {
+      return text.slice(jsonObjStart, jsonObjEnd + 1);
+    }
+
+    // Try to find JSON array [ ... ]
+    const jsonArrStart = text.indexOf('[');
+    const jsonArrEnd = text.lastIndexOf(']');
+    if (jsonArrStart !== -1 && jsonArrEnd !== -1 && jsonArrEnd > jsonArrStart) {
+      return text.slice(jsonArrStart, jsonArrEnd + 1);
     }
 
     return text;
@@ -1576,36 +1586,61 @@ INSTRUCTIONS FINALES:
   }
 
   private parseSpellCheckResponse(content: string): SpellCheckResult {
+    // Handle null/undefined/empty content
+    if (!content || content.trim() === '') {
+      console.error('[GoogleProvider] Empty content received from Gemini');
+      throw new Error('Empty response from Google AI');
+    }
+
+    console.log('[GoogleProvider] parseSpellCheckResponse raw content:', content.substring(0, 500));
+
     let parsed: SpellCheckResponse;
 
     try {
       const jsonContent = this.extractJson(content);
+      console.log('[GoogleProvider] parseSpellCheckResponse extracted JSON:', jsonContent.substring(0, 500));
+
+      // Handle case where JSON extraction fails
+      if (!jsonContent || jsonContent.trim() === '') {
+        throw new Error('Could not extract JSON from response');
+      }
+
       parsed = JSON.parse(jsonContent);
-    } catch {
-      throw new Error('Failed to parse spell check response from Google AI');
+    } catch (e) {
+      console.error('[GoogleProvider] JSON parse error:', e instanceof Error ? e.message : 'unknown');
+      console.error('[GoogleProvider] Raw content was:', content.substring(0, 1000));
+      throw new Error(`Failed to parse spell check response from Google AI: ${e instanceof Error ? e.message : 'unknown error'}`);
     }
 
-    if (!Array.isArray(parsed.corrections)) {
-      throw new Error('Invalid response: corrections must be an array');
+    // Validate and provide defaults for missing fields
+    if (!parsed || typeof parsed !== 'object') {
+      throw new Error('Invalid response: expected an object');
     }
 
-    if (!parsed.correctedText || typeof parsed.correctedText !== 'string') {
-      throw new Error('Invalid response: missing correctedText');
-    }
+    // Handle corrections - default to empty array if missing
+    const rawCorrections = Array.isArray(parsed.corrections) ? parsed.corrections : [];
 
-    if (!parsed.summary || typeof parsed.summary !== 'string') {
-      throw new Error('Invalid response: missing summary');
-    }
+    // Handle correctedText - default to original text hint if missing
+    const correctedText = typeof parsed.correctedText === 'string' && parsed.correctedText.trim()
+      ? parsed.correctedText
+      : '(Texte corrigé non disponible)';
+
+    // Handle summary - provide default if missing
+    const summary = typeof parsed.summary === 'string' && parsed.summary.trim()
+      ? parsed.summary
+      : `${rawCorrections.length} correction(s) trouvée(s)`;
 
     // Convert to SpellCheckCorrection objects
     const corrections: SpellCheckCorrection[] = [];
-    for (const c of parsed.corrections) {
+    for (const c of rawCorrections) {
       if (!c.original || !c.corrected || !c.type || !c.explanation) {
+        console.warn('[GoogleProvider] Skipping malformed correction:', c);
         continue; // Skip malformed corrections
       }
 
       const validTypes: CorrectionType[] = ['spelling', 'grammar', 'style', 'punctuation'];
       if (!validTypes.includes(c.type)) {
+        console.warn('[GoogleProvider] Skipping correction with invalid type:', c.type);
         continue; // Skip invalid types
       }
 
@@ -1621,9 +1656,9 @@ INSTRUCTIONS FINALES:
 
     return {
       corrections,
-      correctedText: parsed.correctedText,
+      correctedText,
       hasErrors: corrections.length > 0,
-      summary: parsed.summary,
+      summary,
     };
   }
 }
