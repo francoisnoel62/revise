@@ -82,11 +82,10 @@ export function SpellCheckSheet({
   };
 
   return (
-    <Sheet open={open} onOpenChange={handleOpenChange}>
+    <Sheet open={open} onOpenChange={handleOpenChange} modal={false}>
       <SheetContent
         className="w-[400px] sm:w-[500px]"
         onInteractOutside={(e) => e.preventDefault()}
-        onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
