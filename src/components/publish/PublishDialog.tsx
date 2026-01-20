@@ -35,11 +35,17 @@ export function PublishDialog({ projectId, projectTitle }: PublishDialogProps) {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Load publish status on mount to show correct button label
+  useEffect(() => {
+    loadPublishStatus();
+  }, [projectId]);
+
+  // Refresh status when dialog opens
   useEffect(() => {
     if (open) {
       loadPublishStatus();
     }
-  }, [open, projectId]);
+  }, [open]);
 
   const loadPublishStatus = async () => {
     setIsLoading(true);
@@ -109,8 +115,17 @@ export function PublishDialog({ projectId, projectTitle }: PublishDialogProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2">
-          <Globe className="h-4 w-4" />
-          Publier
+          {isPublished ? (
+            <>
+              <EyeOff className="h-4 w-4" />
+              Dépublier
+            </>
+          ) : (
+            <>
+              <Globe className="h-4 w-4" />
+              Publier
+            </>
+          )}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
