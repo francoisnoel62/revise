@@ -840,6 +840,10 @@ function EditorContent() {
           }}
           autocompleteEnabled={autocompleteEnabled}
           onAutocompleteChange={setAutocompleteEnabled}
+          onSpellCheck={handleSpellCheckWithCache}
+          spellCheckLoading={spellCheckLoading}
+          spellCheckCount={spellCheckCount}
+          spellCheckStale={spellCheckStale}
           providers={providers}
           selectedProviderId={selectedProviderId}
           onProviderChange={handleProviderChange}

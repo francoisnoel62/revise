@@ -15,6 +15,7 @@ import {
   Loader2,
   Zap,
   PenLine,
+  SpellCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -37,6 +38,12 @@ interface AIMenuDropdownProps {
   hasSelection: boolean;
   onRewrite: () => void;
   rewriteLoading: boolean;
+
+  // Spell check
+  onSpellCheck?: () => void;
+  spellCheckLoading?: boolean;
+  spellCheckCount?: number;
+  spellCheckStale?: boolean;
 
   // Generation (for empty chapters)
   isChapterEmpty: boolean;
@@ -61,6 +68,10 @@ export function AIMenuDropdown({
   hasSelection,
   onRewrite,
   rewriteLoading,
+  onSpellCheck,
+  spellCheckLoading = false,
+  spellCheckCount = 0,
+  spellCheckStale = false,
   isChapterEmpty,
   onGenerate,
   generationLoading,
@@ -103,6 +114,11 @@ export function AIMenuDropdown({
     onRewrite();
   };
 
+  const handleSpellCheckClick = () => {
+    setOpen(false);
+    onSpellCheck?.();
+  };
+
   const handleGenerateClick = (type: ChapterGenerationTypeKey) => {
     setOpen(false);
     onGenerate(type);
@@ -119,7 +135,7 @@ export function AIMenuDropdown({
   };
 
   // Determine if the menu is in a loading state
-  const isLoading = rewriteLoading || generationLoading;
+  const isLoading = rewriteLoading || generationLoading || spellCheckLoading;
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -156,6 +172,36 @@ export function AIMenuDropdown({
           <span>Réécrire la sélection</span>
           {rewriteLoading && <Loader2 className="h-3 w-3 animate-spin ml-auto" />}
         </DropdownMenuItem>
+
+        {/* Spell check */}
+        {onSpellCheck && (
+          <DropdownMenuItem
+            onClick={handleSpellCheckClick}
+            disabled={!hasValidProvider || spellCheckLoading}
+            className="gap-2"
+          >
+            {spellCheckLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <SpellCheck className="h-4 w-4" />
+            )}
+            <span className="flex-1">Vérifier l'orthographe</span>
+            {!spellCheckLoading && spellCheckCount > 0 && (
+              <span
+                className={`min-w-[20px] h-5 px-1.5 text-xs font-medium rounded-full flex items-center justify-center ${
+                  spellCheckStale
+                    ? 'bg-amber-100 text-amber-700'
+                    : 'bg-red-100 text-red-700'
+                }`}
+              >
+                {spellCheckStale ? '!' : spellCheckCount}
+              </span>
+            )}
+            {!spellCheckLoading && spellCheckCount === 0 && !spellCheckStale && (
+              <span className="text-green-600 text-xs">✓</span>
+            )}
+          </DropdownMenuItem>
+        )}
 
         {/* Generation options - visible when chapter is empty */}
         {isChapterEmpty && (

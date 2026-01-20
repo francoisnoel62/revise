@@ -24,7 +24,6 @@ import {
   IndentIncrease,
   Undo2,
   Redo2,
-  SpellCheck,
 } from 'lucide-react';
 import { AIMenuDropdown } from './AIMenuDropdown';
 import { SafeProvider } from '@/app/actions/provider-actions';
@@ -290,49 +289,14 @@ export function FormattingToolbar({
 
       {showAIFeatures && onRewrite && onProviderChange && onHistoryClick && onAutocompleteChange && (
         <div className="flex items-center gap-1 ml-auto mt-1 md:mt-0">
-          {onSpellCheck && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onSpellCheck}
-              disabled={spellCheckLoading || !selectedProviderId}
-              title={
-                !selectedProviderId
-                  ? 'Configurez un fournisseur IA dans votre profil'
-                  : 'Vérifier l\'orthographe et la grammaire'
-              }
-              className="gap-1 relative"
-            >
-              <SpellCheck className="h-4 w-4" />
-              <span className="hidden sm:inline">{spellCheckLoading ? 'Vérification...' : 'Vérifier'}</span>
-              {/* Badge showing correction count */}
-              {!spellCheckLoading && spellCheckCount > 0 && (
-                <span
-                  className={`absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 text-xs font-medium rounded-full flex items-center justify-center ${
-                    spellCheckStale
-                      ? 'bg-amber-100 text-amber-700 border border-amber-300'
-                      : 'bg-red-100 text-red-700 border border-red-300'
-                  }`}
-                  title={spellCheckStale ? 'Le contenu a changé - revérifier' : `${spellCheckCount} corrections`}
-                >
-                  {spellCheckStale ? '!' : spellCheckCount}
-                </span>
-              )}
-              {/* Green check when no errors and cache exists */}
-              {!spellCheckLoading && spellCheckCount === 0 && !spellCheckStale && (
-                <span
-                  className="absolute -top-1 -right-1 w-[18px] h-[18px] text-xs bg-green-100 text-green-700 border border-green-300 rounded-full flex items-center justify-center"
-                  title="Aucune erreur détectée"
-                >
-                  ✓
-                </span>
-              )}
-            </Button>
-          )}
           <AIMenuDropdown
             hasSelection={hasSelection}
             onRewrite={onRewrite}
             rewriteLoading={rewriteLoading}
+            onSpellCheck={onSpellCheck}
+            spellCheckLoading={spellCheckLoading}
+            spellCheckCount={spellCheckCount}
+            spellCheckStale={spellCheckStale}
             isChapterEmpty={isChapterEmpty}
             onGenerate={onGenerate || (() => {})}
             generationLoading={generationLoading}

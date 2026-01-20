@@ -13,6 +13,7 @@ import {
   PenLine,
   Settings2,
   Check,
+  SpellCheck,
 } from 'lucide-react';
 import {
   CommandDialog,
@@ -41,6 +42,12 @@ interface CommandPaletteProps {
   onHistoryClick: () => void;
   autocompleteEnabled: boolean;
   onAutocompleteChange: (enabled: boolean) => void;
+
+  // Spell check
+  onSpellCheck?: () => void;
+  spellCheckLoading?: boolean;
+  spellCheckCount?: number;
+  spellCheckStale?: boolean;
 
   // Provider
   providers: SafeProvider[];
@@ -72,6 +79,10 @@ export function CommandPalette({
   onHistoryClick,
   autocompleteEnabled,
   onAutocompleteChange,
+  onSpellCheck,
+  spellCheckLoading = false,
+  spellCheckCount = 0,
+  spellCheckStale = false,
   providers,
   selectedProviderId,
   onProviderChange,
@@ -108,6 +119,15 @@ export function CommandPalette({
     setTimeout(action, 50);
   }, [onOpenChange]);
 
+  // Build spell check description based on state
+  const getSpellCheckDescription = () => {
+    if (spellCheckLoading) return 'Vérification en cours...';
+    if (spellCheckCount > 0 && spellCheckStale) return `${spellCheckCount} corrections (contenu modifié)`;
+    if (spellCheckCount > 0) return `${spellCheckCount} corrections trouvées`;
+    if (!spellCheckStale) return 'Aucune erreur détectée';
+    return 'Vérifier l\'orthographe et la grammaire';
+  };
+
   // Build commands list
   const commands: Command[] = [
     // Writing commands
@@ -121,6 +141,16 @@ export function CommandPalette({
       category: 'writing',
       keywords: ['rewrite', 'réécrire', 'reformuler', 'améliorer'],
     },
+    ...(onSpellCheck ? [{
+      id: 'spell-check',
+      label: 'Vérifier l\'orthographe',
+      description: getSpellCheckDescription(),
+      icon: <SpellCheck className="h-4 w-4" />,
+      action: () => executeCommand(onSpellCheck),
+      available: hasValidProvider && !spellCheckLoading,
+      category: 'writing' as const,
+      keywords: ['spell', 'check', 'orthographe', 'grammaire', 'vérifier', 'correction'],
+    }] : []),
     {
       id: 'generate-beginning',
       label: CHAPTER_GENERATION_TYPES['chapter-beginning'].name,
