@@ -114,16 +114,16 @@ export function PublishDialog({ projectId, projectTitle }: PublishDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="outline" size="sm" className="gap-1 sm:gap-2 px-2 sm:px-3">
           {isPublished ? (
             <>
               <EyeOff className="h-4 w-4" />
-              Dépublier
+              <span className="hidden sm:inline">Dépublier</span>
             </>
           ) : (
             <>
               <Globe className="h-4 w-4" />
-              Publier
+              <span className="hidden sm:inline">Publier</span>
             </>
           )}
         </Button>
