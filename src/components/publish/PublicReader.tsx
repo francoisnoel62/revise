@@ -16,8 +16,8 @@ import { IndentParagraph } from '@/components/editor/extensions/IndentParagraph'
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChevronLeft, ChevronRight, BookOpen, Menu, X } from 'lucide-react';
-import { PublicProject, PublicChapter } from '@/app/actions/publish-actions';
-import { cn } from '@/lib/utils';
+import { PublicProject } from '@/app/actions/publish-actions';
+import { cn, formatReadingTime } from '@/lib/utils';
 
 interface PublicReaderProps {
   project: PublicProject;
@@ -95,7 +95,7 @@ export function PublicReader({ project }: PublicReaderProps) {
 
             <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground flex-shrink-0">
               <span className="hidden xs:inline sm:inline">
-                {totalWords.toLocaleString('fr-FR')} mots
+                {formatReadingTime(totalWords)} de lecture
               </span>
             </div>
           </div>
@@ -130,7 +130,7 @@ export function PublicReader({ project }: PublicReaderProps) {
                 >
                   <div className="font-medium line-clamp-2">{chapter.title}</div>
                   <div className="text-xs opacity-70">
-                    {chapter.wordCount.toLocaleString('fr-FR')} mots
+                    {formatReadingTime(chapter.wordCount)}
                   </div>
                 </button>
               ))}
