@@ -106,16 +106,16 @@ export function PublicReader({ project }: PublicReaderProps) {
         {/* Chapter List - Sidebar */}
         <aside
           className={cn(
-            'fixed md:sticky top-14 left-0 z-40 w-[280px] sm:w-72 h-[calc(100vh-3.5rem)] bg-white border-r transition-transform duration-200 ease-in-out',
+            'fixed md:sticky top-14 left-0 z-40 w-[280px] sm:w-72 h-[calc(100vh-3.5rem)] bg-white border-r transition-transform duration-200 ease-in-out overflow-hidden flex flex-col',
             showChapterList ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
           )}
         >
-          <div className="p-3 sm:p-4 border-b">
+          <div className="p-3 sm:p-4 border-b flex-shrink-0">
             <h2 className="font-semibold text-xs sm:text-sm text-muted-foreground uppercase tracking-wide">
               Table des matières
             </h2>
           </div>
-          <ScrollArea className="h-[calc(100vh-7rem)]">
+          <ScrollArea className="flex-1 min-h-0">
             <nav className="p-2">
               {project.chapters.map((chapter, index) => (
                 <button
@@ -128,7 +128,7 @@ export function PublicReader({ project }: PublicReaderProps) {
                       : 'hover:bg-muted active:bg-muted'
                   )}
                 >
-                  <div className="font-medium truncate">{chapter.title}</div>
+                  <div className="font-medium line-clamp-2">{chapter.title}</div>
                   <div className="text-xs opacity-70">
                     {chapter.wordCount.toLocaleString('fr-FR')} mots
                   </div>
