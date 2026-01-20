@@ -135,7 +135,7 @@ export class MarkdownParser implements DocumentParser {
    * Keeps: p, strong, em, h1-h6, hr, br
    * Removes: code, pre, a (converts to text), img, ul, ol, li
    * Adds: data-indent="true" to all paragraphs for first-line indentation
-   * Adds: font sizes (H1=16pt, H2=14pt, paragraphs=12pt)
+   * Adds: font sizes via spans (H1=16pt, H2=14pt, paragraphs=12pt)
    */
   private cleanHtml(html: string): string {
     let result = html;
@@ -157,12 +157,13 @@ export class MarkdownParser implements DocumentParser {
     // Remove blockquotes but keep content
     result = result.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, '$1');
 
-    // Add font sizes to headings: H1=16pt, H2=14pt
-    result = result.replace(/<h1>/gi, '<h1 style="font-size: 16pt">');
-    result = result.replace(/<h2>/gi, '<h2 style="font-size: 14pt">');
+    // Add font sizes via spans inside headings: H1=16pt, H2=14pt
+    // TipTap FontSize works on textStyle (inline), not block elements
+    result = result.replace(/<h1>([\s\S]*?)<\/h1>/gi, '<h1><span style="font-size: 16pt">$1</span></h1>');
+    result = result.replace(/<h2>([\s\S]*?)<\/h2>/gi, '<h2><span style="font-size: 14pt">$1</span></h2>');
 
     // Add first-line indentation and font size to all paragraphs (12pt)
-    result = result.replace(/<p>/gi, '<p data-indent="true" style="font-size: 12pt">');
+    result = result.replace(/<p>([\s\S]*?)<\/p>/gi, '<p data-indent="true"><span style="font-size: 12pt">$1</span></p>');
 
     return result;
   }

@@ -100,6 +100,24 @@ export function FormattingToolbar({
     editor.chain().focus().setTextAlign(nextAlign).run();
   };
 
+  // Helper to get current indent from selected node (paragraph or heading)
+  const getCurrentIndent = (): boolean => {
+    const headingIndent = editor.getAttributes('heading').indent;
+    const paragraphIndent = editor.getAttributes('paragraph').indent;
+    return !!(headingIndent || paragraphIndent);
+  };
+
+  // Helper to toggle indent on current block (paragraph or heading)
+  const toggleBlockIndent = () => {
+    if (!editor.view || editor.isDestroyed) return;
+    // Try paragraph first, then heading
+    if (editor.isActive('paragraph')) {
+      editor.chain().focus().toggleIndent().run();
+    } else if (editor.isActive('heading')) {
+      editor.chain().focus().toggleHeadingIndent().run();
+    }
+  };
+
   return (
     <div className="border-b border-slate-200 p-2 flex gap-1 bg-slate-50 justify-between">
       <div className="flex gap-1">
@@ -211,9 +229,9 @@ export function FormattingToolbar({
 
         {/* First-line Indent Toggle */}
         <Button
-          variant={editor.getAttributes('paragraph').indent ? 'default' : 'ghost'}
+          variant={getCurrentIndent() ? 'default' : 'ghost'}
           size="sm"
-          onClick={() => editor.chain().focus().toggleIndent().run()}
+          onClick={toggleBlockIndent}
           title="Retrait 1ère ligne (1.27cm)"
           className="w-9 h-9"
         >

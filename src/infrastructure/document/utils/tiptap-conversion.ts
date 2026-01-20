@@ -8,7 +8,6 @@ import Bold from '@tiptap/extension-bold';
 import Italic from '@tiptap/extension-italic';
 import Underline from '@tiptap/extension-underline';
 import Highlight from '@tiptap/extension-highlight';
-import Heading from '@tiptap/extension-heading';
 import HorizontalRule from '@tiptap/extension-horizontal-rule';
 import BulletList from '@tiptap/extension-bullet-list';
 import OrderedList from '@tiptap/extension-ordered-list';
@@ -19,6 +18,7 @@ import { FontFamily } from '@tiptap/extension-text-style/font-family';
 import { FontSize } from '@tiptap/extension-text-style/font-size';
 import TextAlign from '@tiptap/extension-text-align';
 import { IndentParagraph } from '@/components/editor/extensions/IndentParagraph';
+import { IndentHeading } from '@/components/editor/extensions/IndentHeading';
 
 /**
  * Standard extensions used across the application
@@ -28,12 +28,12 @@ import { IndentParagraph } from '@/components/editor/extensions/IndentParagraph'
 export const TIPTAP_EXTENSIONS = [
   Document,
   IndentParagraph, // Custom paragraph with indent support (replaces standard Paragraph)
+  IndentHeading.configure({ levels: [1, 2, 3, 4, 5, 6] }), // Custom heading with indent support
   Text,
   Bold,
   Italic,
   Underline,
   Highlight.configure({ multicolor: true }),
-  Heading.configure({ levels: [1, 2, 3, 4, 5, 6] }),
   HorizontalRule, // For --- separators in Markdown
   BulletList,
   OrderedList,

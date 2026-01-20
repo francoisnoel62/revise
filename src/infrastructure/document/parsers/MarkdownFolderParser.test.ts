@@ -343,7 +343,7 @@ Chapter content.`
       expect(content._originalHtml).toContain('regular markdown');
     });
 
-    it('should add font-size 16pt to H1 and 14pt to H2', async () => {
+    it('should add font-size 16pt to H1 and 14pt to H2 via spans', async () => {
       const files: FolderFile[] = [
         createFile(
           '01-chapter.md',
@@ -359,11 +359,12 @@ Some text.`
       const chapters = await parser.parseToChapters(files);
       const content = JSON.parse(chapters[0].getContent());
 
-      expect(content._originalHtml).toContain('<h1 style="font-size: 16pt">');
-      expect(content._originalHtml).toContain('<h2 style="font-size: 14pt">');
+      // Font sizes are applied via spans inside the headings
+      expect(content._originalHtml).toContain('<h1><span style="font-size: 16pt">');
+      expect(content._originalHtml).toContain('<h2><span style="font-size: 14pt">');
     });
 
-    it('should add font-size 12pt to paragraphs', async () => {
+    it('should add font-size 12pt to paragraphs via span', async () => {
       const files: FolderFile[] = [
         createFile('01-chapter.md', '01-chapter.md', 'This is a paragraph.'),
       ];
@@ -371,7 +372,8 @@ Some text.`
       const chapters = await parser.parseToChapters(files);
       const content = JSON.parse(chapters[0].getContent());
 
-      expect(content._originalHtml).toContain('font-size: 12pt');
+      // Font size is applied via span inside the paragraph
+      expect(content._originalHtml).toContain('<span style="font-size: 12pt">');
     });
   });
 });
