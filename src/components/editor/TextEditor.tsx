@@ -14,6 +14,7 @@ import { FontSize } from '@tiptap/extension-text-style/font-size';
 import TextAlign from '@tiptap/extension-text-align';
 import CharacterCount from '@tiptap/extension-character-count';
 import { IndentParagraph } from './extensions/IndentParagraph';
+import { IndentHeading } from './extensions/IndentHeading';
 import { Autocomplete } from './extensions/Autocomplete';
 import { useEffect, useCallback } from 'react';
 import { useAutosave } from '@/hooks/useAutosave';
@@ -80,8 +81,10 @@ export function TextEditor({
       StarterKit.configure({
         // StarterKit v3 includes bold, italic, and underline by default
         paragraph: false, // Disable default paragraph - use our custom IndentParagraph
+        heading: false, // Disable default heading - use our custom IndentHeading
       }),
       IndentParagraph, // Custom paragraph with indent support
+      IndentHeading.configure({ levels: [1, 2, 3, 4, 5, 6] }), // Custom heading with indent support
       Highlight.configure({ multicolor: true }),
       TextStyle, // Required for FontFamily and FontSize
       FontFamily.configure({

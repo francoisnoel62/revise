@@ -1,5 +1,5 @@
 // ABOUTME: Routes document parsing to appropriate parser based on file extension
-// ABOUTME: Supports .docx files via DocxParser
+// ABOUTME: Supports .docx and .md files via DocxParser and MarkdownParser
 
 import { DocumentParser } from '@/domain/interfaces/DocumentParser';
 import { Chapter } from '@/domain/entities/Chapter';
@@ -44,7 +44,7 @@ export class CompositeDocumentParser implements DocumentParser {
     if (!parser) {
       const extension = filename.split('.').pop() || filename;
       throw new Error(
-        `Format de fichier non supporté: .${extension}. Format accepté: .docx`
+        `Format de fichier non supporté: .${extension}. Formats acceptés: .docx, .md`
       );
     }
 
@@ -55,6 +55,6 @@ export class CompositeDocumentParser implements DocumentParser {
    * Get list of supported file extensions
    */
   getSupportedExtensions(): string[] {
-    return ['.docx'];
+    return ['.docx', '.md'];
   }
 }

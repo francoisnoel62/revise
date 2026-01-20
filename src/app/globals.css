@@ -141,8 +141,14 @@
   -ms-hyphens: auto;
 }
 
-/* First-line indent for paragraphs */
-.tiptap p[data-indent="true"] {
+/* First-line indent for paragraphs and headings */
+.tiptap p[data-indent="true"],
+.tiptap h1[data-indent="true"],
+.tiptap h2[data-indent="true"],
+.tiptap h3[data-indent="true"],
+.tiptap h4[data-indent="true"],
+.tiptap h5[data-indent="true"],
+.tiptap h6[data-indent="true"] {
   text-indent: 1.27cm; /* 0.5 inch = 48px ≈ 1.27cm */
 }
 

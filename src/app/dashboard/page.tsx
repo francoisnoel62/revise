@@ -10,9 +10,9 @@ import { Button } from '@/components/ui/button';
 import { ProjectCard } from '@/components/dashboard/ProjectCard';
 import { EmptyState } from '@/components/dashboard/EmptyState';
 import { NoProvidersAlert } from '@/components/dashboard/NoProvidersAlert';
-import { CreateProjectDialog } from '@/components/dashboard/CreateProjectDialog';
+import { CreateProjectDialog, ImportData } from '@/components/dashboard/CreateProjectDialog';
 import { ProjectListItem, listProjectsAction, createProjectAction } from '@/app/actions/project-actions';
-import { importDocument } from '@/app/actions';
+import { importDocument, importFolder } from '@/app/actions';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -44,18 +44,39 @@ export default function DashboardPage() {
     loadProjects();
   }, [router]);
 
-  const handleCreateProject = async (title: string, file: File | null) => {
+  const handleCreateProject = async (title: string, importData: ImportData) => {
     setIsCreating(true);
     setError(null);
 
     try {
       let projectId: string;
 
-      if (file) {
-        // Import file and create project from it
+      if (importData?.type === 'file') {
+        // Import single file (.docx or .md) and create project from it
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('file', importData.file);
         const result = await importDocument(formData);
+
+        if (!result.success) {
+          if (result.redirect) {
+            router.push(result.redirect);
+            return;
+          }
+          throw new Error(result.error);
+        }
+
+        projectId = result.data.id;
+      } else if (importData?.type === 'folder') {
+        // Import folder of .md files (each file = one chapter)
+        const formData = new FormData();
+        formData.append('title', title);
+        // Append each file with its relative path
+        for (const file of importData.files) {
+          formData.append('files', file);
+          // webkitRelativePath contains the relative path within the folder
+          formData.append('paths', (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name);
+        }
+        const result = await importFolder(formData);
 
         if (!result.success) {
           if (result.redirect) {

@@ -66,9 +66,17 @@ export function FormattingToolbar({
   // Guard: Don't render until editor view is ready
   if (!editor.view || editor.isDestroyed) return null;
 
+  // Helper to get current alignment from selected node (paragraph or heading)
+  const getCurrentAlignment = (): string => {
+    // Check heading first, then paragraph
+    const headingAlign = editor.getAttributes('heading').textAlign;
+    const paragraphAlign = editor.getAttributes('paragraph').textAlign;
+    return headingAlign || paragraphAlign || 'justify';
+  };
+
   // Helper to get current alignment icon
   const getAlignmentIcon = () => {
-    const currentAlign = editor.getAttributes('paragraph').textAlign || 'justify';
+    const currentAlign = getCurrentAlignment();
     switch (currentAlign) {
       case 'left':
         return <AlignLeft className="h-4 w-4" />;
@@ -86,10 +94,28 @@ export function FormattingToolbar({
   const cycleAlignment = () => {
     if (!editor.view || editor.isDestroyed) return;
     const alignments = ['left', 'center', 'right', 'justify'];
-    const current = editor.getAttributes('paragraph').textAlign || 'justify';
+    const current = getCurrentAlignment();
     const currentIndex = alignments.indexOf(current);
     const nextAlign = alignments[(currentIndex + 1) % 4];
     editor.chain().focus().setTextAlign(nextAlign).run();
+  };
+
+  // Helper to get current indent from selected node (paragraph or heading)
+  const getCurrentIndent = (): boolean => {
+    const headingIndent = editor.getAttributes('heading').indent;
+    const paragraphIndent = editor.getAttributes('paragraph').indent;
+    return !!(headingIndent || paragraphIndent);
+  };
+
+  // Helper to toggle indent on current block (paragraph or heading)
+  const toggleBlockIndent = () => {
+    if (!editor.view || editor.isDestroyed) return;
+    // Try paragraph first, then heading
+    if (editor.isActive('paragraph')) {
+      editor.chain().focus().toggleIndent().run();
+    } else if (editor.isActive('heading')) {
+      editor.chain().focus().toggleHeadingIndent().run();
+    }
   };
 
   return (
@@ -203,9 +229,9 @@ export function FormattingToolbar({
 
         {/* First-line Indent Toggle */}
         <Button
-          variant={editor.getAttributes('paragraph').indent ? 'default' : 'ghost'}
+          variant={getCurrentIndent() ? 'default' : 'ghost'}
           size="sm"
-          onClick={() => editor.chain().focus().toggleIndent().run()}
+          onClick={toggleBlockIndent}
           title="Retrait 1ère ligne (1.27cm)"
           className="w-9 h-9"
         >

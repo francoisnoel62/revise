@@ -28,7 +28,10 @@ import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
 import { AnthropicProvider } from '@/infrastructure/ai/AnthropicProvider';
 import { GoogleProvider } from '@/infrastructure/ai/GoogleProvider';
 import { DocxParser } from '@/infrastructure/document/parsers/DocxParser';
+import { MarkdownParser } from '@/infrastructure/document/parsers/MarkdownParser';
 import { CompositeDocumentParser } from '@/infrastructure/document/parsers/CompositeParser';
+import { MarkdownFolderParser } from '@/infrastructure/document/parsers/MarkdownFolderParser';
+import { FolderParser } from '@/domain/interfaces/FolderParser';
 import { DocxExporter } from '@/infrastructure/document/exporters/DocxExporter';
 import { PdfExporter } from '@/infrastructure/document/exporters/PdfExporter';
 import { TipTapContentService } from '@/infrastructure/document/utils/TipTapContentService';
@@ -179,12 +182,28 @@ export function createLLMProvider(provider: Provider): LLMProvider {
 
 /**
  * Get the document parser for import.
- * Returns CompositeDocumentParser supporting .docx files.
+ * Returns CompositeDocumentParser supporting .docx and .md files.
  */
-export function getDocxParser(): DocumentParser {
+export function getDocumentParser(): DocumentParser {
   return new CompositeDocumentParser([
     new DocxParser(),
+    new MarkdownParser(),
   ]);
+}
+
+/**
+ * @deprecated Use getDocumentParser() instead
+ */
+export function getDocxParser(): DocumentParser {
+  return getDocumentParser();
+}
+
+/**
+ * Get the folder parser for importing folders of Markdown files.
+ * Each .md file in the folder becomes a chapter.
+ */
+export function getFolderParser(): FolderParser {
+  return new MarkdownFolderParser();
 }
 
 /**

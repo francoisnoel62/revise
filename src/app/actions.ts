@@ -5,6 +5,8 @@
 
 import { Project } from '@/domain/entities/Project';
 import { ImportProjectUseCase } from '@/application/use-cases/ImportProjectUseCase';
+import { ImportFolderUseCase } from '@/application/use-cases/ImportFolderUseCase';
+import { FolderFile } from '@/domain/interfaces/FolderParser';
 import { Chapter } from '@/domain/entities/Chapter';
 import { TextDocument } from '@/domain/entities/TextDocument';
 import { TextSelection } from '@/domain/value-objects/TextSelection';
@@ -17,6 +19,7 @@ import {
   getAuthenticatedUserId,
   getRepository,
   getDocumentParser,
+  getFolderParser,
   getDocumentExporter,
   withErrorHandling,
 } from './actions/utils';
@@ -50,7 +53,7 @@ function serializeProject(project: Project): SerializedProject {
 
 /**
  * Import a document file and create a new project.
- * Parses DOCX, splits by H1 headings, persists to database.
+ * Supports .docx and .md files, splits by H1 headings, persists to database.
  */
 export async function importDocument(
   formData: FormData
@@ -70,6 +73,45 @@ export async function importDocument(
 
     const useCase = new ImportProjectUseCase(parser, repository);
     const project = await useCase.execute(auth.userId, buffer, file.name);
+
+    return serializeProject(project);
+  });
+}
+
+/**
+ * Import a folder of Markdown files and create a new project.
+ * Each .md file becomes a chapter, ordered by path and numeric prefix.
+ */
+export async function importFolder(
+  formData: FormData
+): Promise<ActionResult<SerializedProject>> {
+  const auth = await getAuthenticatedUserId();
+  if ('error' in auth) return auth.error;
+
+  return withErrorHandling(async () => {
+    const title = formData.get('title') as string;
+    const files = formData.getAll('files') as File[];
+    const paths = formData.getAll('paths') as string[];
+
+    if (!files || files.length === 0) {
+      throw new Error('Aucun fichier fourni');
+    }
+
+    // Convert File objects to FolderFile format
+    const folderFiles: FolderFile[] = await Promise.all(
+      files.map(async (file, index) => ({
+        relativePath: paths[index] || file.name,
+        name: file.name,
+        buffer: Buffer.from(await file.arrayBuffer()),
+      }))
+    );
+
+    const parser = await getFolderParser();
+    const repository = await getRepository();
+
+    const projectTitle = title?.trim() || 'Nouveau projet';
+    const useCase = new ImportFolderUseCase(parser, repository);
+    const project = await useCase.execute(auth.userId, folderFiles, projectTitle);
 
     return serializeProject(project);
   });
