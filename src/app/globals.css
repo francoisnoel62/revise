@@ -124,21 +124,40 @@
 
 /* A4 Page Styling */
 .editor-a4-page {
-  width: 794px; /* 210mm */
-  min-height: 1123px; /* 297mm A4 height */
+  width: 100%;
+  max-width: 794px; /* 210mm on desktop */
+  min-height: auto;
   background: white;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   margin: 0 auto;
-  padding: 94px 113px; /* 2.5cm top/bottom, 3cm left/right */
+  padding: 24px 16px; /* Mobile-first padding */
 
   /* Typography defaults */
   font-family: Georgia, serif;
-  font-size: 13pt;
+  font-size: 12pt; /* Smaller on mobile */
   line-height: 1.5;
-  text-align: justify;
+  text-align: left; /* Left align on mobile for readability */
   hyphens: auto;
   -webkit-hyphens: auto;
   -ms-hyphens: auto;
+}
+
+/* Tablet and up */
+@media (min-width: 640px) {
+  .editor-a4-page {
+    padding: 48px 40px;
+    font-size: 12pt;
+  }
+}
+
+/* Desktop - full A4 styling */
+@media (min-width: 1024px) {
+  .editor-a4-page {
+    min-height: 1123px; /* 297mm A4 height */
+    padding: 94px 113px; /* 2.5cm top/bottom, 3cm left/right */
+    font-size: 13pt;
+    text-align: justify;
+  }
 }
 
 /* First-line indent for paragraphs and headings */
