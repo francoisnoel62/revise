@@ -167,3 +167,23 @@
 .tiptap [data-font-size="13pt"] { font-size: 13pt; }
 .tiptap [data-font-size="14pt"] { font-size: 14pt; }
 .tiptap [data-font-size="16pt"] { font-size: 16pt; }
+
+/* Mobile-responsive reader mode */
+@media (max-width: 840px) {
+  .editor-a4-page.reader-mode {
+    width: 100%;
+    min-height: auto;
+    padding: 24px 16px;
+    box-shadow: none;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+}
+
+@media (min-width: 841px) and (max-width: 1024px) {
+  .editor-a4-page.reader-mode {
+    width: 100%;
+    max-width: 794px;
+    padding: 48px 40px;
+  }
+}
