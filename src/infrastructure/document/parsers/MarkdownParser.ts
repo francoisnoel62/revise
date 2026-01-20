@@ -18,10 +18,10 @@ const generateId = (): string => {
 
 export class MarkdownParser implements DocumentParser {
   constructor() {
-    // Configure marked to only output basic formatting
-    // Lists are disabled by converting them to plain text
+    // Configure marked for standard paragraph handling
+    // breaks: false ensures paragraphs are separated by blank lines (standard Markdown)
     marked.use({
-      breaks: true, // Convert \n to <br>
+      breaks: false, // Paragraphs require blank lines between them
       gfm: true, // GitHub Flavored Markdown
     });
   }
@@ -120,9 +120,10 @@ export class MarkdownParser implements DocumentParser {
   }
 
   /**
-   * Clean HTML by removing unsupported elements
+   * Clean HTML by removing unsupported elements and adding indentation
    * Keeps: p, strong, em, h1-h6, hr, br
    * Removes: code, pre, a (converts to text), img, ul, ol, li
+   * Adds: data-indent="true" to all paragraphs for first-line indentation
    */
   private cleanHtml(html: string): string {
     let result = html;
@@ -143,6 +144,9 @@ export class MarkdownParser implements DocumentParser {
 
     // Remove blockquotes but keep content
     result = result.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, '$1');
+
+    // Add first-line indentation to all paragraphs
+    result = result.replace(/<p>/gi, '<p data-indent="true">');
 
     return result;
   }

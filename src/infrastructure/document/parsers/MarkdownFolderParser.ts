@@ -18,8 +18,10 @@ const generateId = (): string => {
 
 export class MarkdownFolderParser implements FolderParser {
   constructor() {
+    // Configure marked for standard paragraph handling
+    // breaks: false ensures paragraphs are separated by blank lines (standard Markdown)
     marked.use({
-      breaks: true,
+      breaks: false,
       gfm: true,
     });
   }
@@ -189,7 +191,8 @@ export class MarkdownFolderParser implements FolderParser {
   }
 
   /**
-   * Clean HTML by removing unsupported elements
+   * Clean HTML by removing unsupported elements and adding indentation
+   * Adds: data-indent="true" to all paragraphs for first-line indentation
    */
   private cleanHtml(html: string): string {
     let result = html;
@@ -210,6 +213,9 @@ export class MarkdownFolderParser implements FolderParser {
 
     // Remove blockquotes but keep content
     result = result.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, '$1');
+
+    // Add first-line indentation to all paragraphs
+    result = result.replace(/<p>/gi, '<p data-indent="true">');
 
     return result;
   }
