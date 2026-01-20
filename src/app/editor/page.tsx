@@ -22,9 +22,12 @@ import { Editor } from '@tiptap/react';
 import { rewriteText } from '@/app/actions/rewrite-text';
 import { listProvidersAction, SafeProvider } from '@/app/actions/provider-actions';
 import { updateProjectProviderAction } from '@/app/actions/project-actions';
+import { generateChapterAction } from '@/app/actions/chapter-generation-actions';
 import { CorrectionHistoryDialog } from '@/components/history/CorrectionHistoryDialog';
 import { FloatingGenerationMenu } from '@/components/editor/FloatingGenerationMenu';
 import { PublishDialog } from '@/components/publish/PublishDialog';
+import { CommandPalette } from '@/components/editor/CommandPalette';
+import { ChapterGenerationTypeKey } from '@/domain';
 
 interface Proposal {
   content: string;
@@ -66,6 +69,13 @@ function EditorContent() {
 
   // Autocomplete state
   const [autocompleteEnabled, setAutocompleteEnabled] = useState(true);
+
+  // Generation state (for AI menu dropdown)
+  const [generationLoading, setGenerationLoading] = useState(false);
+  const [activeGenerationType, setActiveGenerationType] = useState<ChapterGenerationTypeKey | null>(null);
+
+  // Command palette state
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
 
   // Track initialization to prevent infinite loop
   const initializedRef = useRef(false);
@@ -199,6 +209,32 @@ function EditorContent() {
       console.error(error);
     } finally {
       setRewriteLoading(false);
+    }
+  };
+
+  // Chapter generation handler (from AI menu)
+  const handleGenerate = async (generationType: ChapterGenerationTypeKey) => {
+    if (!project?.id || !editor) return;
+
+    setGenerationLoading(true);
+    setActiveGenerationType(generationType);
+
+    try {
+      const result = await generateChapterAction(project.id, generationType);
+
+      if (!result.success) {
+        alert(result.error || 'Erreur lors de la génération');
+        return;
+      }
+
+      // Insert generated content into editor
+      const content = JSON.parse(result.data.tipTapContent);
+      editor.commands.setContent(content);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Erreur inattendue');
+    } finally {
+      setGenerationLoading(false);
+      setActiveGenerationType(null);
     }
   };
 
@@ -345,6 +381,11 @@ function EditorContent() {
               autocompleteEnabled={autocompleteEnabled}
               onAutocompleteChange={setAutocompleteEnabled}
               showAIFeatures={hasAIProviders}
+              isChapterEmpty={editor?.isEmpty ?? false}
+              onGenerate={handleGenerate}
+              generationLoading={generationLoading}
+              activeGenerationType={activeGenerationType}
+              onOpenCommandPalette={() => setShowCommandPalette(true)}
             />
           </div>
         </div>
@@ -390,6 +431,29 @@ function EditorContent() {
           chapterTitle={project.chapters.find((c) => c.id === project.activeChapterId)?.title ?? 'Chapitre'}
           open={showHistoryDialog}
           onOpenChange={setShowHistoryDialog}
+        />
+      )}
+
+      {/* Command palette */}
+      {hasAIProviders && (
+        <CommandPalette
+          open={showCommandPalette}
+          onOpenChange={setShowCommandPalette}
+          hasSelection={hasSelection}
+          onRewrite={handleRewrite}
+          rewriteLoading={rewriteLoading}
+          isChapterEmpty={editor?.isEmpty ?? false}
+          onGenerate={handleGenerate}
+          generationLoading={generationLoading}
+          onHistoryClick={() => {
+            setShowCommandPalette(false);
+            setShowHistoryDialog(true);
+          }}
+          autocompleteEnabled={autocompleteEnabled}
+          onAutocompleteChange={setAutocompleteEnabled}
+          providers={providers}
+          selectedProviderId={selectedProviderId}
+          onProviderChange={handleProviderChange}
         />
       )}
     </main>
