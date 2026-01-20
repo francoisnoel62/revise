@@ -329,8 +329,8 @@ function EditorContent() {
       </header>
 
       {/* Toolbar sticky - responsive positioning */}
-      <div className="sticky top-[52px] md:top-[73px] z-40 flex justify-center py-1 md:py-2 bg-slate-50 px-2 md:px-0">
-        <div className="w-full md:w-3/4 max-w-[794px]">
+      <div className="sticky top-[52px] md:top-[73px] z-40 flex justify-center py-1 md:py-2 bg-slate-50 px-2">
+        <div className="w-[95%]">
           <div className="bg-white rounded-lg shadow border border-slate-200 px-1 md:px-2 py-1 overflow-x-auto">
             <FormattingToolbar
               editor={editor}
