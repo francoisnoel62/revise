@@ -14,7 +14,8 @@ import {
   getBlogArticleRepository,
   getPromptRepository,
   createLLMProvider,
-  getDocxParser,
+  getDocumentParser as getDocumentParserFromConfig,
+  getFolderParser as getFolderParserFromConfig,
   getDocumentExporter as getExporterFromConfig,
   type ExportFormat,
 } from '@/infrastructure/config/providers';
@@ -31,6 +32,7 @@ import { LLMProviderFactory } from '@/domain/interfaces/LLMProviderFactory';
 import { IdGenerator } from '@/domain/interfaces/IdGenerator';
 import { LLMProvider } from '@/domain/interfaces/LLMProvider';
 import { DocumentParser } from '@/domain/interfaces/DocumentParser';
+import { FolderParser } from '@/domain/interfaces/FolderParser';
 import { DocumentExporter } from '@/domain/interfaces/DocumentExporter';
 import { EmailService } from '@/domain/interfaces/EmailService';
 import { ResendEmailService } from '@/infrastructure/email/ResendEmailService';
@@ -181,9 +183,18 @@ export async function getIdGenerator(): Promise<IdGenerator> {
 
 /**
  * Get document parser instance.
+ * Supports .docx and .md files.
  */
 export async function getDocumentParser(): Promise<DocumentParser> {
-  return getDocxParser();
+  return getDocumentParserFromConfig();
+}
+
+/**
+ * Get folder parser instance.
+ * Used for importing folders of .md files.
+ */
+export async function getFolderParser(): Promise<FolderParser> {
+  return getFolderParserFromConfig();
 }
 
 /**

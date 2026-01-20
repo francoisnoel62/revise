@@ -49,7 +49,8 @@ describe('CreateProjectDialog', () => {
   it('has file upload button', () => {
     renderDialog();
 
-    expect(screen.getByText(/importer un fichier \.docx/i)).toBeInTheDocument();
+    // Now has two buttons: Fichier and Dossier .md
+    expect(screen.getByRole('button', { name: /fichier/i })).toBeInTheDocument();
   });
 
   it('calls onCreateProject with title when submitted', async () => {
@@ -62,6 +63,7 @@ describe('CreateProjectDialog', () => {
     const submitButton = screen.getByRole('button', { name: /^créer$/i });
     await user.click(submitButton);
 
+    // Now uses ImportData format (null for no file)
     expect(mockOnCreateProject).toHaveBeenCalledWith('My Great Novel', null);
   });
 
@@ -72,6 +74,7 @@ describe('CreateProjectDialog', () => {
     const submitButton = screen.getByRole('button', { name: /^créer$/i });
     await user.click(submitButton);
 
+    // Now uses ImportData format (null for no file)
     expect(mockOnCreateProject).toHaveBeenCalledWith('Nouveau projet', null);
   });
 
@@ -83,7 +86,8 @@ describe('CreateProjectDialog', () => {
       type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     });
 
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    // First file input (for single files)
+    const fileInput = document.querySelector('input[type="file"][accept=".docx,.md"]') as HTMLInputElement;
     await user.upload(fileInput, file);
 
     expect(screen.getByText('my-draft.docx')).toBeInTheDocument();
@@ -97,16 +101,19 @@ describe('CreateProjectDialog', () => {
       type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     });
 
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    // First file input (for single files)
+    const fileInput = document.querySelector('input[type="file"][accept=".docx,.md"]') as HTMLInputElement;
     await user.upload(fileInput, file);
 
     expect(screen.getByText('my-draft.docx')).toBeInTheDocument();
 
-    const removeButton = screen.getByRole('button', { name: /supprimer le fichier/i });
+    // Now uses "Supprimer l'import" instead of "Supprimer le fichier"
+    const removeButton = screen.getByRole('button', { name: /supprimer l'import/i });
     await user.click(removeButton);
 
     expect(screen.queryByText('my-draft.docx')).not.toBeInTheDocument();
-    expect(screen.getByText(/importer un fichier \.docx/i)).toBeInTheDocument();
+    // Now shows two buttons: Fichier and Dossier .md
+    expect(screen.getByRole('button', { name: /fichier/i })).toBeInTheDocument();
   });
 
   it('calls onCreateProject with file when submitted', async () => {
@@ -117,13 +124,15 @@ describe('CreateProjectDialog', () => {
       type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     });
 
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    // First file input (for single files)
+    const fileInput = document.querySelector('input[type="file"][accept=".docx,.md"]') as HTMLInputElement;
     await user.upload(fileInput, file);
 
     const submitButton = screen.getByRole('button', { name: /^créer$/i });
     await user.click(submitButton);
 
-    expect(mockOnCreateProject).toHaveBeenCalledWith('Nouveau projet', file);
+    // Now uses ImportData format: { type: 'file', file: File }
+    expect(mockOnCreateProject).toHaveBeenCalledWith('Nouveau projet', { type: 'file', file });
   });
 
   it('disables inputs when creating', () => {
