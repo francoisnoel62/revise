@@ -128,12 +128,23 @@ export async function loadPublishedProjectAction(
   projectId: string,
   shareToken: string
 ): Promise<ActionResult<PublicProject>> {
+  console.log('[loadPublishedProjectAction] Loading project:', {
+    projectId,
+    shareToken: shareToken?.substring(0, 8) + '...',
+  });
+
   return withErrorHandling(async () => {
     const useCase = new LoadPublishedProjectUseCase(await getRepository());
 
     const project = await useCase.execute({
       projectId,
       shareToken,
+    });
+
+    console.log('[loadPublishedProjectAction] Project found:', {
+      id: project.getId(),
+      title: project.getTitle(),
+      isPublished: project.getIsPublished(),
     });
 
     return serializePublicProject(project);
