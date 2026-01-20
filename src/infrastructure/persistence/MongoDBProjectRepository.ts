@@ -119,4 +119,27 @@ export class MongoDBProjectRepository implements ProjectRepository {
     });
     return result.deletedCount;
   }
+
+  async findPublishedByToken(projectId: string, shareToken: string): Promise<Project | null> {
+    console.log('[MongoDBProjectRepository.findPublishedByToken] Query:', {
+      projectId,
+      shareToken: shareToken?.substring(0, 8) + '...',
+    });
+
+    const doc = await this.collection.findOne({
+      _id: projectId,
+      shareToken: shareToken,
+      isPublished: true,
+    });
+
+    console.log('[MongoDBProjectRepository.findPublishedByToken] Result:', {
+      found: !!doc,
+      docId: doc?._id,
+      isPublished: doc?.isPublished,
+      hasShareToken: !!doc?.shareToken,
+    });
+
+    if (!doc) return null;
+    return deserializeProject(doc);
+  }
 }

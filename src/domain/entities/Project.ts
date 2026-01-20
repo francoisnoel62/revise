@@ -17,6 +17,9 @@ export class Project {
   private providerId: string | null;
   private readonly createdAt: Date;
   private updatedAt: Date;
+  private isPublished: boolean;
+  private shareToken: string | null;
+  private publishedAt: Date | null;
 
   /**
    * Reconstruct a Project from persisted data.
@@ -30,7 +33,10 @@ export class Project {
     activeChapterId: string | null,
     providerId: string | null,
     createdAt: Date,
-    updatedAt: Date
+    updatedAt: Date,
+    isPublished: boolean = false,
+    shareToken: string | null = null,
+    publishedAt: Date | null = null
   ) {
     this.id = id;
     this.ownerId = ownerId;
@@ -40,6 +46,9 @@ export class Project {
     this.providerId = providerId;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
+    this.isPublished = isPublished;
+    this.shareToken = shareToken;
+    this.publishedAt = publishedAt;
   }
 
   /**
@@ -144,6 +153,18 @@ export class Project {
     return this.chapters.length === 0;
   }
 
+  getIsPublished(): boolean {
+    return this.isPublished;
+  }
+
+  getShareToken(): string | null {
+    return this.shareToken;
+  }
+
+  getPublishedAt(): Date | null {
+    return this.publishedAt;
+  }
+
   // === Mutations ===
 
   updateTitle(newTitle: string): void {
@@ -231,5 +252,36 @@ export class Project {
    */
   touch(): void {
     this.updatedAt = new Date();
+  }
+
+  /**
+   * Publish the project with a shareable link.
+   * Generates a share token if none exists.
+   */
+  publish(): void {
+    if (!this.shareToken) {
+      this.shareToken = randomUUID();
+    }
+    this.isPublished = true;
+    this.publishedAt = new Date();
+    this.touch();
+  }
+
+  /**
+   * Unpublish the project.
+   * The share token is preserved for potential re-publishing.
+   */
+  unpublish(): void {
+    this.isPublished = false;
+    this.touch();
+  }
+
+  /**
+   * Generate a new share token.
+   * Useful when revoking existing shared links.
+   */
+  regenerateShareToken(): void {
+    this.shareToken = randomUUID();
+    this.touch();
   }
 }

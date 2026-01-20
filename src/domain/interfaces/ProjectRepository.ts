@@ -57,4 +57,11 @@ export interface ProjectRepository {
    * @returns Number of projects deleted
    */
   deleteAllByOwner(userId: string): Promise<number>;
+
+  /**
+   * Find a published project by its share token.
+   * Does not require authentication - used for public reading.
+   * @returns Project if found, published, and token matches; null otherwise
+   */
+  findPublishedByToken(projectId: string, shareToken: string): Promise<Project | null>;
 }

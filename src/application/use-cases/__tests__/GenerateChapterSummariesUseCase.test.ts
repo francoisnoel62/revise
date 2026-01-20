@@ -24,6 +24,7 @@ describe('GenerateChapterSummariesUseCase', () => {
     listProjects: vi.fn(),
     updateChapter: vi.fn(),
     deleteAllByOwner: vi.fn(),
+    findPublishedByToken: vi.fn(),
   };
 
   const mockLLMProvider = {

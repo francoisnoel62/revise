@@ -87,6 +87,14 @@ export class InMemoryProjectRepository implements ProjectRepository {
     return count;
   }
 
+  async findPublishedByToken(projectId: string, shareToken: string): Promise<Project | null> {
+    const project = this.projects.get(projectId);
+    if (!project) return null;
+    if (!project.getIsPublished()) return null;
+    if (project.getShareToken() !== shareToken) return null;
+    return project;
+  }
+
   // Test helpers
   clear(): void {
     this.projects.clear();
