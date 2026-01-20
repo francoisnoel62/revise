@@ -89,12 +89,12 @@ export function PublicReader({ project }: PublicReaderProps) {
               </Link>
             </div>
 
-            <div className="flex-1 text-center hidden sm:block">
-              <h1 className="font-medium truncate max-w-md mx-auto">{project.title}</h1>
+            <div className="flex-1 text-center min-w-0 px-2">
+              <h1 className="font-medium truncate text-sm sm:text-base">{project.title}</h1>
             </div>
 
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span className="hidden sm:inline">
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground flex-shrink-0">
+              <span className="hidden xs:inline sm:inline">
                 {totalWords.toLocaleString('fr-FR')} mots
               </span>
             </div>
@@ -106,12 +106,12 @@ export function PublicReader({ project }: PublicReaderProps) {
         {/* Chapter List - Sidebar */}
         <aside
           className={cn(
-            'fixed md:sticky top-14 left-0 z-40 w-72 h-[calc(100vh-3.5rem)] bg-white border-r transition-transform duration-200 ease-in-out',
+            'fixed md:sticky top-14 left-0 z-40 w-[280px] sm:w-72 h-[calc(100vh-3.5rem)] bg-white border-r transition-transform duration-200 ease-in-out',
             showChapterList ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
           )}
         >
-          <div className="p-4 border-b">
-            <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+          <div className="p-3 sm:p-4 border-b">
+            <h2 className="font-semibold text-xs sm:text-sm text-muted-foreground uppercase tracking-wide">
               Table des matières
             </h2>
           </div>
@@ -122,10 +122,10 @@ export function PublicReader({ project }: PublicReaderProps) {
                   key={chapter.id}
                   onClick={() => goToChapter(index)}
                   className={cn(
-                    'w-full text-left px-3 py-2 rounded-md text-sm transition-colors',
+                    'w-full text-left px-3 py-2.5 sm:py-2 rounded-md text-sm transition-colors',
                     index === activeChapterIndex
                       ? 'bg-primary text-primary-foreground'
-                      : 'hover:bg-muted'
+                      : 'hover:bg-muted active:bg-muted'
                   )}
                 >
                   <div className="font-medium truncate">{chapter.title}</div>
@@ -147,36 +147,37 @@ export function PublicReader({ project }: PublicReaderProps) {
         )}
 
         {/* Main Content */}
-        <main className="flex-1 py-8 px-4">
+        <main className="flex-1 py-4 sm:py-8 px-2 sm:px-4">
           {/* Chapter Title */}
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-serif font-medium text-gray-800">
+          <div className="text-center mb-4 sm:mb-8 px-2">
+            <h2 className="text-xl sm:text-2xl font-serif font-medium text-gray-800">
               {activeChapter?.title}
             </h2>
-            <p className="text-sm text-muted-foreground mt-2">
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">
               Chapitre {activeChapterIndex + 1} sur {project.chapters.length}
             </p>
           </div>
 
           {/* Reader Content */}
-          <div className="max-w-[794px] mx-auto">
+          <div className="w-full max-w-[794px] mx-auto">
             <div className="editor-a4-page reader-mode">
               <EditorContent editor={editor} />
             </div>
           </div>
 
           {/* Chapter Navigation */}
-          <div className="max-w-[794px] mx-auto mt-8 flex items-center justify-between">
+          <div className="w-full max-w-[794px] mx-auto mt-4 sm:mt-8 flex items-center justify-between gap-2 px-2">
             <Button
               variant="outline"
               onClick={() => goToChapter(activeChapterIndex - 1)}
               disabled={!hasPrevious}
+              className="flex-shrink-0"
             >
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Chapitre précédent
+              <ChevronLeft className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Chapitre précédent</span>
             </Button>
 
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm text-muted-foreground text-center flex-shrink-0">
               {activeChapterIndex + 1} / {project.chapters.length}
             </span>
 
@@ -184,9 +185,10 @@ export function PublicReader({ project }: PublicReaderProps) {
               variant="outline"
               onClick={() => goToChapter(activeChapterIndex + 1)}
               disabled={!hasNext}
+              className="flex-shrink-0"
             >
-              Chapitre suivant
-              <ChevronRight className="h-4 w-4 ml-2" />
+              <span className="hidden sm:inline">Chapitre suivant</span>
+              <ChevronRight className="h-4 w-4 sm:ml-2" />
             </Button>
           </div>
         </main>
