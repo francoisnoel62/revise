@@ -220,7 +220,13 @@ export default async function BlogArticlePage({ params }: PageProps) {
                       month: 'long',
                       year: 'numeric',
                     })
-                  : 'Non publié'}
+                  : article.isPublished
+                    ? new Date(article.updatedAt).toLocaleDateString('fr-FR', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      })
+                    : 'Non publié'}
               </span>
               <span className="flex items-center gap-1">
                 <Clock className="h-4 w-4" />
