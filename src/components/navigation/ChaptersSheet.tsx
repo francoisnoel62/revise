@@ -183,9 +183,10 @@ export function ChaptersSheet() {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Menu className="h-4 w-4 mr-2" />
-          Chapitres ({project.chapters.length})
+        <Button variant="outline" size="sm" className="px-2 md:px-3">
+          <Menu className="h-4 w-4 md:mr-2" />
+          <span className="hidden md:inline">Chapitres</span>
+          <span className="text-xs ml-1">({project.chapters.length})</span>
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="w-[350px] sm:w-[400px]">

@@ -312,8 +312,8 @@ function EditorContent() {
       {/* Header with controls - responsive layout */}
       <header className="sticky top-0 z-50 bg-white border-b border-slate-200">
         {/* Mobile header: stacked layout */}
-        <div className="flex md:hidden items-center justify-between px-3 py-2">
-          <div className="flex items-center gap-1">
+        <div className="flex md:hidden items-center justify-between px-2 py-2 gap-1">
+          <div className="flex items-center shrink-0">
             <Link href="/dashboard">
               <Button variant="ghost" size="icon" title="Retour aux projets" className="h-8 w-8">
                 <ArrowLeft className="h-4 w-4" />
@@ -321,13 +321,11 @@ function EditorContent() {
             </Link>
             <ChaptersSheet />
           </div>
-          <div className="flex-1 text-center px-2 min-w-0">
+          <div className="flex-1 text-center min-w-0 px-1">
             <h1 className="text-sm font-semibold truncate">{project.title}</h1>
-            <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-              <SaveStatus />
-            </div>
+            <SaveStatus compact />
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center shrink-0">
             <DocumentControls />
             <UserMenu />
           </div>
