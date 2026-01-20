@@ -119,17 +119,18 @@ export function FormattingToolbar({
   };
 
   return (
-    <div className="border-b border-slate-200 p-2 flex gap-1 bg-slate-50 justify-between">
-      <div className="flex gap-1">
+    <div className="border-b border-slate-200 p-1 md:p-2 flex gap-0.5 md:gap-1 bg-slate-50 justify-between flex-wrap md:flex-nowrap">
+      <div className="flex gap-0.5 md:gap-1 flex-wrap md:flex-nowrap">
+        {/* Essential formatting buttons - always visible */}
         <Button
           variant={editor.isActive('bold') ? 'default' : 'ghost'}
           size="sm"
           onClick={() => editor.chain().focus().toggleBold().run()}
           disabled={!editor.can().chain().focus().toggleBold().run()}
           title="Bold (Ctrl+B)"
-          className="w-9 h-9"
+          className="w-8 h-8 md:w-9 md:h-9"
         >
-          <Bold className="h-4 w-4" />
+          <Bold className="h-3.5 w-3.5 md:h-4 md:w-4" />
         </Button>
 
         <Button
@@ -138,9 +139,9 @@ export function FormattingToolbar({
           onClick={() => editor.chain().focus().toggleItalic().run()}
           disabled={!editor.can().chain().focus().toggleItalic().run()}
           title="Italic (Ctrl+I)"
-          className="w-9 h-9"
+          className="w-8 h-8 md:w-9 md:h-9"
         >
-          <Italic className="h-4 w-4" />
+          <Italic className="h-3.5 w-3.5 md:h-4 md:w-4" />
         </Button>
 
         <Button
@@ -149,9 +150,9 @@ export function FormattingToolbar({
           onClick={() => editor.chain().focus().toggleUnderline().run()}
           disabled={!editor.can().chain().focus().toggleUnderline().run()}
           title="Underline (Ctrl+U)"
-          className="w-9 h-9"
+          className="w-8 h-8 md:w-9 md:h-9"
         >
-          <Underline className="h-4 w-4" />
+          <Underline className="h-3.5 w-3.5 md:h-4 md:w-4" />
         </Button>
 
         <Button
@@ -160,14 +161,15 @@ export function FormattingToolbar({
           onClick={() => editor.chain().focus().toggleHighlight().run()}
           disabled={!editor.can().chain().focus().toggleHighlight().run()}
           title="Highlight (Ctrl+Shift+H)"
-          className="w-9 h-9"
+          className="hidden sm:flex w-8 h-8 md:w-9 md:h-9"
         >
-          <Highlighter className="h-4 w-4" />
+          <Highlighter className="h-3.5 w-3.5 md:h-4 md:w-4" />
         </Button>
 
-        {/* Separator */}
-        <div className="w-px h-8 bg-slate-300 mx-1" />
+        {/* Separator - hidden on mobile */}
+        <div className="hidden md:block w-px h-8 bg-slate-300 mx-1" />
 
+        {/* Font controls - hidden on mobile, visible on tablet+ */}
         {/* Font Family Toggle */}
         <Button
           variant={
@@ -184,15 +186,15 @@ export function FormattingToolbar({
             editor.chain().focus().setFontFamily(newFont).run();
           }}
           title="Police (Georgia ↔ Times New Roman)"
-          className="w-9 h-9"
+          className="hidden lg:flex w-9 h-9"
         >
           <Type className="h-4 w-4" />
         </Button>
 
-        {/* Font Size Dropdown */}
+        {/* Font Size Dropdown - hidden on small mobile */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" title="Taille de police" className="w-auto px-2">
+            <Button variant="ghost" size="sm" title="Taille de police" className="hidden sm:flex w-auto px-1.5 md:px-2 text-xs md:text-sm">
               {editor.getAttributes('textStyle').fontSize || '13pt'}
             </Button>
           </DropdownMenuTrigger>
@@ -216,58 +218,57 @@ export function FormattingToolbar({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Text Alignment Cycle */}
+        {/* Text Alignment Cycle - hidden on mobile */}
         <Button
           variant="ghost"
           size="sm"
           onClick={cycleAlignment}
           title="Alignement (cycle: gauche/centre/droite/justifié)"
-          className="w-9 h-9"
+          className="hidden md:flex w-9 h-9"
         >
           {getAlignmentIcon()}
         </Button>
 
-        {/* First-line Indent Toggle */}
+        {/* First-line Indent Toggle - hidden on mobile */}
         <Button
           variant={getCurrentIndent() ? 'default' : 'ghost'}
           size="sm"
           onClick={toggleBlockIndent}
           title="Retrait 1ère ligne (1.27cm)"
-          className="w-9 h-9"
+          className="hidden lg:flex w-9 h-9"
         >
           <IndentIncrease className="h-4 w-4" />
         </Button>
 
-        {/* Separator */}
-        <div className="w-px h-8 bg-slate-300 mx-1" />
+        {/* Separator - hidden on mobile */}
+        <div className="hidden md:block w-px h-8 bg-slate-300 mx-1" />
 
-        {/* Undo */}
+        {/* Undo/Redo - always visible */}
         <Button
           variant="ghost"
           size="sm"
           onClick={() => editor.chain().focus().undo().run()}
           disabled={!editor.can().undo()}
           title="Annuler (Ctrl+Z)"
-          className="w-9 h-9"
+          className="w-8 h-8 md:w-9 md:h-9"
         >
-          <Undo2 className="h-4 w-4" />
+          <Undo2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
         </Button>
 
-        {/* Redo */}
         <Button
           variant="ghost"
           size="sm"
           onClick={() => editor.chain().focus().redo().run()}
           disabled={!editor.can().redo()}
           title="Rétablir (Ctrl+Y)"
-          className="w-9 h-9"
+          className="w-8 h-8 md:w-9 md:h-9"
         >
-          <Redo2 className="h-4 w-4" />
+          <Redo2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
         </Button>
       </div>
 
       {showAIFeatures && onRewrite && (
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-1 md:gap-2 ml-auto mt-1 md:mt-0 w-full md:w-auto justify-end">
           <Button
             variant={hasSelection && selectedProviderId ? 'default' : 'ghost'}
             size="sm"
@@ -278,17 +279,21 @@ export function FormattingToolbar({
                 ? 'Configurez un fournisseur IA dans votre profil'
                 : 'Réécrire la sélection'
             }
+            className="text-xs md:text-sm px-2 md:px-3"
           >
-            {rewriteLoading ? 'Génération...' : 'Réécrire'}
+            {rewriteLoading ? <span className="hidden sm:inline">Génération...</span> : <span className="hidden sm:inline">Réécrire</span>}
+            {rewriteLoading ? <span className="sm:hidden">...</span> : <Sparkles className="sm:hidden h-4 w-4" />}
           </Button>
           {onProviderChange && (
-            <ProviderSelect
-              providers={providers}
-              selectedProviderId={selectedProviderId}
-              onSelect={onProviderChange}
-              disabled={rewriteLoading}
-              loading={providersLoading}
-            />
+            <div className="hidden sm:block">
+              <ProviderSelect
+                providers={providers}
+                selectedProviderId={selectedProviderId}
+                onSelect={onProviderChange}
+                disabled={rewriteLoading}
+                loading={providersLoading}
+              />
+            </div>
           )}
           {onHistoryClick && (
             <Button
@@ -296,17 +301,17 @@ export function FormattingToolbar({
               size="sm"
               onClick={onHistoryClick}
               title="Historique des corrections"
-              className="w-9 h-9"
+              className="w-8 h-8 md:w-9 md:h-9"
             >
-              <History className="h-4 w-4" />
+              <History className="h-3.5 w-3.5 md:h-4 md:w-4" />
             </Button>
           )}
-          {/* Autocomplete Toggle */}
+          {/* Autocomplete Toggle - hidden on small mobile */}
           {onAutocompleteChange && (
             <>
-              <div className="w-px h-8 bg-slate-300 mx-1" />
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-slate-500" />
+              <div className="hidden md:block w-px h-8 bg-slate-300 mx-1" />
+              <div className="hidden sm:flex items-center gap-1 md:gap-2">
+                <Sparkles className="h-3.5 w-3.5 md:h-4 md:w-4 text-slate-500" />
                 <Switch
                   id="autocomplete-toggle"
                   checked={autocompleteEnabled}
@@ -314,7 +319,7 @@ export function FormattingToolbar({
                 />
                 <Label
                   htmlFor="autocomplete-toggle"
-                  className="text-xs text-slate-600 cursor-pointer"
+                  className="hidden md:block text-xs text-slate-600 cursor-pointer"
                 >
                   Auto
                 </Label>

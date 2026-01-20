@@ -273,9 +273,32 @@ function EditorContent() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-      {/* Header with controls */}
+      {/* Header with controls - responsive layout */}
       <header className="sticky top-0 z-50 bg-white border-b border-slate-200">
-        <div className="grid grid-cols-3 items-center px-4 py-3">
+        {/* Mobile header: stacked layout */}
+        <div className="flex md:hidden items-center justify-between px-3 py-2">
+          <div className="flex items-center gap-1">
+            <Link href="/dashboard">
+              <Button variant="ghost" size="icon" title="Retour aux projets" className="h-8 w-8">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </Link>
+            <ChaptersSheet />
+          </div>
+          <div className="flex-1 text-center px-2 min-w-0">
+            <h1 className="text-sm font-semibold truncate">{project.title}</h1>
+            <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+              <SaveStatus />
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <DocumentControls />
+            <UserMenu />
+          </div>
+        </div>
+
+        {/* Desktop header: 3-column grid */}
+        <div className="hidden md:grid grid-cols-3 items-center px-4 py-3">
           {/* Left: navigation */}
           <div className="flex items-center gap-2">
             <Link href="/dashboard">
@@ -305,10 +328,10 @@ function EditorContent() {
         </div>
       </header>
 
-      {/* Toolbar sticky centrée au-dessus de l'éditeur */}
-      <div className="sticky top-18.25 z-40 flex justify-center py-2 bg-slate-50">
-        <div className="w-3/4">
-          <div className="bg-white rounded-lg shadow border border-slate-200 px-2 py-1">
+      {/* Toolbar sticky - responsive positioning */}
+      <div className="sticky top-[52px] md:top-[73px] z-40 flex justify-center py-1 md:py-2 bg-slate-50 px-2 md:px-0">
+        <div className="w-full md:w-3/4 max-w-[794px]">
+          <div className="bg-white rounded-lg shadow border border-slate-200 px-1 md:px-2 py-1 overflow-x-auto">
             <FormattingToolbar
               editor={editor}
               hasSelection={hasSelection}
@@ -327,9 +350,9 @@ function EditorContent() {
         </div>
       </div>
 
-      {/* A4 width editor container (794px = 210mm) */}
-      <div className="flex justify-center pb-8">
-        <div className="w-198.5">
+      {/* Editor container - responsive width */}
+      <div className="flex justify-center px-2 md:px-4 pb-8">
+        <div className="w-full max-w-[794px]">
           <div className="bg-white rounded-lg shadow-lg overflow-hidden relative">
             <TextEditor
               onSelectionChange={handleSelectionChange}
