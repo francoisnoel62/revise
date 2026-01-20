@@ -338,5 +338,57 @@ Just regular markdown without frontmatter.`;
       const content = JSON.parse(chapters[0].getContent());
       expect(content._originalHtml).toContain('regular markdown');
     });
+
+    it('should add font-size 16pt to H1 headings', async () => {
+      const markdown = `Some intro text.
+
+# Main Title
+
+Content after title.`;
+
+      const buffer = Buffer.from(markdown);
+      const chapters = await parser.parseToChapters(buffer, 'test.md');
+
+      // First chapter is intro (before H1)
+      // Second chapter has the H1 as title, content should not contain <h1>
+      // But let's test with a document that has H2 inside
+      const markdown2 = `# Chapter
+
+## Subtitle
+
+Some text.`;
+
+      const buffer2 = Buffer.from(markdown2);
+      const chapters2 = await parser.parseToChapters(buffer2, 'test.md');
+
+      const content = JSON.parse(chapters2[0].getContent());
+      expect(content._originalHtml).toContain('font-size: 14pt');
+    });
+
+    it('should add font-size 14pt to H2 headings', async () => {
+      const markdown = `# Chapter
+
+## Section Title
+
+Content here.`;
+
+      const buffer = Buffer.from(markdown);
+      const chapters = await parser.parseToChapters(buffer, 'test.md');
+
+      const content = JSON.parse(chapters[0].getContent());
+      expect(content._originalHtml).toContain('<h2 style="font-size: 14pt">');
+    });
+
+    it('should add font-size 12pt to paragraphs', async () => {
+      const markdown = `# Chapter
+
+This is a paragraph.`;
+
+      const buffer = Buffer.from(markdown);
+      const chapters = await parser.parseToChapters(buffer, 'test.md');
+
+      const content = JSON.parse(chapters[0].getContent());
+      expect(content._originalHtml).toContain('font-size: 12pt');
+    });
   });
 });

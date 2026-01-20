@@ -135,6 +135,7 @@ export class MarkdownParser implements DocumentParser {
    * Keeps: p, strong, em, h1-h6, hr, br
    * Removes: code, pre, a (converts to text), img, ul, ol, li
    * Adds: data-indent="true" to all paragraphs for first-line indentation
+   * Adds: font sizes (H1=16pt, H2=14pt, paragraphs=12pt)
    */
   private cleanHtml(html: string): string {
     let result = html;
@@ -156,8 +157,12 @@ export class MarkdownParser implements DocumentParser {
     // Remove blockquotes but keep content
     result = result.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, '$1');
 
-    // Add first-line indentation to all paragraphs
-    result = result.replace(/<p>/gi, '<p data-indent="true">');
+    // Add font sizes to headings: H1=16pt, H2=14pt
+    result = result.replace(/<h1>/gi, '<h1 style="font-size: 16pt">');
+    result = result.replace(/<h2>/gi, '<h2 style="font-size: 14pt">');
+
+    // Add first-line indentation and font size to all paragraphs (12pt)
+    result = result.replace(/<p>/gi, '<p data-indent="true" style="font-size: 12pt">');
 
     return result;
   }

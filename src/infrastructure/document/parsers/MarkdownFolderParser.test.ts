@@ -342,5 +342,36 @@ Chapter content.`
       const content = JSON.parse(chapters[0].getContent());
       expect(content._originalHtml).toContain('regular markdown');
     });
+
+    it('should add font-size 16pt to H1 and 14pt to H2', async () => {
+      const files: FolderFile[] = [
+        createFile(
+          '01-chapter.md',
+          '01-chapter.md',
+          `# Main Title
+
+## Subtitle
+
+Some text.`
+        ),
+      ];
+
+      const chapters = await parser.parseToChapters(files);
+      const content = JSON.parse(chapters[0].getContent());
+
+      expect(content._originalHtml).toContain('<h1 style="font-size: 16pt">');
+      expect(content._originalHtml).toContain('<h2 style="font-size: 14pt">');
+    });
+
+    it('should add font-size 12pt to paragraphs', async () => {
+      const files: FolderFile[] = [
+        createFile('01-chapter.md', '01-chapter.md', 'This is a paragraph.'),
+      ];
+
+      const chapters = await parser.parseToChapters(files);
+      const content = JSON.parse(chapters[0].getContent());
+
+      expect(content._originalHtml).toContain('font-size: 12pt');
+    });
   });
 });
