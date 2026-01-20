@@ -47,6 +47,9 @@ export class MarkdownParser implements DocumentParser {
     try {
       let markdown = buffer.toString('utf-8');
 
+      // Strip YAML frontmatter if present
+      markdown = this.stripYamlFrontmatter(markdown);
+
       // Transform text: replace em dash with semicolon
       markdown = this.transformText(markdown);
 
@@ -103,6 +106,14 @@ export class MarkdownParser implements DocumentParser {
   private transformText(text: string): string {
     // Replace em dash (—) with semicolon (;)
     return text.replace(/—/g, ';');
+  }
+
+  /**
+   * Strip YAML frontmatter from the beginning of markdown content
+   * Format: starts with ---, ends with ---
+   */
+  private stripYamlFrontmatter(markdown: string): string {
+    return markdown.replace(/^---\n[\s\S]*?\n---\n?/, '');
   }
 
   /**

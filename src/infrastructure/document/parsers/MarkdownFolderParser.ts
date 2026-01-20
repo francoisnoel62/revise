@@ -148,6 +148,9 @@ export class MarkdownFolderParser implements FolderParser {
   private async fileToChapter(file: FolderFile, order: number): Promise<Chapter> {
     let markdown = file.buffer.toString('utf-8');
 
+    // Strip YAML frontmatter if present
+    markdown = this.stripYamlFrontmatter(markdown);
+
     // Transform text: replace em dash with semicolon
     markdown = this.transformText(markdown);
 
@@ -179,6 +182,14 @@ export class MarkdownFolderParser implements FolderParser {
    */
   private transformText(text: string): string {
     return text.replace(/—/g, ';');
+  }
+
+  /**
+   * Strip YAML frontmatter from the beginning of markdown content
+   * Format: starts with ---, ends with ---
+   */
+  private stripYamlFrontmatter(markdown: string): string {
+    return markdown.replace(/^---\n[\s\S]*?\n---\n?/, '');
   }
 
   /**

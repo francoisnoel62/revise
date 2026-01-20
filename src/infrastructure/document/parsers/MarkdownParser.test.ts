@@ -265,5 +265,78 @@ This is a paragraph.
       expect(content).toHaveProperty('content');
       expect(Array.isArray(content.content)).toBe(true);
     });
+
+    it('should strip YAML frontmatter from the beginning', async () => {
+      const markdown = `---
+title: My Chapter
+date: 2024-01-15
+tags: [fiction, novel]
+---
+
+# Chapter One
+
+This is the actual content.`;
+
+      const buffer = Buffer.from(markdown);
+      const chapters = await parser.parseToChapters(buffer, 'test.md');
+
+      expect(chapters).toHaveLength(1);
+      expect(chapters[0].getTitle()).toBe('Chapter One');
+
+      const content = JSON.parse(chapters[0].getContent());
+      expect(content._originalHtml).not.toContain('title: My Chapter');
+      expect(content._originalHtml).not.toContain('date: 2024-01-15');
+      expect(content._originalHtml).toContain('actual content');
+    });
+
+    it('should handle YAML frontmatter with no trailing newline', async () => {
+      const markdown = `---
+title: Test
+---
+# Chapter
+
+Content here.`;
+
+      const buffer = Buffer.from(markdown);
+      const chapters = await parser.parseToChapters(buffer, 'test.md');
+
+      expect(chapters).toHaveLength(1);
+      expect(chapters[0].getTitle()).toBe('Chapter');
+
+      const content = JSON.parse(chapters[0].getContent());
+      expect(content._originalHtml).not.toContain('title: Test');
+    });
+
+    it('should not strip horizontal rules that are not frontmatter', async () => {
+      const markdown = `# Chapter
+
+Before separator.
+
+---
+
+After separator.`;
+
+      const buffer = Buffer.from(markdown);
+      const chapters = await parser.parseToChapters(buffer, 'test.md');
+
+      const content = JSON.parse(chapters[0].getContent());
+      // Horizontal rule should be preserved (converted to <hr>)
+      expect(content._originalHtml).toContain('<hr');
+    });
+
+    it('should handle markdown without YAML frontmatter', async () => {
+      const markdown = `# Chapter
+
+Just regular markdown without frontmatter.`;
+
+      const buffer = Buffer.from(markdown);
+      const chapters = await parser.parseToChapters(buffer, 'test.md');
+
+      expect(chapters).toHaveLength(1);
+      expect(chapters[0].getTitle()).toBe('Chapter');
+
+      const content = JSON.parse(chapters[0].getContent());
+      expect(content._originalHtml).toContain('regular markdown');
+    });
   });
 });

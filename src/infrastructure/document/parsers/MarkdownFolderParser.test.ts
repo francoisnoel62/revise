@@ -271,5 +271,76 @@ describe('MarkdownFolderParser', () => {
 
       expect(chapters[0].getTitle()).toBe('Sans titre');
     });
+
+    it('should strip YAML frontmatter from each file', async () => {
+      const files: FolderFile[] = [
+        createFile(
+          '01-chapter.md',
+          '01-chapter.md',
+          `---
+title: Chapter One
+date: 2024-01-15
+---
+
+This is the actual content.`
+        ),
+      ];
+
+      const chapters = await parser.parseToChapters(files);
+
+      expect(chapters).toHaveLength(1);
+      const content = JSON.parse(chapters[0].getContent());
+      expect(content._originalHtml).not.toContain('title: Chapter One');
+      expect(content._originalHtml).not.toContain('date: 2024-01-15');
+      expect(content._originalHtml).toContain('actual content');
+    });
+
+    it('should strip YAML frontmatter from multiple files', async () => {
+      const files: FolderFile[] = [
+        createFile(
+          '01-intro.md',
+          '01-intro.md',
+          `---
+title: Introduction
+---
+
+Intro content.`
+        ),
+        createFile(
+          '02-chapter.md',
+          '02-chapter.md',
+          `---
+title: Main Chapter
+tags: [fiction]
+---
+
+Chapter content.`
+        ),
+      ];
+
+      const chapters = await parser.parseToChapters(files);
+
+      expect(chapters).toHaveLength(2);
+
+      const content1 = JSON.parse(chapters[0].getContent());
+      expect(content1._originalHtml).not.toContain('title: Introduction');
+      expect(content1._originalHtml).toContain('Intro content');
+
+      const content2 = JSON.parse(chapters[1].getContent());
+      expect(content2._originalHtml).not.toContain('title: Main Chapter');
+      expect(content2._originalHtml).toContain('Chapter content');
+    });
+
+    it('should handle files without YAML frontmatter', async () => {
+      const files: FolderFile[] = [
+        createFile('01-chapter.md', '01-chapter.md', 'Just regular markdown content.'),
+      ];
+
+      const chapters = await parser.parseToChapters(files);
+
+      expect(chapters).toHaveLength(1);
+      const content = JSON.parse(chapters[0].getContent());
+      expect(content._originalHtml).toContain('regular markdown');
+    });
   });
 });
