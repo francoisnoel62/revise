@@ -200,6 +200,7 @@ export class BlogArticle {
     readingTime?: number;
     isPublished?: boolean;
   }): BlogArticle {
+    const isPublished = params.isPublished ?? false;
     return new BlogArticle(
       params.id,
       params.slug,
@@ -209,7 +210,8 @@ export class BlogArticle {
       {
         authorId: params.authorId,
         readingTime: params.readingTime,
-        isPublished: params.isPublished ?? false,
+        isPublished,
+        publishedAt: isPublished ? new Date() : null,
       }
     );
   }
