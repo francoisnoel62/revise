@@ -309,11 +309,11 @@ function EditorContent() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-      {/* Header with controls - responsive layout */}
+      {/* Header with controls - 3-level responsive layout */}
       <header className="sticky top-0 z-50 bg-white border-b border-slate-200">
-        {/* Mobile header: stacked layout */}
-        <div className="flex md:hidden items-center justify-between px-3 py-2">
-          <div className="flex items-center gap-1">
+        {/* Mobile header (< 640px): super compact */}
+        <div className="flex sm:hidden items-center justify-between px-2 py-2 gap-1">
+          <div className="flex items-center shrink-0">
             <Link href="/dashboard">
               <Button variant="ghost" size="icon" title="Retour aux projets" className="h-8 w-8">
                 <ArrowLeft className="h-4 w-4" />
@@ -321,20 +321,43 @@ function EditorContent() {
             </Link>
             <ChaptersSheet />
           </div>
-          <div className="flex-1 text-center px-2 min-w-0">
+          <div className="flex-1 text-center min-w-0 px-1">
             <h1 className="text-sm font-semibold truncate">{project.title}</h1>
-            <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-              <SaveStatus />
-            </div>
+            <SaveStatus compact />
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center shrink-0">
             <DocumentControls />
             <UserMenu />
           </div>
         </div>
 
-        {/* Desktop header: 3-column grid */}
-        <div className="hidden md:grid grid-cols-3 items-center px-4 py-3">
+        {/* Tablet header (640px-1024px): medium layout */}
+        <div className="hidden sm:flex lg:hidden items-center justify-between px-3 py-2 gap-2">
+          <div className="flex items-center gap-2 shrink-0">
+            <Link href="/dashboard">
+              <Button variant="ghost" size="icon" title="Retour aux projets" className="h-8 w-8">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </Link>
+            <ChaptersSheet />
+          </div>
+          <div className="flex-1 text-center min-w-0 px-2">
+            <h1 className="text-base font-semibold truncate">{project.title}</h1>
+            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+              <span className="truncate max-w-[150px]">{project.chapters.find((c) => c.id === project.activeChapterId)?.title || 'Sans titre'}</span>
+              <span>·</span>
+              <SaveStatus compact />
+            </div>
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            <PublishDialog projectId={project.id} projectTitle={project.title} />
+            <DocumentControls />
+            <UserMenu />
+          </div>
+        </div>
+
+        {/* Desktop header (≥1024px): full 3-column grid */}
+        <div className="hidden lg:grid grid-cols-3 items-center px-4 py-3">
           {/* Left: navigation */}
           <div className="flex items-center gap-2">
             <Link href="/dashboard">
@@ -364,8 +387,8 @@ function EditorContent() {
         </div>
       </header>
 
-      {/* Toolbar sticky - responsive positioning */}
-      <div className="sticky top-[52px] md:top-[73px] z-40 flex justify-center py-1 md:py-2 bg-slate-50 px-2">
+      {/* Toolbar sticky - responsive positioning for 3 breakpoints */}
+      <div className="sticky top-[52px] lg:top-[73px] z-40 flex justify-center py-1 lg:py-2 bg-slate-50 px-2">
         <div className="w-[95%]">
           <div className="bg-white rounded-lg shadow border border-slate-200 px-1 md:px-2 py-1 overflow-x-auto">
             <FormattingToolbar

@@ -78,17 +78,17 @@ export function DocumentControls() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" disabled={isExporting || !project}>
+        <Button variant="outline" size="sm" disabled={isExporting || !project} className="px-2 sm:px-3">
           {isExporting ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Export en cours...
+              <Loader2 className="h-4 w-4 animate-spin sm:mr-2" />
+              <span className="hidden sm:inline">Export...</span>
             </>
           ) : (
             <>
-              <Download className="mr-2 h-4 w-4" />
-              Exporter
-              <ChevronDown className="ml-2 h-4 w-4" />
+              <Download className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exporter</span>
+              <ChevronDown className="ml-1 h-3 w-3 sm:ml-2 sm:h-4 sm:w-4" />
             </>
           )}
         </Button>
