@@ -16,6 +16,9 @@ export interface ProjectDocument {
   providerId: string | null;
   createdAt: Date;
   updatedAt: Date;
+  isPublished: boolean;
+  shareToken: string | null;
+  publishedAt: Date | null;
 }
 
 /**
@@ -46,6 +49,9 @@ export function serializeProject(project: Project): ProjectDocument {
     providerId: project.getProviderId(),
     createdAt: project.getCreatedAt(),
     updatedAt: project.getUpdatedAt(),
+    isPublished: project.getIsPublished(),
+    shareToken: project.getShareToken(),
+    publishedAt: project.getPublishedAt(),
   };
 }
 
@@ -64,6 +70,7 @@ export function serializeChapter(chapter: Chapter): ChapterDocument {
 
 /**
  * Reconstruct Project domain entity from MongoDB document.
+ * Handles backward compatibility for projects without publishing fields.
  */
 export function deserializeProject(doc: ProjectDocument): Project {
   const chapters = doc.chapters
@@ -78,7 +85,10 @@ export function deserializeProject(doc: ProjectDocument): Project {
     doc.activeChapterId,
     doc.providerId ?? null,
     new Date(doc.createdAt),
-    new Date(doc.updatedAt)
+    new Date(doc.updatedAt),
+    doc.isPublished ?? false,
+    doc.shareToken ?? null,
+    doc.publishedAt ? new Date(doc.publishedAt) : null
   );
 }
 

@@ -68,6 +68,7 @@ describe('ListCorrectionHistoryUseCase', () => {
       deleteProject: vi.fn().mockResolvedValue(undefined),
       updateChapter: vi.fn().mockResolvedValue(undefined),
       deleteAllByOwner: vi.fn().mockResolvedValue(0),
+      findPublishedByToken: vi.fn().mockResolvedValue(null),
     };
 
     useCase = new ListCorrectionHistoryUseCase(

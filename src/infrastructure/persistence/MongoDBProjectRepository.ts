@@ -119,4 +119,15 @@ export class MongoDBProjectRepository implements ProjectRepository {
     });
     return result.deletedCount;
   }
+
+  async findPublishedByToken(projectId: string, shareToken: string): Promise<Project | null> {
+    const doc = await this.collection.findOne({
+      _id: projectId,
+      shareToken: shareToken,
+      isPublished: true,
+    });
+
+    if (!doc) return null;
+    return deserializeProject(doc);
+  }
 }

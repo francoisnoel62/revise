@@ -24,6 +24,7 @@ import { listProvidersAction, SafeProvider } from '@/app/actions/provider-action
 import { updateProjectProviderAction } from '@/app/actions/project-actions';
 import { CorrectionHistoryDialog } from '@/components/history/CorrectionHistoryDialog';
 import { FloatingGenerationMenu } from '@/components/editor/FloatingGenerationMenu';
+import { PublishDialog } from '@/components/publish/PublishDialog';
 
 interface Proposal {
   content: string;
@@ -297,6 +298,7 @@ function EditorContent() {
           </div>
           {/* Right: controls */}
           <div className="flex items-center justify-end gap-2">
+            <PublishDialog projectId={project.id} projectTitle={project.title} />
             <DocumentControls />
             <UserMenu />
           </div>
