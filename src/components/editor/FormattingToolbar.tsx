@@ -24,13 +24,10 @@ import {
   IndentIncrease,
   Undo2,
   Redo2,
-  History,
-  Sparkles,
 } from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { ProviderSelect } from './ProviderSelect';
+import { AIMenuDropdown } from './AIMenuDropdown';
 import { SafeProvider } from '@/app/actions/provider-actions';
+import { ChapterGenerationTypeKey } from '@/domain';
 
 interface FormattingToolbarProps {
   editor: Editor | null;
@@ -45,6 +42,12 @@ interface FormattingToolbarProps {
   autocompleteEnabled?: boolean;
   onAutocompleteChange?: (enabled: boolean) => void;
   showAIFeatures?: boolean;
+  // New props for AI menu
+  isChapterEmpty?: boolean;
+  onGenerate?: (type: ChapterGenerationTypeKey) => void;
+  generationLoading?: boolean;
+  activeGenerationType?: ChapterGenerationTypeKey | null;
+  onOpenCommandPalette?: () => void;
 }
 
 export function FormattingToolbar({
@@ -60,6 +63,11 @@ export function FormattingToolbar({
   autocompleteEnabled = true,
   onAutocompleteChange,
   showAIFeatures = true,
+  isChapterEmpty = false,
+  onGenerate,
+  generationLoading = false,
+  activeGenerationType = null,
+  onOpenCommandPalette,
 }: FormattingToolbarProps) {
   if (!editor) return null;
 
@@ -267,65 +275,25 @@ export function FormattingToolbar({
         </Button>
       </div>
 
-      {showAIFeatures && onRewrite && (
-        <div className="flex items-center gap-1 md:gap-2 ml-auto mt-1 md:mt-0 w-full md:w-auto justify-end">
-          <Button
-            variant={hasSelection && selectedProviderId ? 'default' : 'ghost'}
-            size="sm"
-            onClick={onRewrite}
-            disabled={!hasSelection || rewriteLoading || !selectedProviderId}
-            title={
-              !selectedProviderId
-                ? 'Configurez un fournisseur IA dans votre profil'
-                : 'Réécrire la sélection'
-            }
-            className="text-xs md:text-sm px-2 md:px-3"
-          >
-            {rewriteLoading ? <span className="hidden sm:inline">Génération...</span> : <span className="hidden sm:inline">Réécrire</span>}
-            {rewriteLoading ? <span className="sm:hidden">...</span> : <Sparkles className="sm:hidden h-4 w-4" />}
-          </Button>
-          {onProviderChange && (
-            <div className="hidden sm:block">
-              <ProviderSelect
-                providers={providers}
-                selectedProviderId={selectedProviderId}
-                onSelect={onProviderChange}
-                disabled={rewriteLoading}
-                loading={providersLoading}
-              />
-            </div>
-          )}
-          {onHistoryClick && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onHistoryClick}
-              title="Historique des corrections"
-              className="w-8 h-8 md:w-9 md:h-9"
-            >
-              <History className="h-3.5 w-3.5 md:h-4 md:w-4" />
-            </Button>
-          )}
-          {/* Autocomplete Toggle - hidden on small mobile */}
-          {onAutocompleteChange && (
-            <>
-              <div className="hidden md:block w-px h-8 bg-slate-300 mx-1" />
-              <div className="hidden sm:flex items-center gap-1 md:gap-2">
-                <Sparkles className="h-3.5 w-3.5 md:h-4 md:w-4 text-slate-500" />
-                <Switch
-                  id="autocomplete-toggle"
-                  checked={autocompleteEnabled}
-                  onCheckedChange={onAutocompleteChange}
-                />
-                <Label
-                  htmlFor="autocomplete-toggle"
-                  className="hidden md:block text-xs text-slate-600 cursor-pointer"
-                >
-                  Auto
-                </Label>
-              </div>
-            </>
-          )}
+      {showAIFeatures && onRewrite && onProviderChange && onHistoryClick && onAutocompleteChange && (
+        <div className="flex items-center ml-auto mt-1 md:mt-0">
+          <AIMenuDropdown
+            hasSelection={hasSelection}
+            onRewrite={onRewrite}
+            rewriteLoading={rewriteLoading}
+            isChapterEmpty={isChapterEmpty}
+            onGenerate={onGenerate || (() => {})}
+            generationLoading={generationLoading}
+            activeGenerationType={activeGenerationType}
+            providers={providers}
+            selectedProviderId={selectedProviderId}
+            onProviderChange={onProviderChange}
+            providersLoading={providersLoading}
+            onHistoryClick={onHistoryClick}
+            autocompleteEnabled={autocompleteEnabled}
+            onAutocompleteChange={onAutocompleteChange}
+            onOpenCommandPalette={onOpenCommandPalette}
+          />
         </div>
       )}
     </div>
