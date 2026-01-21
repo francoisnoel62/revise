@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Calendar, Clock, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, ArrowRight, Eye } from 'lucide-react';
 import { getPublishedArticlesPaginatedAction } from '@/app/actions/blog-actions';
 import {
   Pagination,
@@ -151,7 +151,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
                       <p className="text-muted-foreground mb-4">
                         {article.excerpt}
                       </p>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-4 w-4" />
                           {article.publishedAt
@@ -168,6 +168,10 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
                         <span className="flex items-center gap-1">
                           <Clock className="h-4 w-4" />
                           {article.readingTime} min de lecture
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Eye className="h-4 w-4" />
+                          {article.viewCount} {article.viewCount === 1 ? 'vue' : 'vues'}
                         </span>
                       </div>
                       <div className="mt-4 flex items-center text-primary text-sm font-medium">
