@@ -14,9 +14,9 @@ class MockResizeObserver {
 }
 
 beforeAll(() => {
-  global.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
+  globalThis.ResizeObserver = MockResizeObserver as unknown as typeof globalThis.ResizeObserver;
   // Mock scrollIntoView
-  Element.prototype.scrollIntoView = vi.fn();
+  globalThis.Element.prototype.scrollIntoView = vi.fn();
 });
 
 describe('CommandPalette', () => {

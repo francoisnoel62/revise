@@ -3,7 +3,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -35,19 +35,7 @@ export function PublishDialog({ projectId, projectTitle }: PublishDialogProps) {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load publish status on mount to show correct button label
-  useEffect(() => {
-    loadPublishStatus();
-  }, [projectId]);
-
-  // Refresh status when dialog opens
-  useEffect(() => {
-    if (open) {
-      loadPublishStatus();
-    }
-  }, [open]);
-
-  const loadPublishStatus = async () => {
+  const loadPublishStatus = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
@@ -63,7 +51,19 @@ export function PublishDialog({ projectId, projectTitle }: PublishDialogProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [projectId]);
+
+  // Load publish status on mount to show correct button label
+  useEffect(() => {
+    loadPublishStatus();
+  }, [loadPublishStatus]);
+
+  // Refresh status when dialog opens
+  useEffect(() => {
+    if (open) {
+      loadPublishStatus();
+    }
+  }, [open, loadPublishStatus]);
 
   const handlePublish = async () => {
     setIsLoading(true);
@@ -216,7 +216,7 @@ export function PublishDialog({ projectId, projectTitle }: PublishDialogProps) {
               {/* Unpublished State */}
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <EyeOff className="h-4 w-4" />
-                <span>Votre projet n'est pas publié</span>
+                <span>Votre projet n&apos;est pas publié</span>
               </div>
 
               <div className="rounded-lg border p-4 space-y-3">

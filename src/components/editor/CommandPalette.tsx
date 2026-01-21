@@ -3,6 +3,7 @@
 
 'use client';
 
+import * as React from 'react';
 import { useEffect, useCallback, useState } from 'react';
 import {
   Sparkles,
@@ -84,7 +85,7 @@ export function CommandPalette({
 
   // Global keyboard shortcut: Cmd+Shift+I (Mac) / Ctrl+Shift+I (Windows)
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'i') {
         e.preventDefault();
         onOpenChange(!open);
@@ -95,11 +96,14 @@ export function CommandPalette({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [open, onOpenChange]);
 
-  // Reset search when dialog opens
+  // Reset search when dialog opens - use ref to avoid setState in effect
+  const previousOpen = React.useRef(open);
   useEffect(() => {
-    if (open) {
-      setSearch('');
+    if (open && !previousOpen.current) {
+      // Dialog just opened, reset search via callback pattern
+      globalThis.requestAnimationFrame(() => setSearch(''));
     }
+    previousOpen.current = open;
   }, [open]);
 
   const executeCommand = useCallback((action: () => void) => {

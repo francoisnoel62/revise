@@ -18,7 +18,7 @@ const Pagination = ({ className, ...props }: React.ComponentProps<'nav'>) => (
 Pagination.displayName = 'Pagination';
 
 const PaginationContent = React.forwardRef<
-  HTMLUListElement,
+  globalThis.HTMLUListElement,
   React.ComponentProps<'ul'>
 >(({ className, ...props }, ref) => (
   <ul
@@ -30,7 +30,7 @@ const PaginationContent = React.forwardRef<
 PaginationContent.displayName = 'PaginationContent';
 
 const PaginationItem = React.forwardRef<
-  HTMLLIElement,
+  globalThis.HTMLLIElement,
   React.ComponentProps<'li'>
 >(({ className, ...props }, ref) => (
   <li ref={ref} className={cn('', className)} {...props} />

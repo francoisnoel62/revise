@@ -6,9 +6,10 @@ import { registerUserAction, checkEmailAvailableAction } from './auth-actions';
 // Mock the providers
 vi.mock('@/infrastructure/config/providers', () => ({
   getUserRepository: vi.fn(),
+  getEmailService: vi.fn(),
 }));
 
-import { getUserRepository } from '@/infrastructure/config/providers';
+import { getUserRepository, getEmailService } from '@/infrastructure/config/providers';
 
 describe('auth-actions', () => {
   const mockUserRepo = {
@@ -20,9 +21,16 @@ describe('auth-actions', () => {
     deleteUser: vi.fn(),
   };
 
+  const mockEmailService = {
+    sendApprovalRequestEmail: vi.fn().mockResolvedValue(undefined),
+    sendUserApprovedEmail: vi.fn().mockResolvedValue(undefined),
+    sendUserRejectedEmail: vi.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getUserRepository).mockResolvedValue(mockUserRepo);
+    vi.mocked(getEmailService).mockResolvedValue(mockEmailService);
   });
 
   describe('registerUserAction', () => {

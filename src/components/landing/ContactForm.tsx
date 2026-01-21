@@ -22,7 +22,7 @@ export function ContactForm() {
   });
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | globalThis.HTMLTextAreaElement>
   ) => {
     setFormData((prev) => ({
       ...prev,

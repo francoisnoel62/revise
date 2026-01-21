@@ -10,7 +10,6 @@ import {
   List,
   History,
   Settings2,
-  ChevronRight,
   Check,
   Loader2,
   Zap,
@@ -195,7 +194,7 @@ export function AIMenuDropdown({
           <DropdownMenuSubTrigger className="gap-2">
             <Settings2 className="h-4 w-4" />
             <span className="flex-1">Fournisseur</span>
-            <span className="text-xs text-muted-foreground truncate max-w-[80px]">
+            <span className="text-xs text-muted-foreground truncate max-w-20">
               {providersLoading ? '...' : (selectedProvider?.name || 'Aucun')}
             </span>
           </DropdownMenuSubTrigger>

@@ -9,19 +9,19 @@ import { PaginatedResult } from '@/domain/interfaces/PaginatedResult';
 
 describe('LoadPublishedBlogArticlesPaginatedUseCase', () => {
   const createMockArticle = (id: string, title: string): BlogArticle => {
-    return new BlogArticle(
+    return BlogArticle.create({
       id,
-      `slug-${id}`,
+      slug: `slug-${id}`,
       title,
-      'Excerpt',
-      'Content',
-      5,
-      true,
-      new Date('2024-01-01'),
-      'author-1',
-      new Date('2024-01-01'),
-      new Date('2024-01-01')
-    );
+      excerpt: 'Excerpt',
+      content: 'Content',
+      readingTimeMinutes: 5,
+      isPublished: true,
+      publishedAt: new Date('2024-01-01'),
+      authorId: 'author-1',
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01'),
+    });
   };
 
   const createMockRepository = (): BlogArticleRepository => ({
