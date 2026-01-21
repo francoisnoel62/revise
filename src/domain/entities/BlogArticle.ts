@@ -6,6 +6,7 @@ export interface BlogArticleProperties {
   isPublished: boolean;
   publishedAt: Date | null;
   authorId: string;
+  viewCount: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -73,6 +74,7 @@ export class BlogArticle {
       isPublished: properties.isPublished ?? false,
       publishedAt: properties.publishedAt ?? null,
       authorId: properties.authorId,
+      viewCount: properties.viewCount ?? 0,
       createdAt: properties.createdAt ?? now,
       updatedAt: properties.updatedAt ?? now,
     };
@@ -121,6 +123,10 @@ export class BlogArticle {
 
   getUpdatedAt(): Date {
     return this.properties.updatedAt;
+  }
+
+  getViewCount(): number {
+    return this.properties.viewCount;
   }
 
   getProperties(): BlogArticleProperties {
@@ -189,6 +195,10 @@ export class BlogArticle {
     }
   }
 
+  incrementViewCount(): void {
+    this.properties.viewCount += 1;
+  }
+
   // Static factory for creating a new article
   static create(params: {
     id: string;
@@ -199,6 +209,7 @@ export class BlogArticle {
     authorId: string;
     readingTime?: number;
     isPublished?: boolean;
+    viewCount?: number;
   }): BlogArticle {
     const isPublished = params.isPublished ?? false;
     return new BlogArticle(
@@ -212,6 +223,7 @@ export class BlogArticle {
         readingTime: params.readingTime,
         isPublished,
         publishedAt: isPublished ? new Date() : null,
+        viewCount: params.viewCount ?? 0,
       }
     );
   }
@@ -226,6 +238,7 @@ export class BlogArticle {
     readingTime: number;
     publishedAt: Date;
     authorId: string;
+    viewCount?: number;
   }): BlogArticle {
     return new BlogArticle(
       params.id,
@@ -240,6 +253,7 @@ export class BlogArticle {
         publishedAt: params.publishedAt,
         createdAt: params.publishedAt,
         updatedAt: params.publishedAt,
+        viewCount: params.viewCount ?? 0,
       }
     );
   }
