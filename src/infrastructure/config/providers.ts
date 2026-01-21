@@ -9,6 +9,7 @@ import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
 import { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
 import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository';
 import { ContactMessageRepository } from '@/domain/interfaces/ContactMessageRepository';
+import { ArticleViewRepository } from '@/domain/interfaces/ArticleViewRepository';
 import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import { LLMProvider } from '@/domain/interfaces/LLMProvider';
 import { DocumentParser } from '@/domain/interfaces/DocumentParser';
@@ -22,6 +23,7 @@ import { MongoDBMetadataRepository } from '@/infrastructure/persistence/MongoDBM
 import { MongoDBCorrectionHistoryRepository } from '@/infrastructure/persistence/MongoDBCorrectionHistoryRepository';
 import { MongoDBBlogArticleRepository } from '@/infrastructure/persistence/MongoDBBlogArticleRepository';
 import { MongoDBContactMessageRepository } from '@/infrastructure/persistence/MongoDBContactMessageRepository';
+import { MongoDBArticleViewRepository } from '@/infrastructure/persistence/MongoDBArticleViewRepository';
 import { InMemoryProjectRepository } from '@/infrastructure/persistence/InMemoryProjectRepository';
 import { FilePromptRepository } from '@/infrastructure/prompts/FilePromptRepository';
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
@@ -138,6 +140,20 @@ export async function getContactMessageRepository(): Promise<ContactMessageRepos
     await contactMessageRepoInstance.ensureIndexes();
   }
   return contactMessageRepoInstance;
+}
+
+/**
+ * Get the article view repository.
+ */
+let articleViewRepoInstance: MongoDBArticleViewRepository | null = null;
+
+export async function getArticleViewRepository(): Promise<ArticleViewRepository> {
+  if (!articleViewRepoInstance) {
+    const db = await getDatabase();
+    articleViewRepoInstance = new MongoDBArticleViewRepository(db);
+    await articleViewRepoInstance.ensureIndexes();
+  }
+  return articleViewRepoInstance;
 }
 
 /**

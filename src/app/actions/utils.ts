@@ -12,6 +12,7 @@ import {
   getMetadataRepository,
   getCorrectionHistoryRepository,
   getBlogArticleRepository,
+  getArticleViewRepository,
   getPromptRepository,
   createLLMProvider,
   getDocumentParser as getDocumentParserFromConfig,
@@ -28,6 +29,7 @@ import { UserRepository } from '@/domain/interfaces/UserRepository';
 import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
 import { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
 import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository';
+import { ArticleViewRepository } from '@/domain/interfaces/ArticleViewRepository';
 import { LLMProviderFactory } from '@/domain/interfaces/LLMProviderFactory';
 import { IdGenerator } from '@/domain/interfaces/IdGenerator';
 import { LLMProvider } from '@/domain/interfaces/LLMProvider';
@@ -153,6 +155,13 @@ export async function getCorrectionHistoryRepo(): Promise<CorrectionHistoryRepos
  */
 export async function getBlogArticleRepo(): Promise<BlogArticleRepository> {
   return await getBlogArticleRepository();
+}
+
+/**
+ * Get article view repository instance.
+ */
+export async function getArticleViewRepo(): Promise<ArticleViewRepository> {
+  return await getArticleViewRepository();
 }
 
 /**
