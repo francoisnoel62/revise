@@ -38,12 +38,12 @@ describe('auth-actions', () => {
       mockUserRepo.emailExists.mockResolvedValue(false);
       mockUserRepo.create.mockResolvedValue({
         id: 'user-123',
-        email: 'test@example.com',
+        email: 'user@validmail.com',
         name: 'Test User',
       });
 
       const result = await registerUserAction(
-        'test@example.com',
+        'user@validmail.com',
         'password123',
         'Test User',
         true, // acceptedTerms
@@ -52,7 +52,7 @@ describe('auth-actions', () => {
 
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.email).toBe('test@example.com');
+        expect(result.data.email).toBe('user@validmail.com');
       }
     });
 
@@ -60,7 +60,7 @@ describe('auth-actions', () => {
       mockUserRepo.emailExists.mockResolvedValue(true);
 
       const result = await registerUserAction(
-        'existing@example.com',
+        'existing@validmail.com',
         'password123',
         undefined,
         true,
@@ -75,7 +75,7 @@ describe('auth-actions', () => {
 
     it('rejects short password', async () => {
       const result = await registerUserAction(
-        'test@example.com',
+        'user@validmail.com',
         'short',
         undefined,
         true,
@@ -105,7 +105,7 @@ describe('auth-actions', () => {
 
     it('rejects registration without terms acceptance', async () => {
       const result = await registerUserAction(
-        'test@example.com',
+        'user@validmail.com',
         'password123',
         'Test User',
         false, // acceptedTerms = false
@@ -120,7 +120,7 @@ describe('auth-actions', () => {
 
     it('rejects registration without privacy acceptance', async () => {
       const result = await registerUserAction(
-        'test@example.com',
+        'user@validmail.com',
         'password123',
         'Test User',
         true,
@@ -132,13 +132,91 @@ describe('auth-actions', () => {
         expect(result.error).toContain('Privacy Policy');
       }
     });
+
+    it('rejects registration when honeypot field is filled (bot detection)', async () => {
+      const result = await registerUserAction(
+        'user@validmail.com',
+        'password123',
+        'Test User',
+        true,
+        true,
+        'bot-filled-this' // honeypot field
+      );
+
+      expect(result.success).toBe(false);
+    });
+
+    it('accepts registration when honeypot field is empty', async () => {
+      mockUserRepo.emailExists.mockResolvedValue(false);
+      mockUserRepo.create.mockResolvedValue({
+        id: 'user-123',
+        email: 'user@validmail.com',
+        name: 'Test User',
+      });
+
+      const result = await registerUserAction(
+        'user@validmail.com',
+        'password123',
+        'Test User',
+        true,
+        true,
+        '' // empty honeypot
+      );
+
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects registration with blocked email domain (example.com)', async () => {
+      const result = await registerUserAction(
+        'test@example.com',
+        'password123',
+        'Test User',
+        true,
+        true
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain('autorisée');
+      }
+    });
+
+    it('rejects registration with blocked email domain (test.com)', async () => {
+      const result = await registerUserAction(
+        'user@test.com',
+        'password123',
+        'Test User',
+        true,
+        true
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain('autorisée');
+      }
+    });
+
+    it('rejects registration with blocked email domain (example.org)', async () => {
+      const result = await registerUserAction(
+        'user@example.org',
+        'password123',
+        'Test User',
+        true,
+        true
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain('autorisée');
+      }
+    });
   });
 
   describe('checkEmailAvailableAction', () => {
     it('returns available for new email', async () => {
       mockUserRepo.emailExists.mockResolvedValue(false);
 
-      const result = await checkEmailAvailableAction('new@example.com');
+      const result = await checkEmailAvailableAction('new@validmail.com');
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -149,7 +227,7 @@ describe('auth-actions', () => {
     it('returns not available for existing email', async () => {
       mockUserRepo.emailExists.mockResolvedValue(true);
 
-      const result = await checkEmailAvailableAction('existing@example.com');
+      const result = await checkEmailAvailableAction('existing@validmail.com');
 
       expect(result.success).toBe(true);
       if (result.success) {

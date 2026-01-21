@@ -3,6 +3,7 @@
 
 import { UserRepository } from '@/domain/interfaces/UserRepository';
 import { ApprovalTokenGenerator } from '@/domain/interfaces/ApprovalTokenGenerator';
+import { EmailService } from '@/domain/interfaces/EmailService';
 
 export type ApprovalAction = 'approve' | 'reject';
 
@@ -35,7 +36,8 @@ export class UserNotFoundError extends Error {
 export class ApproveUserUseCase {
   constructor(
     private userRepository: UserRepository,
-    private tokenGenerator: ApprovalTokenGenerator
+    private tokenGenerator: ApprovalTokenGenerator,
+    private emailService?: EmailService
   ) {}
 
   async execute(input: ApproveUserInput): Promise<ApproveUserResult> {
@@ -54,6 +56,10 @@ export class ApproveUserUseCase {
 
     if (action === 'approve') {
       await this.userRepository.approveUser(userId);
+      // Send welcome email to the user
+      if (this.emailService) {
+        await this.emailService.sendWelcomeEmail(user);
+      }
     } else {
       await this.userRepository.deleteUser(userId);
     }

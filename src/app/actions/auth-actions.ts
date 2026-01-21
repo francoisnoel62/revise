@@ -3,7 +3,7 @@
 
 'use server';
 
-import { RegisterUserUseCase, EmailAlreadyExistsError } from '@/application/use-cases/RegisterUserUseCase';
+import { RegisterUserUseCase, EmailAlreadyExistsError, BlockedEmailDomainError } from '@/application/use-cases/RegisterUserUseCase';
 import {
   DeleteUserAccountUseCase,
   UserNotFoundError,
@@ -32,9 +32,15 @@ export async function registerUserAction(
   password: string,
   name: string | undefined,
   acceptedTerms: boolean,
-  acceptedPrivacy: boolean
+  acceptedPrivacy: boolean,
+  honeypot?: string
 ): Promise<ActionResult<SafeUser>> {
   try {
+    // Anti-spam: reject if honeypot field is filled (bots fill all fields)
+    if (honeypot) {
+      return { success: false, error: 'Registration failed' };
+    }
+
     const emailService = await getEmailService();
     const useCase = new RegisterUserUseCase(await getUserRepo(), emailService);
 
@@ -52,6 +58,10 @@ export async function registerUserAction(
 
     if (error instanceof EmailAlreadyExistsError) {
       return { success: false, error: 'Email already registered' };
+    }
+
+    if (error instanceof BlockedEmailDomainError) {
+      return { success: false, error: error.message };
     }
 
     return {

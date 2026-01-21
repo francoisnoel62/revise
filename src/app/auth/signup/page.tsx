@@ -24,6 +24,7 @@ export default function SignUpPage() {
     confirmPassword: '',
   });
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [honeypot, setHoneypot] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
@@ -63,7 +64,8 @@ export default function SignUpPage() {
         formData.password,
         formData.name || undefined,
         acceptTerms,
-        acceptTerms // Privacy is accepted with the same checkbox
+        acceptTerms, // Privacy is accepted with the same checkbox
+        honeypot
       );
 
       if (!result.success) {
@@ -216,6 +218,20 @@ export default function SignUpPage() {
                 </Link>
               </Label>
             </div>
+          </div>
+
+          {/* Honeypot field - hidden from users, catches bots */}
+          <div className="absolute -left-[9999px]" aria-hidden="true">
+            <Label htmlFor="website">Website</Label>
+            <Input
+              id="website"
+              name="website"
+              type="text"
+              tabIndex={-1}
+              autoComplete="off"
+              value={honeypot}
+              onChange={(e) => setHoneypot(e.target.value)}
+            />
           </div>
 
           <Button type="submit" className="w-full" disabled={isLoading || !acceptTerms}>

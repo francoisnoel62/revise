@@ -9,4 +9,9 @@ export interface EmailService {
    * The implementation is responsible for generating approval/rejection links.
    */
   sendRegistrationNotification(user: SafeUser): Promise<void>;
+
+  /**
+   * Send welcome email to user when their account is approved.
+   */
+  sendWelcomeEmail(user: SafeUser): Promise<void>;
 }

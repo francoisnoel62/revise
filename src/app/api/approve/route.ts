@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/infrastructure/config/database';
 import { MongoDBUserRepository } from '@/infrastructure/persistence/MongoDBUserRepository';
 import { HMACApprovalTokenGenerator } from '@/infrastructure/auth/HMACApprovalTokenGenerator';
+import { ResendEmailService } from '@/infrastructure/email/ResendEmailService';
 import { config } from '@/infrastructure/config/env';
 import {
   ApproveUserUseCase,
@@ -40,14 +41,15 @@ export async function GET(request: NextRequest) {
     const db = await getDatabase();
     const userRepo = new MongoDBUserRepository(db);
     const tokenGenerator = new HMACApprovalTokenGenerator(config.auth.secret);
-    const useCase = new ApproveUserUseCase(userRepo, tokenGenerator);
+    const emailService = new ResendEmailService();
+    const useCase = new ApproveUserUseCase(userRepo, tokenGenerator, emailService);
 
     const result = await useCase.execute({ userId, token, action });
 
     if (result.action === 'approve') {
       return createHtmlResponse(
         'Utilisateur approuve',
-        `L'utilisateur ${result.userEmail} peut maintenant se connecter.`,
+        `L'utilisateur ${result.userEmail} peut maintenant se connecter. Un email de bienvenue lui a ete envoye.`,
         'success'
       );
     } else {

@@ -9,16 +9,18 @@ import {
 } from './ApproveUserUseCase';
 import { UserRepository } from '@/domain/interfaces/UserRepository';
 import { ApprovalTokenGenerator } from '@/domain/interfaces/ApprovalTokenGenerator';
+import { EmailService } from '@/domain/interfaces/EmailService';
 import { User } from '@/domain/entities/User';
 
 describe('ApproveUserUseCase', () => {
   let mockUserRepository: UserRepository;
   let mockTokenGenerator: ApprovalTokenGenerator;
+  let mockEmailService: EmailService;
   let useCase: ApproveUserUseCase;
 
   const mockUser: User = {
     id: 'user-123',
-    email: 'test@example.com',
+    email: 'user@validmail.com',
     passwordHash: 'hashed-password',
     name: 'Test User',
     isApproved: false,
@@ -42,7 +44,12 @@ describe('ApproveUserUseCase', () => {
       verifyToken: vi.fn().mockImplementation((userId, token) => token === 'valid-token'),
     };
 
-    useCase = new ApproveUserUseCase(mockUserRepository, mockTokenGenerator);
+    mockEmailService = {
+      sendRegistrationNotification: vi.fn().mockResolvedValue(undefined),
+      sendWelcomeEmail: vi.fn().mockResolvedValue(undefined),
+    };
+
+    useCase = new ApproveUserUseCase(mockUserRepository, mockTokenGenerator, mockEmailService);
   });
 
   describe('execute - approve', () => {
@@ -61,6 +68,25 @@ describe('ApproveUserUseCase', () => {
       expect(result.userEmail).toBe(mockUser.email);
       expect(mockUserRepository.approveUser).toHaveBeenCalledWith(mockUser.id);
       expect(mockTokenGenerator.verifyToken).toHaveBeenCalledWith(mockUser.id, 'valid-token');
+    });
+
+    it('sends welcome email when user is approved', async () => {
+      vi.mocked(mockUserRepository.findById).mockResolvedValue(mockUser);
+      vi.mocked(mockUserRepository.approveUser).mockResolvedValue(true);
+
+      await useCase.execute({
+        userId: mockUser.id,
+        token: 'valid-token',
+        action: 'approve',
+      });
+
+      expect(mockEmailService.sendWelcomeEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: mockUser.id,
+          email: mockUser.email,
+          name: mockUser.name,
+        })
+      );
     });
 
     it('rejects invalid token', async () => {
@@ -101,6 +127,19 @@ describe('ApproveUserUseCase', () => {
       expect(result.action).toBe('reject');
       expect(result.userEmail).toBe(mockUser.email);
       expect(mockUserRepository.deleteUser).toHaveBeenCalledWith(mockUser.id);
+    });
+
+    it('does not send welcome email when user is rejected', async () => {
+      vi.mocked(mockUserRepository.findById).mockResolvedValue(mockUser);
+      vi.mocked(mockUserRepository.deleteUser).mockResolvedValue(true);
+
+      await useCase.execute({
+        userId: mockUser.id,
+        token: 'valid-token',
+        action: 'reject',
+      });
+
+      expect(mockEmailService.sendWelcomeEmail).not.toHaveBeenCalled();
     });
 
     it('rejects invalid token for rejection', async () => {
