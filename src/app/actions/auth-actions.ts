@@ -3,7 +3,7 @@
 
 'use server';
 
-import { RegisterUserUseCase, EmailAlreadyExistsError } from '@/application/use-cases/RegisterUserUseCase';
+import { RegisterUserUseCase, EmailAlreadyExistsError, BlockedEmailDomainError } from '@/application/use-cases/RegisterUserUseCase';
 import {
   DeleteUserAccountUseCase,
   UserNotFoundError,
@@ -21,20 +21,6 @@ import {
   getMetadataRepo,
   getCorrectionHistoryRepo,
 } from './utils';
-
-const BLOCKED_EMAIL_DOMAINS = [
-  'example.com',
-  'example.org',
-  'example.net',
-  'test.com',
-  'test.org',
-  'localhost',
-];
-
-function isBlockedEmailDomain(email: string): boolean {
-  const domain = email.split('@')[1]?.toLowerCase();
-  return domain ? BLOCKED_EMAIL_DOMAINS.includes(domain) : false;
-}
 
 /**
  * Register a new user.
@@ -55,11 +41,6 @@ export async function registerUserAction(
       return { success: false, error: 'Registration failed' };
     }
 
-    // Anti-spam: reject test/reserved email domains
-    if (isBlockedEmailDomain(email)) {
-      return { success: false, error: 'Cette adresse email n\'est pas autorisée' };
-    }
-
     const emailService = await getEmailService();
     const useCase = new RegisterUserUseCase(await getUserRepo(), emailService);
 
@@ -77,6 +58,10 @@ export async function registerUserAction(
 
     if (error instanceof EmailAlreadyExistsError) {
       return { success: false, error: 'Email already registered' };
+    }
+
+    if (error instanceof BlockedEmailDomainError) {
+      return { success: false, error: error.message };
     }
 
     return {

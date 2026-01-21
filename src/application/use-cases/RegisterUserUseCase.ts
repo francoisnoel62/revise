@@ -32,6 +32,25 @@ export class EmailAlreadyExistsError extends Error {
   }
 }
 
+/**
+ * Error thrown when attempting to register with a blocked email domain.
+ */
+export class BlockedEmailDomainError extends Error {
+  constructor() {
+    super('Cette adresse email n\'est pas autorisée');
+    this.name = 'BlockedEmailDomainError';
+  }
+}
+
+const BLOCKED_EMAIL_DOMAINS = [
+  'example.com',
+  'example.org',
+  'example.net',
+  'test.com',
+  'test.org',
+  'localhost',
+];
+
 export class RegisterUserUseCase {
   constructor(
     private userRepository: UserRepository,
@@ -68,6 +87,12 @@ export class RegisterUserUseCase {
     // Validate email format
     if (!input.email || !input.email.includes('@')) {
       throw new ValidationError('Invalid email address');
+    }
+
+    // Validate email domain is not blocked (anti-spam)
+    const domain = input.email.split('@')[1]?.toLowerCase();
+    if (domain && BLOCKED_EMAIL_DOMAINS.includes(domain)) {
+      throw new BlockedEmailDomainError();
     }
 
     // Validate password length
