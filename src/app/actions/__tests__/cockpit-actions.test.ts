@@ -13,6 +13,11 @@ vi.mock('@/infrastructure/auth/auth-config', () => ({
 vi.mock('../utils', () => ({
   getRepository: vi.fn(),
   getWritingGoalRepo: vi.fn(() => Promise.resolve({})),
+  getCharacterRepo: vi.fn(() =>
+    Promise.resolve({
+      countByProjectId: vi.fn(() => Promise.resolve(3)),
+    })
+  ),
 }));
 
 // Mock formatReadingTime
@@ -63,6 +68,7 @@ describe('getProjectStatsAction', () => {
       expect(result.stats.wordCount).toBe(5000);
       expect(result.stats.characterCount).toBe(25000);
       expect(result.stats.chapterCount).toBe(5);
+      expect(result.stats.fictionalCharacterCount).toBe(3);
       expect(result.stats.readingTime).toBe('25 min');
       expect(result.stats.title).toBe('Mon Roman');
       expect(result.stats.activeGoal).toBeNull();
