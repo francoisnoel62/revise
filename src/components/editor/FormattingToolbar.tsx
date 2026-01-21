@@ -24,6 +24,7 @@ import {
   IndentIncrease,
   Undo2,
   Redo2,
+  Search,
 } from 'lucide-react';
 import { AIMenuDropdown } from './AIMenuDropdown';
 import { SafeProvider } from '@/app/actions/provider-actions';
@@ -48,6 +49,7 @@ interface FormattingToolbarProps {
   generationLoading?: boolean;
   activeGenerationType?: ChapterGenerationTypeKey | null;
   onOpenCommandPalette?: () => void;
+  onSearchClick?: () => void;
 }
 
 export function FormattingToolbar({
@@ -68,6 +70,7 @@ export function FormattingToolbar({
   generationLoading = false,
   activeGenerationType = null,
   onOpenCommandPalette,
+  onSearchClick,
 }: FormattingToolbarProps) {
   if (!editor) return null;
 
@@ -273,6 +276,22 @@ export function FormattingToolbar({
         >
           <Redo2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
         </Button>
+
+        {/* Separator - hidden on mobile */}
+        <div className="hidden md:block w-px h-8 bg-slate-300 mx-1" />
+
+        {/* Search/Replace button */}
+        {onSearchClick && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onSearchClick}
+            title="Rechercher/Remplacer (Ctrl+F)"
+            className="w-8 h-8 md:w-9 md:h-9"
+          >
+            <Search className="h-3.5 w-3.5 md:h-4 md:w-4" />
+          </Button>
+        )}
       </div>
 
       {showAIFeatures && onRewrite && onProviderChange && onHistoryClick && onAutocompleteChange && (

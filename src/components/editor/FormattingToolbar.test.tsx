@@ -176,4 +176,30 @@ describe('FormattingToolbar', () => {
     const redoButton = screen.getByTitle(/Rétablir/);
     expect(redoButton).toBeDisabled();
   });
+
+  it('should render search button when onSearchClick is provided', () => {
+    const editor = createMockEditor();
+    const mockOnSearchClick = vi.fn();
+    render(<FormattingToolbar editor={editor} onSearchClick={mockOnSearchClick} />);
+
+    expect(screen.getByTitle(/Rechercher/)).toBeInTheDocument();
+  });
+
+  it('should call onSearchClick when search button is clicked', () => {
+    const editor = createMockEditor();
+    const mockOnSearchClick = vi.fn();
+    render(<FormattingToolbar editor={editor} onSearchClick={mockOnSearchClick} />);
+
+    const searchButton = screen.getByTitle(/Rechercher/);
+    fireEvent.click(searchButton);
+
+    expect(mockOnSearchClick).toHaveBeenCalled();
+  });
+
+  it('should not render search button when onSearchClick is not provided', () => {
+    const editor = createMockEditor();
+    render(<FormattingToolbar editor={editor} />);
+
+    expect(screen.queryByTitle(/Rechercher/)).not.toBeInTheDocument();
+  });
 });

@@ -27,6 +27,7 @@ import { CorrectionHistoryDialog } from '@/components/history/CorrectionHistoryD
 import { FloatingGenerationMenu } from '@/components/editor/FloatingGenerationMenu';
 import { PublishDialog } from '@/components/publish/PublishDialog';
 import { CommandPalette } from '@/components/editor/CommandPalette';
+import { SearchReplaceBar } from '@/components/editor/SearchReplaceBar';
 import { ChapterGenerationTypeKey } from '@/domain';
 
 interface Proposal {
@@ -76,6 +77,22 @@ function EditorContent() {
 
   // Command palette state
   const [showCommandPalette, setShowCommandPalette] = useState(false);
+
+  // Search/Replace state
+  const [showSearchReplace, setShowSearchReplace] = useState(false);
+
+  // Keyboard shortcut for search (Ctrl+F / Cmd+F)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        setShowSearchReplace(true);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Track initialization to prevent infinite loop
   const initializedRef = useRef(false);
@@ -388,8 +405,8 @@ function EditorContent() {
       </header>
 
       {/* Toolbar sticky - responsive positioning for 3 breakpoints */}
-      <div className="sticky top-[52px] lg:top-[73px] z-40 flex justify-center py-1 lg:py-2 bg-slate-50 px-2">
-        <div className="w-[95%]">
+      <div className="sticky top-[52px] lg:top-[73px] z-40 flex flex-col items-center py-1 lg:py-2 bg-slate-50 px-2 gap-2">
+        <div className="w-full max-w-[794px]">
           <div className="bg-white rounded-lg shadow border border-slate-200 px-1 md:px-2 py-1 overflow-x-auto">
             <FormattingToolbar
               editor={editor}
@@ -409,8 +426,17 @@ function EditorContent() {
               generationLoading={generationLoading}
               activeGenerationType={activeGenerationType}
               onOpenCommandPalette={() => setShowCommandPalette(true)}
+              onSearchClick={() => setShowSearchReplace(true)}
             />
           </div>
+        </div>
+        {/* Search/Replace bar */}
+        <div className="w-full max-w-[794px]">
+          <SearchReplaceBar
+            editor={editor}
+            isOpen={showSearchReplace}
+            onClose={() => setShowSearchReplace(false)}
+          />
         </div>
       </div>
 
