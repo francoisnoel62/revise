@@ -65,7 +65,7 @@ High-level project information.
 ### AI Providers
 - **User Guide**: [Provider Management](./user/provider-management.md)
 - **Developer Guide**: [API Reference](./developer/api-reference.md)
-- Supported providers: OpenAI, Anthropic, Mistral, Cohere, Google
+- Supported providers: OpenAI, Anthropic, Google
 - Connection testing: Rate limited (1 per 5 seconds)
 
 ### Database & Persistence
@@ -81,8 +81,8 @@ High-level project information.
 - Keyboard shortcuts: See README.md → Usage
 
 ### Testing
-- Test coverage: **855 passed (881 total, 97%+ pass rate)**
-- Test files: 110 files
+- Test coverage: **871 passed (897 total, 97%+ pass rate)**
+- Test files: 112 files
 - Unit tests: Vitest + React Testing Library
 - Integration tests: Real API calls (OpenAI & Anthropic)
 - Provider-specific integration tests: 30+ tests (7 analysis types + generation) - conditional
@@ -247,7 +247,7 @@ High-level project information.
 - ✅ FilePromptRepository for version-controlled prompts
 - ✅ MongoDBMetadataRepository with multi-tenant isolation
 - ✅ Metadata UI pages and components
-- ✅ 520+ comprehensive tests (552+ total with 32 skipped)
+- ✅ Comprehensive tests with intelligent caching
 
 ### Phase 3.5 - Clean Architecture Completion (January 2026) ✅
 
@@ -266,7 +266,7 @@ High-level project information.
 - ✅ **NoProvidersAlert** - Dashboard alert for missing provider configuration
 
 **AI Provider Management**:
-- ✅ **Multiple AI Providers** - OpenAI, Anthropic, Mistral, Cohere, Google
+- ✅ **Multiple AI Providers** - OpenAI, Anthropic, Google
 - ✅ **Encrypted Credential Storage** - AES-256-GCM encryption at rest
 - ✅ **Per-Project Provider Selection** - Each project can use different providers
 - ✅ **Connection Testing** - Rate-limited testing (1 per 5 seconds)
@@ -274,7 +274,7 @@ High-level project information.
 - ✅ **MongoDBProviderRepository** - Encrypted provider storage with multi-tenant isolation
 
 **Testing**:
-- ✅ **520+ Tests Passing** - Comprehensive coverage across all layers (552+ total, 32 skipped)
+- ✅ **Comprehensive Test Coverage** - All layers fully tested
 - ✅ **100% Application Layer Coverage** - All use cases tested
 - ✅ **92%+ Domain Layer Coverage** - Excellent business logic coverage (entities)
 - ✅ **12 Provider-Specific Integration Tests** - Real API validation (OpenAI & Anthropic)
@@ -351,4 +351,4 @@ docs/
 
 **Documentation Version**: Phase 5.1 (January 2026)
 **Last Updated**: January 21, 2026
-**Status**: Complete ✅ - Public Sharing, Markdown Import, AI Generation, Blog, RGPD (855 tests)
+**Status**: Complete ✅ - Public Sharing, Markdown Import, AI Generation, Blog, RGPD (871 tests)

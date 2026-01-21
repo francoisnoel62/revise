@@ -6,9 +6,6 @@
 
 **Débloquez. Explorez. Réécrivez. Sans quitter votre flow.**
 
-[![Tests](https://img.shields.io/badge/tests-855%20passed-success?style=flat-square)](https://github.com/yourusername/revise)
-[![Coverage](https://img.shields.io/badge/coverage-42%25-blue?style=flat-square)](https://github.com/yourusername/revise)
-[![Architecture](https://img.shields.io/badge/architecture-9.5%2F10-purple?style=flat-square)](https://github.com/yourusername/revise)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
@@ -16,8 +13,6 @@
 [Pourquoi Revise](#pourquoi-revise) • [Fonctionnalités](#-fonctionnalités) • [Installation](#-installation) • [Documentation](#-documentation) • [Contribuer](#-contribuer)
 
 <br />
-
-<img src="docs/assets/revise-demo.gif" alt="Revise Demo" width="800" />
 
 </div>
 
@@ -144,8 +139,6 @@ Apportez votre propre clé API :
 <p align="center">
   <img src="https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white" alt="OpenAI" />
   <img src="https://img.shields.io/badge/Anthropic-191919?style=for-the-badge&logo=anthropic&logoColor=white" alt="Anthropic" />
-  <img src="https://img.shields.io/badge/Mistral-FF7000?style=for-the-badge&logo=mistral&logoColor=white" alt="Mistral" />
-  <img src="https://img.shields.io/badge/Cohere-39594D?style=for-the-badge" alt="Cohere" />
   <img src="https://img.shields.io/badge/Google_AI-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Google AI" />
 </p>
 
@@ -296,7 +289,7 @@ src/
 │
 ├── infrastructure/   # Implémentations externes
 │   ├── ai/           # Providers OpenAI, Anthropic
-│   ├── persistence/  # Repositories MongoDB (7 repositories)
+│   ├── persistence/  # Repositories MongoDB (8 repositories)
 │   ├── email/        # Service email Resend
 │   └── document/     # Import/export DOCX/PDF
 │
@@ -314,7 +307,7 @@ src/
 ## 🧪 Tests
 
 ```bash
-npm test                  # 855+ tests passed
+npm test                  # 871+ tests passed
 npm run test:coverage     # Rapport de couverture (42%)
 npm run test:integration  # Tests avec vraies APIs (OpenAI & Anthropic)
 npm run test:e2e          # Tests end-to-end (Playwright)
@@ -322,9 +315,9 @@ npm run test:e2e          # Tests end-to-end (Playwright)
 
 | Statistiques | Valeur |
 |--------------|--------|
-| Tests totaux | 881 |
-| Tests passés | 855 |
-| Fichiers de test | 110 |
+| Tests totaux | 897 |
+| Tests passés | 871 |
+| Fichiers de test | 112 |
 | Couverture globale | 42% (v8) |
 | Couverture domaine | 92%+ (entités) |
 | Couverture application | **100%** (use cases) |

@@ -19,6 +19,7 @@ Pure business logic with no framework dependencies.
 - `CorrectionHistory` - AI rewrite history entry with proposals (Phase 3.7)
 - `BlogArticle` - Blog article with slug, content, and metadata (Phase 4.0)
 - `ContactMessage` - Contact form submission (Phase 3.11)
+- `ArticleView` - Blog article view tracking with IP and timestamp (Phase 5.2)
 - `TextDocument` - Legacy single document (Phase 1)
 
 **Value Objects**:
@@ -39,6 +40,7 @@ Pure business logic with no framework dependencies.
 - `ContactMessageRepository` - Contact form persistence (Phase 3.11)
 - `PromptRepository` - Load AI prompts from markdown files (Phase 3.6)
 - `UserRepository` - User management, authentication, and approval (Phase 3, 3.8)
+- `ArticleViewRepository` - Blog article view tracking (Phase 5.2)
 - `AuthProvider` - Authentication service abstraction
 - `EmailService` - Email notification service (Phase 3.8)
 - `ApprovalTokenGenerator` - HMAC token generation for approval links (Phase 3.8)
@@ -100,6 +102,7 @@ Use cases orchestrating domain logic.
 **Blog Use Cases** (Phase 4.0, 4.1+):
 - `CreateBlogArticleUseCase`, `UpdateBlogArticleUseCase`, `DeleteBlogArticleUseCase`, `ListBlogArticlesUseCase`
 - `LoadPublishedBlogArticlesPaginatedUseCase` - Paginated blog listing (Phase 4.1+)
+- `RecordArticleViewUseCase` - Record article view with IP deduplication (Phase 5.2)
 
 **Contact Use Cases** (Phase 3.11):
 - `SubmitContactFormUseCase` - Save contact form submissions
@@ -153,6 +156,7 @@ External service implementations.
 - `MongoDBBlogArticleRepository` - Blog article storage with `findAllPublishedPaginated()` (Phase 4.0, 4.1+)
 - `MongoDBContactMessageRepository` - Contact form storage (Phase 3.11)
 - `MongoDBUserRepository` - User management with bcrypt, approval, consent
+- `MongoDBArticleViewRepository` - Article view tracking with IP-based deduplication (Phase 5.2)
 - `InMemoryProjectRepository` - Ephemeral storage (testing/legacy)
 - All repositories support `deleteAllByOwner()` for RGPD compliance (Phase 3.11)
 - Serialization utilities for all entity types
@@ -387,7 +391,7 @@ We use Repository pattern for swappable persistence.
 - **Integration Tests**: Infrastructure and store (~250+ tests including 30+ provider-specific)
 - **E2E Tests**: Complete workflows (10+ tests planned)
 - **Coverage Achieved**: 42% global, 92%+ domain entities, 100% use cases
-- **Total Tests**: 855 passed (881 total, 97%+ pass rate, 110 test files)
+- **Total Tests**: 871 passed (897 total, 97%+ pass rate, 112 test files)
 
 ---
 
