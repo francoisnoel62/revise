@@ -76,7 +76,7 @@ describe('getProjectStatsAction', () => {
   });
 
   it('returns error when not authenticated', async () => {
-    vi.mocked(auth).mockResolvedValue(null);
+    vi.mocked(auth).mockResolvedValue(null as any);
 
     const result = await getProjectStatsAction('project-1');
 
