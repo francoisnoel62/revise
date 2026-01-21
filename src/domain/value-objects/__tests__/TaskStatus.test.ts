@@ -7,7 +7,6 @@ import {
   isValidTaskStatus,
   TASK_STATUS_LABELS,
   TASK_STATUS_ORDER,
-  type TaskStatus,
 } from '../TaskStatus';
 
 describe('TaskStatus', () => {

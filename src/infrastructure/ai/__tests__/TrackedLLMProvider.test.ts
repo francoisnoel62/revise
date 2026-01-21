@@ -3,7 +3,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TrackedLLMProvider } from '../TrackedLLMProvider';
-import { LLMProvider, ConnectionTestResult } from '@/domain/interfaces/LLMProvider';
+import { LLMProvider } from '@/domain/interfaces/LLMProvider';
 import { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
 import { IdGenerator } from '@/domain/interfaces/IdGenerator';
 import { AIUsageRecord } from '@/domain/entities/AIUsageRecord';

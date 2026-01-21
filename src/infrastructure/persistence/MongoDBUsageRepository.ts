@@ -1,7 +1,7 @@
 // ABOUTME: MongoDB implementation of AIUsageRepository
 // ABOUTME: Provides persistence and aggregation for AI usage tracking with multi-tenant isolation
 
-import { Db, ObjectId } from 'mongodb';
+import { Db } from 'mongodb';
 import { AIUsageRepository, UsageStats, DailyUsage } from '@/domain/interfaces/AIUsageRepository';
 import { AIUsageRecord } from '@/domain/entities/AIUsageRecord';
 import { AI_OPERATION_TYPES, AIOperationType } from '@/domain/value-objects/AIOperationType';

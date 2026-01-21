@@ -7,7 +7,6 @@ import {
   isValidTaskPriority,
   TASK_PRIORITY_LABELS,
   TASK_PRIORITY_ORDER,
-  type TaskPriority,
 } from '../TaskPriority';
 
 describe('TaskPriority', () => {

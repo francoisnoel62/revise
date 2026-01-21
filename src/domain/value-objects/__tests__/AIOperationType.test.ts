@@ -4,7 +4,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   AI_OPERATION_TYPES,
-  AIOperationType,
   isValidAIOperationType,
   AI_OPERATION_LABELS,
 } from '../AIOperationType';

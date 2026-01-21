@@ -5,7 +5,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RecordArticleViewUseCase } from './RecordArticleViewUseCase';
 import { ArticleViewRepository } from '../../domain/interfaces/ArticleViewRepository';
 import { BlogArticleRepository } from '../../domain/interfaces/BlogArticleRepository';
-import { ArticleView } from '../../domain/entities/ArticleView';
 
 describe('RecordArticleViewUseCase', () => {
   let mockArticleViewRepo: ArticleViewRepository;
