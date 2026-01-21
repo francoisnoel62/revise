@@ -5,7 +5,8 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getProjectStatsAction } from '@/app/actions/cockpit-actions';
-import { StatCard, ProgressCard, UsageStatsCard } from '@/components/cockpit';
+import { getTaskSummaryAction } from '@/app/actions/task-actions';
+import { StatCard, ProgressCard, UsageStatsCard, TaskSummaryCard } from '@/components/cockpit';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, Type, Clock, BookOpen } from 'lucide-react';
 
@@ -14,13 +15,17 @@ interface OverviewPageProps {
 }
 
 async function StatsGrid({ projectId }: { projectId: string }) {
-  const result = await getProjectStatsAction(projectId);
+  const [result, summaryResult] = await Promise.all([
+    getProjectStatsAction(projectId),
+    getTaskSummaryAction(projectId),
+  ]);
 
   if (!result.success) {
     notFound();
   }
 
   const { stats } = result;
+  const taskSummary = summaryResult.success ? summaryResult.summary : null;
 
   const targetWordCount = stats.activeGoal?.targetWords ?? 0;
   const hasGoal = stats.activeGoal !== null;
@@ -83,6 +88,20 @@ async function StatsGrid({ projectId }: { projectId: string }) {
           </Card>
         )}
         <UsageStatsCard projectId={projectId} />
+      </div>
+
+      {/* Task Summary */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Tâches</h2>
+          <Link
+            href={`/project/${projectId}/cockpit/tasks`}
+            className="text-sm text-primary hover:underline"
+          >
+            Voir toutes les tâches
+          </Link>
+        </div>
+        <TaskSummaryCard summary={taskSummary} />
       </div>
 
       {/* Quick Actions - Placeholder for future */}

@@ -72,7 +72,7 @@ export async function getUserUsageStatsAction(options?: {
  * Serialize UsageStats for client-side use.
  * Converts any non-serializable types.
  */
-export function serializeUsageStats(stats: UsageStats): UsageStats {
+export async function serializeUsageStats(stats: UsageStats): Promise<UsageStats> {
   return {
     ...stats,
     byOperation: { ...stats.byOperation },
@@ -82,7 +82,7 @@ export function serializeUsageStats(stats: UsageStats): UsageStats {
 /**
  * Serialize DailyUsage array for client-side use.
  */
-export function serializeDailyUsage(usage: DailyUsage[]): DailyUsage[] {
+export async function serializeDailyUsage(usage: DailyUsage[]): Promise<DailyUsage[]> {
   return usage.map((day) => ({
     ...day,
     date: day.date,

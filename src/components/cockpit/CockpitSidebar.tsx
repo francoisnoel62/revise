@@ -21,6 +21,7 @@ import {
   Users,
   Search,
   FileText,
+  CheckSquare,
 } from 'lucide-react';
 
 interface CockpitSidebarProps {

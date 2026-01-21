@@ -11,6 +11,7 @@ import { WritingGoalRepository } from '@/domain/interfaces/WritingGoalRepository
 import { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
 import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository';
 import { ContactMessageRepository } from '@/domain/interfaces/ContactMessageRepository';
+import { ProjectTaskRepository } from '@/domain/interfaces/ProjectTaskRepository';
 import { ArticleViewRepository } from '@/domain/interfaces/ArticleViewRepository';
 import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import { LLMProvider } from '@/domain/interfaces/LLMProvider';
@@ -28,6 +29,7 @@ import { MongoDBUsageRepository } from '@/infrastructure/persistence/MongoDBUsag
 import { MongoDBBlogArticleRepository } from '@/infrastructure/persistence/MongoDBBlogArticleRepository';
 import { MongoDBContactMessageRepository } from '@/infrastructure/persistence/MongoDBContactMessageRepository';
 import { MongoDBArticleViewRepository } from '@/infrastructure/persistence/MongoDBArticleViewRepository';
+import { MongoDBProjectTaskRepository } from '@/infrastructure/persistence/MongoDBProjectTaskRepository';
 import { InMemoryProjectRepository } from '@/infrastructure/persistence/InMemoryProjectRepository';
 import { FilePromptRepository } from '@/infrastructure/prompts/FilePromptRepository';
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
@@ -179,6 +181,14 @@ export async function getAIUsageRepository(): Promise<AIUsageRepository> {
     aiUsageRepoInstance = new MongoDBUsageRepository(db);
   }
   return aiUsageRepoInstance;
+}
+
+/**
+ * Get the project task repository.
+ */
+export async function getProjectTaskRepository(): Promise<ProjectTaskRepository> {
+  const db = await getDatabase();
+  return new MongoDBProjectTaskRepository(db);
 }
 
 /**

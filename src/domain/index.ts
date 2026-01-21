@@ -12,6 +12,7 @@ export { ProjectMetadata, type ProjectMetadataProperties } from './entities/Proj
 export { CorrectionHistory } from './entities/CorrectionHistory';
 export { WritingGoal, type GoalType, type WritingGoalProperties } from './entities/WritingGoal';
 export { AIUsageRecord, type AIUsageRecordProperties } from './entities/AIUsageRecord';
+export { ProjectTask, type ProjectTaskProperties } from './entities/ProjectTask';
 
 // Value Objects
 export { TextSelection } from './value-objects/TextSelection';
@@ -50,6 +51,20 @@ export {
   AI_OPERATION_LABELS,
   isValidAIOperationType,
 } from './value-objects/AIOperationType';
+export {
+  type TaskStatus,
+  TASK_STATUSES,
+  TASK_STATUS_LABELS,
+  TASK_STATUS_ORDER,
+  isValidTaskStatus,
+} from './value-objects/TaskStatus';
+export {
+  type TaskPriority,
+  TASK_PRIORITIES,
+  TASK_PRIORITY_LABELS,
+  TASK_PRIORITY_ORDER,
+  isValidTaskPriority,
+} from './value-objects/TaskPriority';
 
 // Interfaces
 export type { LLMProvider, ConnectionTestResult } from './interfaces/LLMProvider';
@@ -68,3 +83,4 @@ export type { CorrectionHistoryRepository } from './interfaces/CorrectionHistory
 export type { ContentConverter } from './interfaces/ContentConverter';
 export type { WritingGoalRepository } from './interfaces/WritingGoalRepository';
 export type { AIUsageRepository, UsageStats, DailyUsage } from './interfaces/AIUsageRepository';
+export type { ProjectTaskRepository, TaskFilters, TaskSortOptions } from './interfaces/ProjectTaskRepository';
