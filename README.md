@@ -6,7 +6,7 @@
 
 **Débloquez. Explorez. Réécrivez. Sans quitter votre flow.**
 
-[![Tests](https://img.shields.io/badge/tests-580%2B%20passed-success?style=flat-square)](https://github.com/yourusername/revise)
+[![Tests](https://img.shields.io/badge/tests-855%20passed-success?style=flat-square)](https://github.com/yourusername/revise)
 [![Coverage](https://img.shields.io/badge/coverage-42%25-blue?style=flat-square)](https://github.com/yourusername/revise)
 [![Architecture](https://img.shields.io/badge/architecture-9.5%2F10-purple?style=flat-square)](https://github.com/yourusername/revise)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -96,12 +96,15 @@ Pas de chat. Pas d'explications. Pas de friction. Vous restez dans votre flow.
 ### 📚 Gestion de manuscrit
 
 - **Import .docx intelligent** : Détection automatique des chapitres (H1)
+- **Import de dossier Markdown** : Importez un dossier de fichiers .md comme chapitres
 - **Navigation par chapitres** : Panneau latéral, drag & drop, renommage inline
 - **Export multi-format** : DOCX et PDF avec typographie préservée
 - **Auto-save** : Vers MongoDB, debounce 1 seconde
 - **Historique des corrections** : Retrouvez toutes vos réécritures par chapitre
 - **Génération de texte IA** : Générez le début d'un chapitre vide avec contexte du projet
 - **Autocomplétion IA** : Appuyez sur Tab pour compléter vos phrases (streaming temps réel)
+- **Partage public** : Partagez votre projet via un lien unique en lecture seule
+- **Temps de lecture** : Affichage du temps de lecture estimé par chapitre
 
 ### 📄 Expérience d'écriture A4
 
@@ -273,6 +276,7 @@ graph LR
 | Annuler | `Ctrl/⌘ + Z` |
 | Rétablir | `Ctrl/⌘ + Shift + Z` |
 | Autocomplétion | `Tab` (trigger), `Tab` (accepter) |
+| Palette de commandes IA | `Ctrl/⌘ + Shift + I` |
 
 ---
 
@@ -288,7 +292,7 @@ src/
 │   └── interfaces/   # Contrats repositories & services
 │
 ├── application/      # Use cases orchestrant le domaine
-│   └── use-cases/    # 50+ use cases
+│   └── use-cases/    # 60+ use cases
 │
 ├── infrastructure/   # Implémentations externes
 │   ├── ai/           # Providers OpenAI, Anthropic
@@ -310,7 +314,7 @@ src/
 ## 🧪 Tests
 
 ```bash
-npm test                  # 580+ tests passed
+npm test                  # 855+ tests passed
 npm run test:coverage     # Rapport de couverture (42%)
 npm run test:integration  # Tests avec vraies APIs (OpenAI & Anthropic)
 npm run test:e2e          # Tests end-to-end (Playwright)
@@ -318,12 +322,13 @@ npm run test:e2e          # Tests end-to-end (Playwright)
 
 | Statistiques | Valeur |
 |--------------|--------|
-| Tests totaux | 600+ |
-| Fichiers de test | 85+ |
+| Tests totaux | 881 |
+| Tests passés | 855 |
+| Fichiers de test | 110 |
 | Couverture globale | 42% (v8) |
 | Couverture domaine | 92%+ (entités) |
 | Couverture application | **100%** (use cases) |
-| Tests d'intégration | 24+ provider-specific (conditional) |
+| Tests d'intégration | 30+ provider-specific (conditional) |
 
 ---
 
@@ -343,13 +348,16 @@ npm run test:e2e          # Tests end-to-end (Playwright)
 - [x] Phase 3.11 : Conformité RGPD/LCEN (pages légales, cookies, suppression compte)
 - [x] Phase 4.0 : Section blog avec articles SEO
 - [x] Phase 4.1 : Génération de texte IA + autocomplétion
+- [x] Phase 4.1+ : Menu IA unifié, palette de commandes, responsive mobile, temps de lecture, pagination blog
+- [x] Phase 5.0 : Partage public de projets via liens uniques
+- [x] Phase 5.1 : Import de dossier Markdown
 
-### 🔜 Phase 5
+### 🔜 Phase 6
 
 - [ ] Recherche full-text dans les chapitres
 - [ ] Templates de chapitres
 - [ ] Objectifs d'écriture & statistiques
-- [ ] Partage de projets
+- [ ] Historique de versions
 
 ### 🔮 Futur
 

@@ -81,13 +81,14 @@ High-level project information.
 - Keyboard shortcuts: See README.md → Usage
 
 ### Testing
-- Test coverage: **580+ passed (600+ total, 95%+ pass rate)**
-- Test files: 85+ files
+- Test coverage: **855 passed (881 total, 97%+ pass rate)**
+- Test files: 110 files
 - Unit tests: Vitest + React Testing Library
 - Integration tests: Real API calls (OpenAI & Anthropic)
-- Provider-specific integration tests: 24+ tests (7 analysis types + generation) - conditional
+- Provider-specific integration tests: 30+ tests (7 analysis types + generation) - conditional
 - Correction history tests: 39 unit tests (entity, use cases, edge cases)
-- Blog/legal/approval tests: New tests for all Phase 3.8-4.1 features
+- Blog/legal/approval tests: Tests for all Phase 3.8-5.1 features
+- Publishing tests: New tests for public project sharing
 - E2E tests: Playwright (setup ready)
 - Coverage: 42% global, 92%+ domain entities, 100% use cases
 - See [API Reference](./developer/api-reference.md#testing) for examples
@@ -129,6 +130,35 @@ High-level project information.
 → [Provider Management](./user/provider-management.md#troubleshooting)
 
 ## 🆕 What's New
+
+### Phase 5.1 - Markdown Folder Import (January 2026) ✅
+
+**Markdown Support**:
+- ✅ Import folder of .md files as chapters
+- ✅ FolderParser interface for domain abstraction
+- ✅ MarkdownParser for single file parsing
+- ✅ MarkdownFolderParser for folder structure
+- ✅ ImportFolderUseCase for orchestration
+- ✅ IndentHeading TipTap extension
+
+### Phase 5.0 - Public Project Sharing (January 2026) ✅
+
+**Sharing Features**:
+- ✅ Publish projects via unique public links
+- ✅ PublishDialog for publishing UI
+- ✅ PublicReader for read-only view
+- ✅ Project entity enhanced (shareToken, isPublished, publishedAt)
+- ✅ Publishing use cases (Publish, Unpublish, LoadPublished)
+- ✅ `/read/[projectId]/[token]` public route
+
+### Phase 4.1+ - UX Enhancements (January 2026) ✅
+
+**UI/UX Improvements**:
+- ✅ Unified AI Menu (AIMenuDropdown)
+- ✅ Command Palette (Cmd/Ctrl+Shift+I)
+- ✅ Responsive mobile design
+- ✅ Reading time display
+- ✅ Blog pagination (5 articles per page)
 
 ### Phase 4.1 - AI Text Generation & Autocompletion (January 2026) ✅
 
@@ -319,6 +349,6 @@ docs/
 
 ---
 
-**Documentation Version**: Phase 4.1 (January 2026)
-**Last Updated**: January 17, 2026
-**Status**: Complete ✅ - AI Generation, Blog, RGPD, Approval System (580+ tests)
+**Documentation Version**: Phase 5.1 (January 2026)
+**Last Updated**: January 21, 2026
+**Status**: Complete ✅ - Public Sharing, Markdown Import, AI Generation, Blog, RGPD (855 tests)

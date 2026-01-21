@@ -2,7 +2,7 @@
 
 Next.js App Router pages, layouts, UI components, and state management.
 
-**Status**: ✅ Phase 4.1 Complete (180+ component tests + 25+ store tests + 90+ server action tests)
+**Status**: ✅ Phase 5.1 Complete (220+ component tests + 30+ store tests + 100+ server action tests)
 
 ## Rules:
 - Depends on Application and Domain layers
@@ -13,7 +13,7 @@ Next.js App Router pages, layouts, UI components, and state management.
 
 ## Contents:
 
-### App Router ⭐ ENHANCED (Phase 4.1)
+### App Router ⭐ ENHANCED (Phase 5.1)
 
 ---
 
@@ -246,6 +246,25 @@ Next.js App Router pages, layouts, UI components, and state management.
 
 ---
 
+#### `app/read/[projectId]/[token]/page.tsx` ⭐ NEW (Phase 5.0)
+**Purpose**: Public reader page for shared projects
+
+**Features**:
+- Read-only access to published projects
+- No authentication required
+- Token-based URL validation
+- A4 page styling preserved
+- Chapter navigation
+- Reading time display per chapter
+- Responsive design for mobile
+
+**Server Actions**:
+- `loadPublishedProjectAction` → `LoadPublishedProjectUseCase`
+
+**Tests**: 8+ tests covering public access and display
+
+---
+
 #### `app/page.tsx` (Landing/Editor Page)
 **Purpose**: Main editor page with project loading from database
 
@@ -342,6 +361,12 @@ Next.js App Router pages, layouts, UI components, and state management.
 - `saveCorrectionHistoryAction` → `SaveCorrectionHistoryUseCase`
 - `listCorrectionHistoryAction` → `ListCorrectionHistoryUseCase`
 - `deleteCorrectionHistoryAction` → `DeleteCorrectionHistoryUseCase`
+
+**`app/actions/publish-actions.ts`** ⭐ NEW (Phase 5.0):
+- `publishProjectAction` → `PublishProjectUseCase`
+- `unpublishProjectAction` → `UnpublishProjectUseCase`
+- `loadPublishedProjectAction` → `LoadPublishedProjectUseCase`
+- `getPublishStatusAction` - Returns publish status for a project
 
 **`app/actions/utils.ts`** (Dependency Injection):
 - `getRepository()` - Project repository
@@ -702,6 +727,68 @@ Next.js App Router pages, layouts, UI components, and state management.
 
 ---
 
+#### Publishing Components ⭐ NEW (Phase 5.0) (`components/publishing/`)
+
+**`PublishDialog`**
+**Purpose**: Dialog for publishing and sharing projects
+
+**Features**:
+- Publish/unpublish toggle
+- Share link generation and display
+- Copy link to clipboard functionality
+- Public URL preview
+- Loading states for publish operations
+- Confirmation for unpublish action
+
+**Tests**: 10+ tests covering publish flow
+
+---
+
+**`PublicReader`**
+**Purpose**: Read-only viewer for published projects
+
+**Features**:
+- A4 page styling (identical to editor)
+- Chapter navigation sidebar
+- Reading time display per chapter
+- Responsive design for mobile devices
+- No authentication required
+- Token-based access validation
+
+**Tests**: 8+ tests covering public display
+
+---
+
+#### AI Menu Components ⭐ NEW (Phase 4.1+) (`components/ai/`)
+
+**`AIMenuDropdown`**
+**Purpose**: Unified dropdown menu for all AI features
+
+**Features**:
+- Rewrite option (selection-aware)
+- Generate option (empty chapter context)
+- Complete option (Tab autocompletion trigger)
+- Keyboard shortcut hints
+- Contextual option availability
+
+**Tests**: 8+ tests covering menu interactions
+
+---
+
+**`CommandPalette`**
+**Purpose**: Keyboard-accessible command palette for AI actions
+
+**Features**:
+- Triggered by Ctrl+Shift+I (Cmd+Shift+I on Mac)
+- Quick access to all AI features
+- Fuzzy search for commands
+- Keyboard navigation
+- Auto-close on action selection
+
+**Tests**: 8+ tests covering palette interactions
+
+---
+
 #### History Components ⭐ NEW (Phase 3.7)
 
 **`CorrectionHistoryDialog`**
@@ -825,7 +912,7 @@ Next.js App Router pages, layouts, UI components, and state management.
 
 ## Testing
 
-**Coverage**: 80+ component tests + 15+ store tests + 30+ server action tests = 125+ tests passing
+**Coverage**: 220+ component tests + 30+ store tests + 100+ server action tests = 350+ tests passing
 
 **Component Tests** (80+):
 - **Phase 3 Components**:
@@ -922,13 +1009,34 @@ Next.js App Router pages, layouts, UI components, and state management.
 
 ---
 
+## Phase 5.1 Achievements
+
+✅ **Markdown folder import** - Import dossiers .md comme chapitres
+✅ **IndentHeading extension** - TipTap extension for heading indentation
+✅ **Import server action updates** - Support for folder-based imports
+
+## Phase 5.0 Achievements
+
+✅ **PublishDialog** - UI for publishing and sharing projects
+✅ **PublicReader** - Read-only viewer for published projects
+✅ **Public reader route** - `/read/[projectId]/[token]` for token-based access
+✅ **publish-actions.ts** - Server actions for publish/unpublish/load published
+✅ **Reading time display** - Estimated reading time per chapter
+
+## Phase 4.1+ Achievements (AI Menu & Responsive)
+
+✅ **AIMenuDropdown** - Unified dropdown for all AI features
+✅ **CommandPalette** - Keyboard-accessible command palette (Ctrl+Shift+I)
+✅ **Responsive mobile design** - Editor and reader optimized for mobile
+✅ **Blog pagination** - 5 articles per page with navigation
+
 ## Phase 4.1 Achievements
 
 ✅ **FloatingGenerationMenu** - AI chapter generation UI for empty chapters
 ✅ **Autocomplete TipTap extension** - Ghost text with streaming support
 ✅ **completion/stream API route** - SSE endpoint for autocompletion
 ✅ **useHasAIProviders hook** - Centralized provider availability check
-✅ **180+ component tests** + 25+ store tests + 90+ server action tests
+✅ **220+ component tests** + 30+ store tests + 100+ server action tests
 
 ## Phase 4.0 Achievements
 

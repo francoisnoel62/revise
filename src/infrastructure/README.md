@@ -2,7 +2,7 @@
 
 Implements domain interfaces with concrete external services.
 
-**Status**: ✅ Phase 4.1 Complete (160+ unit tests + 30+ integration tests)
+**Status**: ✅ Phase 5.1 Complete (200+ unit tests + 35+ integration tests)
 
 ## Rules:
 - Implements interfaces defined in Domain layer
@@ -185,6 +185,53 @@ Implements domain interfaces with concrete external services.
 
 ---
 
+### Markdown Parser ⭐ NEW (Phase 5.1)
+
+#### `MarkdownParser`
+**Purpose**: Parse single .md file to TipTap JSON
+
+**Features**:
+- Converts Markdown syntax to TipTap JSON
+- Supports headings, bold, italic, lists
+- Extracts title from first H1 or filename
+- Clean conversion with minimal dependencies
+
+**Tests**: 8+ tests covering Markdown parsing
+
+---
+
+#### `MarkdownFolderParser`
+**Implements**: `FolderParser` interface
+**Purpose**: Parse folder of .md files to Chapter array
+
+**Features**:
+- Processes folder of .md files
+- Creates one Chapter per file
+- Sorts by filename for consistent ordering
+- Extracts chapter titles from content
+- Filters non-.md files automatically
+
+**Methods**:
+- `parseFolder(files: File[])` → `Promise<Chapter[]>`
+
+**Tests**: 10+ tests covering folder parsing
+
+---
+
+### Reading Time Utility ⭐ NEW (Phase 4.1+)
+
+#### `formatReadingTime`
+**Purpose**: Calculate and format estimated reading time
+
+**Features**:
+- Based on 200 words/minute reading speed
+- Returns formatted string (e.g., "5 min", "< 1 min")
+- Works with TipTap JSON or plain text
+
+**Tests**: 5+ tests covering time calculation
+
+---
+
 ### Document Conversion Utilities ⭐ NEW
 
 #### `tiptap-conversion.ts`
@@ -331,11 +378,13 @@ Implements domain interfaces with concrete external services.
 - `updateProject(userId, project)` - Updates project (ownership verified)
 - `deleteProject(userId, projectId)` - Deletes project (ownership verified)
 - `updateChapter(userId, projectId, chapter)` - Optimized chapter update
+- `findPublishedByToken(projectId, token)` - Load published project (no auth) ⭐ Phase 5.0
 
 **Multi-Tenant Security**:
 - **All queries filter by ownerId** to ensure data isolation
 - No user can access another user's projects
 - Enforced at database query level
+- `findPublishedByToken` allows unauthenticated access to published projects only
 
 **Serialization**:
 - Uses `project-serializer` utilities
@@ -436,6 +485,7 @@ Implements domain interfaces with concrete external services.
 - `findBySlug(slug)` - Loads article by URL slug
 - `findById(id)` - Loads article by ID
 - `listPublished()` - Lists published articles (sorted by date)
+- `findAllPublishedPaginated(page, pageSize)` - Paginated listing ⭐ Phase 4.1+
 - `listAll()` - Lists all articles (admin)
 - `update(article)` - Updates article
 - `delete(id)` - Deletes article
@@ -719,6 +769,25 @@ All infrastructure operations exceed targets:
 | OpenAI Rewrite | < 3s | 2.7-3.3s | ✅ Within target |
 
 ---
+
+## Phase 5.1 Achievements
+
+✅ **MarkdownParser** - Single .md file parser to TipTap JSON
+✅ **MarkdownFolderParser** - Folder to chapters parser
+✅ **18+ new tests** for Markdown parsing
+✅ **200+ unit tests** + 35+ integration tests
+
+## Phase 5.0 Achievements
+
+✅ **MongoDBProjectRepository.findPublishedByToken()** - Public project access
+✅ **Project serialization enhanced** - Publishing fields (shareToken, isPublished, publishedAt)
+✅ **10+ new tests** for publishing infrastructure
+
+## Phase 4.1+ Achievements
+
+✅ **formatReadingTime utility** - Reading time calculation
+✅ **findAllPublishedPaginated()** - Blog pagination support
+✅ **5+ new tests** for pagination
 
 ## Phase 4.1 Achievements
 

@@ -2,7 +2,7 @@
 
 Pure business logic with zero framework dependencies.
 
-**Status**: ✅ Phase 4.1 Complete (90+ tests passing, 97%+ coverage)
+**Status**: ✅ Phase 5.1 Complete (110+ tests passing, 97%+ coverage)
 
 ## Rules:
 - No imports from Next.js, React, or any external frameworks
@@ -140,8 +140,8 @@ Pure business logic with zero framework dependencies.
 
 ---
 
-#### `Project` ⭐ ENHANCED (Phase 3)
-**Purpose**: Aggregate managing a collection of chapters with owner tracking
+#### `Project` ⭐ ENHANCED (Phase 3, 5.0)
+**Purpose**: Aggregate managing a collection of chapters with owner tracking and publishing
 
 **Responsibilities**:
 - Manages chapter collection (add, remove, reorder)
@@ -151,6 +151,8 @@ Pure business logic with zero framework dependencies.
 - Calculates project-level metadata
 - Maintains chapter ordering
 - **Timestamps for created/updated dates** (Phase 3)
+- **Publishing support** (`shareToken`, `isPublished`, `publishedAt`) ⭐ Phase 5.0
+- **Publish/unpublish methods** for public sharing ⭐ Phase 5.0
 
 **Key Methods**:
 - `getChapters()`, `getActiveChapter()`, `getActiveChapterId()`
@@ -285,11 +287,13 @@ Pure business logic with zero framework dependencies.
 - `updateProject(userId, project)` → `Promise<Project>`
 - `deleteProject(userId, projectId)` → `Promise<void>`
 - `updateChapter(userId, projectId, chapter)` → `Promise<void>` (Phase 3 optimization)
+- `findPublishedByToken(projectId, token)` → `Promise<Project | null>` ⭐ NEW (Phase 5.0)
 
 **Phase 2 Implementation**: `InMemoryProjectRepository` (ephemeral, testing)
 **Phase 3 Implementation**: `MongoDBProjectRepository` ✅ (MongoDB Atlas)
 
 **Multi-Tenant Isolation**: All methods require `userId` to ensure data isolation between users
+**Public Access**: `findPublishedByToken` allows unauthenticated access to published projects
 
 ---
 
@@ -442,6 +446,34 @@ Pure business logic with zero framework dependencies.
 
 ---
 
+#### `FolderParser` ⭐ NEW (Phase 5.1)
+**Contract**: Folder parsing for multi-file imports
+
+**Methods**:
+- `parseFolder(files)` → `Promise<Chapter[]>` - Parse folder of files to chapters
+
+**Implementation**: `MarkdownFolderParser`
+
+**Purpose**: Enables importing folders of Markdown files as chapters
+
+---
+
+### Value Objects (⭐ Phase 5.0+ Enhanced)
+
+#### `PaginatedResult<T>` ⭐ NEW (Phase 4.1+)
+**Purpose**: Generic pagination result for collections
+
+**Properties**:
+- `items: T[]` - Items for current page
+- `total: number` - Total item count
+- `page: number` - Current page number
+- `pageSize: number` - Items per page
+- `totalPages: number` - Total page count
+
+**Usage**: Blog article pagination
+
+---
+
 ## Testing
 
 **Coverage**: 97%+ (excellent)
@@ -474,6 +506,25 @@ All domain logic has near-perfect test coverage with isolated unit tests:
 - `Project` is aggregate root managing `Chapter` collection
 - Enforces invariants (minimum 1 chapter)
 - Transactional boundaries for consistency
+
+## Phase 5.1 Achievements
+
+✅ **FolderParser interface** for multi-file Markdown imports
+✅ **Markdown folder to chapters** parsing support
+✅ Zero framework dependencies maintained
+
+## Phase 5.0 Achievements
+
+✅ **Project entity enhanced** with publishing support (shareToken, isPublished, publishedAt)
+✅ **publish() / unpublish() methods** on Project entity
+✅ **ProjectRepository.findPublishedByToken()** for public access
+✅ **PaginatedResult value object** for blog pagination
+✅ Zero framework dependencies maintained
+
+## Phase 4.1+ Achievements
+
+✅ **Blog pagination support** via PaginatedResult interface
+✅ Zero framework dependencies maintained
 
 ## Phase 4.1 Achievements
 

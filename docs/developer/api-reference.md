@@ -333,6 +333,127 @@ async function testConnection() {
 
 ---
 
+## Publishing Actions API (Phase 5.0)
+
+Server Actions for public project sharing.
+
+### publishProjectAction
+
+Publishes a project with a unique share token.
+
+```typescript
+publishProjectAction(projectId: string): Promise<ActionResult<PublishResult>>
+```
+
+**Output:**
+```typescript
+interface PublishResult {
+  shareToken: string;  // Unique token for public access
+  shareUrl: string;    // Full URL: /read/[projectId]/[token]
+}
+```
+
+**Example:**
+```typescript
+import { publishProjectAction } from '@/app/actions/publish-actions';
+
+async function publishProject(projectId: string) {
+  const result = await publishProjectAction(projectId);
+
+  if (result.success) {
+    console.log("Share URL:", result.data.shareUrl);
+    // Copy to clipboard or display to user
+  }
+}
+```
+
+---
+
+### unpublishProjectAction
+
+Removes a project from public access.
+
+```typescript
+unpublishProjectAction(projectId: string): Promise<ActionResult<void>>
+```
+
+---
+
+### loadPublishedProjectAction
+
+Loads a published project by share token (no authentication required).
+
+```typescript
+loadPublishedProjectAction(
+  projectId: string,
+  token: string
+): Promise<ActionResult<PublicProject>>
+```
+
+**Output:**
+```typescript
+interface PublicProject {
+  id: string;
+  title: string;
+  chapters: PublicChapter[];
+  readingTime: string;  // e.g., "15 min"
+}
+
+interface PublicChapter {
+  id: string;
+  title: string;
+  content: string;  // TipTap JSON
+  readingTime: string;
+}
+```
+
+---
+
+### getPublishStatusAction
+
+Returns current publish status for a project.
+
+```typescript
+getPublishStatusAction(projectId: string): Promise<ActionResult<PublishStatus>>
+```
+
+**Output:**
+```typescript
+interface PublishStatus {
+  isPublished: boolean;
+  shareToken: string | null;
+  shareUrl: string | null;
+  publishedAt: Date | null;
+}
+```
+
+---
+
+## Data Types
+
+### PaginatedResult (Phase 4.1+)
+
+Generic pagination result for blog articles.
+
+```typescript
+interface PaginatedResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+```
+
+**Usage with blog:**
+```typescript
+const result: PaginatedResult<BlogArticle> = await loadPaginatedArticles(page);
+// result.items = articles for current page
+// result.totalPages = number of pages
+```
+
+---
+
 ## Domain Entities
 
 ### Provider

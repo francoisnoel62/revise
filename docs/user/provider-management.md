@@ -82,6 +82,14 @@ Before adding an AI provider, you need:
 3. **Select "My Providers"**
 4. **Click "Add Provider"** button
 
+### Method 3: Via AI Menu in Editor
+
+Once in the editor, you can also access provider management through the AI Menu:
+1. **Open a project** in the editor
+2. **Click the AI button** in the toolbar or use **Ctrl+Shift+I** (Cmd+Shift+I on Mac) to open the Command Palette
+3. If no provider is configured, you'll see a prompt to configure one
+4. Click the prompt to open the Providers Dialog
+
 ### Filling Out the Form
 
 1. **Provider Name**: Enter a friendly name (e.g., "My OpenAI Account", "Production API")

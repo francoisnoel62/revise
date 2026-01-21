@@ -12,7 +12,7 @@ Pure business logic with no framework dependencies.
 
 **Entities**:
 - `Chapter` - Single chapter with rich text content (TipTap JSON)
-- `Project` - Aggregate managing chapter collection with owner tracking
+- `Project` - Aggregate managing chapter collection with owner tracking, publishing support (shareToken, isPublished, publishedAt)
 - `ProjectMetadata` - Metadata document with TipTap JSON content and content hash (Phase 3.6)
 - `Provider` - AI provider configuration with encrypted credentials (Phase 3.5)
 - `User` - User entity with email, hashed password, approval status, and consent timestamps (Phase 3.8, 3.11)
@@ -43,6 +43,8 @@ Pure business logic with no framework dependencies.
 - `EmailService` - Email notification service (Phase 3.8)
 - `ApprovalTokenGenerator` - HMAC token generation for approval links (Phase 3.8)
 - `ContentConverter` - TipTap content conversion abstraction (Phase 4.1)
+- `FolderParser` - Folder parsing abstraction for multi-file imports (Phase 5.1)
+- `PaginatedResult` - Pagination result interface for blog articles (Phase 4.1+)
 - `IdGenerator` - UUID generation abstraction (Phase 3.5)
 - `LLMProviderFactory` - Factory for creating LLM providers (Phase 3.5)
 
@@ -50,7 +52,7 @@ Pure business logic with no framework dependencies.
 
 Use cases orchestrating domain logic.
 
-**Project CRUD Use Cases** ⭐ NEW:
+**Project CRUD Use Cases**:
 - `CreateProjectUseCase` - Create new project
 - `LoadProjectUseCase` - Load project from repository
 - `ListProjectsUseCase` - List user's projects
@@ -58,8 +60,14 @@ Use cases orchestrating domain logic.
 - `UpdateProjectTitleUseCase` - Rename project
 - `UpdateProjectProviderUseCase` - Update project's AI provider
 
+**Publishing Use Cases** (Phase 5.0):
+- `PublishProjectUseCase` - Publish project with unique share token
+- `UnpublishProjectUseCase` - Remove project from public access
+- `LoadPublishedProjectUseCase` - Load published project by share token
+
 **Chapter Use Cases**:
-- `ImportProjectUseCase` - Multi-chapter import
+- `ImportProjectUseCase` - Multi-chapter DOCX import
+- `ImportFolderUseCase` - Multi-file Markdown folder import (Phase 5.1)
 - `ExportProjectUseCase` - Multi-chapter export
 - `SwitchChapterUseCase` - Chapter navigation
 - `AddChapterUseCase` - Create new chapter
@@ -89,8 +97,9 @@ Use cases orchestrating domain logic.
 - `GenerateChapterUseCase` - Generate chapter content from metadata context
 - `GenerateCompletionUseCase` - Generate autocompletion suggestions
 
-**Blog Use Cases** (Phase 4.0):
+**Blog Use Cases** (Phase 4.0, 4.1+):
 - `CreateBlogArticleUseCase`, `UpdateBlogArticleUseCase`, `DeleteBlogArticleUseCase`, `ListBlogArticlesUseCase`
+- `LoadPublishedBlogArticlesPaginatedUseCase` - Paginated blog listing (Phase 4.1+)
 
 **Contact Use Cases** (Phase 3.11):
 - `SubmitContactFormUseCase` - Save contact form submissions
@@ -104,6 +113,8 @@ External service implementations.
 
 **Document**:
 - `DocxParser` - Mammoth-based parser with chapter splitting
+- `MarkdownParser` - Single .md file parser to TipTap JSON (Phase 5.1)
+- `MarkdownFolderParser` - Folder of .md files parser to chapters (Phase 5.1)
 - `DocxExporter` - docx library exporter with full typography support
 - `PdfExporter` - PDF export with full typography (Phase 3.7)
 - `TipTapContentService` - TipTap content manipulation (Phase 4.1)
@@ -118,6 +129,7 @@ External service implementations.
 - `UUIDGenerator` - IdGenerator implementation using crypto.randomUUID() (Phase 3.5)
 - `text-hash` - SHA-256 content hashing for cache invalidation (Phase 3.6)
 - `MetadataCache` - TTL-based caching for metadata (Phase 4.1)
+- `formatReadingTime` - Calculate and format estimated reading time (Phase 4.1+)
 
 **Encryption** (Phase 3.5):
 - AES-256-GCM utilities - API key encryption/decryption
@@ -133,12 +145,12 @@ External service implementations.
 - Middleware for route protection
 - User approval workflow integration (Phase 3.8)
 
-**Persistence** (Phase 3, 3.5, 3.6, 3.7, 4.0):
-- `MongoDBProjectRepository` - MongoDB Atlas persistence with multi-tenant isolation
+**Persistence** (Phase 3, 3.5, 3.6, 3.7, 4.0, 5.0):
+- `MongoDBProjectRepository` - MongoDB Atlas persistence with multi-tenant isolation, `findPublishedByToken()` (Phase 5.0)
 - `MongoDBProviderRepository` - Provider storage with encrypted credentials (Phase 3.5)
 - `MongoDBMetadataRepository` - Metadata storage with multi-tenant isolation (Phase 3.6)
 - `MongoDBCorrectionHistoryRepository` - Correction history storage (Phase 3.7)
-- `MongoDBBlogArticleRepository` - Blog article storage (Phase 4.0)
+- `MongoDBBlogArticleRepository` - Blog article storage with `findAllPublishedPaginated()` (Phase 4.0, 4.1+)
 - `MongoDBContactMessageRepository` - Contact form storage (Phase 3.11)
 - `MongoDBUserRepository` - User management with bcrypt, approval, consent
 - `InMemoryProjectRepository` - Ephemeral storage (testing/legacy)
@@ -174,21 +186,24 @@ React components and UI.
 - `politique-cookies/page.tsx` - Cookie policy (Phase 3.11)
 - `cgu/page.tsx` - Terms of use (Phase 3.11)
 - `cgv/page.tsx` - Terms of sale (Phase 3.11)
+- `read/[projectId]/[token]/page.tsx` - Public reader for published projects (Phase 5.0)
 - `api/approve/route.ts` - User approval endpoint (Phase 3.8)
 - `api/completion/stream/route.ts` - Autocompletion SSE endpoint (Phase 4.1)
 
 **Components**:
 - **Auth**: `UserMenu` - User profile dropdown with sign-out and provider access
 - **Dashboard**: `CreateProjectDialog`, `ProjectCard`, `EmptyState`, `NoProvidersAlert`
-- **Editor**: `TextEditor` (TipTap + CharacterCount + Autocomplete), `FormattingToolbar` (with undo/redo buttons)
+- **Editor**: `TextEditor` (TipTap + CharacterCount + Autocomplete + IndentHeading), `FormattingToolbar` (with undo/redo buttons)
 - **Navigation**: `ChaptersSheet` - Chapter navigation with drag & drop
 - **Proposals**: `ProposalsSheet`, `LoadingOverlay` (author quotes, Phase 3.7)
 - **Providers**: `ProvidersDialog`, `ProviderForm`, `ProviderCard`
 - **Metadata**: `GenerateCard`, `MetadataCard` (Phase 3.6)
 - **History**: `CorrectionHistoryDialog`, `CorrectionHistoryTable` (Phase 3.7)
-- **Blog**: `BlogCard`, `BlogArticle` (Phase 4.0)
+- **Blog**: `BlogCard`, `BlogArticle`, `BlogPagination` (Phase 4.0, 4.1+)
 - **Legal**: `CookieConsent` (3 variants), `ContactForm` (Phase 3.11)
 - **Generation**: `FloatingGenerationMenu` (Phase 4.1)
+- **AI Menu**: `AIMenuDropdown`, `CommandPalette` (Ctrl+Shift+I) (Phase 4.1+)
+- **Publishing**: `PublishDialog`, `PublicReader` (Phase 5.0)
 - **Document**: `DocumentControls` (DOCX/PDF export), `SaveStatus`
 - **UI**: shadcn/ui components (Sheet, Button, Card, Dialog, Input, Label, etc.)
 
@@ -197,12 +212,13 @@ React components and UI.
 
 **Server Actions** (all delegate to Use Cases):
 - `project-actions` - Create, load, update, delete, rename (→ Project Use Cases)
-- `chapter-actions` - Add, remove, update, reorder (→ Chapter Use Cases)
+- `publish-actions` - Publish, unpublish, load published, get status (→ Publishing Use Cases, Phase 5.0)
+- `chapter-actions` - Add, remove, update, reorder, import folder (→ Chapter Use Cases)
 - `auth-actions` - Sign in, sign up, sign out (→ RegisterUserUseCase)
 - `provider-actions` - CRUD + test connections (→ Provider Use Cases)
 - `metadata-actions` - CRUD + generate analyses (→ Metadata Use Cases, Phase 3.6)
 - `correction-history-actions` - Save, list, delete (→ CorrectionHistory Use Cases, Phase 3.7)
-- `blog-actions` - Blog article CRUD (→ Blog Use Cases, Phase 4.0)
+- `blog-actions` - Blog article CRUD + paginated listing (→ Blog Use Cases, Phase 4.0, 4.1+)
 - `contact-actions` - Contact form submission (→ SubmitContactFormUseCase, Phase 3.11)
 - `user-actions` - Account deletion, data export (→ DeleteUserAccountUseCase, Phase 3.11)
 
@@ -367,11 +383,42 @@ We use Repository pattern for swappable persistence.
 
 ## Testing Strategy
 
-- **Unit Tests**: Domain and application layers (~400+ tests)
-- **Integration Tests**: Infrastructure and store (~180+ tests including 24+ provider-specific)
+- **Unit Tests**: Domain and application layers (~500+ tests)
+- **Integration Tests**: Infrastructure and store (~250+ tests including 30+ provider-specific)
 - **E2E Tests**: Complete workflows (10+ tests planned)
 - **Coverage Achieved**: 42% global, 92%+ domain entities, 100% use cases
-- **Total Tests**: 580+ passed (600+ total, 95%+ pass rate, 85+ test files)
+- **Total Tests**: 855 passed (881 total, 97%+ pass rate, 110 test files)
+
+## Phase 5.1 Complete ✅
+
+**Markdown Folder Import**:
+- ✅ **Markdown folder import** - Import folder of .md files as chapters
+- ✅ **FolderParser interface** - Domain abstraction
+- ✅ **MarkdownParser** - Single .md file parser
+- ✅ **MarkdownFolderParser** - Folder structure parser
+- ✅ **ImportFolderUseCase** - Folder import orchestration
+- ✅ **IndentHeading TipTap extension** - Heading indentation support
+
+## Phase 5.0 Complete ✅
+
+**Public Project Sharing**:
+- ✅ **Project publication** - Share via unique links
+- ✅ **PublishDialog component** - Publishing UI with link copying
+- ✅ **PublicReader component** - Read-only view
+- ✅ **Project entity enhanced** - shareToken, isPublished, publishedAt, publish(), unpublish()
+- ✅ **Publishing use cases** - Publish, Unpublish, LoadPublished
+- ✅ **publish-actions.ts** - Server actions for publishing
+- ✅ **Public route** - `/read/[projectId]/[token]`
+- ✅ **findPublishedByToken()** - Repository method
+
+## Phase 4.1+ Complete ✅
+
+**UX Enhancements**:
+- ✅ **Unified AI Menu** - AIMenuDropdown combining all AI actions
+- ✅ **Command Palette** - Cmd/Ctrl+Shift+I shortcut
+- ✅ **Responsive mobile design** - Editor and reader optimized for mobile
+- ✅ **Reading time display** - Estimated reading time per chapter
+- ✅ **Blog pagination** - 5 articles per page with navigation
 
 ## Phase 4.1 Complete ✅
 
@@ -451,16 +498,16 @@ We use Repository pattern for swappable persistence.
 - ✅ Auto-save to database
 - ✅ Dashboard project management
 
-## Future Enhancements (Phase 5+)
+## Future Enhancements (Phase 6+)
 
-**Phase 5 Candidates**:
+**Phase 6 Candidates**:
 - Search across chapters (full-text)
 - Per-chapter undo/redo (independent history)
 - Chapter templates
 - Writing goals/statistics
 - Version history
 
-**Phase 6+**:
+**Phase 7+**:
 - Real-time collaboration
 - Comments and annotations
 - Team workspaces

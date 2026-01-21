@@ -2,7 +2,7 @@
 
 Orchestrates domain logic through use cases.
 
-**Status**: ✅ Phase 4.1 Complete (130+ tests passing, 100% coverage)
+**Status**: ✅ Phase 5.1 Complete (160+ tests passing, 100% coverage)
 
 ## Rules:
 - Depends only on Domain layer
@@ -111,6 +111,81 @@ Orchestrates domain logic through use cases.
 4. Return updated Project
 
 **Tests**: 4+ tests covering provider update
+
+---
+
+### Publishing Use Cases ⭐ NEW (Phase 5.0)
+
+---
+
+#### `PublishProjectUseCase`
+**Purpose**: Publish project with unique share token
+
+**Dependencies**: `ProjectRepository`, `IdGenerator` interfaces
+**Input**: User ID, project ID
+**Output**: Published `Project` with shareToken
+
+**Workflow**:
+1. Load project (validate ownership)
+2. Generate unique share token
+3. Set isPublished=true, publishedAt=now
+4. Persist changes
+5. Return updated Project
+
+**Tests**: 5+ tests covering publishing
+
+---
+
+#### `UnpublishProjectUseCase`
+**Purpose**: Remove project from public access
+
+**Dependencies**: `ProjectRepository` interface
+**Input**: User ID, project ID
+**Output**: Updated `Project`
+
+**Workflow**:
+1. Load project (validate ownership)
+2. Set isPublished=false, clear shareToken
+3. Persist changes
+
+**Tests**: 4+ tests covering unpublishing
+
+---
+
+#### `LoadPublishedProjectUseCase`
+**Purpose**: Load published project by share token (no auth required)
+
+**Dependencies**: `ProjectRepository` interface
+**Input**: Project ID, share token
+**Output**: `Project` entity or null
+
+**Workflow**:
+1. Find project by ID and token
+2. Validate token matches
+3. Return project for public reading
+
+**Tests**: 5+ tests covering public access
+
+---
+
+### ImportFolderUseCase ⭐ NEW (Phase 5.1)
+
+---
+
+#### `ImportFolderUseCase`
+**Purpose**: Import Markdown folder as chapters
+
+**Dependencies**: `FolderParser` interface
+**Input**: Folder files (File[])
+**Output**: Array of `Chapter` entities
+
+**Workflow**:
+1. Parse folder using FolderParser
+2. Convert each .md file to TipTap JSON
+3. Create Chapter entities
+4. Return chapters sorted by filename
+
+**Tests**: 6+ tests covering folder import
 
 ---
 
@@ -362,6 +437,23 @@ Orchestrates domain logic through use cases.
 **Output**: Array of `BlogArticle` entities
 
 **Tests**: 4+ tests covering listing
+
+---
+
+#### `LoadPublishedBlogArticlesPaginatedUseCase` ⭐ NEW (Phase 4.1+)
+**Purpose**: Load published blog articles with pagination
+
+**Dependencies**: `BlogArticleRepository` interface
+**Input**: Page number, page size (default 5)
+**Output**: `PaginatedResult<BlogArticle>`
+
+**Workflow**:
+1. Calculate offset from page number
+2. Load published articles with limit
+3. Count total articles
+4. Return paginated result
+
+**Tests**: 5+ tests covering pagination
 
 ---
 
@@ -819,6 +911,24 @@ All use cases tested with mocked dependencies following Clean Architecture princ
 - Input validation delegated to Domain
 - Infrastructure errors propagated with context
 - Use cases throw domain exceptions
+
+## Phase 5.1 Achievements
+
+✅ **ImportFolderUseCase** - Markdown folder import
+✅ **6+ new tests** for folder import use case
+✅ **160+ tests passing** with 100% coverage
+
+## Phase 5.0 Achievements
+
+✅ **PublishProjectUseCase** - Publish with share token
+✅ **UnpublishProjectUseCase** - Remove public access
+✅ **LoadPublishedProjectUseCase** - Public project loading
+✅ **14+ new tests** for publishing use cases
+
+## Phase 4.1+ Achievements
+
+✅ **LoadPublishedBlogArticlesPaginatedUseCase** - Blog pagination
+✅ **5+ new tests** for pagination use case
 
 ## Phase 4.1 Achievements
 

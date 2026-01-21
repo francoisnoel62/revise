@@ -62,10 +62,18 @@ Le tableau de bord est votre espace de gestion de projets.
 
 ### Import de Documents
 
+**Import DOCX** :
 1. Cliquez sur "Importer"
 2. Sélectionnez un fichier .docx
 3. Le document est divisé en chapitres (selon les titres H1)
 4. Si aucun titre H1 n'est détecté, un seul chapitre est créé
+
+**Import de dossier Markdown** :
+1. Cliquez sur "Importer"
+2. Sélectionnez un dossier contenant des fichiers .md
+3. Chaque fichier .md devient un chapitre
+4. Le titre du chapitre est extrait du nom du fichier ou du premier titre H1
+5. Les fichiers sont importés par ordre alphabétique
 
 ### Sauvegarde Automatique
 
@@ -177,6 +185,47 @@ Le compteur de mots et de caractères est affiché en temps réel dans l'en-têt
 
 **Note**: L'export sert désormais de **sauvegarde supplémentaire** ou pour partager votre travail. Vos projets sont déjà sauvegardés automatiquement dans le cloud.
 
+### Partage Public de Projet
+
+Vous pouvez partager votre projet en lecture seule via un lien unique.
+
+**Publier un projet** :
+1. Ouvrez votre projet dans l'éditeur
+2. Cliquez sur le bouton "Partager" dans la barre d'outils
+3. Cliquez sur "Publier le projet"
+4. Un lien unique est généré
+5. Copiez le lien pour le partager
+
+**Lecteur public** :
+- Les visiteurs peuvent lire votre projet sans se connecter
+- La mise en page A4 est préservée
+- Le temps de lecture estimé est affiché
+- Aucune modification n'est possible pour les visiteurs
+
+**Dépublier un projet** :
+1. Ouvrez le dialogue de partage
+2. Cliquez sur "Dépublier"
+3. Le lien n'est plus accessible
+
+**Note** : Le lien de partage contient un token unique. Si vous dépubliez puis republiez, un nouveau token sera généré et l'ancien lien ne fonctionnera plus.
+
+### Menu IA Unifié
+
+Accédez à toutes les fonctionnalités IA depuis un seul menu :
+1. Sélectionnez du texte ou placez votre curseur
+2. Cliquez sur le bouton IA dans la barre d'outils ou utilisez **Ctrl+Shift+I** (Cmd+Shift+I sur Mac)
+3. Choisissez l'action souhaitée :
+   - **Réécrire** : Génère 3 propositions de réécriture
+   - **Générer** : Génère du contenu (pour chapitres vides)
+   - **Compléter** : Déclenche l'autocomplétion
+
+### Temps de Lecture
+
+Le temps de lecture estimé est affiché :
+- Dans l'éditeur pour le chapitre actif
+- Dans le lecteur public pour chaque chapitre
+- Basé sur une vitesse de lecture moyenne de 200 mots/minute
+
 ### Paramètres du Compte
 
 Accédez à vos paramètres via le menu utilisateur > "Paramètres".
@@ -277,6 +326,7 @@ Disponibles en bas de page :
 
 **IA** :
 - **Tab**: Déclencher l'autocomplétion / Accepter la suggestion
+- **Ctrl+Shift+I** (Cmd+Shift+I sur Mac): Ouvrir la palette de commandes IA
 
 **Navigation** :
 - **Esc**: Fermer les panneaux (chapitres ou propositions)

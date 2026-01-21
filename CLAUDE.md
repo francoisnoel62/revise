@@ -10,11 +10,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Select text → Trigger rewrite → Receive 3 stylistically distinct proposals → Insert chosen version instantly
 - Success metric: Users prefer this flow over copy-pasting to ChatGPT
 
-### MVP Status: Phase 4.1 Complete ✅
+### MVP Status: Phase 5.1 Complete ✅
 
-**All phases through 4.1 are fully implemented and tested**, including: MongoDB persistence, Auth.js authentication, multi-tenant projects, AI provider management, metadata analysis (7 types), PDF export, correction history, user registration approval, RGPD compliance, blog section, AI text generation, and autocompletion.
+**All phases through 5.1 are fully implemented and tested**, including: MongoDB persistence, Auth.js authentication, multi-tenant projects, AI provider management, metadata analysis (7 types), PDF export, correction history, user registration approval, RGPD compliance, blog section, AI text generation, autocompletion, public project sharing, and Markdown folder import.
 
 **Implemented features:**
+
+**Phase 5.1 - Markdown Folder Import:** (January 2026)
+- **Markdown folder import** - Import a folder of .md files as chapters
+- **FolderParser interface** - Domain abstraction for folder parsing
+- **MarkdownParser** - Parse individual .md files to TipTap JSON
+- **MarkdownFolderParser** - Parse folder structure to chapters
+- **ImportFolderUseCase** - Orchestrates folder import with validation
+- **IndentHeading TipTap extension** - Heading indentation support for Markdown
+- **Import dialog enhancement** - Folder selection in addition to single file
+
+**Phase 5.0 - Public Project Sharing:** (January 2026)
+- **Project publication** - Share projects via unique public links
+- **PublishDialog component** - UI for publishing/unpublishing with link copying
+- **PublicReader component** - Read-only view for published projects
+- **Project entity enhanced** - shareToken, isPublished, publishedAt, publish(), unpublish()
+- **Publishing use cases** - PublishProjectUseCase, UnpublishProjectUseCase, LoadPublishedProjectUseCase
+- **publish-actions.ts** - Server actions for publishing operations
+- **Public route** - `/read/[projectId]/[token]` for public access
+- **findPublishedByToken()** - Repository method for loading published projects
+
+**Phase 4.1+ - UX Enhancements:** (January 2026)
+- **Unified AI Menu** - AIMenuDropdown combining all AI actions (rewrite, generate, complete)
+- **Command Palette** - Cmd/Ctrl+Shift+I shortcut for quick AI action access
+- **Responsive mobile design** - Editor and reader optimized for mobile devices
+- **Reading time display** - Estimated reading time for chapters (formatReadingTime utility)
+- **Blog pagination** - 5 articles per page with navigation (LoadPublishedBlogArticlesPaginatedUseCase)
 
 **Phase 4.1 - AI Text Generation & Autocompletion:** (January 2026)
 - **AI Chapter Generation** - Generate chapter beginnings from empty chapters using project metadata context
@@ -182,36 +208,37 @@ This project MUST follow Clean Architecture principles adapted to Next.js:
 1. **Domain Layer** (`src/domain`)
    - Pure business logic, zero framework dependencies
    - Entities: `Chapter`, `Project`, `ProjectMetadata`, `Provider`, `User`, `CorrectionHistory`, `BlogArticle`, `ContactMessage`
-   - Value Objects: `TextSelection`, `RewriteProposal`, `MetadataType` + 7 analysis types (including chapter-summaries)
-   - Interfaces: All external contracts (repositories, providers, parsers, exporters, email service)
+   - Value Objects: `TextSelection`, `RewriteProposal`, `MetadataType` + 7 analysis types (including chapter-summaries), `PaginatedResult`
+   - Interfaces: All external contracts (repositories, providers, parsers, exporters, email service, FolderParser)
 
 2. **Application Layer** (`src/application/use-cases`)
-   - **55+ Use Cases** orchestrating domain logic:
+   - **60+ Use Cases** orchestrating domain logic:
      - **Project CRUD** (6): Create, Load, List, Delete, UpdateTitle, UpdateProvider
-     - **Chapter Operations** (8): Import, Export, Switch, Add, Remove, Reorder, UpdateContent, UpdateTitle
+     - **Publishing** (3): PublishProject, UnpublishProject, LoadPublishedProject
+     - **Chapter Operations** (9): Import, Export, Switch, Add, Remove, Reorder, UpdateContent, UpdateTitle, ImportFolder
      - **Provider Management** (6): Create, Update, Delete, List, TestConnection, Validate
      - **Metadata CRUD** (6): Create, Load, List, UpdateContent, UpdateTitle, Delete
      - **Metadata Generation** (7): Generate each of 7 analysis types with caching (including chapter-summaries)
      - **Correction History** (3): Save, List, Delete (per-chapter history tracking)
      - **User Management** (3): RegisterUser, ApproveUser, DeleteUserAccount
      - **AI Generation** (2): GenerateChapter, GenerateCompletion
-     - **Blog CRUD** (4): Create, Update, Delete, List blog articles
+     - **Blog CRUD** (5): Create, Update, Delete, List, ListPublishedPaginated
      - **Contact** (1): SubmitContactForm
      - **Legacy** (4): RewriteText, ImportDocument, ExportDocument, SwitchChapter
 
 3. **Infrastructure Layer** (`src/infrastructure`)
    - **AI Providers**: OpenAIProvider, AnthropicProvider (support 7 metadata analysis types + chapter generation + autocompletion + GPT-5/o-series)
    - **Persistence**: 7 MongoDB repositories (Project, User, Provider, Metadata, CorrectionHistory, BlogArticle, ContactMessage) + InMemory (legacy)
-   - **Document**: DocxParser, DocxExporter, PdfExporter, TipTap conversion utilities, TipTapContentService
+   - **Document**: DocxParser, DocxExporter, PdfExporter, MarkdownParser, MarkdownFolderParser, TipTap conversion utilities, TipTapContentService
    - **Security**: Encryption (AES-256-GCM), Auth.js provider, bcrypt password hashing, HMAC token generation
    - **Email**: ResendEmailService for approval notifications
    - **Prompts**: FilePromptRepository (load from `/docs/prompt/metadata/*.md` and `/docs/prompt/chapter-generation/*.md`)
-   - **Utilities**: UUIDGenerator, text hashing (SHA-256), serialization, MetadataCache (TTL-based)
+   - **Utilities**: UUIDGenerator, text hashing (SHA-256), serialization, MetadataCache (TTL-based), formatReadingTime
 
 4. **Interface Layer** (`src/app`, `src/components`)
-   - **Pages** (15+): Dashboard, Editor, Metadata List/Editor, Sign In/Up, Blog List/Article, Admin Blog, Settings, Legal pages (CGU, CGV, Mentions, Confidentialité, Cookies)
-   - **Components** (~50): Organized by feature (editor, navigation, proposals, providers, metadata, dashboard, document, history, blog, auth, legal)
-   - **Server Actions** (12+): All delegate to Use Cases (project, chapter, auth, provider, metadata, correction-history, blog, contact, user, import, export, rewrite)
+   - **Pages** (18+): Dashboard, Editor, Metadata List/Editor, Sign In/Up, Blog List/Article, Admin Blog, Settings, Legal pages (CGU, CGV, Mentions, Confidentialité, Cookies), Public Reader
+   - **Components** (~55): Organized by feature (editor, navigation, proposals, providers, metadata, dashboard, document, history, blog, auth, legal, publishing, ai-menu)
+   - **Server Actions** (14+): All delegate to Use Cases (project, chapter, auth, provider, metadata, correction-history, blog, contact, user, import, export, rewrite, publish)
    - **Dependency Injection**: `utils.ts` centralizes all repository/factory getters
    - **State**: Zustand store (server-backed with correction history cache and metadata cache)
    - **Hooks**: useAutosave (1s debounce), useHasAIProviders
@@ -234,7 +261,7 @@ This architecture enables future evolution (persistence, projects, memory) witho
 - **Framework**: Next.js 16.1.1 (App Router) + React 19 Server Components
 - **Database**: MongoDB Atlas (multi-tenant via ownerId filtering)
 - **Authentication**: Auth.js (NextAuth v5) + bcrypt password hashing
-- **Editor**: TipTap 3.14.0 (StarterKit + custom extensions: IndentParagraph, FontFamily, FontSize, TextAlign, EmDash)
+- **Editor**: TipTap 3.14.0 (StarterKit + custom extensions: IndentParagraph, FontFamily, FontSize, TextAlign, EmDash, Autocomplete, IndentHeading)
 - **UI**: shadcn/ui + Radix UI (Sheet, Dialog, Card, Button, ScrollArea, DropdownMenu)
 - **State**: Zustand (server-backed)
 - **Styling**: Tailwind CSS v4 + A4 page styling
@@ -263,7 +290,7 @@ This architecture enables future evolution (persistence, projects, memory) witho
 5. Manage chapters via ChaptersSheet (add, delete, reorder, rename)
 6. Export all chapters to DOCX or PDF with full typography preservation
 
-**Key shortcuts**: Ctrl+B/I/U (format), Ctrl+K (em dash), Ctrl+Z (undo) - [See README.md for full list](README.md)
+**Key shortcuts**: Ctrl+B/I/U (format), Ctrl+K (em dash), Ctrl+Z (undo), Ctrl+Shift+I (AI command palette) - [See README.md for full list](README.md)
 
 ### AI Rewriting Constraints
 - **Core Flow**: Select text → Click "Réécrire" → Choose from 3 proposals → Insert (max 2 clicks)
@@ -295,7 +322,7 @@ If a feature isn't essential to the **selection → replacement loop**, it's exc
 - ✅ Content Update: < 100ms → **0.10ms** (1000x faster than target)
 - ✅ Keystroke Latency: < 100ms → **< 100ms** (immediate)
 
-**Test Results**: 580+ passed (600+ total, 95%+ pass rate) | 85+ test files
+**Test Results**: 855 passed (881 total, 97%+ pass rate) | 110 test files
 
 ## Development Guidelines
 
@@ -439,7 +466,7 @@ These rules are **MANDATORY** for all code contributions. They ensure code quali
 
 ### Testing Requirements
 
-**Current Status**: 580+ passed (600+ total, 95%+ pass rate, 85+ test files)
+**Current Status**: 855 passed (881 total, 97%+ pass rate, 110 test files)
 
 **Coverage**:
 - Overall: 42% (v8 measurement)
@@ -486,8 +513,11 @@ npm run test:e2e          # Playwright E2E (when implemented)
 - ✅ **Phase 3.11**: RGPD/LCEN compliance (legal pages, cookie consent, account deletion, data export)
 - ✅ **Phase 4.0**: Blog section with SEO articles and admin management
 - ✅ **Phase 4.1**: AI text generation for chapters + streaming autocompletion
+- ✅ **Phase 4.1+**: Unified AI menu, command palette (Ctrl+Shift+I), responsive mobile design, reading time, blog pagination
+- ✅ **Phase 5.0**: Public project sharing via unique links
+- ✅ **Phase 5.1**: Markdown folder import
 
-**Planned Features** (Phase 5+):
+**Planned Features** (Phase 6+):
 - Search across chapters, chapter templates
 - Version history, user preferences
 - Real-time collaboration, comments/annotations, team workspaces (Phase 6)
