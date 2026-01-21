@@ -22,6 +22,20 @@ import {
   getCorrectionHistoryRepo,
 } from './utils';
 
+const BLOCKED_EMAIL_DOMAINS = [
+  'example.com',
+  'example.org',
+  'example.net',
+  'test.com',
+  'test.org',
+  'localhost',
+];
+
+function isBlockedEmailDomain(email: string): boolean {
+  const domain = email.split('@')[1]?.toLowerCase();
+  return domain ? BLOCKED_EMAIL_DOMAINS.includes(domain) : false;
+}
+
 /**
  * Register a new user.
  * Delegates to RegisterUserUseCase for business logic.
@@ -32,9 +46,20 @@ export async function registerUserAction(
   password: string,
   name: string | undefined,
   acceptedTerms: boolean,
-  acceptedPrivacy: boolean
+  acceptedPrivacy: boolean,
+  honeypot?: string
 ): Promise<ActionResult<SafeUser>> {
   try {
+    // Anti-spam: reject if honeypot field is filled (bots fill all fields)
+    if (honeypot) {
+      return { success: false, error: 'Registration failed' };
+    }
+
+    // Anti-spam: reject test/reserved email domains
+    if (isBlockedEmailDomain(email)) {
+      return { success: false, error: 'Cette adresse email n\'est pas autorisée' };
+    }
+
     const emailService = await getEmailService();
     const useCase = new RegisterUserUseCase(await getUserRepo(), emailService);
 
