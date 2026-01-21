@@ -12,6 +12,7 @@ import {
   getMetadataRepository,
   getCorrectionHistoryRepository,
   getWritingGoalRepository,
+  getAIUsageRepository as getAIUsageRepositoryFromConfig,
   getBlogArticleRepository,
   getArticleViewRepository,
   getPromptRepository,
@@ -22,6 +23,7 @@ import {
   type ExportFormat,
 } from '@/infrastructure/config/providers';
 import { LLMProviderFactoryImpl } from '@/infrastructure/ai/LLMProviderFactoryImpl';
+import { TrackedLLMProvider } from '@/infrastructure/ai/TrackedLLMProvider';
 import { uuidGenerator } from '@/infrastructure/utils/UUIDGenerator';
 import { UnauthorizedError } from '@/domain/interfaces/AuthProvider';
 import { ProjectRepository } from '@/domain/interfaces/ProjectRepository';
@@ -30,6 +32,7 @@ import { UserRepository } from '@/domain/interfaces/UserRepository';
 import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
 import { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
 import { WritingGoalRepository } from '@/domain/interfaces/WritingGoalRepository';
+import { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
 import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository';
 import { ArticleViewRepository } from '@/domain/interfaces/ArticleViewRepository';
 import { LLMProviderFactory } from '@/domain/interfaces/LLMProviderFactory';
@@ -160,6 +163,13 @@ export async function getWritingGoalRepo(): Promise<WritingGoalRepository> {
 }
 
 /**
+ * Get AI usage repository instance.
+ */
+export async function getAIUsageRepo(): Promise<AIUsageRepository> {
+  return await getAIUsageRepositoryFromConfig();
+}
+
+/**
  * Get blog article repository instance.
  */
 export async function getBlogArticleRepo(): Promise<BlogArticleRepository> {
@@ -264,6 +274,26 @@ export async function getLLMProviderForProject(
   }
 
   return createLLMProvider(provider);
+}
+
+/**
+ * Get LLM provider for a project with usage tracking enabled.
+ * Wraps the provider in TrackedLLMProvider to record AI usage.
+ */
+export async function getTrackedLLMProviderForProject(
+  userId: string,
+  projectId: string
+): Promise<LLMProvider> {
+  const baseProvider = await getLLMProviderForProject(userId, projectId);
+  const usageRepo = await getAIUsageRepo();
+
+  return new TrackedLLMProvider(
+    baseProvider,
+    usageRepo,
+    uuidGenerator,
+    userId,
+    projectId
+  );
 }
 
 /**

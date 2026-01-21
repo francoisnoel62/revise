@@ -5,7 +5,7 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getProjectStatsAction } from '@/app/actions/cockpit-actions';
-import { StatCard, ProgressCard } from '@/components/cockpit';
+import { StatCard, ProgressCard, UsageStatsCard } from '@/components/cockpit';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, Type, Clock, BookOpen } from 'lucide-react';
 
@@ -55,7 +55,7 @@ async function StatsGrid({ projectId }: { projectId: string }) {
         />
       </div>
 
-      {/* Progress Card or "Create Goal" prompt */}
+      {/* Progress Card or "Create Goal" prompt and Usage Stats */}
       <div className="grid gap-4 md:grid-cols-2">
         {hasGoal ? (
           <ProgressCard
@@ -82,6 +82,7 @@ async function StatsGrid({ projectId }: { projectId: string }) {
             </CardContent>
           </Card>
         )}
+        <UsageStatsCard projectId={projectId} />
       </div>
 
       {/* Quick Actions - Placeholder for future */}

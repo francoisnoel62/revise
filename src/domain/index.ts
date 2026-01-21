@@ -11,6 +11,7 @@ export * from './entities/User';
 export { ProjectMetadata, type ProjectMetadataProperties } from './entities/ProjectMetadata';
 export { CorrectionHistory } from './entities/CorrectionHistory';
 export { WritingGoal, type GoalType, type WritingGoalProperties } from './entities/WritingGoal';
+export { AIUsageRecord, type AIUsageRecordProperties } from './entities/AIUsageRecord';
 
 // Value Objects
 export { TextSelection } from './value-objects/TextSelection';
@@ -43,6 +44,12 @@ export {
   isValidChapterGenerationType,
   getChapterGenerationType,
 } from './value-objects/ChapterGenerationType';
+export {
+  type AIOperationType,
+  AI_OPERATION_TYPES,
+  AI_OPERATION_LABELS,
+  isValidAIOperationType,
+} from './value-objects/AIOperationType';
 
 // Interfaces
 export type { LLMProvider, ConnectionTestResult } from './interfaces/LLMProvider';
@@ -60,3 +67,4 @@ export type { MetadataRepository } from './interfaces/MetadataRepository';
 export type { CorrectionHistoryRepository } from './interfaces/CorrectionHistoryRepository';
 export type { ContentConverter } from './interfaces/ContentConverter';
 export type { WritingGoalRepository } from './interfaces/WritingGoalRepository';
+export type { AIUsageRepository, UsageStats, DailyUsage } from './interfaces/AIUsageRepository';

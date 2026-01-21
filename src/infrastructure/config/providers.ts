@@ -8,6 +8,7 @@ import { ProviderRepository } from '@/domain/interfaces/ProviderRepository';
 import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
 import { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
 import { WritingGoalRepository } from '@/domain/interfaces/WritingGoalRepository';
+import { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
 import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository';
 import { ContactMessageRepository } from '@/domain/interfaces/ContactMessageRepository';
 import { ArticleViewRepository } from '@/domain/interfaces/ArticleViewRepository';
@@ -23,6 +24,7 @@ import { MongoDBProviderRepository } from '@/infrastructure/persistence/MongoDBP
 import { MongoDBMetadataRepository } from '@/infrastructure/persistence/MongoDBMetadataRepository';
 import { MongoDBCorrectionHistoryRepository } from '@/infrastructure/persistence/MongoDBCorrectionHistoryRepository';
 import { MongoDBWritingGoalRepository } from '@/infrastructure/persistence/MongoDBWritingGoalRepository';
+import { MongoDBUsageRepository } from '@/infrastructure/persistence/MongoDBUsageRepository';
 import { MongoDBBlogArticleRepository } from '@/infrastructure/persistence/MongoDBBlogArticleRepository';
 import { MongoDBContactMessageRepository } from '@/infrastructure/persistence/MongoDBContactMessageRepository';
 import { MongoDBArticleViewRepository } from '@/infrastructure/persistence/MongoDBArticleViewRepository';
@@ -164,6 +166,19 @@ export async function getArticleViewRepository(): Promise<ArticleViewRepository>
 export async function getWritingGoalRepository(): Promise<WritingGoalRepository> {
   const db = await getDatabase();
   return new MongoDBWritingGoalRepository(db);
+}
+
+/**
+ * Get the AI usage repository.
+ */
+let aiUsageRepoInstance: MongoDBUsageRepository | null = null;
+
+export async function getAIUsageRepository(): Promise<AIUsageRepository> {
+  if (!aiUsageRepoInstance) {
+    const db = await getDatabase();
+    aiUsageRepoInstance = new MongoDBUsageRepository(db);
+  }
+  return aiUsageRepoInstance;
 }
 
 /**
