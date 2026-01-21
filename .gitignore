@@ -91,3 +91,6 @@ Desktop.ini
 
 # Tests results
 /test-results/*
+
+#Screenshots
+/screenshots/*
