@@ -2,7 +2,7 @@
 
 Pure business logic with zero framework dependencies.
 
-**Status**: ✅ Phase 5.1 Complete (110+ tests passing, 97%+ coverage)
+**Status**: ✅ Phase 5.1 Complete (see [README.md](../../README.md) for test statistics)
 
 ## Rules:
 - No imports from Next.js, React, or any external frameworks
@@ -237,7 +237,7 @@ Pure business logic with zero framework dependencies.
 **Contract**: AI text generation and analysis service
 
 **Methods**:
-- `generateRewrites(selectedText, contextBefore, contextAfter)` - Returns 5 `RewriteProposal` objects
+- `generateRewrites(selectedText, contextBefore, contextAfter)` - Returns 3 `RewriteProposal` objects
 - `generateNarrativeAnalysis(chapters)` → `NarrativeAnalysis` ⭐ NEW
 - `generateCharacters(chapters)` → `Characters` ⭐ NEW
 - `generatePlot(chapters)` → `Plot` ⭐ NEW
@@ -476,8 +476,7 @@ Pure business logic with zero framework dependencies.
 
 ## Testing
 
-**Coverage**: 97%+ (excellent)
-**Tests**: 75+ tests passing
+**Coverage**: See [README.md](../../README.md) for current statistics.
 
 All domain logic has near-perfect test coverage with isolated unit tests:
 - CorrectionHistory: 15+ tests (entity creation, validation) ⭐ NEW (Phase 3.7)
@@ -507,91 +506,8 @@ All domain logic has near-perfect test coverage with isolated unit tests:
 - Enforces invariants (minimum 1 chapter)
 - Transactional boundaries for consistency
 
-## Phase 5.1 Achievements
+---
 
-✅ **FolderParser interface** for multi-file Markdown imports
-✅ **Markdown folder to chapters** parsing support
-✅ Zero framework dependencies maintained
+## Changelog
 
-## Phase 5.0 Achievements
-
-✅ **Project entity enhanced** with publishing support (shareToken, isPublished, publishedAt)
-✅ **publish() / unpublish() methods** on Project entity
-✅ **ProjectRepository.findPublishedByToken()** for public access
-✅ **PaginatedResult value object** for blog pagination
-✅ Zero framework dependencies maintained
-
-## Phase 4.1+ Achievements
-
-✅ **Blog pagination support** via PaginatedResult interface
-✅ Zero framework dependencies maintained
-
-## Phase 4.1 Achievements
-
-✅ **ContentConverter interface** for TipTap content conversion
-✅ **ChapterSummaries metadata type** (7th analysis type)
-✅ Zero framework dependencies maintained
-
-## Phase 4.0 Achievements
-
-✅ **BlogArticle entity** for blog content management
-✅ **BlogArticleRepository interface** for article persistence
-✅ **8+ new tests** for blog domain logic
-
-## Phase 3.11 Achievements
-
-✅ **ContactMessage entity** for contact form submissions
-✅ **ContactMessageRepository interface** for message persistence
-✅ **User entity enhanced** with RGPD consent timestamps
-✅ **5+ new tests** for contact message domain logic
-
-## Phase 3.8 Achievements
-
-✅ **EmailService interface** for approval notifications
-✅ **User entity enhanced** with approval status (isApproved, approvedAt)
-✅ **10+ new tests** for approval domain logic
-
-## Phase 3.7 Achievements
-
-✅ **CorrectionHistory entity** for tracking AI rewrites per chapter
-✅ **CorrectionHistoryRepository interface** for history persistence
-✅ **15+ new tests** for correction history domain logic
-✅ **90+ total tests** with comprehensive coverage
-✅ Zero framework dependencies maintained
-
-## Phase 3.6 Achievements
-
-✅ **ProjectMetadata entity** with TipTap JSON storage and content hash tracking
-✅ **MetadataType value object** for type-safe metadata types
-✅ **6 analysis value objects** (NarrativeAnalysis, Characters, Plot, StylisticDNA, Worldbuilding, Synthesis)
-✅ **LLMProvider interface enhanced** with 6 new analysis methods
-✅ **MetadataRepository interface** for metadata persistence
-✅ **PromptRepository interface** for version-controlled AI prompts
-✅ Zero framework dependencies maintained
-
-## Phase 3.5 Achievements
-
-✅ **IdGenerator interface** for UUID generation abstraction
-✅ **LLMProviderFactory interface** for LLM provider creation
-✅ **Provider entity** now accepts ID as parameter (cleaner architecture)
-✅ Zero crypto dependency in Domain layer (moved to Infrastructure)
-
-## Phase 3 Achievements
-
-✅ **User entity** for authentication (email, hashed password)
-✅ **Project entity** enhanced with owner tracking and timestamps
-✅ **UserRepository interface** for user management
-✅ **AuthProvider interface** for authentication abstraction
-✅ **ProjectRepository enhanced** with multi-tenant support (all methods require userId)
-✅ **Multi-tenant data isolation** enforced at domain level
-✅ 97%+ test coverage with 50+ passing tests
-✅ Zero framework dependencies maintained
-✅ Clean Architecture principles preserved through Phase 3
-
-## Phase 2 Achievements
-
-✅ Multi-chapter architecture with Chapter and Project entities
-✅ TipTap JSON as storage format for rich text
-✅ Database-agnostic repository pattern
-✅ Metadata calculations (word/character counts)
-✅ Business rules enforcement (minimum chapters, ordering)
+For phase-by-phase implementation history, see [CHANGELOG.md](../../CHANGELOG.md).

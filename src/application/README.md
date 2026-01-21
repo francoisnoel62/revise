@@ -2,7 +2,7 @@
 
 Orchestrates domain logic through use cases.
 
-**Status**: ✅ Phase 5.1 Complete (160+ tests passing, 100% coverage)
+**Status**: ✅ Phase 5.1 Complete (see [README.md](../../README.md) for test statistics)
 
 ## Rules:
 - Depends only on Domain layer
@@ -858,8 +858,7 @@ Orchestrates domain logic through use cases.
 
 ## Testing
 
-**Coverage**: 100% (perfect)
-**Tests**: 100+ tests passing ⭐ ENHANCED (Phase 3.7)
+**Coverage**: See [README.md](../../README.md) for current statistics.
 
 All use cases tested with mocked dependencies following Clean Architecture principles:
 - **Correction History Use Cases**: 14+ tests ⭐ NEW (Phase 3.7)
@@ -912,86 +911,8 @@ All use cases tested with mocked dependencies following Clean Architecture princ
 - Infrastructure errors propagated with context
 - Use cases throw domain exceptions
 
-## Phase 5.1 Achievements
+---
 
-✅ **ImportFolderUseCase** - Markdown folder import
-✅ **6+ new tests** for folder import use case
-✅ **160+ tests passing** with 100% coverage
+## Changelog
 
-## Phase 5.0 Achievements
-
-✅ **PublishProjectUseCase** - Publish with share token
-✅ **UnpublishProjectUseCase** - Remove public access
-✅ **LoadPublishedProjectUseCase** - Public project loading
-✅ **14+ new tests** for publishing use cases
-
-## Phase 4.1+ Achievements
-
-✅ **LoadPublishedBlogArticlesPaginatedUseCase** - Blog pagination
-✅ **5+ new tests** for pagination use case
-
-## Phase 4.1 Achievements
-
-✅ **GenerateChapterUseCase** - AI chapter generation with metadata context
-✅ **GenerateCompletionUseCase** - Streaming autocompletion with caching
-✅ **12+ new tests** for AI generation use cases
-✅ **130+ tests passing** with 100% coverage
-
-## Phase 4.0 Achievements
-
-✅ **4 Blog Use Cases** - Create, Update, Delete, List blog articles
-✅ **17+ new tests** for blog use cases
-
-## Phase 3.11 Achievements
-
-✅ **DeleteUserAccountUseCase** - RGPD cascade delete
-✅ **SubmitContactFormUseCase** - Contact form handling
-✅ **RegisterUserUseCase Enhanced** - Consent validation
-✅ **15+ new tests** for RGPD use cases
-
-## Phase 3.8 Achievements
-
-✅ **ApproveUserUseCase** - Admin approval with HMAC tokens
-✅ **RegisterUserUseCase Enhanced** - Email approval notifications
-✅ **8+ new tests** for approval use cases
-
-## Phase 3.7 Achievements
-
-✅ **3 Correction History Use Cases** - Save, List, Delete with multi-tenant isolation
-✅ **RewriteTextUseCase Enhanced** - Now auto-saves correction history
-✅ **14+ new tests** for correction history use cases
-✅ **Clean Architecture Maintained** - All new use cases follow established patterns
-
-## Phase 3.6 Achievements
-
-✅ **12 Metadata Use Cases** - 6 CRUD + 6 Generation use cases
-✅ **Intelligent Caching** - SHA-256 content hashing for all generation use cases
-✅ **Dual Provider Support** - Works with both OpenAI and Anthropic
-✅ **Context-Aware Generation** - Synthesis and Worldbuilding use previous analyses
-✅ **Clean Architecture Maintained** - All new use cases follow established patterns
-✅ **Version-Controlled Prompts** - AI prompts loaded via PromptRepository interface
-
-## Phase 3.5 Achievements
-
-✅ **Project CRUD Use Cases** - 6 new use cases for project management
-✅ **Provider Use Cases** - 6 new use cases for provider management
-✅ **User Use Cases** - RegisterUserUseCase for user registration
-✅ **Server Actions delegate to Use Cases** - Clean separation achieved
-✅ **60+ tests passing** with 100% coverage
-✅ **Dependency injection** via IdGenerator, LLMProviderFactory interfaces
-
-## Phase 3 Achievements
-
-✅ **All use cases now work with MongoDB persistence**
-✅ **Multi-tenant support**: All use cases require userId parameter
-✅ **Auto-save functionality**: Content updates automatically persist to database
-✅ **Zero refactoring needed**: Clean Architecture enabled seamless Phase 3 migration
-✅ **MongoDBProjectRepository integration** verified through all use cases
-
-## Phase 2 Achievements
-
-✅ 8 new use cases for multi-chapter management
-✅ 100% test coverage achieved
-✅ Database-agnostic design (ProjectRepository interface)
-✅ Clean separation: Use cases orchestrate, Entities enforce business rules
-✅ Backward compatible: Phase 1 use cases still available
+For phase-by-phase implementation history, see [CHANGELOG.md](../../CHANGELOG.md).

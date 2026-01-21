@@ -2,7 +2,7 @@
 
 Implements domain interfaces with concrete external services.
 
-**Status**: ✅ Phase 5.1 Complete (200+ unit tests + 35+ integration tests)
+**Status**: ✅ Phase 5.1 Complete (see [README.md](../../README.md) for test statistics)
 
 ## Rules:
 - Implements interfaces defined in Domain layer
@@ -44,7 +44,7 @@ Implements domain interfaces with concrete external services.
 **Technology**: Anthropic SDK with Claude
 
 **Capabilities**:
-- ✅ All 6 metadata analysis types (same as OpenAI)
+- ✅ All 7 metadata analysis types (same as OpenAI)
 - ✅ JSON-structured responses
 - ✅ Error handling and retry logic
 
@@ -84,7 +84,7 @@ Implements domain interfaces with concrete external services.
 
 **System Prompt Highlights** (see code for full prompt):
 - Strict meaning preservation
-- 5 clearly differentiated styles
+- 3 clearly differentiated styles (épuré, lyrique, amplifié)
 - No clichés, no filler, no generic improvements
 - Context awareness for better understanding
 - Maintains author's voice
@@ -580,7 +580,7 @@ Implements domain interfaces with concrete external services.
 **Features**:
 - Loads prompts from `/docs/prompt/metadata/` directory
 - Version-controlled prompts (tracked in Git)
-- Supports all 6 metadata analysis types
+- Supports all 7 metadata analysis types
 - File-based prompt management
 - Error handling for missing prompts
 
@@ -770,98 +770,6 @@ All infrastructure operations exceed targets:
 
 ---
 
-## Phase 5.1 Achievements
+## Changelog
 
-✅ **MarkdownParser** - Single .md file parser to TipTap JSON
-✅ **MarkdownFolderParser** - Folder to chapters parser
-✅ **18+ new tests** for Markdown parsing
-✅ **200+ unit tests** + 35+ integration tests
-
-## Phase 5.0 Achievements
-
-✅ **MongoDBProjectRepository.findPublishedByToken()** - Public project access
-✅ **Project serialization enhanced** - Publishing fields (shareToken, isPublished, publishedAt)
-✅ **10+ new tests** for publishing infrastructure
-
-## Phase 4.1+ Achievements
-
-✅ **formatReadingTime utility** - Reading time calculation
-✅ **findAllPublishedPaginated()** - Blog pagination support
-✅ **5+ new tests** for pagination
-
-## Phase 4.1 Achievements
-
-✅ **TipTapContentService** - Content conversion implementation
-✅ **MetadataCache** - TTL-based caching for metadata
-✅ **Chapter generation prompts** - `/docs/prompt/chapter-generation/`
-✅ **Autocompletion streaming** - SSE-based completion delivery
-✅ **OpenAI/Anthropic enhanced** - Generation and completion methods
-✅ **160+ unit tests** + 30+ integration tests
-
-## Phase 4.0 Achievements
-
-✅ **MongoDBBlogArticleRepository** - Blog storage with slug indexing
-✅ **10+ new tests** for blog persistence
-
-## Phase 3.11 Achievements
-
-✅ **MongoDBContactMessageRepository** - Contact form storage
-✅ **deleteAllByOwner()** on all repositories - RGPD cascade delete support
-✅ **User serialization enhanced** - Consent timestamps
-
-## Phase 3.8 Achievements
-
-✅ **ResendEmailService** - Email notifications via Resend API
-✅ **HMAC token generation** - Secure approval link creation
-✅ **User serialization enhanced** - Approval status fields
-✅ **8+ new tests** for email service
-
-## Phase 3.7 Achievements
-
-✅ **PdfExporter** - PDF export with full typography and special character support
-✅ **MongoDBCorrectionHistoryRepository** - Correction history storage with indexing
-✅ **GPT-5 nano support** - gpt-5-nano-2025-08-07 with 400K context
-✅ **o-series reasoning models** - Proper API parameters (max_completion_tokens)
-✅ **3 proposals** - Reduced from 5 to 3 (épuré, lyrique, amplifié)
-✅ **Correction history serialization** - CorrectionHistory ↔ MongoDB document conversion
-✅ **Clean Architecture Maintained** - All new infrastructure follows established patterns
-
-## Phase 3.6 Achievements
-
-✅ **AnthropicProvider** - Full Claude integration with all 6 analysis types
-✅ **OpenAIProvider Enhanced** - Added 6 metadata analysis methods
-✅ **MongoDBMetadataRepository** - Metadata storage with multi-tenant isolation
-✅ **FilePromptRepository** - Version-controlled AI prompts from markdown files
-✅ **Text Hashing Utility** - SHA-256 content hashing for cache invalidation
-✅ **Metadata Serialization** - ProjectMetadata ↔ MongoDB document conversion
-✅ **Dual Provider Testing** - Comprehensive tests for both OpenAI and Anthropic
-✅ **Clean Architecture Maintained** - All new infrastructure follows established patterns
-
-## Phase 3.5 Achievements
-
-✅ **LLMProviderFactoryImpl** - Factory for creating LLM providers
-✅ **UUIDGenerator** - IdGenerator implementation
-✅ **70+ unit tests** + 4 integration tests passing
-✅ **Clean Architecture** - Domain has zero crypto dependency
-
-## Phase 3 Achievements
-
-✅ **MongoDBProjectRepository** - Production-ready persistence with multi-tenant isolation
-✅ **MongoDBUserRepository** - User management with bcrypt password hashing
-✅ **AuthJsProvider** - Auth.js integration for authentication
-✅ **Database configuration** - MongoDB Atlas connection management
-✅ **Provider factory** - Centralized dependency injection
-✅ **Route protection middleware** - Session validation and redirects
-✅ **Project serialization** - Entity ↔ MongoDB document conversion
-✅ **Multi-tenant security** - All queries filter by ownerId
-✅ **Zero refactoring** of existing infrastructure (Clean Architecture success)
-
-## Phase 2 Achievements
-
-✅ Enhanced DocxParser with HTML import and chapter splitting
-✅ Enhanced DocxExporter with formatted multi-chapter export
-✅ TipTap conversion utilities (HTML ↔ JSON)
-✅ InMemoryProjectRepository for ephemeral storage
-✅ Real OpenAI API integration verified
-✅ Performance targets exceeded (except AI, which is within target)
-✅ Database-agnostic persistence layer (enabled Phase 3 migration)
+For phase-by-phase implementation history, see [CHANGELOG.md](../../CHANGELOG.md).
