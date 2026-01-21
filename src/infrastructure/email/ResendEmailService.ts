@@ -96,4 +96,65 @@ Cet utilisateur ne pourra pas se connecter tant que vous n'aurez pas approuve so
       text,
     });
   }
+
+  async sendWelcomeEmail(user: SafeUser): Promise<void> {
+    const loginUrl = `${this.baseUrl}/auth/signin`;
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    h1 { color: #1a1a1a; font-size: 24px; }
+    .content { margin: 20px 0; }
+    .content p { margin: 15px 0; }
+    .btn { display: inline-block; padding: 14px 28px; background: #2563eb; color: white; text-decoration: none; border-radius: 8px; font-weight: 500; margin: 20px 0; }
+    .signature { color: #666; margin-top: 30px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Hello l'artiste, bienvenue au sein du Studio Revise &#9997;&#65039;</h1>
+
+    <div class="content">
+      <p>Nous sommes ravis de t'accueillir parmi nous.</p>
+
+      <p>Tu peux maintenant acceder a ton espace personnel, creer tes projets et profiter de l'assistant d'ecriture.</p>
+
+      <a href="${loginUrl}" class="btn">Se connecter</a>
+    </div>
+
+    <p class="signature">
+      A tres vite sur Studio Revise,<br>
+      Francois
+    </p>
+  </div>
+</body>
+</html>
+    `.trim();
+
+    const text = `
+Hello l'artiste, bienvenue au sein du Studio Revise!
+
+Nous sommes ravis de t'accueillir parmi nous.
+
+Tu peux maintenant acceder a ton espace personnel, creer tes projets et profiter de l'assistant d'ecriture.
+
+Se connecter: ${loginUrl}
+
+A tres vite sur Studio Revise,
+Francois
+    `.trim();
+
+    await this.resend.emails.send({
+      from: this.fromEmail,
+      to: user.email,
+      subject: 'Bienvenue sur Studio Revise!',
+      html,
+      text,
+    });
+  }
 }
