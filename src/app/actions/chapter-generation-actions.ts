@@ -11,8 +11,8 @@ import {
   getAuthenticatedUserId,
   getRepository,
   getMetadataRepo,
-  getLLMProviderForProject,
-  getLLMProviderById,
+  getTrackedLLMProviderForProject,
+  getTrackedLLMProviderById,
   withErrorHandling,
 } from './utils';
 import { canGenerateMetadata, recordMetadataGeneration } from './rate-limiter';
@@ -65,10 +65,10 @@ export async function generateChapterAction(
     // 4. Record generation attempt
     recordMetadataGeneration(auth.userId, `chapter-${generationType}`);
 
-    // 5. Get LLM provider
+    // 5. Get LLM provider with usage tracking
     const llmProvider = providerId
-      ? await getLLMProviderById(auth.userId, providerId)
-      : await getLLMProviderForProject(auth.userId, projectId);
+      ? await getTrackedLLMProviderById(auth.userId, providerId, projectId)
+      : await getTrackedLLMProviderForProject(auth.userId, projectId);
 
     // 6. Execute use case with injected dependencies
     const contentConverter = new TipTapContentService();

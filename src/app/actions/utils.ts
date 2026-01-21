@@ -340,6 +340,27 @@ export async function getLLMProviderById(
 }
 
 /**
+ * Get LLM provider by provider ID with usage tracking enabled.
+ * Wraps the provider in TrackedLLMProvider to record AI usage.
+ */
+export async function getTrackedLLMProviderById(
+  userId: string,
+  providerId: string,
+  projectId: string
+): Promise<LLMProvider> {
+  const baseProvider = await getLLMProviderById(userId, providerId);
+  const usageRepo = await getAIUsageRepo();
+
+  return new TrackedLLMProvider(
+    baseProvider,
+    usageRepo,
+    objectIdGenerator,
+    userId,
+    projectId
+  );
+}
+
+/**
  * Wrap async operation with error handling.
  */
 export async function withErrorHandling<T>(

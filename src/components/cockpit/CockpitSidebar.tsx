@@ -22,6 +22,7 @@ import {
   Users,
   Search,
   FileText,
+  Sparkles,
 } from 'lucide-react';
 
 interface CockpitSidebarProps {
@@ -35,6 +36,7 @@ const navigationItems = [
       { title: "Vue d'ensemble", icon: LayoutDashboard, href: '' },
       { title: 'Objectifs', icon: Target, href: '/objectives' },
       { title: 'Tâches', icon: CheckSquare, href: '/tasks' },
+      { title: 'Utilisation IA', icon: Sparkles, href: '/usage' },
       { title: 'Paramètres', icon: Settings, href: '/settings' },
     ],
   },

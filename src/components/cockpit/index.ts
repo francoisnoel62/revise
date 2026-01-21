@@ -7,6 +7,8 @@ export { ProgressCard } from './ProgressCard';
 export { GoalForm } from './GoalForm';
 export { GoalCard } from './GoalCard';
 export { UsageStatsCard } from './UsageStatsCard';
+export { UsageByOperationChart } from './UsageByOperationChart';
+export { DailyUsageChart } from './DailyUsageChart';
 export { TaskForm } from './TaskForm';
 export { TaskRow } from './TaskRow';
 export { TaskSummaryCard } from './TaskSummaryCard';
