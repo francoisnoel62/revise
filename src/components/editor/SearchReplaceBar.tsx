@@ -36,6 +36,7 @@ export function SearchReplaceBar({
   const [matches, setMatches] = useState<SearchMatch[]>([]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const isNavigatingRef = useRef(false);
 
   // Find all matches in the document
   const findMatches = useCallback(
@@ -72,9 +73,10 @@ export function SearchReplaceBar({
     setCurrentMatchIndex(newMatches.length > 0 ? 0 : -1);
   }, [searchTerm, findMatches]);
 
-  // Highlight and scroll to current match
+  // Highlight and scroll to current match - only when navigating
   useEffect(() => {
     if (!editor || matches.length === 0 || currentMatchIndex < 0) return;
+    if (!isNavigatingRef.current) return;
 
     const match = matches[currentMatchIndex];
     if (match) {
@@ -85,6 +87,7 @@ export function SearchReplaceBar({
         .scrollIntoView()
         .run();
     }
+    isNavigatingRef.current = false;
   }, [editor, matches, currentMatchIndex]);
 
   // Focus search input when opening
@@ -124,11 +127,13 @@ export function SearchReplaceBar({
 
   const goToNextMatch = () => {
     if (matches.length === 0) return;
+    isNavigatingRef.current = true;
     setCurrentMatchIndex((prev) => (prev + 1) % matches.length);
   };
 
   const goToPreviousMatch = () => {
     if (matches.length === 0) return;
+    isNavigatingRef.current = true;
     setCurrentMatchIndex((prev) => (prev - 1 + matches.length) % matches.length);
   };
 

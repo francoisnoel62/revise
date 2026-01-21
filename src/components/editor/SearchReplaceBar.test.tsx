@@ -215,7 +215,7 @@ describe('SearchReplaceBar', () => {
     });
   });
 
-  it('should select text when match is found', async () => {
+  it('should select text when navigating to match', async () => {
     const mockEditor = createMockEditor('Hello world, hello again!');
     render(
       <SearchReplaceBar
@@ -227,6 +227,13 @@ describe('SearchReplaceBar', () => {
 
     const searchInput = screen.getByPlaceholderText('Rechercher...');
     await userEvent.type(searchInput, 'hello');
+
+    await waitFor(() => {
+      expect(screen.getByText('1/2')).toBeInTheDocument();
+    });
+
+    // Click next to trigger navigation and selection
+    fireEvent.click(screen.getByTitle(/Suivant/));
 
     await waitFor(() => {
       expect(mockEditor.chain).toHaveBeenCalled();
