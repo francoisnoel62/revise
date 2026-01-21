@@ -1,5 +1,5 @@
 // ABOUTME: Sidebar navigation for the cockpit dashboard
-// ABOUTME: Provides navigation between Overview, Objectifs, Paramètres, Personnages, Recherches, Annexes
+// ABOUTME: Provides navigation between Overview, Objectifs, Tâches, Paramètres, Personnages, Recherches, Annexes
 
 'use client';
 
@@ -17,6 +17,7 @@ import {
 import {
   LayoutDashboard,
   Target,
+  CheckSquare,
   Settings,
   Users,
   Search,
@@ -33,6 +34,7 @@ const navigationItems = [
     items: [
       { title: "Vue d'ensemble", icon: LayoutDashboard, href: '' },
       { title: 'Objectifs', icon: Target, href: '/objectives' },
+      { title: 'Tâches', icon: CheckSquare, href: '/tasks' },
       { title: 'Paramètres', icon: Settings, href: '/settings' },
     ],
   },
