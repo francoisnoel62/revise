@@ -87,9 +87,9 @@ export function ProjectCard({ project, onOpen, onDeleted, onRenamed }: ProjectCa
     setShowRenameDialog(false);
   };
 
-  const handleOpenMetadata = (e: React.MouseEvent) => {
+  const handleOpenCockpit = (e: React.MouseEvent) => {
     e.stopPropagation();
-    router.push(`/project/${project.id}/metadata`);
+    router.push(`/project/${project.id}/cockpit`);
   };
 
   const formatDate = (dateString: string) => {
@@ -146,7 +146,7 @@ export function ProjectCard({ project, onOpen, onDeleted, onRenamed }: ProjectCa
                 <Pencil className="h-4 w-4 mr-2" />
                 Renommer
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleOpenMetadata}>
+              <DropdownMenuItem onClick={handleOpenCockpit}>
                 <FileText className="h-4 w-4 mr-2" />
                 Métadonnées
               </DropdownMenuItem>
