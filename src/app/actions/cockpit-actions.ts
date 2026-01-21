@@ -4,7 +4,7 @@
 'use server';
 
 import { auth } from '@/infrastructure/auth/auth-config';
-import { getRepository, getWritingGoalRepo } from './utils';
+import { getRepository, getWritingGoalRepo, getCharacterRepo } from './utils';
 import { formatReadingTime } from '@/lib/utils';
 import { GetActiveWritingGoalUseCase } from '@/application/use-cases/GetActiveWritingGoalUseCase';
 
@@ -12,6 +12,7 @@ export interface ProjectStats {
   wordCount: number;
   characterCount: number;
   chapterCount: number;
+  fictionalCharacterCount: number;
   readingTime: string;
   createdAt: string;
   updatedAt: string;
@@ -45,12 +46,14 @@ export async function getProjectStatsAction(
     const characterCount = project.getTotalCharacterCount();
     const chapterCount = project.getChapterCount();
 
-    // Get active goal
-    const goalUseCase = new GetActiveWritingGoalUseCase(await getWritingGoalRepo());
-    const activeGoal = await goalUseCase.execute({
-      userId: session.user.id,
-      projectId,
-    });
+    // Get active goal and character count in parallel
+    const [activeGoal, fictionalCharacterCount] = await Promise.all([
+      new GetActiveWritingGoalUseCase(await getWritingGoalRepo()).execute({
+        userId: session.user.id,
+        projectId,
+      }),
+      (await getCharacterRepo()).countByProjectId(session.user.id, projectId),
+    ]);
 
     return {
       success: true,
@@ -58,6 +61,7 @@ export async function getProjectStatsAction(
         wordCount,
         characterCount,
         chapterCount,
+        fictionalCharacterCount,
         readingTime: formatReadingTime(wordCount),
         createdAt: project.getCreatedAt().toISOString(),
         updatedAt: project.getUpdatedAt().toISOString(),

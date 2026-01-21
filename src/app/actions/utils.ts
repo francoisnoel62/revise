@@ -16,6 +16,7 @@ import {
   getBlogArticleRepository,
   getArticleViewRepository,
   getProjectTaskRepository,
+  getCharacterRepository as getCharacterRepositoryFromConfig,
   getPromptRepository,
   createLLMProvider,
   getDocumentParser as getDocumentParserFromConfig,
@@ -36,6 +37,7 @@ import { WritingGoalRepository } from '@/domain/interfaces/WritingGoalRepository
 import { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
 import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository';
 import { ProjectTaskRepository } from '@/domain/interfaces/ProjectTaskRepository';
+import { CharacterRepository } from '@/domain/interfaces/CharacterRepository';
 import { ArticleViewRepository } from '@/domain/interfaces/ArticleViewRepository';
 import { LLMProviderFactory } from '@/domain/interfaces/LLMProviderFactory';
 import { IdGenerator } from '@/domain/interfaces/IdGenerator';
@@ -190,6 +192,13 @@ export async function getArticleViewRepo(): Promise<ArticleViewRepository> {
  */
 export async function getProjectTaskRepo(): Promise<ProjectTaskRepository> {
   return await getProjectTaskRepository();
+}
+
+/**
+ * Get character repository instance.
+ */
+export async function getCharacterRepo(): Promise<CharacterRepository> {
+  return await getCharacterRepositoryFromConfig();
 }
 
 /**

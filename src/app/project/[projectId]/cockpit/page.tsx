@@ -8,7 +8,7 @@ import { getProjectStatsAction } from '@/app/actions/cockpit-actions';
 import { getTaskSummaryAction } from '@/app/actions/task-actions';
 import { StatCard, ProgressCard, UsageStatsCard, TaskSummaryCard } from '@/components/cockpit';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, Type, Clock, BookOpen } from 'lucide-react';
+import { FileText, Type, Clock, BookOpen, Users } from 'lucide-react';
 
 interface OverviewPageProps {
   params: Promise<{ projectId: string }>;
@@ -33,7 +33,7 @@ async function StatsGrid({ projectId }: { projectId: string }) {
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <StatCard
           title="Nombre de mots"
           value={stats.wordCount.toLocaleString('fr-FR')}
@@ -51,6 +51,13 @@ async function StatsGrid({ projectId }: { projectId: string }) {
           value={stats.chapterCount}
           description="Nombre de chapitres"
           icon={BookOpen}
+        />
+        <StatCard
+          title="Personnages"
+          value={stats.fictionalCharacterCount}
+          description="Fiches créées"
+          icon={Users}
+          href={`/project/${projectId}/cockpit/characters`}
         />
         <StatCard
           title="Temps de lecture"
@@ -118,8 +125,8 @@ async function StatsGrid({ projectId }: { projectId: string }) {
 function StatsGridSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[1, 2, 3, 4].map((i) => (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        {[1, 2, 3, 4, 5].map((i) => (
           <StatCard key={i} title="" value="" isLoading />
         ))}
       </div>

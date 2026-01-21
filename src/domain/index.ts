@@ -13,6 +13,7 @@ export { CorrectionHistory } from './entities/CorrectionHistory';
 export { WritingGoal, type GoalType, type WritingGoalProperties } from './entities/WritingGoal';
 export { AIUsageRecord, type AIUsageRecordProperties } from './entities/AIUsageRecord';
 export { ProjectTask, type ProjectTaskProperties } from './entities/ProjectTask';
+export { Character, type CharacterProperties } from './entities/Character';
 
 // Value Objects
 export { TextSelection } from './value-objects/TextSelection';
@@ -84,3 +85,4 @@ export type { ContentConverter } from './interfaces/ContentConverter';
 export type { WritingGoalRepository } from './interfaces/WritingGoalRepository';
 export type { AIUsageRepository, UsageStats, DailyUsage } from './interfaces/AIUsageRepository';
 export type { ProjectTaskRepository, TaskFilters, TaskSortOptions } from './interfaces/ProjectTaskRepository';
+export type { CharacterRepository } from './interfaces/CharacterRepository';

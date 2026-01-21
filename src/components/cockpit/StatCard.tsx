@@ -1,6 +1,7 @@
 // ABOUTME: Reusable stat card displaying a metric with label and optional icon
 // ABOUTME: Used in the cockpit Overview page for word count, chapter count, etc.
 
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LucideIcon } from 'lucide-react';
@@ -11,6 +12,7 @@ interface StatCardProps {
   description?: string;
   icon?: LucideIcon;
   isLoading?: boolean;
+  href?: string;
 }
 
 export function StatCard({
@@ -19,6 +21,7 @@ export function StatCard({
   description,
   icon: Icon,
   isLoading = false,
+  href,
 }: StatCardProps) {
   if (isLoading) {
     return (
@@ -35,8 +38,8 @@ export function StatCard({
     );
   }
 
-  return (
-    <Card>
+  const cardContent = (
+    <>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
@@ -47,6 +50,18 @@ export function StatCard({
           <p className="text-xs text-muted-foreground">{description}</p>
         )}
       </CardContent>
-    </Card>
+    </>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className="block">
+        <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+          {cardContent}
+        </Card>
+      </Link>
+    );
+  }
+
+  return <Card>{cardContent}</Card>;
 }

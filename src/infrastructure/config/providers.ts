@@ -12,6 +12,7 @@ import { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
 import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository';
 import { ContactMessageRepository } from '@/domain/interfaces/ContactMessageRepository';
 import { ProjectTaskRepository } from '@/domain/interfaces/ProjectTaskRepository';
+import { CharacterRepository } from '@/domain/interfaces/CharacterRepository';
 import { ArticleViewRepository } from '@/domain/interfaces/ArticleViewRepository';
 import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import { LLMProvider } from '@/domain/interfaces/LLMProvider';
@@ -30,6 +31,7 @@ import { MongoDBBlogArticleRepository } from '@/infrastructure/persistence/Mongo
 import { MongoDBContactMessageRepository } from '@/infrastructure/persistence/MongoDBContactMessageRepository';
 import { MongoDBArticleViewRepository } from '@/infrastructure/persistence/MongoDBArticleViewRepository';
 import { MongoDBProjectTaskRepository } from '@/infrastructure/persistence/MongoDBProjectTaskRepository';
+import { MongoDBCharacterRepository } from '@/infrastructure/persistence/MongoDBCharacterRepository';
 import { InMemoryProjectRepository } from '@/infrastructure/persistence/InMemoryProjectRepository';
 import { FilePromptRepository } from '@/infrastructure/prompts/FilePromptRepository';
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
@@ -189,6 +191,20 @@ export async function getAIUsageRepository(): Promise<AIUsageRepository> {
 export async function getProjectTaskRepository(): Promise<ProjectTaskRepository> {
   const db = await getDatabase();
   return new MongoDBProjectTaskRepository(db);
+}
+
+/**
+ * Get the character repository.
+ */
+let characterRepoInstance: MongoDBCharacterRepository | null = null;
+
+export async function getCharacterRepository(): Promise<CharacterRepository> {
+  if (!characterRepoInstance) {
+    const db = await getDatabase();
+    characterRepoInstance = new MongoDBCharacterRepository(db);
+    await characterRepoInstance.ensureIndexes();
+  }
+  return characterRepoInstance;
 }
 
 /**

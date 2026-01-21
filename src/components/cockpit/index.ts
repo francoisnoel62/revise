@@ -10,3 +10,5 @@ export { UsageStatsCard } from './UsageStatsCard';
 export { TaskForm } from './TaskForm';
 export { TaskRow } from './TaskRow';
 export { TaskSummaryCard } from './TaskSummaryCard';
+export { CharacterCard } from './CharacterCard';
+export { CharacterForm } from './CharacterForm';
