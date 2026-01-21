@@ -26,7 +26,7 @@ import {
 } from '@/infrastructure/config/providers';
 import { LLMProviderFactoryImpl } from '@/infrastructure/ai/LLMProviderFactoryImpl';
 import { TrackedLLMProvider } from '@/infrastructure/ai/TrackedLLMProvider';
-import { uuidGenerator } from '@/infrastructure/utils/UUIDGenerator';
+import { objectIdGenerator } from '@/infrastructure/utils/ObjectIdGenerator';
 import { UnauthorizedError } from '@/domain/interfaces/AuthProvider';
 import { ProjectRepository } from '@/domain/interfaces/ProjectRepository';
 import { ProviderRepository } from '@/domain/interfaces/ProviderRepository';
@@ -222,9 +222,10 @@ export async function getLLMProviderFactory(): Promise<LLMProviderFactory> {
 
 /**
  * Get ID generator instance.
+ * Uses MongoDB ObjectId generator for compatibility with MongoDB repositories.
  */
 export async function getIdGenerator(): Promise<IdGenerator> {
-  return uuidGenerator;
+  return objectIdGenerator;
 }
 
 /**
@@ -308,7 +309,7 @@ export async function getTrackedLLMProviderForProject(
   return new TrackedLLMProvider(
     baseProvider,
     usageRepo,
-    uuidGenerator,
+    objectIdGenerator,
     userId,
     projectId
   );

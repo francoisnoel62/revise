@@ -188,12 +188,15 @@ export function TaskForm({
           {chapters.length > 0 && (
             <div className="space-y-2">
               <Label htmlFor="chapter">Chapitre lié</Label>
-              <Select value={linkedChapterId} onValueChange={setLinkedChapterId}>
+              <Select
+                value={linkedChapterId || '__none__'}
+                onValueChange={(v) => setLinkedChapterId(v === '__none__' ? '' : v)}
+              >
                 <SelectTrigger id="chapter">
                   <SelectValue placeholder="Aucun" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Aucun</SelectItem>
+                  <SelectItem value="__none__">Aucun</SelectItem>
                   {chapters.map((chapter) => (
                     <SelectItem key={chapter.id} value={chapter.id}>
                       {chapter.title}
