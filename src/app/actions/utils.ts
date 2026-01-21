@@ -11,6 +11,7 @@ import {
   getUserRepository,
   getMetadataRepository,
   getCorrectionHistoryRepository,
+  getWritingGoalRepository,
   getBlogArticleRepository,
   getArticleViewRepository,
   getPromptRepository,
@@ -28,6 +29,7 @@ import { ProviderRepository } from '@/domain/interfaces/ProviderRepository';
 import { UserRepository } from '@/domain/interfaces/UserRepository';
 import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
 import { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
+import { WritingGoalRepository } from '@/domain/interfaces/WritingGoalRepository';
 import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository';
 import { ArticleViewRepository } from '@/domain/interfaces/ArticleViewRepository';
 import { LLMProviderFactory } from '@/domain/interfaces/LLMProviderFactory';
@@ -148,6 +150,13 @@ export async function getMetadataRepo(): Promise<MetadataRepository> {
  */
 export async function getCorrectionHistoryRepo(): Promise<CorrectionHistoryRepository> {
   return await getCorrectionHistoryRepository();
+}
+
+/**
+ * Get writing goal repository instance.
+ */
+export async function getWritingGoalRepo(): Promise<WritingGoalRepository> {
+  return await getWritingGoalRepository();
 }
 
 /**

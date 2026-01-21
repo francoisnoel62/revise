@@ -2,9 +2,11 @@
 // ABOUTME: Shows word count, chapter count, reading time, and progress
 
 import { Suspense } from 'react';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getProjectStatsAction } from '@/app/actions/cockpit-actions';
 import { StatCard, ProgressCard } from '@/components/cockpit';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, Type, Clock, BookOpen } from 'lucide-react';
 
 interface OverviewPageProps {
@@ -20,8 +22,8 @@ async function StatsGrid({ projectId }: { projectId: string }) {
 
   const { stats } = result;
 
-  // Placeholder target for now - will be dynamic in Phase 2
-  const targetWordCount = 50000;
+  const targetWordCount = stats.activeGoal?.targetWords ?? 0;
+  const hasGoal = stats.activeGoal !== null;
 
   return (
     <div className="space-y-6">
@@ -53,14 +55,33 @@ async function StatsGrid({ projectId }: { projectId: string }) {
         />
       </div>
 
-      {/* Progress Card */}
+      {/* Progress Card or "Create Goal" prompt */}
       <div className="grid gap-4 md:grid-cols-2">
-        <ProgressCard
-          title="Progression vers l'objectif"
-          current={stats.wordCount}
-          target={targetWordCount}
-          unit="mots"
-        />
+        {hasGoal ? (
+          <ProgressCard
+            title="Progression vers l'objectif"
+            current={stats.wordCount}
+            target={targetWordCount}
+            unit="mots"
+          />
+        ) : (
+          <Card className="col-span-1">
+            <CardHeader>
+              <CardTitle className="text-sm font-medium">Objectif</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Aucun objectif défini.{' '}
+                <Link
+                  href={`/project/${projectId}/cockpit/objectives`}
+                  className="text-primary hover:underline"
+                >
+                  Créer un objectif
+                </Link>
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Quick Actions - Placeholder for future */}

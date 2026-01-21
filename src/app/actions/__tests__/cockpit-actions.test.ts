@@ -12,6 +12,7 @@ vi.mock('@/infrastructure/auth/auth-config', () => ({
 // Mock repository
 vi.mock('../utils', () => ({
   getRepository: vi.fn(),
+  getWritingGoalRepo: vi.fn(() => Promise.resolve({})),
 }));
 
 // Mock formatReadingTime
@@ -20,6 +21,13 @@ vi.mock('@/lib/utils', () => ({
     const minutes = Math.ceil(wordCount / 200);
     return `${minutes} min`;
   }),
+}));
+
+// Mock GetActiveWritingGoalUseCase
+vi.mock('@/application/use-cases/GetActiveWritingGoalUseCase', () => ({
+  GetActiveWritingGoalUseCase: class MockGetActiveWritingGoalUseCase {
+    execute = vi.fn().mockResolvedValue(null);
+  },
 }));
 
 import { auth } from '@/infrastructure/auth/auth-config';
@@ -57,6 +65,7 @@ describe('getProjectStatsAction', () => {
       expect(result.stats.chapterCount).toBe(5);
       expect(result.stats.readingTime).toBe('25 min');
       expect(result.stats.title).toBe('Mon Roman');
+      expect(result.stats.activeGoal).toBeNull();
     }
   });
 

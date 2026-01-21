@@ -4,8 +4,9 @@
 'use server';
 
 import { auth } from '@/infrastructure/auth/auth-config';
-import { getRepository } from './utils';
+import { getRepository, getWritingGoalRepo } from './utils';
 import { formatReadingTime } from '@/lib/utils';
+import { GetActiveWritingGoalUseCase } from '@/application/use-cases/GetActiveWritingGoalUseCase';
 
 export interface ProjectStats {
   wordCount: number;
@@ -15,6 +16,11 @@ export interface ProjectStats {
   createdAt: string;
   updatedAt: string;
   title: string;
+  activeGoal: {
+    targetWords: number;
+    type: string;
+    deadline: string | null;
+  } | null;
 }
 
 export async function getProjectStatsAction(
@@ -39,6 +45,13 @@ export async function getProjectStatsAction(
     const characterCount = project.getTotalCharacterCount();
     const chapterCount = project.getChapterCount();
 
+    // Get active goal
+    const goalUseCase = new GetActiveWritingGoalUseCase(await getWritingGoalRepo());
+    const activeGoal = await goalUseCase.execute({
+      userId: session.user.id,
+      projectId,
+    });
+
     return {
       success: true,
       stats: {
@@ -49,6 +62,13 @@ export async function getProjectStatsAction(
         createdAt: project.getCreatedAt().toISOString(),
         updatedAt: project.getUpdatedAt().toISOString(),
         title: project.getTitle(),
+        activeGoal: activeGoal
+          ? {
+              targetWords: activeGoal.getTargetWords(),
+              type: activeGoal.getType(),
+              deadline: activeGoal.getDeadline()?.toISOString() ?? null,
+            }
+          : null,
       },
     };
   } catch (error) {

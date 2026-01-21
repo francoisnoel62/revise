@@ -10,6 +10,7 @@ export type { ProviderType } from './entities/Provider';
 export * from './entities/User';
 export { ProjectMetadata, type ProjectMetadataProperties } from './entities/ProjectMetadata';
 export { CorrectionHistory } from './entities/CorrectionHistory';
+export { WritingGoal, type GoalType, type WritingGoalProperties } from './entities/WritingGoal';
 
 // Value Objects
 export { TextSelection } from './value-objects/TextSelection';
@@ -58,3 +59,4 @@ export * from './interfaces/UserRepository';
 export type { MetadataRepository } from './interfaces/MetadataRepository';
 export type { CorrectionHistoryRepository } from './interfaces/CorrectionHistoryRepository';
 export type { ContentConverter } from './interfaces/ContentConverter';
+export type { WritingGoalRepository } from './interfaces/WritingGoalRepository';
