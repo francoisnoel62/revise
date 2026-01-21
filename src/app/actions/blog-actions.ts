@@ -4,13 +4,17 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
 import {
   ActionResult,
   getBlogArticleRepo,
+  getArticleViewRepo,
   getAuthenticatedAdminId,
   withErrorHandling,
 } from './utils';
 import { LoadPublishedBlogArticlesUseCase } from '@/application/use-cases/LoadPublishedBlogArticlesUseCase';
+import { RecordArticleViewUseCase } from '@/application/use-cases/RecordArticleViewUseCase';
+import { hashText } from '@/infrastructure/utils/text-hash';
 import { LoadPublishedBlogArticlesPaginatedUseCase } from '@/application/use-cases/LoadPublishedBlogArticlesPaginatedUseCase';
 import { LoadBlogArticleBySlugUseCase } from '@/application/use-cases/LoadBlogArticleBySlugUseCase';
 import { CreateBlogArticleUseCase } from '@/application/use-cases/CreateBlogArticleUseCase';
@@ -41,6 +45,7 @@ export interface SerializedBlogArticle {
   excerpt: string;
   content: string;
   readingTime: number;
+  viewCount: number;
   isPublished: boolean;
   publishedAt: string | null;
   authorId: string;
@@ -58,6 +63,7 @@ function serializeArticle(article: {
   getExcerpt(): string;
   getContent(): string;
   getReadingTime(): number;
+  getViewCount(): number;
   isPublished(): boolean;
   getPublishedAt(): Date | null;
   getAuthorId(): string;
@@ -71,6 +77,7 @@ function serializeArticle(article: {
     excerpt: article.getExcerpt(),
     content: article.getContent(),
     readingTime: article.getReadingTime(),
+    viewCount: article.getViewCount(),
     isPublished: article.isPublished(),
     publishedAt: article.getPublishedAt()?.toISOString() ?? null,
     authorId: article.getAuthorId(),
@@ -308,5 +315,47 @@ export async function getArticleByIdAction(
       throw new Error('Article not found');
     }
     return serializeArticle(article);
+  });
+}
+
+// ============================================
+// VIEW TRACKING (public, no authentication required)
+// ============================================
+
+export interface RecordArticleViewResult {
+  recorded: boolean;
+  newViewCount: number | null;
+}
+
+/**
+ * Record a view for a blog article.
+ * Uses visitor fingerprint (IP + User-Agent hash) to prevent duplicate counting.
+ * Public access - no authentication required.
+ */
+export async function recordArticleViewAction(
+  articleId: string
+): Promise<ActionResult<RecordArticleViewResult>> {
+  return withErrorHandling(async () => {
+    const headersList = await headers();
+    const forwardedFor = headersList.get('x-forwarded-for');
+    const visitorIp = forwardedFor?.split(',')[0]?.trim() || 'unknown';
+    const userAgent = headersList.get('user-agent') || 'unknown';
+
+    const articleViewRepo = await getArticleViewRepo();
+    const blogArticleRepo = await getBlogArticleRepo();
+
+    const useCase = new RecordArticleViewUseCase(
+      articleViewRepo,
+      blogArticleRepo,
+      hashText
+    );
+
+    const result = await useCase.execute({
+      articleId,
+      visitorIp,
+      userAgent,
+    });
+
+    return result;
   });
 }

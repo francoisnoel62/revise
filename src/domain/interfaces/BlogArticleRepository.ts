@@ -83,4 +83,11 @@ export interface BlogArticleRepository {
    * @returns true if slug exists
    */
   slugExists(slug: string, excludeArticleId?: string): Promise<boolean>;
+
+  /**
+   * Increment the view count for an article.
+   * @param articleId - The article ID
+   * @returns The new view count, or null if article not found
+   */
+  incrementViewCount(articleId: string): Promise<number | null>;
 }

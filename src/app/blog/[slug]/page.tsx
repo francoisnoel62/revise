@@ -4,11 +4,12 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Calendar, Clock } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Eye } from 'lucide-react';
 import {
   getArticleBySlugAction,
   getPublishedArticlesAction,
 } from '@/app/actions/blog-actions';
+import { ViewCounter } from '@/components/blog/ViewCounter';
 import { Metadata } from 'next';
 
 interface PageProps {
@@ -211,7 +212,7 @@ export default async function BlogArticlePage({ params }: PageProps) {
             <h1 className="text-3xl md:text-4xl font-bold mb-4">
               {article.title}
             </h1>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
               <span className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
                 {article.publishedAt
@@ -232,7 +233,12 @@ export default async function BlogArticlePage({ params }: PageProps) {
                 <Clock className="h-4 w-4" />
                 {article.readingTime} min de lecture
               </span>
+              <span className="flex items-center gap-1">
+                <Eye className="h-4 w-4" />
+                {article.viewCount} {article.viewCount === 1 ? 'vue' : 'vues'}
+              </span>
             </div>
+            <ViewCounter articleId={article.id} />
           </header>
 
           <div className="prose prose-gray dark:prose-invert max-w-none">

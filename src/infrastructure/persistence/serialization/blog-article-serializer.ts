@@ -16,6 +16,7 @@ export interface BlogArticleDocument {
   isPublished: boolean;
   publishedAt: Date | null;
   authorId: string;
+  viewCount: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -34,6 +35,7 @@ export function serializeBlogArticle(article: BlogArticle): BlogArticleDocument 
     isPublished: article.isPublished(),
     publishedAt: article.getPublishedAt(),
     authorId: article.getAuthorId(),
+    viewCount: article.getViewCount(),
     createdAt: article.getCreatedAt(),
     updatedAt: article.getUpdatedAt(),
   };
@@ -48,6 +50,7 @@ export function deserializeBlogArticle(doc: BlogArticleDocument): BlogArticle {
     isPublished: doc.isPublished,
     publishedAt: doc.publishedAt ? new Date(doc.publishedAt) : null,
     authorId: doc.authorId,
+    viewCount: doc.viewCount ?? 0,
     createdAt: new Date(doc.createdAt),
     updatedAt: new Date(doc.updatedAt),
   };

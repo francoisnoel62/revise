@@ -147,4 +147,15 @@ export class MongoDBBlogArticleRepository implements BlogArticleRepository {
     const count = await this.collection.countDocuments(query);
     return count > 0;
   }
+
+  async incrementViewCount(articleId: string): Promise<number | null> {
+    const result = await this.collection.findOneAndUpdate(
+      { _id: articleId },
+      { $inc: { viewCount: 1 } },
+      { returnDocument: 'after' }
+    );
+
+    if (!result) return null;
+    return result.viewCount ?? 1;
+  }
 }
