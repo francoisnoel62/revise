@@ -6,6 +6,54 @@ For current features and roadmap, see [README.md](README.md).
 
 ---
 
+## Phase 6 - Project Cockpit (January 2026)
+
+### Domain Layer
+- **Character entity** - Fictional character tracking with names, aliases, descriptions, traits, goals, and relationships
+- **ProjectSettings entity** - Project-level settings including genre, themes, narration settings, contributors, and related works
+- **ProjectTask entity** - Task management with title, description, priority, status, due dates, and contributors
+- **ResearchDocument entity** - Research document management with title, content, and tags
+- **WritingGoal entity** - Writing goals with target word count, deadline, and progress tracking
+- **AIUsageRecord entity** - AI usage tracking with operation type, token counts, and cost estimation
+- **Value objects**: AIOperationType, TaskPriority, TaskStatus, Contributor, RelatedWork, NarrationSettings
+
+### Application Layer
+- **Character Use Cases** - CreateCharacter, LoadCharacter, ListProjectCharacters, UpdateCharacter, DeleteCharacter, SyncCharactersFromAnalysis
+- **ProjectSettings Use Cases** - CreateProjectSettings, LoadProjectSettings, UpdateProjectSettings
+- **ProjectTask Use Cases** - CreateProjectTask, ListProjectTasks, UpdateProjectTask, DeleteProjectTask, GetTaskSummary
+- **ResearchDocument Use Cases** - CreateResearchDocument, ListResearchDocuments, UpdateResearchDocument, DeleteResearchDocument
+- **WritingGoal Use Cases** - CreateWritingGoal, ListWritingGoals, UpdateWritingGoal, DeleteWritingGoal, GetActiveWritingGoal
+- **Cover Image Use Cases** - UploadCoverImage, DeleteCoverImage
+
+### Infrastructure Layer
+- **MongoDBCharacterRepository** - Character persistence with multi-tenant isolation
+- **MongoDBProjectSettingsRepository** - Project settings persistence
+- **MongoDBProjectTaskRepository** - Task persistence with filtering and sorting
+- **MongoDBResearchDocumentRepository** - Research document persistence
+- **MongoDBWritingGoalRepository** - Writing goal persistence
+- **MongoDBUsageRepository** - AI usage statistics persistence with aggregation
+- **VercelBlobStorage** - Cover image storage using Vercel Blob
+- **TrackedLLMProvider** - LLM provider wrapper that tracks AI usage
+- **ObjectIdGenerator** - MongoDB ObjectId generation for frontend
+
+### Interface Layer
+- **Cockpit pages** - `/project/[projectId]/cockpit/*` for overview, characters, metadata, objectives, research, settings, tasks, usage
+- **CockpitSidebar** - Navigation sidebar for cockpit sections
+- **Character components** - CharacterCard, CharacterForm for character management
+- **Task components** - TaskForm, TaskRow, TaskSummaryCard for task management
+- **Goal components** - GoalCard, GoalForm for writing goal tracking
+- **Usage components** - UsageStatsCard, DailyUsageChart, UsageByOperationChart for AI usage visualization
+- **Settings components** - ProjectSettingsForm, CoverImageUpload, ContributorsField, RelatedWorksField
+- **Research components** - ResearchDocumentCard, ResearchDocumentForm for document management
+- **Quick actions** - QuickActionsCard, QuickActionButton, ProgressCard, StatCard
+- **Server actions** - cockpit-actions, task-actions, usage-actions, writing-goal-actions, character-actions, research-document-actions, project-settings-actions
+
+### UI Components
+- **New shadcn/ui components** - sidebar, tabs, chart (recharts), breadcrumb, separator, skeleton, textarea, tooltip
+- **Mobile hook** - use-mobile for responsive design
+
+---
+
 ## Phase 5.1 - Markdown Folder Import (January 2026)
 
 ### Domain Layer

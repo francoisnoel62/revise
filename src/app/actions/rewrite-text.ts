@@ -7,11 +7,10 @@
 import { RewriteTextUseCase } from '@/application';
 import { SaveCorrectionHistoryUseCase } from '@/application/use-cases/SaveCorrectionHistoryUseCase';
 import {
-  getProviderRepository,
   getProjectRepository,
-  createLLMProvider,
   getCorrectionHistoryRepository,
 } from '@/infrastructure/config/providers';
+import { getTrackedLLMProviderForProject } from './utils';
 import { uuidGenerator } from '@/infrastructure/utils/UUIDGenerator';
 import { extractTextFromTipTapJSON } from '@/infrastructure/document/utils/tiptap-conversion';
 import {
@@ -71,37 +70,16 @@ export async function rewriteText(
   return withErrorHandling(async () => {
     const startTime = performance.now();
 
-    // 3. Load project to get providerId
+    // 3. Get LLM provider with usage tracking
+    const llmProvider = await getTrackedLLMProviderForProject(userId, projectId);
+
+    // 4. Load project for history saving
     const projectRepo = await getProjectRepository();
     const project = await projectRepo.loadProject(userId, projectId);
 
     if (!project) {
       throw new Error('Project not found');
     }
-
-    // 4. Get LLM provider - requires user-configured provider
-    if (!project.getProviderId()) {
-      throw new Error(
-        'Aucun fournisseur IA configuré pour ce projet. Veuillez en sélectionner un dans les paramètres du projet.'
-      );
-    }
-
-    const providerRepo = await getProviderRepository();
-    const provider = await providerRepo.findById(userId, project.getProviderId()!);
-
-    if (!provider) {
-      throw new Error(
-        'Le fournisseur IA configuré est introuvable. Veuillez en sélectionner un autre.'
-      );
-    }
-
-    if (!provider.isValidProvider()) {
-      throw new Error(
-        'Le fournisseur IA configuré est invalide. Veuillez tester la connexion ou en choisir un autre.'
-      );
-    }
-
-    const llmProvider = createLLMProvider(provider);
 
     // 5. Extract plain text context from TipTap JSON for AI
     let plainTextContext = '';

@@ -11,8 +11,15 @@ import {
   getUserRepository,
   getMetadataRepository,
   getCorrectionHistoryRepository,
+  getWritingGoalRepository,
+  getAIUsageRepository as getAIUsageRepositoryFromConfig,
   getBlogArticleRepository,
   getArticleViewRepository,
+  getProjectTaskRepository,
+  getCharacterRepository as getCharacterRepositoryFromConfig,
+  getProjectSettingsRepository as getProjectSettingsRepositoryFromConfig,
+  getResearchDocumentRepository as getResearchDocumentRepositoryFromConfig,
+  getBlobStorage as getBlobStorageFromConfig,
   getPromptRepository,
   createLLMProvider,
   getDocumentParser as getDocumentParserFromConfig,
@@ -21,15 +28,23 @@ import {
   type ExportFormat,
 } from '@/infrastructure/config/providers';
 import { LLMProviderFactoryImpl } from '@/infrastructure/ai/LLMProviderFactoryImpl';
-import { uuidGenerator } from '@/infrastructure/utils/UUIDGenerator';
+import { TrackedLLMProvider } from '@/infrastructure/ai/TrackedLLMProvider';
+import { objectIdGenerator } from '@/infrastructure/utils/ObjectIdGenerator';
 import { UnauthorizedError } from '@/domain/interfaces/AuthProvider';
 import { ProjectRepository } from '@/domain/interfaces/ProjectRepository';
 import { ProviderRepository } from '@/domain/interfaces/ProviderRepository';
 import { UserRepository } from '@/domain/interfaces/UserRepository';
 import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
 import { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
+import { WritingGoalRepository } from '@/domain/interfaces/WritingGoalRepository';
+import { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
 import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository';
+import { ProjectTaskRepository } from '@/domain/interfaces/ProjectTaskRepository';
+import { CharacterRepository } from '@/domain/interfaces/CharacterRepository';
 import { ArticleViewRepository } from '@/domain/interfaces/ArticleViewRepository';
+import { ProjectSettingsRepository } from '@/domain/interfaces/ProjectSettingsRepository';
+import { ResearchDocumentRepository } from '@/domain/interfaces/ResearchDocumentRepository';
+import { BlobStorage } from '@/domain/interfaces/BlobStorage';
 import { LLMProviderFactory } from '@/domain/interfaces/LLMProviderFactory';
 import { IdGenerator } from '@/domain/interfaces/IdGenerator';
 import { LLMProvider } from '@/domain/interfaces/LLMProvider';
@@ -151,6 +166,20 @@ export async function getCorrectionHistoryRepo(): Promise<CorrectionHistoryRepos
 }
 
 /**
+ * Get writing goal repository instance.
+ */
+export async function getWritingGoalRepo(): Promise<WritingGoalRepository> {
+  return await getWritingGoalRepository();
+}
+
+/**
+ * Get AI usage repository instance.
+ */
+export async function getAIUsageRepo(): Promise<AIUsageRepository> {
+  return await getAIUsageRepositoryFromConfig();
+}
+
+/**
  * Get blog article repository instance.
  */
 export async function getBlogArticleRepo(): Promise<BlogArticleRepository> {
@@ -162,6 +191,41 @@ export async function getBlogArticleRepo(): Promise<BlogArticleRepository> {
  */
 export async function getArticleViewRepo(): Promise<ArticleViewRepository> {
   return await getArticleViewRepository();
+}
+
+/**
+ * Get project task repository instance.
+ */
+export async function getProjectTaskRepo(): Promise<ProjectTaskRepository> {
+  return await getProjectTaskRepository();
+}
+
+/**
+ * Get character repository instance.
+ */
+export async function getCharacterRepo(): Promise<CharacterRepository> {
+  return await getCharacterRepositoryFromConfig();
+}
+
+/**
+ * Get project settings repository instance.
+ */
+export async function getProjectSettingsRepo(): Promise<ProjectSettingsRepository> {
+  return await getProjectSettingsRepositoryFromConfig();
+}
+
+/**
+ * Get research document repository instance.
+ */
+export async function getResearchDocumentRepo(): Promise<ResearchDocumentRepository> {
+  return await getResearchDocumentRepositoryFromConfig();
+}
+
+/**
+ * Get blob storage instance.
+ */
+export async function getBlobStorageInstance(): Promise<BlobStorage> {
+  return getBlobStorageFromConfig();
 }
 
 /**
@@ -185,9 +249,10 @@ export async function getLLMProviderFactory(): Promise<LLMProviderFactory> {
 
 /**
  * Get ID generator instance.
+ * Uses MongoDB ObjectId generator for compatibility with MongoDB repositories.
  */
 export async function getIdGenerator(): Promise<IdGenerator> {
-  return uuidGenerator;
+  return objectIdGenerator;
 }
 
 /**
@@ -258,6 +323,26 @@ export async function getLLMProviderForProject(
 }
 
 /**
+ * Get LLM provider for a project with usage tracking enabled.
+ * Wraps the provider in TrackedLLMProvider to record AI usage.
+ */
+export async function getTrackedLLMProviderForProject(
+  userId: string,
+  projectId: string
+): Promise<LLMProvider> {
+  const baseProvider = await getLLMProviderForProject(userId, projectId);
+  const usageRepo = await getAIUsageRepo();
+
+  return new TrackedLLMProvider(
+    baseProvider,
+    usageRepo,
+    objectIdGenerator,
+    userId,
+    projectId
+  );
+}
+
+/**
  * Get LLM provider by provider ID.
  * Used when user explicitly selects a provider for a specific operation.
  */
@@ -279,6 +364,27 @@ export async function getLLMProviderById(
   }
 
   return createLLMProvider(provider);
+}
+
+/**
+ * Get LLM provider by provider ID with usage tracking enabled.
+ * Wraps the provider in TrackedLLMProvider to record AI usage.
+ */
+export async function getTrackedLLMProviderById(
+  userId: string,
+  providerId: string,
+  projectId: string
+): Promise<LLMProvider> {
+  const baseProvider = await getLLMProviderById(userId, providerId);
+  const usageRepo = await getAIUsageRepo();
+
+  return new TrackedLLMProvider(
+    baseProvider,
+    usageRepo,
+    objectIdGenerator,
+    userId,
+    projectId
+  );
 }
 
 /**

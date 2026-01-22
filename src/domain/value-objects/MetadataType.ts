@@ -55,6 +55,55 @@ export const METADATA_TYPES: Record<string, MetadataTypeDefinition> = {
     description: 'Résumé structuré de chaque chapitre (max 6 phrases)',
     isBuiltIn: true,
   },
+  // Editorial annexes (front/back matter)
+  'dedication': {
+    key: 'dedication',
+    name: 'Dédicace',
+    description: 'À qui dédiez-vous ce livre ?',
+    isBuiltIn: true,
+  },
+  'epigraph': {
+    key: 'epigraph',
+    name: 'Épigraphe',
+    description: 'Citation en ouverture du livre',
+    isBuiltIn: true,
+  },
+  'foreword': {
+    key: 'foreword',
+    name: 'Avant-propos',
+    description: 'Introduction par une autre personne',
+    isBuiltIn: true,
+  },
+  'preface': {
+    key: 'preface',
+    name: 'Préface',
+    description: 'Votre introduction au livre',
+    isBuiltIn: true,
+  },
+  'acknowledgments': {
+    key: 'acknowledgments',
+    name: 'Remerciements',
+    description: 'Personnes à remercier',
+    isBuiltIn: true,
+  },
+  'afterword': {
+    key: 'afterword',
+    name: 'Postface',
+    description: 'Conclusion ou réflexions finales',
+    isBuiltIn: true,
+  },
+  'about-author': {
+    key: 'about-author',
+    name: 'À propos de l\'auteur',
+    description: 'Biographie courte',
+    isBuiltIn: true,
+  },
+  'copyright': {
+    key: 'copyright',
+    name: 'Mentions légales',
+    description: 'Copyright et mentions obligatoires',
+    isBuiltIn: true,
+  },
 } as const;
 
 export function isValidMetadataType(key: string): boolean {
@@ -63,4 +112,61 @@ export function isValidMetadataType(key: string): boolean {
 
 export function getMetadataType(key: string): MetadataTypeDefinition | undefined {
   return METADATA_TYPES[key];
+}
+
+/**
+ * Editorial annex type keys (front/back matter content).
+ * These are author-written, not AI-generated.
+ */
+export const EDITORIAL_TYPE_KEYS = [
+  'dedication',
+  'epigraph',
+  'foreword',
+  'preface',
+  'acknowledgments',
+  'afterword',
+  'about-author',
+  'copyright',
+] as const;
+
+export type EditorialTypeKey = (typeof EDITORIAL_TYPE_KEYS)[number];
+
+/**
+ * Placeholder text for editorial types.
+ */
+export const EDITORIAL_PLACEHOLDERS: Record<EditorialTypeKey, string> = {
+  'dedication': 'À ma famille...',
+  'epigraph': '« Citation inspirante... »\n— Auteur',
+  'foreword': 'Avant-propos rédigé par...',
+  'preface': 'Pourquoi j\'ai écrit ce livre...',
+  'acknowledgments': 'Je tiens à remercier...',
+  'afterword': 'En écrivant ce livre...',
+  'about-author': 'L\'auteur est...',
+  'copyright': '© 2024 Nom de l\'auteur. Tous droits réservés.',
+};
+
+/**
+ * Display order for editorial types (front matter first, then back matter).
+ */
+export const EDITORIAL_ORDER: Record<EditorialTypeKey, number> = {
+  'dedication': 1,
+  'epigraph': 2,
+  'foreword': 3,
+  'preface': 4,
+  'acknowledgments': 5,
+  'afterword': 6,
+  'about-author': 7,
+  'copyright': 8,
+};
+
+export function isEditorialType(key: string): key is EditorialTypeKey {
+  return EDITORIAL_TYPE_KEYS.includes(key as EditorialTypeKey);
+}
+
+export function getEditorialPlaceholder(key: EditorialTypeKey): string {
+  return EDITORIAL_PLACEHOLDERS[key];
+}
+
+export function getEditorialOrder(key: EditorialTypeKey): number {
+  return EDITORIAL_ORDER[key];
 }

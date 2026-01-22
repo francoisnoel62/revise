@@ -9,7 +9,7 @@ import {
   ActionResult,
   getAuthenticatedUserId,
   getMetadataRepo,
-  getLLMProviderForProject,
+  getTrackedLLMProviderForProject,
   withErrorHandling,
 } from './utils';
 import { canGenerateMetadata, recordMetadataGeneration } from './rate-limiter';
@@ -52,8 +52,8 @@ export async function generateCompletionAction(
     // 3. Record generation attempt
     recordMetadataGeneration(auth.userId, 'completion');
 
-    // 4. Get LLM provider
-    const llmProvider = await getLLMProviderForProject(auth.userId, projectId);
+    // 4. Get LLM provider with usage tracking
+    const llmProvider = await getTrackedLLMProviderForProject(auth.userId, projectId);
 
     // 5. Execute use case with injected dependencies via composition root
     const contentConverter = getContentConverter();
