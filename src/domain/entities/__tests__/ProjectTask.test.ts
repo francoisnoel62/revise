@@ -291,6 +291,38 @@ describe('ProjectTask', () => {
     });
   });
 
+  describe('cycleStatus', () => {
+    it('cycles from todo to in_progress', () => {
+      const task = ProjectTask.create('task-1', 'project-1', 'user-1', 'Task', {
+        status: 'todo',
+      });
+
+      const updated = task.cycleStatus();
+
+      expect(updated.getStatus()).toBe('in_progress');
+    });
+
+    it('cycles from in_progress to done', () => {
+      const task = ProjectTask.create('task-1', 'project-1', 'user-1', 'Task', {
+        status: 'in_progress',
+      });
+
+      const updated = task.cycleStatus();
+
+      expect(updated.getStatus()).toBe('done');
+    });
+
+    it('cycles from done to todo', () => {
+      const task = ProjectTask.create('task-1', 'project-1', 'user-1', 'Task', {
+        status: 'done',
+      });
+
+      const updated = task.cycleStatus();
+
+      expect(updated.getStatus()).toBe('todo');
+    });
+  });
+
   describe('addTag', () => {
     it('adds a new tag', () => {
       const task = ProjectTask.create('task-1', 'project-1', 'user-1', 'Task', {

@@ -3,6 +3,17 @@
 
 import { ProjectSettings } from '../entities/ProjectSettings';
 
+/**
+ * Error thrown when attempting to create project settings
+ * that already exist for a given project.
+ */
+export class DuplicateProjectSettingsError extends Error {
+  constructor(projectId: string) {
+    super(`Project settings already exist for project: ${projectId}`);
+    this.name = 'DuplicateProjectSettingsError';
+  }
+}
+
 export interface ProjectSettingsRepository {
   /**
    * Create new project settings.

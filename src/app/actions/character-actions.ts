@@ -3,8 +3,7 @@
 
 'use server';
 
-import { auth } from '@/infrastructure/auth/auth-config';
-import { getCharacterRepo, getIdGenerator } from './utils';
+import { getCharacterRepo, getIdGenerator, getAuthenticatedUserId } from './utils';
 import { CreateCharacterUseCase } from '@/application/use-cases/CreateCharacterUseCase';
 import { LoadCharacterUseCase } from '@/application/use-cases/LoadCharacterUseCase';
 import { ListProjectCharactersUseCase } from '@/application/use-cases/ListProjectCharactersUseCase';
@@ -53,8 +52,8 @@ export async function createCharacterAction(
   name: string
 ): Promise<{ success: true; character: SerializedCharacter } | { success: false; error: string }> {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
       return { success: false, error: 'Non authentifié' };
     }
 
@@ -64,7 +63,7 @@ export async function createCharacterAction(
     );
 
     const character = await useCase.execute({
-      userId: session.user.id,
+      userId: authResult.userId,
       projectId,
       name,
     });
@@ -83,15 +82,15 @@ export async function loadCharacterAction(
   characterId: string
 ): Promise<{ success: true; character: SerializedCharacter } | { success: false; error: string }> {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
       return { success: false, error: 'Non authentifié' };
     }
 
     const useCase = new LoadCharacterUseCase(await getCharacterRepo());
 
     const character = await useCase.execute({
-      userId: session.user.id,
+      userId: authResult.userId,
       characterId,
     });
 
@@ -110,15 +109,15 @@ export async function listCharactersAction(
   projectId: string
 ): Promise<{ success: true; characters: SerializedCharacter[] } | { success: false; error: string }> {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
       return { success: false, error: 'Non authentifié' };
     }
 
     const useCase = new ListProjectCharactersUseCase(await getCharacterRepo());
 
     const characters = await useCase.execute({
-      userId: session.user.id,
+      userId: authResult.userId,
       projectId,
     });
 
@@ -144,15 +143,15 @@ export async function updateCharacterAction(
   }
 ): Promise<{ success: true; character: SerializedCharacter } | { success: false; error: string }> {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
       return { success: false, error: 'Non authentifié' };
     }
 
     const useCase = new UpdateCharacterUseCase(await getCharacterRepo());
 
     const character = await useCase.execute({
-      userId: session.user.id,
+      userId: authResult.userId,
       characterId,
       ...updates,
     });
@@ -171,15 +170,15 @@ export async function deleteCharacterAction(
   characterId: string
 ): Promise<{ success: true } | { success: false; error: string }> {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
       return { success: false, error: 'Non authentifié' };
     }
 
     const useCase = new DeleteCharacterUseCase(await getCharacterRepo());
 
     await useCase.execute({
-      userId: session.user.id,
+      userId: authResult.userId,
       characterId,
     });
 
@@ -208,8 +207,8 @@ export async function syncCharactersFromAnalysisAction(
   | { success: false; error: string }
 > {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
       return { success: false, error: 'Non authentifié' };
     }
 
@@ -219,7 +218,7 @@ export async function syncCharactersFromAnalysisAction(
     );
 
     const result: SyncResult = await useCase.execute({
-      userId: session.user.id,
+      userId: authResult.userId,
       projectId,
       characterProfiles,
     });
@@ -245,13 +244,13 @@ export async function getCharacterCountAction(
   projectId: string
 ): Promise<{ success: true; count: number } | { success: false; error: string }> {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
       return { success: false, error: 'Non authentifié' };
     }
 
     const repo = await getCharacterRepo();
-    const count = await repo.countByProjectId(session.user.id, projectId);
+    const count = await repo.countByProjectId(authResult.userId, projectId);
 
     return { success: true, count };
   } catch (error) {

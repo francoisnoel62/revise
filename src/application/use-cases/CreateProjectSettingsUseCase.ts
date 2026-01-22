@@ -2,7 +2,10 @@
 // ABOUTME: Idempotent - returns existing settings if already created for this project
 
 import { ProjectSettings } from '@/domain/entities/ProjectSettings';
-import { ProjectSettingsRepository } from '@/domain/interfaces/ProjectSettingsRepository';
+import {
+  ProjectSettingsRepository,
+  DuplicateProjectSettingsError,
+} from '@/domain/interfaces/ProjectSettingsRepository';
 import { IdGenerator } from '@/domain/interfaces/IdGenerator';
 
 export interface CreateProjectSettingsInput {
@@ -36,7 +39,7 @@ export class CreateProjectSettingsUseCase {
     } catch (error) {
       // Handle race condition: if another request created settings concurrently,
       // return the existing settings instead of failing
-      if (this.isDuplicateKeyError(error)) {
+      if (error instanceof DuplicateProjectSettingsError) {
         const created = await this.repository.findByProjectId(input.userId, input.projectId);
         if (created) {
           return created;
@@ -44,14 +47,5 @@ export class CreateProjectSettingsUseCase {
       }
       throw error;
     }
-  }
-
-  private isDuplicateKeyError(error: unknown): boolean {
-    return (
-      error !== null &&
-      typeof error === 'object' &&
-      'code' in error &&
-      error.code === 11000
-    );
   }
 }

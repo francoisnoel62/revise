@@ -3,8 +3,7 @@
 
 'use server';
 
-import { auth } from '@/infrastructure/auth/auth-config';
-import { getProjectSettingsRepo, getIdGenerator, getBlobStorageInstance } from './utils';
+import { getProjectSettingsRepo, getIdGenerator, getBlobStorageInstance, getAuthenticatedUserId } from './utils';
 import { CreateProjectSettingsUseCase } from '@/application/use-cases/CreateProjectSettingsUseCase';
 import { LoadProjectSettingsUseCase } from '@/application/use-cases/LoadProjectSettingsUseCase';
 import { UpdateProjectSettingsUseCase, ProjectSettingsUpdates } from '@/application/use-cases/UpdateProjectSettingsUseCase';
@@ -60,8 +59,8 @@ export async function createProjectSettingsAction(
   title: string
 ): Promise<{ success: true; settings: SerializedProjectSettings } | { success: false; error: string }> {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
       return { success: false, error: 'Non authentifié' };
     }
 
@@ -71,7 +70,7 @@ export async function createProjectSettingsAction(
     );
 
     const settings = await useCase.execute({
-      userId: session.user.id,
+      userId: authResult.userId,
       projectId,
       title,
     });
@@ -90,15 +89,15 @@ export async function loadProjectSettingsAction(
   projectId: string
 ): Promise<{ success: true; settings: SerializedProjectSettings | null } | { success: false; error: string }> {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
       return { success: false, error: 'Non authentifié' };
     }
 
     const useCase = new LoadProjectSettingsUseCase(await getProjectSettingsRepo());
 
     const settings = await useCase.execute({
-      userId: session.user.id,
+      userId: authResult.userId,
       projectId,
     });
 
@@ -117,15 +116,15 @@ export async function updateProjectSettingsAction(
   updates: ProjectSettingsUpdates
 ): Promise<{ success: true; settings: SerializedProjectSettings } | { success: false; error: string }> {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
       return { success: false, error: 'Non authentifié' };
     }
 
     const useCase = new UpdateProjectSettingsUseCase(await getProjectSettingsRepo());
 
     const settings = await useCase.execute({
-      userId: session.user.id,
+      userId: authResult.userId,
       projectId,
       updates,
     });
@@ -145,8 +144,8 @@ export async function uploadCoverImageAction(
   formData: FormData
 ): Promise<{ success: true; settings: SerializedProjectSettings } | { success: false; error: string }> {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
       return { success: false, error: 'Non authentifié' };
     }
 
@@ -163,7 +162,7 @@ export async function uploadCoverImageAction(
     const arrayBuffer = await file.arrayBuffer();
 
     const settings = await useCase.execute({
-      userId: session.user.id,
+      userId: authResult.userId,
       projectId,
       file: arrayBuffer,
       filename: file.name,
@@ -184,8 +183,8 @@ export async function deleteCoverImageAction(
   projectId: string
 ): Promise<{ success: true; settings: SerializedProjectSettings } | { success: false; error: string }> {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
       return { success: false, error: 'Non authentifié' };
     }
 
@@ -195,7 +194,7 @@ export async function deleteCoverImageAction(
     );
 
     const settings = await useCase.execute({
-      userId: session.user.id,
+      userId: authResult.userId,
       projectId,
     });
 

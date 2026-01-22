@@ -4,6 +4,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MongoDBProjectSettingsRepository } from '../MongoDBProjectSettingsRepository';
 import { ProjectSettings } from '@/domain/entities/ProjectSettings';
+import { DuplicateProjectSettingsError } from '@/domain/interfaces/ProjectSettingsRepository';
 import { ObjectId } from 'mongodb';
 
 describe('MongoDBProjectSettingsRepository', () => {
@@ -62,6 +63,22 @@ describe('MongoDBProjectSettingsRepository', () => {
 
       await expect(repository.create('user-2', settings)).rejects.toThrow(
         'Settings owner does not match user'
+      );
+    });
+
+    it('throws DuplicateProjectSettingsError on duplicate key', async () => {
+      const settings = ProjectSettings.create(
+        new ObjectId().toHexString(),
+        'project-1',
+        'user-1',
+        'My Novel'
+      );
+
+      const duplicateError = { code: 11000, message: 'duplicate key error' };
+      mockCollection.insertOne.mockRejectedValue(duplicateError);
+
+      await expect(repository.create('user-1', settings)).rejects.toThrow(
+        DuplicateProjectSettingsError
       );
     });
   });

@@ -12,6 +12,7 @@ describe('CreateProjectSettingsUseCase', () => {
   beforeEach(() => {
     mockRepository = {
       create: vi.fn((userId, settings) => Promise.resolve(settings)),
+      findByProjectId: vi.fn(() => Promise.resolve(null)),
     };
 
     mockIdGenerator = {

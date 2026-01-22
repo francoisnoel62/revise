@@ -4,11 +4,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getProjectStatsAction } from '../cockpit-actions';
 
-// Mock auth
-vi.mock('@/infrastructure/auth/auth-config', () => ({
-  auth: vi.fn(),
-}));
-
 // Mock repository
 vi.mock('../utils', () => ({
   getRepository: vi.fn(),
@@ -18,6 +13,7 @@ vi.mock('../utils', () => ({
       countByProjectId: vi.fn(() => Promise.resolve(3)),
     })
   ),
+  getAuthenticatedUserId: vi.fn(),
 }));
 
 // Mock formatReadingTime
@@ -35,8 +31,7 @@ vi.mock('@/application/use-cases/GetActiveWritingGoalUseCase', () => ({
   },
 }));
 
-import { auth } from '@/infrastructure/auth/auth-config';
-import { getRepository } from '../utils';
+import { getRepository, getAuthenticatedUserId } from '../utils';
 
 describe('getProjectStatsAction', () => {
   const mockProject = {
@@ -58,7 +53,7 @@ describe('getProjectStatsAction', () => {
   });
 
   it('returns project stats when authenticated', async () => {
-    vi.mocked(auth).mockResolvedValue({ user: { id: 'user-1' } } as any);
+    vi.mocked(getAuthenticatedUserId).mockResolvedValue({ userId: 'user-1' });
     mockRepository.loadProject.mockResolvedValue(mockProject);
 
     const result = await getProjectStatsAction('project-1');
@@ -76,18 +71,9 @@ describe('getProjectStatsAction', () => {
   });
 
   it('returns error when not authenticated', async () => {
-    vi.mocked(auth).mockResolvedValue(null as any);
-
-    const result = await getProjectStatsAction('project-1');
-
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error).toBe('Non authentifié');
-    }
-  });
-
-  it('returns error when session has no user id', async () => {
-    vi.mocked(auth).mockResolvedValue({ user: {} } as any);
+    vi.mocked(getAuthenticatedUserId).mockResolvedValue({
+      error: { success: false, error: 'Non authentifié' },
+    });
 
     const result = await getProjectStatsAction('project-1');
 
@@ -98,7 +84,7 @@ describe('getProjectStatsAction', () => {
   });
 
   it('returns error when project not found', async () => {
-    vi.mocked(auth).mockResolvedValue({ user: { id: 'user-1' } } as any);
+    vi.mocked(getAuthenticatedUserId).mockResolvedValue({ userId: 'user-1' });
     mockRepository.loadProject.mockResolvedValue(null);
 
     const result = await getProjectStatsAction('project-1');
@@ -110,7 +96,7 @@ describe('getProjectStatsAction', () => {
   });
 
   it('returns error on repository exception', async () => {
-    vi.mocked(auth).mockResolvedValue({ user: { id: 'user-1' } } as any);
+    vi.mocked(getAuthenticatedUserId).mockResolvedValue({ userId: 'user-1' });
     mockRepository.loadProject.mockRejectedValue(new Error('DB error'));
 
     const result = await getProjectStatsAction('project-1');

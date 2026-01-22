@@ -3,8 +3,7 @@
 
 'use server';
 
-import { auth } from '@/infrastructure/auth/auth-config';
-import { getWritingGoalRepo, getIdGenerator } from './utils';
+import { getWritingGoalRepo, getIdGenerator, getAuthenticatedUserId } from './utils';
 import { CreateWritingGoalUseCase } from '@/application/use-cases/CreateWritingGoalUseCase';
 import { ListWritingGoalsUseCase } from '@/application/use-cases/ListWritingGoalsUseCase';
 import { UpdateWritingGoalUseCase } from '@/application/use-cases/UpdateWritingGoalUseCase';
@@ -41,8 +40,8 @@ export async function createWritingGoalAction(
   deadline?: string
 ): Promise<{ success: true; goal: SerializedWritingGoal } | { success: false; error: string }> {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
       return { success: false, error: 'Non authentifié' };
     }
 
@@ -52,7 +51,7 @@ export async function createWritingGoalAction(
     );
 
     const goal = await useCase.execute({
-      userId: session.user.id,
+      userId: authResult.userId,
       projectId,
       type,
       targetWords,
@@ -73,15 +72,15 @@ export async function listWritingGoalsAction(
   projectId: string
 ): Promise<{ success: true; goals: SerializedWritingGoal[] } | { success: false; error: string }> {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
       return { success: false, error: 'Non authentifié' };
     }
 
     const useCase = new ListWritingGoalsUseCase(await getWritingGoalRepo());
 
     const goals = await useCase.execute({
-      userId: session.user.id,
+      userId: authResult.userId,
       projectId,
     });
 
@@ -101,15 +100,15 @@ export async function updateWritingGoalAction(
   }
 ): Promise<{ success: true; goal: SerializedWritingGoal } | { success: false; error: string }> {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
       return { success: false, error: 'Non authentifié' };
     }
 
     const useCase = new UpdateWritingGoalUseCase(await getWritingGoalRepo());
 
     const goal = await useCase.execute({
-      userId: session.user.id,
+      userId: authResult.userId,
       goalId,
       targetWords: updates.targetWords,
       deadline: updates.deadline === null ? null : updates.deadline ? new Date(updates.deadline) : undefined,
@@ -130,15 +129,15 @@ export async function deleteWritingGoalAction(
   goalId: string
 ): Promise<{ success: true } | { success: false; error: string }> {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
       return { success: false, error: 'Non authentifié' };
     }
 
     const useCase = new DeleteWritingGoalUseCase(await getWritingGoalRepo());
 
     await useCase.execute({
-      userId: session.user.id,
+      userId: authResult.userId,
       goalId,
     });
 
@@ -156,15 +155,15 @@ export async function getActiveWritingGoalAction(
   projectId: string
 ): Promise<{ success: true; goal: SerializedWritingGoal | null } | { success: false; error: string }> {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
       return { success: false, error: 'Non authentifié' };
     }
 
     const useCase = new GetActiveWritingGoalUseCase(await getWritingGoalRepo());
 
     const goal = await useCase.execute({
-      userId: session.user.id,
+      userId: authResult.userId,
       projectId,
     });
 

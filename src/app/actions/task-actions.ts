@@ -3,8 +3,7 @@
 
 'use server';
 
-import { auth } from '@/infrastructure/auth/auth-config';
-import { getProjectTaskRepo, getIdGenerator } from './utils';
+import { getProjectTaskRepo, getIdGenerator, getAuthenticatedUserId } from './utils';
 import { CreateProjectTaskUseCase } from '@/application/use-cases/CreateProjectTaskUseCase';
 import { ListProjectTasksUseCase } from '@/application/use-cases/ListProjectTasksUseCase';
 import { UpdateProjectTaskUseCase } from '@/application/use-cases/UpdateProjectTaskUseCase';
@@ -63,8 +62,8 @@ export async function createTaskAction(
   }
 ): Promise<{ success: true; task: SerializedProjectTask } | { success: false; error: string }> {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
       return { success: false, error: 'Non authentifié' };
     }
 
@@ -74,7 +73,7 @@ export async function createTaskAction(
     );
 
     const task = await useCase.execute({
-      userId: session.user.id,
+      userId: authResult.userId,
       projectId,
       title,
       description: options?.description,
@@ -107,15 +106,15 @@ export async function listTasksAction(
   { success: true; tasks: SerializedProjectTask[]; total: number } | { success: false; error: string }
 > {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
       return { success: false, error: 'Non authentifié' };
     }
 
     const useCase = new ListProjectTasksUseCase(await getProjectTaskRepo());
 
     const { tasks, total } = await useCase.execute({
-      userId: session.user.id,
+      userId: authResult.userId,
       projectId,
       filters: options?.filters,
       sort: options?.sort,
@@ -143,15 +142,15 @@ export async function updateTaskAction(
   }
 ): Promise<{ success: true; task: SerializedProjectTask } | { success: false; error: string }> {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
       return { success: false, error: 'Non authentifié' };
     }
 
     const useCase = new UpdateProjectTaskUseCase(await getProjectTaskRepo());
 
     const task = await useCase.execute({
-      userId: session.user.id,
+      userId: authResult.userId,
       taskId,
       title: updates.title,
       description: updates.description,
@@ -181,15 +180,15 @@ export async function deleteTaskAction(
   taskId: string
 ): Promise<{ success: true } | { success: false; error: string }> {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
       return { success: false, error: 'Non authentifié' };
     }
 
     const useCase = new DeleteProjectTaskUseCase(await getProjectTaskRepo());
 
     await useCase.execute({
-      userId: session.user.id,
+      userId: authResult.userId,
       taskId,
     });
 
@@ -207,15 +206,15 @@ export async function getTaskSummaryAction(
   projectId: string
 ): Promise<{ success: true; summary: TaskSummary } | { success: false; error: string }> {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
       return { success: false, error: 'Non authentifié' };
     }
 
     const useCase = new GetTaskSummaryUseCase(await getProjectTaskRepo());
 
     const summary = await useCase.execute({
-      userId: session.user.id,
+      userId: authResult.userId,
       projectId,
     });
 
@@ -230,34 +229,20 @@ export async function toggleTaskStatusAction(
   taskId: string
 ): Promise<{ success: true; task: SerializedProjectTask } | { success: false; error: string }> {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
       return { success: false, error: 'Non authentifié' };
     }
 
     const repo = await getProjectTaskRepo();
-    const existing = await repo.findById(session.user.id, taskId);
+    const existing = await repo.findById(authResult.userId, taskId);
 
     if (!existing) {
       return { success: false, error: 'Tâche non trouvée' };
     }
 
-    // Cycle through: todo -> in_progress -> done -> todo
-    let newStatus: TaskStatus;
-    switch (existing.getStatus()) {
-      case 'todo':
-        newStatus = 'in_progress';
-        break;
-      case 'in_progress':
-        newStatus = 'done';
-        break;
-      case 'done':
-        newStatus = 'todo';
-        break;
-    }
-
-    const updated = existing.updateStatus(newStatus);
-    await repo.update(session.user.id, updated);
+    const updated = existing.cycleStatus();
+    await repo.update(authResult.userId, updated);
 
     return { success: true, task: serializeTask(updated) };
   } catch (error) {
@@ -270,13 +255,13 @@ export async function getProjectTagsAction(
   projectId: string
 ): Promise<{ success: true; tags: string[] } | { success: false; error: string }> {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
       return { success: false, error: 'Non authentifié' };
     }
 
     const repo = await getProjectTaskRepo();
-    const tags = await repo.getTagsByProject(session.user.id, projectId);
+    const tags = await repo.getTagsByProject(authResult.userId, projectId);
 
     return { success: true, tags };
   } catch (error) {

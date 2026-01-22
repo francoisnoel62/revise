@@ -1,9 +1,9 @@
 // ABOUTME: Domain entity representing project settings (title, cover, narration, etc.)
 // ABOUTME: Separate from AI-generated metadata, owned by the author
 
-import { Contributor } from '@/domain/value-objects/Contributor';
-import { RelatedWork } from '@/domain/value-objects/RelatedWork';
-import { PointOfView, NarrationTense, TargetAudience } from '@/domain/value-objects/NarrationSettings';
+import { Contributor } from '../value-objects/Contributor';
+import { RelatedWork } from '../value-objects/RelatedWork';
+import { PointOfView, NarrationTense, TargetAudience } from '../value-objects/NarrationSettings';
 
 export interface ProjectSettingsProperties {
   id: string;

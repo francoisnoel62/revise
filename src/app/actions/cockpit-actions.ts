@@ -3,8 +3,7 @@
 
 'use server';
 
-import { auth } from '@/infrastructure/auth/auth-config';
-import { getRepository, getWritingGoalRepo, getCharacterRepo } from './utils';
+import { getRepository, getWritingGoalRepo, getCharacterRepo, getAuthenticatedUserId } from './utils';
 import { formatReadingTime } from '@/lib/utils';
 import { GetActiveWritingGoalUseCase } from '@/application/use-cases/GetActiveWritingGoalUseCase';
 
@@ -30,13 +29,13 @@ export async function getProjectStatsAction(
   { success: true; stats: ProjectStats } | { success: false; error: string }
 > {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
       return { success: false, error: 'Non authentifié' };
     }
 
     const repository = await getRepository();
-    const project = await repository.loadProject(session.user.id, projectId);
+    const project = await repository.loadProject(authResult.userId, projectId);
 
     if (!project) {
       return { success: false, error: 'Projet non trouvé' };
@@ -49,10 +48,10 @@ export async function getProjectStatsAction(
     // Get active goal and character count in parallel
     const [activeGoal, fictionalCharacterCount] = await Promise.all([
       new GetActiveWritingGoalUseCase(await getWritingGoalRepo()).execute({
-        userId: session.user.id,
+        userId: authResult.userId,
         projectId,
       }),
-      (await getCharacterRepo()).countByProjectId(session.user.id, projectId),
+      (await getCharacterRepo()).countByProjectId(authResult.userId, projectId),
     ]);
 
     return {

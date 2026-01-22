@@ -262,6 +262,15 @@ export class ProjectTask {
     return this.updateStatus('todo');
   }
 
+  cycleStatus(): ProjectTask {
+    const nextStatus: Record<TaskStatus, TaskStatus> = {
+      todo: 'in_progress',
+      in_progress: 'done',
+      done: 'todo',
+    };
+    return this.updateStatus(nextStatus[this.status]);
+  }
+
   private toProperties(): ProjectTaskProperties {
     return {
       id: this.id,

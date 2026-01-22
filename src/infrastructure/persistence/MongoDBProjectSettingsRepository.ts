@@ -2,7 +2,10 @@
 // ABOUTME: Provides persistence for project settings with multi-tenant isolation
 
 import { Db, ObjectId } from 'mongodb';
-import { ProjectSettingsRepository } from '@/domain/interfaces/ProjectSettingsRepository';
+import {
+  ProjectSettingsRepository,
+  DuplicateProjectSettingsError,
+} from '@/domain/interfaces/ProjectSettingsRepository';
 import { ProjectSettings } from '@/domain/entities/ProjectSettings';
 import {
   ProjectSettingsDocument,
@@ -28,8 +31,24 @@ export class MongoDBProjectSettingsRepository implements ProjectSettingsReposito
     const collection = this.db.collection<ProjectSettingsDocument>(COLLECTION_NAME);
     const doc = serializeProjectSettings(settings);
 
-    await collection.insertOne(doc);
-    return settings;
+    try {
+      await collection.insertOne(doc);
+      return settings;
+    } catch (error) {
+      if (this.isDuplicateKeyError(error)) {
+        throw new DuplicateProjectSettingsError(settings.getProjectId());
+      }
+      throw error;
+    }
+  }
+
+  private isDuplicateKeyError(error: unknown): boolean {
+    return (
+      error !== null &&
+      typeof error === 'object' &&
+      'code' in error &&
+      error.code === 11000
+    );
   }
 
   async findById(userId: string, settingsId: string): Promise<ProjectSettings | null> {
