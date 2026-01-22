@@ -280,21 +280,23 @@ Clean Architecture stricte avec séparation par couches :
 ```
 src/
 ├── domain/           # Logique métier pure (zéro dépendance)
-│   ├── entities/     # Chapter, Project, Provider, User, ProjectMetadata, CorrectionHistory, BlogArticle, ContactMessage
-│   ├── value-objects/# TextSelection, RewriteProposal, MetadataType...
+│   ├── entities/     # Chapter, Project, Provider, User, ProjectMetadata, CorrectionHistory, BlogArticle, ContactMessage, Character, ProjectSettings, ProjectTask, ResearchDocument, WritingGoal, AIUsageRecord
+│   ├── value-objects/# TextSelection, RewriteProposal, MetadataType, TaskPriority, TaskStatus, Contributor, RelatedWork, NarrationSettings, AIOperationType...
 │   └── interfaces/   # Contrats repositories & services
 │
 ├── application/      # Use cases orchestrant le domaine
-│   └── use-cases/    # 60+ use cases
+│   └── use-cases/    # 90+ use cases
 │
 ├── infrastructure/   # Implémentations externes
-│   ├── ai/           # Providers OpenAI, Anthropic
-│   ├── persistence/  # Repositories MongoDB (8 repositories)
+│   ├── ai/           # Providers OpenAI, Anthropic, TrackedLLMProvider
+│   ├── persistence/  # Repositories MongoDB (14 repositories)
+│   ├── storage/      # Vercel Blob Storage
 │   ├── email/        # Service email Resend
 │   └── document/     # Import/export DOCX/PDF
 │
 └── app/              # Couche interface Next.js
     ├── (auth)/       # Pages signin, signup
+    ├── project/      # Éditeur et cockpit projet
     ├── blog/         # Section blog
     ├── admin/        # Administration blog
     └── settings/     # Paramètres utilisateur
@@ -344,12 +346,12 @@ npm run test:e2e          # Tests end-to-end (Playwright)
 - [x] Phase 4.1+ : Menu IA unifié, palette de commandes, responsive mobile, temps de lecture, pagination blog
 - [x] Phase 5.0 : Partage public de projets via liens uniques
 - [x] Phase 5.1 : Import de dossier Markdown
+- [x] Phase 6.0 : Project Cockpit (tableau de bord projet, gestion personnages, tâches, objectifs, recherche, statistiques IA)
 
-### 🔜 Phase 6
+### 🔜 Phase 7
 
 - [ ] Recherche full-text dans les chapitres
 - [ ] Templates de chapitres
-- [ ] Objectifs d'écriture & statistiques
 - [ ] Historique de versions
 
 ### 🔮 Futur

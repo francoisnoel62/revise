@@ -2,7 +2,7 @@
 
 Implements domain interfaces with concrete external services.
 
-**Status**: ✅ Phase 5.1 Complete (see [README.md](../../README.md) for test statistics)
+**Status**: ✅ Phase 6 Complete (see [README.md](../../README.md) for test statistics)
 
 ## Rules:
 - Implements interfaces defined in Domain layer
@@ -11,7 +11,7 @@ Implements domain interfaces with concrete external services.
 
 ## Contents:
 
-### AI Provider (✅ Phase 4.1 Enhanced)
+### AI Provider (✅ Phase 6 Enhanced)
 
 #### `OpenAIProvider` ⭐ ENHANCED (Phase 4.1)
 **Implements**: `LLMProvider` interface
@@ -66,6 +66,27 @@ Implements domain interfaces with concrete external services.
 - `create(provider: Provider)` → `LLMProvider` - Creates provider instance
 
 **Tests**: 5+ tests covering factory creation for all provider types
+
+---
+
+#### `TrackedLLMProvider` ⭐ NEW (Phase 6)
+**Purpose**: LLM provider wrapper that tracks AI usage
+
+**Features**:
+- Wraps any LLM provider implementation
+- Tracks token usage for all operations
+- Records usage to AIUsageRepository
+- Supports all LLM provider methods
+- Calculates estimated cost based on model pricing
+
+**Workflow**:
+1. Intercepts LLM provider method calls
+2. Executes underlying provider method
+3. Extracts token counts from response
+4. Records usage to repository
+5. Returns original response
+
+**Tests**: 15+ tests covering tracking for all operation types
 
 ---
 
@@ -363,7 +384,7 @@ Implements domain interfaces with concrete external services.
 
 ---
 
-### Persistence ⭐ ENHANCED (Phase 3)
+### Persistence ⭐ ENHANCED (Phase 6)
 
 #### `MongoDBProjectRepository` ⭐ NEW (Phase 3)
 **Implements**: `ProjectRepository` interface
@@ -514,6 +535,129 @@ Implements domain interfaces with concrete external services.
 
 ---
 
+#### `MongoDBCharacterRepository` ⭐ NEW (Phase 6)
+**Implements**: `CharacterRepository` interface
+**Technology**: MongoDB Atlas with official Node.js driver
+
+**Purpose**: Character storage with multi-tenant isolation
+
+**Methods**:
+- `create(userId, character)` - Creates character
+- `findById(userId, characterId)` - Loads character (ownership verified)
+- `findByProjectId(userId, projectId)` - Lists all characters for project
+- `update(userId, character)` - Updates character
+- `delete(userId, characterId)` - Deletes character
+- `deleteAllByOwner(userId)` - Deletes all user's characters (RGPD)
+
+**Multi-Tenant Security**:
+- All queries filter by `ownerId`
+- Enforced at database query level
+
+**Tests**: 15+ tests covering CRUD operations and multi-tenant isolation
+
+---
+
+#### `MongoDBProjectSettingsRepository` ⭐ NEW (Phase 6)
+**Implements**: `ProjectSettingsRepository` interface
+**Technology**: MongoDB Atlas with official Node.js driver
+
+**Purpose**: Project settings storage
+
+**Methods**:
+- `create(userId, settings)` - Creates project settings
+- `findByProjectId(userId, projectId)` - Loads settings for project
+- `update(userId, settings)` - Updates settings
+- `delete(userId, settingsId)` - Deletes settings
+- `deleteAllByOwner(userId)` - Deletes all user's settings (RGPD)
+
+**Tests**: 15+ tests covering CRUD operations
+
+---
+
+#### `MongoDBProjectTaskRepository` ⭐ NEW (Phase 6)
+**Implements**: `ProjectTaskRepository` interface
+**Technology**: MongoDB Atlas with official Node.js driver
+
+**Purpose**: Task storage with filtering and sorting
+
+**Methods**:
+- `create(userId, task)` - Creates task
+- `findById(userId, taskId)` - Loads task (ownership verified)
+- `findByProjectId(userId, projectId, filters?)` - Lists tasks with optional filters
+- `update(userId, task)` - Updates task
+- `delete(userId, taskId)` - Deletes task
+- `getTaskSummary(userId, projectId)` - Aggregates task statistics
+- `deleteAllByOwner(userId)` - Deletes all user's tasks (RGPD)
+
+**Filtering**:
+- By status (todo, in_progress, done, blocked)
+- By priority (low, medium, high, urgent)
+- Sorted by due date, priority, or creation date
+
+**Tests**: 20+ tests covering CRUD, filtering, and aggregation
+
+---
+
+#### `MongoDBResearchDocumentRepository` ⭐ NEW (Phase 6)
+**Implements**: `ResearchDocumentRepository` interface
+**Technology**: MongoDB Atlas with official Node.js driver
+
+**Purpose**: Research document storage
+
+**Methods**:
+- `create(userId, document)` - Creates document
+- `findById(userId, documentId)` - Loads document (ownership verified)
+- `findByProjectId(userId, projectId)` - Lists all documents for project
+- `update(userId, document)` - Updates document
+- `delete(userId, documentId)` - Deletes document
+- `deleteAllByOwner(userId)` - Deletes all user's documents (RGPD)
+
+**Tests**: 10+ tests covering CRUD operations
+
+---
+
+#### `MongoDBWritingGoalRepository` ⭐ NEW (Phase 6)
+**Implements**: `WritingGoalRepository` interface
+**Technology**: MongoDB Atlas with official Node.js driver
+
+**Purpose**: Writing goal storage
+
+**Methods**:
+- `create(userId, goal)` - Creates goal
+- `findById(userId, goalId)` - Loads goal (ownership verified)
+- `findByProjectId(userId, projectId)` - Lists all goals for project
+- `findActiveByProjectId(userId, projectId)` - Finds active goal
+- `update(userId, goal)` - Updates goal
+- `delete(userId, goalId)` - Deletes goal
+- `deleteAllByOwner(userId)` - Deletes all user's goals (RGPD)
+
+**Tests**: 10+ tests covering CRUD operations
+
+---
+
+#### `MongoDBUsageRepository` ⭐ NEW (Phase 6)
+**Implements**: `AIUsageRepository` interface
+**Technology**: MongoDB Atlas with official Node.js driver
+
+**Purpose**: AI usage statistics with aggregation
+
+**Methods**:
+- `create(record)` - Creates usage record
+- `findByUserId(userId, filters?)` - Lists usage for user
+- `findByProjectId(userId, projectId, filters?)` - Lists usage for project
+- `getUsageStats(userId, projectId?, dateRange?)` - Aggregates total usage
+- `getDailyUsage(userId, projectId?, days?)` - Daily usage breakdown
+- `getUsageByOperation(userId, projectId?, dateRange?)` - Usage by operation type
+
+**Aggregation Pipelines**:
+- Total tokens and cost calculation
+- Daily grouping for charts
+- Operation type breakdown
+
+**Tests**: 15+ tests covering CRUD and aggregation
+
+---
+
 #### `InMemoryProjectRepository` (Phase 2 - Testing)
 **Implements**: `ProjectRepository` interface
 **Purpose**: Ephemeral storage for testing
@@ -571,6 +715,97 @@ Implements domain interfaces with concrete external services.
 
 ---
 
+#### `character-serializer` ⭐ NEW (Phase 6)
+**Purpose**: Convert between Character entities and MongoDB documents
+
+**Functions**:
+- `serializeCharacter(character)` - Character entity → MongoDB document
+- `deserializeCharacter(document)` - MongoDB document → Character entity
+
+**Tests**: Integrated with MongoDBCharacterRepository tests
+
+---
+
+#### `project-settings-serializer` ⭐ NEW (Phase 6)
+**Purpose**: Convert between ProjectSettings entities and MongoDB documents
+
+**Functions**:
+- `serializeProjectSettings(settings)` - ProjectSettings entity → MongoDB document
+- `deserializeProjectSettings(document)` - MongoDB document → ProjectSettings entity
+
+**Features**:
+- Handles nested value objects (NarrationSettings, Contributor, RelatedWork)
+- Preserves cover image URL
+
+**Tests**: 10+ tests covering serialization scenarios
+
+---
+
+#### `project-task-serializer` ⭐ NEW (Phase 6)
+**Purpose**: Convert between ProjectTask entities and MongoDB documents
+
+**Functions**:
+- `serializeProjectTask(task)` - ProjectTask entity → MongoDB document
+- `deserializeProjectTask(document)` - MongoDB document → ProjectTask entity
+
+**Tests**: Integrated with MongoDBProjectTaskRepository tests
+
+---
+
+#### `research-document-serializer` ⭐ NEW (Phase 6)
+**Purpose**: Convert between ResearchDocument entities and MongoDB documents
+
+**Functions**:
+- `serializeResearchDocument(document)` - ResearchDocument entity → MongoDB document
+- `deserializeResearchDocument(document)` - MongoDB document → ResearchDocument entity
+
+**Tests**: Integrated with MongoDBResearchDocumentRepository tests
+
+---
+
+#### `writing-goal-serializer` ⭐ NEW (Phase 6)
+**Purpose**: Convert between WritingGoal entities and MongoDB documents
+
+**Functions**:
+- `serializeWritingGoal(goal)` - WritingGoal entity → MongoDB document
+- `deserializeWritingGoal(document)` - MongoDB document → WritingGoal entity
+
+**Tests**: Integrated with MongoDBWritingGoalRepository tests
+
+---
+
+#### `ai-usage-serializer` ⭐ NEW (Phase 6)
+**Purpose**: Convert between AIUsageRecord entities and MongoDB documents
+
+**Functions**:
+- `serializeAIUsageRecord(record)` - AIUsageRecord entity → MongoDB document
+- `deserializeAIUsageRecord(document)` - MongoDB document → AIUsageRecord entity
+
+**Tests**: Integrated with MongoDBUsageRepository tests
+
+---
+
+### Storage ⭐ NEW (Phase 6)
+
+#### `VercelBlobStorage`
+**Implements**: `BlobStorage` interface
+**Technology**: Vercel Blob
+
+**Purpose**: Cover image storage for projects
+
+**Methods**:
+- `upload(file, path)` - Uploads file to Vercel Blob
+- `delete(url)` - Deletes file from Vercel Blob
+
+**Features**:
+- Automatic URL generation
+- Content-type detection
+- Error handling for upload failures
+
+**Tests**: 10+ tests covering upload and delete operations
+
+---
+
 ### Prompts ⭐ NEW (Phase 3.6)
 
 #### `FilePromptRepository`
@@ -602,7 +837,7 @@ docs/prompt/metadata/
 
 ---
 
-### Utils ⭐ ENHANCED (Phase 3.6)
+### Utils ⭐ ENHANCED (Phase 6)
 
 #### `UUIDGenerator`
 **Implements**: `IdGenerator` interface
@@ -643,7 +878,22 @@ const hash3 = hashText("Chapter 1 UPDATED..."); // Different
 
 ---
 
-### Configuration ⭐ ENHANCED (Phase 3)
+#### `ObjectIdGenerator` ⭐ NEW (Phase 6)
+**Purpose**: Generate MongoDB ObjectIds on the frontend
+
+**Features**:
+- Generates valid MongoDB ObjectIds
+- Works in browser environment
+- Used for optimistic UI updates
+
+**Functions**:
+- `generateObjectId()` → `string` - Returns a new ObjectId string
+
+**Tests**: 3+ tests covering ObjectId generation
+
+---
+
+### Configuration ⭐ ENHANCED (Phase 6)
 
 #### `env.ts`
 **Purpose**: Environment variable validation and access

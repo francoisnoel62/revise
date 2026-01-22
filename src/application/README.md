@@ -2,7 +2,7 @@
 
 Orchestrates domain logic through use cases.
 
-**Status**: ✅ Phase 5.1 Complete (see [README.md](../../README.md) for test statistics)
+**Status**: ✅ Phase 6 Complete (see [README.md](../../README.md) for test statistics)
 
 ## Rules:
 - Depends only on Domain layer
@@ -478,6 +478,321 @@ Orchestrates domain logic through use cases.
 
 ---
 
+### Character Use Cases ⭐ NEW (Phase 6)
+
+---
+
+#### `CreateCharacterUseCase`
+**Purpose**: Create new character for a project
+
+**Dependencies**: `CharacterRepository`, `IdGenerator` interfaces
+**Input**: User ID, project ID, character data (name, aliases, description, traits, goals, relationships)
+**Output**: Created `Character` entity
+
+**Tests**: 5+ tests covering creation scenarios
+
+---
+
+#### `LoadCharacterUseCase`
+**Purpose**: Load character from repository
+
+**Dependencies**: `CharacterRepository` interface
+**Input**: User ID, character ID
+**Output**: `Character` entity or null
+
+**Tests**: 4+ tests covering load scenarios
+
+---
+
+#### `ListProjectCharactersUseCase`
+**Purpose**: List all characters for a project
+
+**Dependencies**: `CharacterRepository` interface
+**Input**: User ID, project ID
+**Output**: Array of `Character` entities
+
+**Tests**: 5+ tests covering list scenarios
+
+---
+
+#### `UpdateCharacterUseCase`
+**Purpose**: Update character details
+
+**Dependencies**: `CharacterRepository` interface
+**Input**: User ID, character ID, updates
+**Output**: Updated `Character` entity
+
+**Tests**: 5+ tests covering update scenarios
+
+---
+
+#### `DeleteCharacterUseCase`
+**Purpose**: Delete character
+
+**Dependencies**: `CharacterRepository` interface
+**Input**: User ID, character ID
+**Output**: void
+
+**Tests**: 4+ tests covering deletion
+
+---
+
+#### `SyncCharactersFromAnalysisUseCase`
+**Purpose**: Sync characters from AI analysis to character list
+
+**Dependencies**: `CharacterRepository`, `MetadataRepository` interfaces
+**Input**: User ID, project ID
+**Output**: Array of synced `Character` entities
+
+**Workflow**:
+1. Load characters analysis metadata
+2. Extract character data from analysis
+3. Create or update characters based on analysis
+4. Return synced characters
+
+**Tests**: 10+ tests covering sync scenarios
+
+---
+
+### ProjectSettings Use Cases ⭐ NEW (Phase 6)
+
+---
+
+#### `CreateProjectSettingsUseCase`
+**Purpose**: Create project settings
+
+**Dependencies**: `ProjectSettingsRepository`, `IdGenerator` interfaces
+**Input**: User ID, project ID, settings data
+**Output**: Created `ProjectSettings` entity
+
+**Tests**: 5+ tests covering creation
+
+---
+
+#### `LoadProjectSettingsUseCase`
+**Purpose**: Load project settings
+
+**Dependencies**: `ProjectSettingsRepository` interface
+**Input**: User ID, project ID
+**Output**: `ProjectSettings` entity or null
+
+**Tests**: 4+ tests covering load scenarios
+
+---
+
+#### `UpdateProjectSettingsUseCase`
+**Purpose**: Update project settings
+
+**Dependencies**: `ProjectSettingsRepository` interface
+**Input**: User ID, project ID, updates
+**Output**: Updated `ProjectSettings` entity
+
+**Tests**: 5+ tests covering update scenarios
+
+---
+
+### ProjectTask Use Cases ⭐ NEW (Phase 6)
+
+---
+
+#### `CreateProjectTaskUseCase`
+**Purpose**: Create new task for a project
+
+**Dependencies**: `ProjectTaskRepository`, `IdGenerator` interfaces
+**Input**: User ID, project ID, task data (title, description, priority, status, due date, contributors)
+**Output**: Created `ProjectTask` entity
+
+**Tests**: 5+ tests covering creation
+
+---
+
+#### `ListProjectTasksUseCase`
+**Purpose**: List tasks for a project with optional filtering
+
+**Dependencies**: `ProjectTaskRepository` interface
+**Input**: User ID, project ID, optional filters (status, priority)
+**Output**: Array of `ProjectTask` entities
+
+**Tests**: 5+ tests covering list and filter scenarios
+
+---
+
+#### `UpdateProjectTaskUseCase`
+**Purpose**: Update task details
+
+**Dependencies**: `ProjectTaskRepository` interface
+**Input**: User ID, task ID, updates
+**Output**: Updated `ProjectTask` entity
+
+**Tests**: 5+ tests covering update scenarios
+
+---
+
+#### `DeleteProjectTaskUseCase`
+**Purpose**: Delete task
+
+**Dependencies**: `ProjectTaskRepository` interface
+**Input**: User ID, task ID
+**Output**: void
+
+**Tests**: 4+ tests covering deletion
+
+---
+
+#### `GetTaskSummaryUseCase`
+**Purpose**: Get task summary statistics for a project
+
+**Dependencies**: `ProjectTaskRepository` interface
+**Input**: User ID, project ID
+**Output**: Task summary (total, by status, by priority)
+
+**Tests**: 5+ tests covering summary calculation
+
+---
+
+### ResearchDocument Use Cases ⭐ NEW (Phase 6)
+
+---
+
+#### `CreateResearchDocumentUseCase`
+**Purpose**: Create new research document
+
+**Dependencies**: `ResearchDocumentRepository`, `IdGenerator` interfaces
+**Input**: User ID, project ID, document data (title, content, tags)
+**Output**: Created `ResearchDocument` entity
+
+**Tests**: 5+ tests covering creation
+
+---
+
+#### `ListResearchDocumentsUseCase`
+**Purpose**: List research documents for a project
+
+**Dependencies**: `ResearchDocumentRepository` interface
+**Input**: User ID, project ID
+**Output**: Array of `ResearchDocument` entities
+
+**Tests**: 4+ tests covering list scenarios
+
+---
+
+#### `UpdateResearchDocumentUseCase`
+**Purpose**: Update research document
+
+**Dependencies**: `ResearchDocumentRepository` interface
+**Input**: User ID, document ID, updates
+**Output**: Updated `ResearchDocument` entity
+
+**Tests**: 5+ tests covering update scenarios
+
+---
+
+#### `DeleteResearchDocumentUseCase`
+**Purpose**: Delete research document
+
+**Dependencies**: `ResearchDocumentRepository` interface
+**Input**: User ID, document ID
+**Output**: void
+
+**Tests**: 4+ tests covering deletion
+
+---
+
+### WritingGoal Use Cases ⭐ NEW (Phase 6)
+
+---
+
+#### `CreateWritingGoalUseCase`
+**Purpose**: Create new writing goal
+
+**Dependencies**: `WritingGoalRepository`, `IdGenerator` interfaces
+**Input**: User ID, project ID, goal data (title, target word count, deadline)
+**Output**: Created `WritingGoal` entity
+
+**Tests**: 5+ tests covering creation
+
+---
+
+#### `ListWritingGoalsUseCase`
+**Purpose**: List writing goals for a project
+
+**Dependencies**: `WritingGoalRepository` interface
+**Input**: User ID, project ID
+**Output**: Array of `WritingGoal` entities
+
+**Tests**: 4+ tests covering list scenarios
+
+---
+
+#### `UpdateWritingGoalUseCase`
+**Purpose**: Update writing goal
+
+**Dependencies**: `WritingGoalRepository` interface
+**Input**: User ID, goal ID, updates
+**Output**: Updated `WritingGoal` entity
+
+**Tests**: 5+ tests covering update scenarios
+
+---
+
+#### `DeleteWritingGoalUseCase`
+**Purpose**: Delete writing goal
+
+**Dependencies**: `WritingGoalRepository` interface
+**Input**: User ID, goal ID
+**Output**: void
+
+**Tests**: 4+ tests covering deletion
+
+---
+
+#### `GetActiveWritingGoalUseCase`
+**Purpose**: Get the active writing goal for a project
+
+**Dependencies**: `WritingGoalRepository` interface
+**Input**: User ID, project ID
+**Output**: Active `WritingGoal` entity or null
+
+**Tests**: 4+ tests covering active goal retrieval
+
+---
+
+### CoverImage Use Cases ⭐ NEW (Phase 6)
+
+---
+
+#### `UploadCoverImageUseCase`
+**Purpose**: Upload cover image for project
+
+**Dependencies**: `BlobStorage`, `ProjectSettingsRepository` interfaces
+**Input**: User ID, project ID, image file
+**Output**: Updated `ProjectSettings` with cover image URL
+
+**Workflow**:
+1. Upload image to blob storage
+2. Update project settings with new URL
+3. Return updated settings
+
+**Tests**: 5+ tests covering upload scenarios
+
+---
+
+#### `DeleteCoverImageUseCase`
+**Purpose**: Delete cover image from project
+
+**Dependencies**: `BlobStorage`, `ProjectSettingsRepository` interfaces
+**Input**: User ID, project ID
+**Output**: Updated `ProjectSettings` without cover image
+
+**Workflow**:
+1. Delete image from blob storage
+2. Clear cover image URL from settings
+3. Return updated settings
+
+**Tests**: 4+ tests covering deletion
+
+---
+
 ### Metadata Use Cases (Phase 3.6, 3.7)
 
 ---
@@ -861,7 +1176,38 @@ Orchestrates domain logic through use cases.
 **Coverage**: See [README.md](../../README.md) for current statistics.
 
 All use cases tested with mocked dependencies following Clean Architecture principles:
-- **Correction History Use Cases**: 14+ tests ⭐ NEW (Phase 3.7)
+- **Character Use Cases**: 33+ tests ⭐ NEW (Phase 6)
+  - CreateCharacterUseCase: 5 tests
+  - LoadCharacterUseCase: 4 tests
+  - ListProjectCharactersUseCase: 5 tests
+  - UpdateCharacterUseCase: 5 tests
+  - DeleteCharacterUseCase: 4 tests
+  - SyncCharactersFromAnalysisUseCase: 10 tests
+- **ProjectSettings Use Cases**: 14+ tests ⭐ NEW (Phase 6)
+  - CreateProjectSettingsUseCase: 5 tests
+  - LoadProjectSettingsUseCase: 4 tests
+  - UpdateProjectSettingsUseCase: 5 tests
+- **ProjectTask Use Cases**: 24+ tests ⭐ NEW (Phase 6)
+  - CreateProjectTaskUseCase: 5 tests
+  - ListProjectTasksUseCase: 5 tests
+  - UpdateProjectTaskUseCase: 5 tests
+  - DeleteProjectTaskUseCase: 4 tests
+  - GetTaskSummaryUseCase: 5 tests
+- **ResearchDocument Use Cases**: 18+ tests ⭐ NEW (Phase 6)
+  - CreateResearchDocumentUseCase: 5 tests
+  - ListResearchDocumentsUseCase: 4 tests
+  - UpdateResearchDocumentUseCase: 5 tests
+  - DeleteResearchDocumentUseCase: 4 tests
+- **WritingGoal Use Cases**: 22+ tests ⭐ NEW (Phase 6)
+  - CreateWritingGoalUseCase: 5 tests
+  - ListWritingGoalsUseCase: 4 tests
+  - UpdateWritingGoalUseCase: 5 tests
+  - DeleteWritingGoalUseCase: 4 tests
+  - GetActiveWritingGoalUseCase: 4 tests
+- **CoverImage Use Cases**: 9+ tests ⭐ NEW (Phase 6)
+  - UploadCoverImageUseCase: 5 tests
+  - DeleteCoverImageUseCase: 4 tests
+- **Correction History Use Cases**: 14+ tests (Phase 3.7)
   - SaveCorrectionHistoryUseCase: 5 tests
   - ListCorrectionHistoryUseCase: 5 tests
   - DeleteCorrectionHistoryUseCase: 4 tests

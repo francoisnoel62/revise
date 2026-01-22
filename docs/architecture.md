@@ -20,6 +20,12 @@ Pure business logic with no framework dependencies.
 - `BlogArticle` - Blog article with slug, content, and metadata (Phase 4.0)
 - `ContactMessage` - Contact form submission (Phase 3.11)
 - `ArticleView` - Blog article view tracking with IP and timestamp (Phase 5.2)
+- `Character` - Fictional character with name, aliases, description, traits, goals, relationships (Phase 6)
+- `ProjectSettings` - Project settings with genre, themes, narration settings, contributors, related works (Phase 6)
+- `ProjectTask` - Task with title, description, priority, status, due date, contributors (Phase 6)
+- `ResearchDocument` - Research document with title, content, tags (Phase 6)
+- `WritingGoal` - Writing goal with target word count, deadline, progress (Phase 6)
+- `AIUsageRecord` - AI usage tracking with operation type, tokens, cost (Phase 6)
 - `TextDocument` - Legacy single document (Phase 1)
 
 **Value Objects**:
@@ -27,6 +33,12 @@ Pure business logic with no framework dependencies.
 - `RewriteProposal` - AI-generated proposal
 - `MetadataType` - Enum for 7 analysis types (including chapter-summaries) (Phase 3.6, 3.7)
 - `NarrativeAnalysis`, `Characters`, `Plot`, `StylisticDNA`, `Worldbuilding`, `ChapterSummaries`, `Synthesis` (Phase 3.6, 3.7)
+- `TaskPriority` - Task priority enum (low, medium, high, urgent) (Phase 6)
+- `TaskStatus` - Task status enum (todo, in_progress, done, blocked) (Phase 6)
+- `Contributor` - Contributor with name and role (Phase 6)
+- `RelatedWork` - Related work with title, author, type (Phase 6)
+- `NarrationSettings` - Narration settings with POV, tense, person (Phase 6)
+- `AIOperationType` - AI operation type enum (rewrite, generate, complete, analyze) (Phase 6)
 
 **Interfaces**:
 - `DocumentParser` - Parse documents to entities
@@ -41,6 +53,13 @@ Pure business logic with no framework dependencies.
 - `PromptRepository` - Load AI prompts from markdown files (Phase 3.6)
 - `UserRepository` - User management, authentication, and approval (Phase 3, 3.8)
 - `ArticleViewRepository` - Blog article view tracking (Phase 5.2)
+- `CharacterRepository` - Character persistence (Phase 6)
+- `ProjectSettingsRepository` - Project settings persistence (Phase 6)
+- `ProjectTaskRepository` - Task persistence (Phase 6)
+- `ResearchDocumentRepository` - Research document persistence (Phase 6)
+- `WritingGoalRepository` - Writing goal persistence (Phase 6)
+- `AIUsageRepository` - AI usage tracking persistence (Phase 6)
+- `BlobStorage` - Blob storage abstraction for images (Phase 6)
 - `AuthProvider` - Authentication service abstraction
 - `EmailService` - Email notification service (Phase 3.8)
 - `ApprovalTokenGenerator` - HMAC token generation for approval links (Phase 3.8)
@@ -127,12 +146,14 @@ External service implementations.
 - `OpenAIProvider` - GPT-4o-mini/GPT-5 + 7 analysis types + generation + completion (Phase 3.6, 4.1)
 - `AnthropicProvider` - Claude + 7 analysis types + generation (Phase 3.6, 4.1)
 - `LLMProviderFactoryImpl` - Factory for creating LLM providers (Phase 3.5)
+- `TrackedLLMProvider` - LLM provider wrapper that tracks AI usage (Phase 6)
 
 **Utils**:
 - `UUIDGenerator` - IdGenerator implementation using crypto.randomUUID() (Phase 3.5)
 - `text-hash` - SHA-256 content hashing for cache invalidation (Phase 3.6)
 - `MetadataCache` - TTL-based caching for metadata (Phase 4.1)
 - `formatReadingTime` - Calculate and format estimated reading time (Phase 4.1+)
+- `ObjectIdGenerator` - MongoDB ObjectId generation for frontend (Phase 6)
 
 **Encryption** (Phase 3.5):
 - AES-256-GCM utilities - API key encryption/decryption
@@ -148,7 +169,7 @@ External service implementations.
 - Middleware for route protection
 - User approval workflow integration (Phase 3.8)
 
-**Persistence** (Phase 3, 3.5, 3.6, 3.7, 4.0, 5.0):
+**Persistence** (Phase 3, 3.5, 3.6, 3.7, 4.0, 5.0, 6):
 - `MongoDBProjectRepository` - MongoDB Atlas persistence with multi-tenant isolation, `findPublishedByToken()` (Phase 5.0)
 - `MongoDBProviderRepository` - Provider storage with encrypted credentials (Phase 3.5)
 - `MongoDBMetadataRepository` - Metadata storage with multi-tenant isolation (Phase 3.6)
@@ -157,9 +178,18 @@ External service implementations.
 - `MongoDBContactMessageRepository` - Contact form storage (Phase 3.11)
 - `MongoDBUserRepository` - User management with bcrypt, approval, consent
 - `MongoDBArticleViewRepository` - Article view tracking with IP-based deduplication (Phase 5.2)
+- `MongoDBCharacterRepository` - Character storage with multi-tenant isolation (Phase 6)
+- `MongoDBProjectSettingsRepository` - Project settings storage (Phase 6)
+- `MongoDBProjectTaskRepository` - Task storage with filtering and sorting (Phase 6)
+- `MongoDBResearchDocumentRepository` - Research document storage (Phase 6)
+- `MongoDBWritingGoalRepository` - Writing goal storage (Phase 6)
+- `MongoDBUsageRepository` - AI usage statistics with aggregation (Phase 6)
 - `InMemoryProjectRepository` - Ephemeral storage (testing/legacy)
 - All repositories support `deleteAllByOwner()` for RGPD compliance (Phase 3.11)
 - Serialization utilities for all entity types
+
+**Storage** (Phase 6):
+- `VercelBlobStorage` - Cover image storage using Vercel Blob
 
 **Prompts** (Phase 3.6, 4.1):
 - `FilePromptRepository` - Load AI prompts from markdown files in `/docs/prompt/`
@@ -191,6 +221,7 @@ React components and UI.
 - `cgu/page.tsx` - Terms of use (Phase 3.11)
 - `cgv/page.tsx` - Terms of sale (Phase 3.11)
 - `read/[projectId]/[token]/page.tsx` - Public reader for published projects (Phase 5.0)
+- `project/[projectId]/cockpit/*` - Cockpit pages (overview, characters, metadata, objectives, research, settings, tasks, usage) (Phase 6)
 - `api/approve/route.ts` - User approval endpoint (Phase 3.8)
 - `api/completion/stream/route.ts` - Autocompletion SSE endpoint (Phase 4.1)
 
@@ -208,8 +239,15 @@ React components and UI.
 - **Generation**: `FloatingGenerationMenu` (Phase 4.1)
 - **AI Menu**: `AIMenuDropdown`, `CommandPalette` (Ctrl+Shift+I) (Phase 4.1+)
 - **Publishing**: `PublishDialog`, `PublicReader` (Phase 5.0)
+- **Cockpit**: `CockpitSidebar`, `StatCard`, `ProgressCard`, `QuickActionsCard`, `QuickActionButton` (Phase 6)
+- **Characters**: `CharacterCard`, `CharacterForm` (Phase 6)
+- **Tasks**: `TaskForm`, `TaskRow`, `TaskSummaryCard` (Phase 6)
+- **Goals**: `GoalCard`, `GoalForm` (Phase 6)
+- **Usage**: `UsageStatsCard`, `DailyUsageChart`, `UsageByOperationChart` (Phase 6)
+- **Settings**: `ProjectSettingsForm`, `CoverImageUpload`, `ContributorsField`, `RelatedWorksField` (Phase 6)
+- **Research**: `ResearchDocumentCard`, `ResearchDocumentForm` (Phase 6)
 - **Document**: `DocumentControls` (DOCX/PDF export), `SaveStatus`
-- **UI**: shadcn/ui components (Sheet, Button, Card, Dialog, Input, Label, etc.)
+- **UI**: shadcn/ui components (Sheet, Button, Card, Dialog, Input, Label, Sidebar, Tabs, Chart, Breadcrumb, etc.)
 
 **State**:
 - `projectStore` - Zustand store (server-backed)
@@ -225,6 +263,13 @@ React components and UI.
 - `blog-actions` - Blog article CRUD + paginated listing (→ Blog Use Cases, Phase 4.0, 4.1+)
 - `contact-actions` - Contact form submission (→ SubmitContactFormUseCase, Phase 3.11)
 - `user-actions` - Account deletion, data export (→ DeleteUserAccountUseCase, Phase 3.11)
+- `cockpit-actions` - Cockpit overview data loading (→ Phase 6)
+- `task-actions` - Task CRUD operations (→ ProjectTask Use Cases, Phase 6)
+- `usage-actions` - AI usage statistics (→ AIUsage Use Cases, Phase 6)
+- `writing-goal-actions` - Writing goal CRUD (→ WritingGoal Use Cases, Phase 6)
+- `character-actions` - Character CRUD + sync (→ Character Use Cases, Phase 6)
+- `research-document-actions` - Research document CRUD (→ ResearchDocument Use Cases, Phase 6)
+- `project-settings-actions` - Project settings CRUD (→ ProjectSettings Use Cases, Phase 6)
 
 **Dependency Injection** (`utils.ts`):
 - `getRepository()` - Project repository
@@ -238,10 +283,18 @@ React components and UI.
 - `getEmailService()` - Email service (Phase 3.8)
 - `getLLMProviderFactory()` - LLM provider factory
 - `getIdGenerator()` - UUID generator
+- `getCharacterRepo()` - Character repository (Phase 6)
+- `getProjectSettingsRepo()` - Project settings repository (Phase 6)
+- `getProjectTaskRepo()` - Project task repository (Phase 6)
+- `getResearchDocumentRepo()` - Research document repository (Phase 6)
+- `getWritingGoalRepo()` - Writing goal repository (Phase 6)
+- `getUsageRepo()` - AI usage repository (Phase 6)
+- `getBlobStorage()` - Blob storage for images (Phase 6)
 
 **Hooks**:
 - `useAutosave` - Auto-save hook with 1-second debounce
 - `useHasAIProviders` - Check provider availability (Phase 3.10)
+- `useMobile` - Mobile device detection hook (Phase 6)
 
 ## Data Flow
 
