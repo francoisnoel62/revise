@@ -148,7 +148,7 @@ export function ProjectCard({ project, onOpen, onDeleted, onRenamed }: ProjectCa
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleOpenCockpit}>
                 <FileText className="h-4 w-4 mr-2" />
-                Métadonnées
+                Paramètres
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
