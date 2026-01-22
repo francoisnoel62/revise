@@ -122,7 +122,6 @@ async function StatsGrid({ projectId }: { projectId: string }) {
       {/* Quick Actions */}
       <QuickActionsCard
         projectId={projectId}
-        lastEditedChapterId={lastEditedChapter?.chapterId ?? null}
         lastEditedChapterTitle={lastEditedChapter?.chapterTitle ?? null}
         overdueTaskCount={overdueTaskCount}
         hasChapters={stats.chapterCount > 0}

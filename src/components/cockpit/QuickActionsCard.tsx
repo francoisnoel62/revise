@@ -23,12 +23,12 @@ import {
 import { TaskForm } from './TaskForm';
 import { createTaskAction } from '@/app/actions/task-actions';
 import { loadProjectAction } from '@/app/actions/project-actions';
+import { addChapterAction } from '@/app/actions/chapter-actions';
 import { TaskStatus } from '@/domain/value-objects/TaskStatus';
 import { TaskPriority } from '@/domain/value-objects/TaskPriority';
 
 interface QuickActionsCardProps {
   projectId: string;
-  lastEditedChapterId: string | null;
   lastEditedChapterTitle: string | null;
   overdueTaskCount: number;
   hasChapters: boolean;
@@ -37,7 +37,6 @@ interface QuickActionsCardProps {
 
 export function QuickActionsCard({
   projectId,
-  lastEditedChapterId,
   lastEditedChapterTitle,
   overdueTaskCount,
   hasChapters,
@@ -61,15 +60,14 @@ export function QuickActionsCard({
   }, [projectId]);
 
   const handleContinueWriting = () => {
-    if (lastEditedChapterId) {
-      router.push(`/project/${projectId}/chapter/${lastEditedChapterId}`);
-    } else {
-      router.push(`/project/${projectId}`);
-    }
+    router.push(`/editor?project=${projectId}`);
   };
 
-  const handleNewChapter = () => {
-    router.push(`/project/${projectId}?action=new-chapter`);
+  const handleNewChapter = async () => {
+    const result = await addChapterAction(projectId);
+    if (result.success) {
+      router.push(`/editor?project=${projectId}`);
+    }
   };
 
   const handleAddTask = async () => {
