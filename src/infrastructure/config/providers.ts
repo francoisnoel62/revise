@@ -15,6 +15,8 @@ import { ProjectTaskRepository } from '@/domain/interfaces/ProjectTaskRepository
 import { CharacterRepository } from '@/domain/interfaces/CharacterRepository';
 import { ArticleViewRepository } from '@/domain/interfaces/ArticleViewRepository';
 import { PromptRepository } from '@/domain/interfaces/PromptRepository';
+import { ProjectSettingsRepository } from '@/domain/interfaces/ProjectSettingsRepository';
+import { BlobStorage } from '@/domain/interfaces/BlobStorage';
 import { LLMProvider } from '@/domain/interfaces/LLMProvider';
 import { DocumentParser } from '@/domain/interfaces/DocumentParser';
 import { DocumentExporter } from '@/domain/interfaces/DocumentExporter';
@@ -32,7 +34,9 @@ import { MongoDBContactMessageRepository } from '@/infrastructure/persistence/Mo
 import { MongoDBArticleViewRepository } from '@/infrastructure/persistence/MongoDBArticleViewRepository';
 import { MongoDBProjectTaskRepository } from '@/infrastructure/persistence/MongoDBProjectTaskRepository';
 import { MongoDBCharacterRepository } from '@/infrastructure/persistence/MongoDBCharacterRepository';
+import { MongoDBProjectSettingsRepository } from '@/infrastructure/persistence/MongoDBProjectSettingsRepository';
 import { InMemoryProjectRepository } from '@/infrastructure/persistence/InMemoryProjectRepository';
+import { VercelBlobStorage } from '@/infrastructure/storage/VercelBlobStorage';
 import { FilePromptRepository } from '@/infrastructure/prompts/FilePromptRepository';
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
 import { AnthropicProvider } from '@/infrastructure/ai/AnthropicProvider';
@@ -205,6 +209,33 @@ export async function getCharacterRepository(): Promise<CharacterRepository> {
     await characterRepoInstance.ensureIndexes();
   }
   return characterRepoInstance;
+}
+
+/**
+ * Get the project settings repository.
+ */
+let projectSettingsRepoInstance: MongoDBProjectSettingsRepository | null = null;
+
+export async function getProjectSettingsRepository(): Promise<ProjectSettingsRepository> {
+  if (!projectSettingsRepoInstance) {
+    const db = await getDatabase();
+    projectSettingsRepoInstance = new MongoDBProjectSettingsRepository(db);
+    await projectSettingsRepoInstance.ensureIndexes();
+  }
+  return projectSettingsRepoInstance;
+}
+
+/**
+ * Get the blob storage service.
+ * Returns Vercel Blob storage implementation for cover images.
+ */
+let blobStorageInstance: BlobStorage | null = null;
+
+export function getBlobStorage(): BlobStorage {
+  if (!blobStorageInstance) {
+    blobStorageInstance = new VercelBlobStorage('covers');
+  }
+  return blobStorageInstance;
 }
 
 /**

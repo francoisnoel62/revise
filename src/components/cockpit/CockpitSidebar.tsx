@@ -1,5 +1,5 @@
 // ABOUTME: Sidebar navigation for the cockpit dashboard
-// ABOUTME: Provides navigation between Overview, Objectifs, Tâches, Paramètres, Personnages, Recherches, Annexes
+// ABOUTME: Provides navigation between Overview, Objectifs, Tâches, Paramètres, Métadonnées, Personnages, Recherches, Annexes
 
 'use client';
 
@@ -23,6 +23,7 @@ import {
   Search,
   FileText,
   Sparkles,
+  Database,
 } from 'lucide-react';
 
 interface CockpitSidebarProps {
@@ -38,6 +39,7 @@ const navigationItems = [
       { title: 'Tâches', icon: CheckSquare, href: '/tasks' },
       { title: 'Utilisation IA', icon: Sparkles, href: '/usage' },
       { title: 'Paramètres', icon: Settings, href: '/settings' },
+      { title: 'Métadonnées', icon: Database, href: '/metadata' },
     ],
   },
   {

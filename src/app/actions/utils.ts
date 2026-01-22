@@ -17,6 +17,8 @@ import {
   getArticleViewRepository,
   getProjectTaskRepository,
   getCharacterRepository as getCharacterRepositoryFromConfig,
+  getProjectSettingsRepository as getProjectSettingsRepositoryFromConfig,
+  getBlobStorage as getBlobStorageFromConfig,
   getPromptRepository,
   createLLMProvider,
   getDocumentParser as getDocumentParserFromConfig,
@@ -39,6 +41,8 @@ import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository
 import { ProjectTaskRepository } from '@/domain/interfaces/ProjectTaskRepository';
 import { CharacterRepository } from '@/domain/interfaces/CharacterRepository';
 import { ArticleViewRepository } from '@/domain/interfaces/ArticleViewRepository';
+import { ProjectSettingsRepository } from '@/domain/interfaces/ProjectSettingsRepository';
+import { BlobStorage } from '@/domain/interfaces/BlobStorage';
 import { LLMProviderFactory } from '@/domain/interfaces/LLMProviderFactory';
 import { IdGenerator } from '@/domain/interfaces/IdGenerator';
 import { LLMProvider } from '@/domain/interfaces/LLMProvider';
@@ -199,6 +203,20 @@ export async function getProjectTaskRepo(): Promise<ProjectTaskRepository> {
  */
 export async function getCharacterRepo(): Promise<CharacterRepository> {
   return await getCharacterRepositoryFromConfig();
+}
+
+/**
+ * Get project settings repository instance.
+ */
+export async function getProjectSettingsRepo(): Promise<ProjectSettingsRepository> {
+  return await getProjectSettingsRepositoryFromConfig();
+}
+
+/**
+ * Get blob storage instance.
+ */
+export async function getBlobStorageInstance(): Promise<BlobStorage> {
+  return getBlobStorageFromConfig();
 }
 
 /**

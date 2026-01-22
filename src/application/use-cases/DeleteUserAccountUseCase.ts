@@ -6,6 +6,7 @@ import { ProjectRepository } from '@/domain/interfaces/ProjectRepository';
 import { ProviderRepository } from '@/domain/interfaces/ProviderRepository';
 import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
 import { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
+import { ProjectSettingsRepository } from '@/domain/interfaces/ProjectSettingsRepository';
 
 export interface DeleteUserAccountInput {
   userId: string;
@@ -17,6 +18,7 @@ export interface DeleteUserAccountResult {
   providersDeleted: number;
   metadataDeleted: number;
   historyDeleted: number;
+  settingsDeleted: number;
 }
 
 export class UserNotFoundError extends Error {
@@ -39,7 +41,8 @@ export class DeleteUserAccountUseCase {
     private projectRepository: ProjectRepository,
     private providerRepository: ProviderRepository,
     private metadataRepository: MetadataRepository,
-    private correctionHistoryRepository: CorrectionHistoryRepository
+    private correctionHistoryRepository: CorrectionHistoryRepository,
+    private projectSettingsRepository: ProjectSettingsRepository
   ) {}
 
   async execute(input: DeleteUserAccountInput): Promise<DeleteUserAccountResult> {
@@ -61,6 +64,9 @@ export class DeleteUserAccountUseCase {
     // Delete metadata (depends on projects)
     const metadataDeleted = await this.metadataRepository.deleteAllByOwner(input.userId);
 
+    // Delete project settings (depends on projects)
+    const settingsDeleted = await this.projectSettingsRepository.deleteAllByOwner(input.userId);
+
     // Delete projects
     const projectsDeleted = await this.projectRepository.deleteAllByOwner(input.userId);
 
@@ -75,6 +81,7 @@ export class DeleteUserAccountUseCase {
       providersDeleted,
       metadataDeleted,
       historyDeleted,
+      settingsDeleted,
     };
   }
 }
