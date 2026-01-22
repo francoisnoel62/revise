@@ -25,7 +25,7 @@ export function StatCard({
 }: StatCardProps) {
   if (isLoading) {
     return (
-      <Card>
+      <Card className="h-full">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <Skeleton className="h-4 w-24" />
           <Skeleton className="h-4 w-4" />
@@ -55,13 +55,13 @@ export function StatCard({
 
   if (href) {
     return (
-      <Link href={href} className="block">
-        <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+      <Link href={href} className="block h-full">
+        <Card className="h-full hover:bg-accent/50 transition-colors cursor-pointer">
           {cardContent}
         </Card>
       </Link>
     );
   }
 
-  return <Card>{cardContent}</Card>;
+  return <Card className="h-full">{cardContent}</Card>;
 }

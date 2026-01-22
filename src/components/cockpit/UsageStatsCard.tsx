@@ -49,7 +49,7 @@ function formatDuration(ms: number): string {
 
 function UsageStatsCardSkeleton() {
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader>
         <Skeleton className="h-5 w-40" />
       </CardHeader>
@@ -104,7 +104,7 @@ export function UsageStatsCard({ projectId }: UsageStatsCardProps) {
 
   if (error) {
     return (
-      <Card>
+      <Card className="h-full">
         <CardHeader>
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Sparkles className="h-4 w-4" />
@@ -120,7 +120,7 @@ export function UsageStatsCard({ projectId }: UsageStatsCardProps) {
 
   if (!stats || stats.totalOperations === 0) {
     return (
-      <Card>
+      <Card className="h-full">
         <CardHeader>
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Sparkles className="h-4 w-4" />
@@ -145,7 +145,7 @@ export function UsageStatsCard({ projectId }: UsageStatsCardProps) {
   const totalTokens = stats.totalInputTokens + stats.totalOutputTokens;
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader>
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Sparkles className="h-4 w-4" />

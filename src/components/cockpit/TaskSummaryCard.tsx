@@ -51,7 +51,7 @@ export function TaskSummaryCard({ summary, isLoading }: TaskSummaryCardProps) {
         <CardTitle className="text-sm font-medium">Tâches</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-4 gap-2 text-center">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-2 text-center">
           <div className="space-y-1">
             <Circle className="h-5 w-5 mx-auto text-gray-400" />
             <div className="text-lg font-bold">{summary.todo}</div>
