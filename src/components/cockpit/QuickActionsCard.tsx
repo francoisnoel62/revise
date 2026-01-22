@@ -121,7 +121,7 @@ export function QuickActionsCard({
         <CardHeader className="pb-3">
           <CardTitle className="text-lg">Actions rapides</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-3">
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <QuickActionButton
             icon={Pencil}
             label="Continuer l'écriture"

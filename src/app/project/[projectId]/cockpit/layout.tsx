@@ -30,15 +30,16 @@ export default async function CockpitLayout({
   return (
     <div className="min-h-screen bg-background">
       {/* Main header */}
-      <nav className="border-b bg-background sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-14 flex items-center justify-between">
+      <nav className="border-b bg-background fixed top-0 left-0 right-0 z-50 h-14">
+        <div className="container mx-auto px-4 h-full flex items-center justify-between">
           <div className="font-semibold text-lg">Revise</div>
           <UserMenu />
         </div>
       </nav>
 
-      {/* Sidebar and content */}
-      <SidebarProvider>
+      {/* Sidebar and content - with top padding to account for fixed header */}
+      <div className="pt-14">
+        <SidebarProvider>
         <CockpitSidebar projectId={projectId} />
         <SidebarInset>
           <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
@@ -57,6 +58,7 @@ export default async function CockpitLayout({
           <main className="flex-1 p-6">{children}</main>
         </SidebarInset>
       </SidebarProvider>
+      </div>
     </div>
   );
 }

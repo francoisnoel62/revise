@@ -44,7 +44,7 @@ async function StatsGrid({ projectId }: { projectId: string }) {
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
         <StatCard
           title="Nombre de mots"
           value={stats.wordCount.toLocaleString('fr-FR')}
@@ -95,7 +95,7 @@ async function StatsGrid({ projectId }: { projectId: string }) {
             unit="mots"
           />
         ) : (
-          <Card className="col-span-1">
+          <Card className="h-full">
             <CardHeader>
               <CardTitle className="text-sm font-medium">Objectif</CardTitle>
             </CardHeader>
@@ -143,7 +143,7 @@ async function StatsGrid({ projectId }: { projectId: string }) {
 function StatsGridSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
         {[1, 2, 3, 4, 5, 6].map((i) => (
           <StatCard key={i} title="" value="" isLoading />
         ))}
@@ -161,8 +161,8 @@ export default async function OverviewPage({ params }: OverviewPageProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Vue d&apos;ensemble</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Vue d&apos;ensemble</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Statistiques et progression de votre projet
         </p>
       </div>
