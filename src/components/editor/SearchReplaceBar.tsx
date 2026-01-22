@@ -66,12 +66,16 @@ export function SearchReplaceBar({
     [editor]
   );
 
-  // Update matches when search term changes
-  useEffect(() => {
-    const newMatches = findMatches(searchTerm);
-    setMatches(newMatches);
-    setCurrentMatchIndex(newMatches.length > 0 ? 0 : -1);
-  }, [searchTerm, findMatches]);
+  // Update search term and matches together to avoid effect
+  const handleSearchTermChange = useCallback(
+    (newTerm: string) => {
+      setSearchTerm(newTerm);
+      const newMatches = findMatches(newTerm);
+      setMatches(newMatches);
+      setCurrentMatchIndex(newMatches.length > 0 ? 0 : -1);
+    },
+    [findMatches]
+  );
 
   // Highlight and scroll to current match - only when navigating
   useEffect(() => {
@@ -97,9 +101,22 @@ export function SearchReplaceBar({
     }
   }, [isOpen]);
 
+  // Navigation functions - defined before the useEffect that uses them
+  const goToNextMatch = useCallback(() => {
+    if (matches.length === 0) return;
+    isNavigatingRef.current = true;
+    setCurrentMatchIndex((prev) => (prev + 1) % matches.length);
+  }, [matches.length]);
+
+  const goToPreviousMatch = useCallback(() => {
+    if (matches.length === 0) return;
+    isNavigatingRef.current = true;
+    setCurrentMatchIndex((prev) => (prev - 1 + matches.length) % matches.length);
+  }, [matches.length]);
+
   // Keyboard shortcuts
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
       if (!isOpen) return;
 
       // Escape to close
@@ -123,19 +140,7 @@ export function SearchReplaceBar({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, editor, matches, currentMatchIndex]);
-
-  const goToNextMatch = () => {
-    if (matches.length === 0) return;
-    isNavigatingRef.current = true;
-    setCurrentMatchIndex((prev) => (prev + 1) % matches.length);
-  };
-
-  const goToPreviousMatch = () => {
-    if (matches.length === 0) return;
-    isNavigatingRef.current = true;
-    setCurrentMatchIndex((prev) => (prev - 1 + matches.length) % matches.length);
-  };
+  }, [isOpen, onClose, editor, goToNextMatch, goToPreviousMatch]);
 
   const replaceCurrentMatch = () => {
     if (!editor || matches.length === 0 || currentMatchIndex < 0) return;
@@ -204,7 +209,7 @@ export function SearchReplaceBar({
             type="text"
             placeholder="Rechercher..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => handleSearchTermChange(e.target.value)}
             className="h-8 text-sm"
           />
         </div>

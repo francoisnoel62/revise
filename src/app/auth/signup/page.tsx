@@ -3,7 +3,7 @@
 
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, type ElementRef } from 'react';
 import Link from 'next/link';
 import Script from 'next/script';
 import { Button } from '@/components/ui/button';
@@ -41,7 +41,7 @@ export default function SignUpPage() {
   const [captchaToken, setCaptchaToken] = useState('');
   const [hcaptchaLoaded, setHcaptchaLoaded] = useState(false);
   const hcaptchaWidgetId = useRef<string | null>(null);
-  const hcaptchaContainerRef = useRef<HTMLDivElement>(null);
+  const hcaptchaContainerRef = useRef<ElementRef<'div'>>(null);
 
   const onHcaptchaVerify = useCallback((token: string) => {
     setCaptchaToken(token);
@@ -299,7 +299,7 @@ export default function SignUpPage() {
             </>
           )}
 
-          <Button type="submit" className="w-full" disabled={isLoading || !acceptTerms || (HCAPTCHA_SITE_KEY && !captchaToken)}>
+          <Button type="submit" className="w-full" disabled={isLoading || !acceptTerms || (!!HCAPTCHA_SITE_KEY && !captchaToken)}>
             {isLoading ? 'Création du compte...' : 'Créer un compte'}
           </Button>
         </form>

@@ -14,6 +14,7 @@ export class HCaptchaVerifier implements CaptchaVerifier {
     }
 
     try {
+      // eslint-disable-next-line no-undef
       const body = new URLSearchParams({
         secret: this.secretKey,
         response: token,

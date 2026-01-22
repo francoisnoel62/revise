@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '10mb', // Support large document imports
     },
+    turbopackUseSystemTlsCerts: true,
   },
 };
 
