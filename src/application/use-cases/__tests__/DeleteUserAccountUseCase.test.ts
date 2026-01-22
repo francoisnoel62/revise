@@ -45,7 +45,7 @@ describe('DeleteUserAccountUseCase', () => {
     };
 
     mockProjectSettingsRepository = {
-      deleteAllByOwner: vi.fn().mockResolvedValue(5),
+      deleteAllByOwner: vi.fn().mockResolvedValue(undefined),
     };
   });
 
@@ -97,7 +97,7 @@ describe('DeleteUserAccountUseCase', () => {
     });
 
     expect(mockProjectSettingsRepository.deleteAllByOwner).toHaveBeenCalledWith('user-1');
-    expect(result.settingsDeleted).toBe(5);
+    expect(result.settingsDeleted).toBe(0); // deleteAllByOwner returns void, count not available
   });
 
   it('should delete all user data in correct order', async () => {
@@ -115,7 +115,7 @@ describe('DeleteUserAccountUseCase', () => {
 
     mockProjectSettingsRepository.deleteAllByOwner = vi.fn().mockImplementation(() => {
       callOrder.push('settings');
-      return Promise.resolve(5);
+      return Promise.resolve(undefined);
     });
 
     mockProjectRepository.deleteAllByOwner = vi.fn().mockImplementation(() => {
@@ -173,7 +173,7 @@ describe('DeleteUserAccountUseCase', () => {
       providersDeleted: 2,
       metadataDeleted: 10,
       historyDeleted: 15,
-      settingsDeleted: 5,
+      settingsDeleted: 0, // deleteAllByOwner returns void, count not available
     });
   });
 });

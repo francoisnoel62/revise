@@ -65,7 +65,8 @@ export class DeleteUserAccountUseCase {
     const metadataDeleted = await this.metadataRepository.deleteAllByOwner(input.userId);
 
     // Delete project settings (depends on projects)
-    const settingsDeleted = await this.projectSettingsRepository.deleteAllByOwner(input.userId);
+    await this.projectSettingsRepository.deleteAllByOwner(input.userId);
+    const settingsDeleted = 0; // deleteAllByOwner returns void, count not available
 
     // Delete projects
     const projectsDeleted = await this.projectRepository.deleteAllByOwner(input.userId);

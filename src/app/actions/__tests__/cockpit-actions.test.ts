@@ -2,7 +2,11 @@
 // ABOUTME: Verifies project stats fetching and error handling
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getProjectStatsAction } from '../cockpit-actions';
+import {
+  getProjectStatsAction,
+  getLastEditedChapterAction,
+  getOverdueTaskCountAction,
+} from '../cockpit-actions';
 
 // Mock repository
 vi.mock('../utils', () => ({
@@ -13,6 +17,7 @@ vi.mock('../utils', () => ({
       countByProjectId: vi.fn(() => Promise.resolve(3)),
     })
   ),
+  getProjectTaskRepo: vi.fn(),
   getAuthenticatedUserId: vi.fn(),
 }));
 
@@ -31,7 +36,7 @@ vi.mock('@/application/use-cases/GetActiveWritingGoalUseCase', () => ({
   },
 }));
 
-import { getRepository, getAuthenticatedUserId } from '../utils';
+import { getRepository, getAuthenticatedUserId, getProjectTaskRepo } from '../utils';
 
 describe('getProjectStatsAction', () => {
   const mockProject = {
@@ -104,6 +109,149 @@ describe('getProjectStatsAction', () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error).toBe('Erreur lors du chargement des statistiques');
+    }
+  });
+});
+
+describe('getLastEditedChapterAction', () => {
+  const mockRepository = {
+    loadProject: vi.fn(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(getRepository).mockResolvedValue(mockRepository as any);
+  });
+
+  it('returns null when project has no chapters', async () => {
+    vi.mocked(getAuthenticatedUserId).mockResolvedValue({ userId: 'user-1' });
+    mockRepository.loadProject.mockResolvedValue({
+      getChapters: vi.fn(() => []),
+    });
+
+    const result = await getLastEditedChapterAction('project-1');
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.chapter).toBeNull();
+    }
+  });
+
+  it('returns the most recently updated chapter', async () => {
+    vi.mocked(getAuthenticatedUserId).mockResolvedValue({ userId: 'user-1' });
+    const oldChapter = {
+      getId: () => 'chapter-1',
+      getTitle: () => 'Old Chapter',
+      getMetadata: () => ({ lastEdited: new Date('2024-01-01') }),
+    };
+    const recentChapter = {
+      getId: () => 'chapter-2',
+      getTitle: () => 'Recent Chapter',
+      getMetadata: () => ({ lastEdited: new Date('2024-01-15') }),
+    };
+    mockRepository.loadProject.mockResolvedValue({
+      getChapters: vi.fn(() => [oldChapter, recentChapter]),
+    });
+
+    const result = await getLastEditedChapterAction('project-1');
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.chapter?.chapterId).toBe('chapter-2');
+      expect(result.chapter?.chapterTitle).toBe('Recent Chapter');
+    }
+  });
+
+  it('returns error when not authenticated', async () => {
+    vi.mocked(getAuthenticatedUserId).mockResolvedValue({
+      error: { success: false, error: 'Non authentifié' },
+    });
+
+    const result = await getLastEditedChapterAction('project-1');
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toBe('Non authentifié');
+    }
+  });
+
+  it('returns error when project not found', async () => {
+    vi.mocked(getAuthenticatedUserId).mockResolvedValue({ userId: 'user-1' });
+    mockRepository.loadProject.mockResolvedValue(null);
+
+    const result = await getLastEditedChapterAction('project-1');
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toBe('Projet non trouvé');
+    }
+  });
+});
+
+describe('getOverdueTaskCountAction', () => {
+  const mockTaskRepo = {
+    findByProjectId: vi.fn(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(getProjectTaskRepo).mockResolvedValue(mockTaskRepo as any);
+  });
+
+  it('returns 0 when no tasks exist', async () => {
+    vi.mocked(getAuthenticatedUserId).mockResolvedValue({ userId: 'user-1' });
+    mockTaskRepo.findByProjectId.mockResolvedValue([]);
+
+    const result = await getOverdueTaskCountAction('project-1');
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.count).toBe(0);
+    }
+  });
+
+  it('returns 0 when no tasks are overdue', async () => {
+    vi.mocked(getAuthenticatedUserId).mockResolvedValue({ userId: 'user-1' });
+    mockTaskRepo.findByProjectId.mockResolvedValue([
+      { isOverdue: () => false },
+      { isOverdue: () => false },
+    ]);
+
+    const result = await getOverdueTaskCountAction('project-1');
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.count).toBe(0);
+    }
+  });
+
+  it('returns correct count of overdue tasks', async () => {
+    vi.mocked(getAuthenticatedUserId).mockResolvedValue({ userId: 'user-1' });
+    mockTaskRepo.findByProjectId.mockResolvedValue([
+      { isOverdue: () => true },
+      { isOverdue: () => false },
+      { isOverdue: () => true },
+      { isOverdue: () => true },
+    ]);
+
+    const result = await getOverdueTaskCountAction('project-1');
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.count).toBe(3);
+    }
+  });
+
+  it('returns error when not authenticated', async () => {
+    vi.mocked(getAuthenticatedUserId).mockResolvedValue({
+      error: { success: false, error: 'Non authentifié' },
+    });
+
+    const result = await getOverdueTaskCountAction('project-1');
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toBe('Non authentifié');
     }
   });
 });

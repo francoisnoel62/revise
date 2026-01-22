@@ -19,6 +19,7 @@ import {
   loadMetadataAction,
   updateMetadataContentAction,
 } from '@/app/actions/metadata-actions';
+import { METADATA_TYPES } from '@/domain/value-objects/MetadataType';
 
 export default function CockpitMetadataEditorPage() {
   const params = useParams();
@@ -180,7 +181,7 @@ export default function CockpitMetadataEditorPage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{metadata.title}</h1>
             <p className="text-muted-foreground">
-              {metadata.typeName}
+              {METADATA_TYPES[metadata.typeKey]?.name ?? metadata.typeKey}
             </p>
           </div>
         </div>

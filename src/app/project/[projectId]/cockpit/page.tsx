@@ -4,9 +4,13 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getProjectStatsAction } from '@/app/actions/cockpit-actions';
+import {
+  getProjectStatsAction,
+  getLastEditedChapterAction,
+  getOverdueTaskCountAction,
+} from '@/app/actions/cockpit-actions';
 import { getTaskSummaryAction } from '@/app/actions/task-actions';
-import { StatCard, ProgressCard, UsageStatsCard, TaskSummaryCard } from '@/components/cockpit';
+import { StatCard, ProgressCard, UsageStatsCard, TaskSummaryCard, QuickActionsCard } from '@/components/cockpit';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, Type, Clock, BookOpen, Users } from 'lucide-react';
 
@@ -15,9 +19,11 @@ interface OverviewPageProps {
 }
 
 async function StatsGrid({ projectId }: { projectId: string }) {
-  const [result, summaryResult] = await Promise.all([
+  const [result, summaryResult, lastEditedResult, overdueResult] = await Promise.all([
     getProjectStatsAction(projectId),
     getTaskSummaryAction(projectId),
+    getLastEditedChapterAction(projectId),
+    getOverdueTaskCountAction(projectId),
   ]);
 
   if (!result.success) {
@@ -26,6 +32,8 @@ async function StatsGrid({ projectId }: { projectId: string }) {
 
   const { stats } = result;
   const taskSummary = summaryResult.success ? summaryResult.summary : null;
+  const lastEditedChapter = lastEditedResult.success ? lastEditedResult.chapter : null;
+  const overdueTaskCount = overdueResult.success ? overdueResult.count : 0;
 
   const targetWordCount = stats.activeGoal?.targetWords ?? 0;
   const hasGoal = stats.activeGoal !== null;
@@ -111,13 +119,14 @@ async function StatsGrid({ projectId }: { projectId: string }) {
         <TaskSummaryCard summary={taskSummary} />
       </div>
 
-      {/* Quick Actions - Placeholder for future */}
-      <div className="rounded-lg border bg-card p-6">
-        <h3 className="text-lg font-semibold mb-4">Actions rapides</h3>
-        <p className="text-sm text-muted-foreground">
-          Les actions rapides seront ajoutées dans les prochaines phases.
-        </p>
-      </div>
+      {/* Quick Actions */}
+      <QuickActionsCard
+        projectId={projectId}
+        lastEditedChapterId={lastEditedChapter?.chapterId ?? null}
+        lastEditedChapterTitle={lastEditedChapter?.chapterTitle ?? null}
+        overdueTaskCount={overdueTaskCount}
+        hasChapters={stats.chapterCount > 0}
+      />
     </div>
   );
 }
