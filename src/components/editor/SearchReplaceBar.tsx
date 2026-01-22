@@ -38,10 +38,12 @@ export function SearchReplaceBar({
   const [docVersion, setDocVersion] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const isNavigatingRef = useRef(false);
-  const prevSearchTermRef = useRef('');
 
-  // Compute matches from search term (derived state, not synced)
+  // Compute matches from search term (derived state via useMemo)
+  // docVersion is included to trigger recomputation after replacements
   const matches = useMemo((): SearchMatch[] => {
+    // Reference docVersion to satisfy exhaustive-deps (triggers recompute after replace)
+    void docVersion;
     if (!editor || !searchTerm) return [];
 
     const doc = editor.state.doc;
@@ -59,23 +61,17 @@ export function SearchReplaceBar({
           });
           index += searchTerm.length;
         }
-      });
+      }
+    });
 
-      return results;
-    },
-    [editor]
-  );
+    return results;
+  }, [editor, searchTerm, docVersion]);
 
-  // Update search term and matches together to avoid effect
-  const handleSearchTermChange = useCallback(
-    (newTerm: string) => {
-      setSearchTerm(newTerm);
-      const newMatches = findMatches(newTerm);
-      setMatches(newMatches);
-      setCurrentMatchIndex(newMatches.length > 0 ? 0 : -1);
-    },
-    [findMatches]
-  );
+  // Handle search term change and reset match index
+  const handleSearchTermChange = useCallback((newTerm: string) => {
+    setSearchTerm(newTerm);
+    setCurrentMatchIndex(0);
+  }, []);
 
   // Highlight and scroll to current match - only when navigating
   useEffect(() => {
