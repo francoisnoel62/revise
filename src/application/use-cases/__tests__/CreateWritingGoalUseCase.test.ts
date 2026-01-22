@@ -6,8 +6,8 @@ import { CreateWritingGoalUseCase } from '../CreateWritingGoalUseCase';
 
 describe('CreateWritingGoalUseCase', () => {
   let useCase: CreateWritingGoalUseCase;
-  let mockRepository: any;
-  let mockIdGenerator: any;
+  let mockRepository: { create: ReturnType<typeof vi.fn> };
+  let mockIdGenerator: { generate: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     mockRepository = {

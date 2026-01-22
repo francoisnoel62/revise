@@ -29,7 +29,7 @@ describe('VercelBlobStorage', () => {
         size: 1024,
       };
 
-      vi.mocked(put).mockResolvedValue(mockResult as any);
+      vi.mocked(put).mockResolvedValue(mockResult as unknown as Awaited<ReturnType<typeof put>>);
 
       const file = new ArrayBuffer(1024);
       const result = await storage.upload(file, 'test.jpg', 'image/jpeg');
@@ -68,7 +68,7 @@ describe('VercelBlobStorage', () => {
         pathname: 'covers/test.png',
         contentType: 'image/png',
         size: 1024,
-      } as any);
+      } as unknown as Awaited<ReturnType<typeof put>>);
 
       const file = new ArrayBuffer(1024);
 
@@ -99,7 +99,7 @@ describe('VercelBlobStorage', () => {
         pathname: 'covers/test.jpg',
         contentType: 'image/jpeg',
         size: 1024,
-      } as any);
+      } as unknown as Awaited<ReturnType<typeof head>>);
 
       const result = await storage.exists('https://blob.vercel-storage.com/covers/test.jpg');
 

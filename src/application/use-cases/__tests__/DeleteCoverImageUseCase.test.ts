@@ -7,8 +7,11 @@ import { ProjectSettings } from '@/domain/entities/ProjectSettings';
 
 describe('DeleteCoverImageUseCase', () => {
   let useCase: DeleteCoverImageUseCase;
-  let mockRepository: any;
-  let mockBlobStorage: any;
+  let mockRepository: {
+    findByProjectId: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+  };
+  let mockBlobStorage: { delete: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     mockRepository = {

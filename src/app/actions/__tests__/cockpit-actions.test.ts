@@ -54,7 +54,9 @@ describe('getProjectStatsAction', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(getRepository).mockResolvedValue(mockRepository as any);
+    vi.mocked(getRepository).mockResolvedValue(
+      mockRepository as unknown as Awaited<ReturnType<typeof getRepository>>
+    );
   });
 
   it('returns project stats when authenticated', async () => {
@@ -120,7 +122,9 @@ describe('getLastEditedChapterAction', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(getRepository).mockResolvedValue(mockRepository as any);
+    vi.mocked(getRepository).mockResolvedValue(
+      mockRepository as unknown as Awaited<ReturnType<typeof getRepository>>
+    );
   });
 
   it('returns null when project has no chapters', async () => {
@@ -195,7 +199,9 @@ describe('getOverdueTaskCountAction', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(getProjectTaskRepo).mockResolvedValue(mockTaskRepo as any);
+    vi.mocked(getProjectTaskRepo).mockResolvedValue(
+      mockTaskRepo as unknown as Awaited<ReturnType<typeof getProjectTaskRepo>>
+    );
   });
 
   it('returns 0 when no tasks exist', async () => {

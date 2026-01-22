@@ -7,7 +7,10 @@ import { ProjectSettings } from '@/domain/entities/ProjectSettings';
 
 describe('UpdateProjectSettingsUseCase', () => {
   let useCase: UpdateProjectSettingsUseCase;
-  let mockRepository: any;
+  let mockRepository: {
+    findByProjectId: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     mockRepository = {

@@ -6,8 +6,11 @@ import { CreateProjectSettingsUseCase } from '../CreateProjectSettingsUseCase';
 
 describe('CreateProjectSettingsUseCase', () => {
   let useCase: CreateProjectSettingsUseCase;
-  let mockRepository: any;
-  let mockIdGenerator: any;
+  let mockRepository: {
+    create: ReturnType<typeof vi.fn>;
+    findByProjectId: ReturnType<typeof vi.fn>;
+  };
+  let mockIdGenerator: { generate: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     mockRepository = {

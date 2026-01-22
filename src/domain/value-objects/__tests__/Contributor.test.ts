@@ -57,7 +57,9 @@ describe('Contributor', () => {
     });
 
     it('throws error for invalid role', () => {
-      expect(() => createContributor('John Doe', 'invalid' as any)).toThrow('Invalid contributor role');
+      expect(() =>
+        createContributor('John Doe', 'invalid' as unknown as Parameters<typeof createContributor>[1])
+      ).toThrow('Invalid contributor role');
     });
   });
 

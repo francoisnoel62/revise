@@ -5,9 +5,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DeleteProjectUseCase } from '../DeleteProjectUseCase';
 
 describe('DeleteProjectUseCase', () => {
-  let mockProjectRepository: any;
-  let mockMetadataRepository: any;
-  let mockProjectSettingsRepository: any;
+  let mockProjectRepository: { deleteProject: ReturnType<typeof vi.fn> };
+  let mockMetadataRepository: { deleteByProjectId: ReturnType<typeof vi.fn> };
+  let mockProjectSettingsRepository: { deleteByProjectId: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     mockProjectRepository = {

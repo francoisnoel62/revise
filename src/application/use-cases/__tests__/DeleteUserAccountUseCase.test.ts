@@ -9,12 +9,15 @@ import {
 } from '../DeleteUserAccountUseCase';
 
 describe('DeleteUserAccountUseCase', () => {
-  let mockUserRepository: any;
-  let mockProjectRepository: any;
-  let mockProviderRepository: any;
-  let mockMetadataRepository: any;
-  let mockCorrectionHistoryRepository: any;
-  let mockProjectSettingsRepository: any;
+  let mockUserRepository: {
+    findById: ReturnType<typeof vi.fn>;
+    deleteUser: ReturnType<typeof vi.fn>;
+  };
+  let mockProjectRepository: { deleteAllByOwner: ReturnType<typeof vi.fn> };
+  let mockProviderRepository: { deleteAllByOwner: ReturnType<typeof vi.fn> };
+  let mockMetadataRepository: { deleteAllByOwner: ReturnType<typeof vi.fn> };
+  let mockCorrectionHistoryRepository: { deleteAllByOwner: ReturnType<typeof vi.fn> };
+  let mockProjectSettingsRepository: { deleteAllByOwner: ReturnType<typeof vi.fn> };
 
   const mockUser = {
     id: 'user-1',

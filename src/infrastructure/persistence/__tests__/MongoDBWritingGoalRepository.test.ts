@@ -4,12 +4,19 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MongoDBWritingGoalRepository } from '../MongoDBWritingGoalRepository';
 import { WritingGoal } from '@/domain/entities/WritingGoal';
-import { ObjectId } from 'mongodb';
+import { Db, ObjectId } from 'mongodb';
 
 describe('MongoDBWritingGoalRepository', () => {
   let repository: MongoDBWritingGoalRepository;
-  let mockCollection: any;
-  let mockDb: any;
+  let mockCollection: {
+    insertOne: ReturnType<typeof vi.fn>;
+    findOne: ReturnType<typeof vi.fn>;
+    find: ReturnType<typeof vi.fn>;
+    updateOne: ReturnType<typeof vi.fn>;
+    deleteOne: ReturnType<typeof vi.fn>;
+    deleteMany: ReturnType<typeof vi.fn>;
+  };
+  let mockDb: { collection: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     mockCollection = {
@@ -29,7 +36,7 @@ describe('MongoDBWritingGoalRepository', () => {
       collection: vi.fn(() => mockCollection),
     };
 
-    repository = new MongoDBWritingGoalRepository(mockDb as any);
+    repository = new MongoDBWritingGoalRepository(mockDb as unknown as Db);
   });
 
   describe('create', () => {
