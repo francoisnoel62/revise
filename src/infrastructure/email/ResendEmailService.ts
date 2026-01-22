@@ -482,7 +482,7 @@ Cet utilisateur ne pourra pas se connecter tant que vous n'aurez pas approuve so
           <span class="signature-name">Francois</span><br>
           <span class="signature-role">Fondateur — Studio Revise</span>
           <div class="ps">
-            P.S. — Besoin d'aide ? Repondez simplement a cet email, je lis tous les messages personnellement.
+            P.S. — Besoin d'aide ? Envoyez-moi un message sur mon adresse e-mail (francoisnoel62@gmail.com), je lis tous les messages personnellement :)
           </div>
         </div>
       </div>
@@ -539,7 +539,7 @@ A tres vite dans le Studio,
 Francois
 Fondateur — Studio Revise
 
-P.S. — Besoin d'aide ? Repondez simplement a cet email, je lis tous les messages personnellement.
+P.S. — Besoin d'aide ? Envoyez-moi un message sur mon adresse e-mail (francoisnoel62@gmail.com), je lis tous les messages personnellement :)
     `.trim();
 
     await this.resend.emails.send({
