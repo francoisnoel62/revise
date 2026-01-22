@@ -20,7 +20,7 @@ describe('ApproveUserUseCase', () => {
 
   const mockUser: User = {
     id: 'user-123',
-    email: 'user@validmail.com',
+    email: 'user@protonmail.com',
     passwordHash: 'hashed-password',
     name: 'Test User',
     isApproved: false,

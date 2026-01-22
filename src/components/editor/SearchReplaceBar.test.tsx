@@ -21,12 +21,8 @@ describe('SearchReplaceBar', () => {
     };
 
     // Track all text nodes and their positions
-    const _textNodes: { text: string; pos: number }[] = [];
-    let _currentPos = 0;
-    textContent.split('').forEach(() => {
-      _currentPos++;
-    });
-    _textNodes.push({ text: textContent, pos: 0 });
+    const textNodes: { text: string; pos: number }[] = [];
+    textNodes.push({ text: textContent, pos: 0 });
 
     return {
       state: {
@@ -327,7 +323,7 @@ describe('SearchReplaceBar', () => {
   });
 
   it('should return null when editor is null', () => {
-    const { container: _container } = render(
+    render(
       <SearchReplaceBar
         editor={null}
         isOpen={true}

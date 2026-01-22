@@ -38,10 +38,12 @@ export function SearchReplaceBar({
   const [docVersion, setDocVersion] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const isNavigatingRef = useRef(false);
-  const prevSearchTermRef = useRef('');
 
-  // Compute matches from search term (derived state, not synced)
+  // Compute matches from search term (derived state via useMemo)
+  // docVersion is included to trigger recomputation after replacements
   const matches = useMemo((): SearchMatch[] => {
+    // Reference docVersion to satisfy exhaustive-deps (triggers recompute after replace)
+    void docVersion;
     if (!editor || !searchTerm) return [];
 
     const doc = editor.state.doc;
@@ -63,17 +65,13 @@ export function SearchReplaceBar({
     });
 
     return results;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, searchTerm, docVersion]);
 
-  // Reset match index when search term changes
-  if (searchTerm !== prevSearchTermRef.current) {
-    prevSearchTermRef.current = searchTerm;
-    const newIndex = matches.length > 0 ? 0 : -1;
-    if (currentMatchIndex !== newIndex) {
-      setCurrentMatchIndex(newIndex);
-    }
-  }
+  // Handle search term change and reset match index
+  const handleSearchTermChange = useCallback((newTerm: string) => {
+    setSearchTerm(newTerm);
+    setCurrentMatchIndex(0);
+  }, []);
 
   // Highlight and scroll to current match - only when navigating
   useEffect(() => {
@@ -99,6 +97,7 @@ export function SearchReplaceBar({
     }
   }, [isOpen]);
 
+  // Navigation functions - defined before the useEffect that uses them
   const goToNextMatch = useCallback(() => {
     if (matches.length === 0) return;
     isNavigatingRef.current = true;
@@ -201,7 +200,7 @@ export function SearchReplaceBar({
             type="text"
             placeholder="Rechercher..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => handleSearchTermChange(e.target.value)}
             className="h-8 text-sm"
           />
         </div>

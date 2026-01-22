@@ -3,13 +3,26 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback, useEffect, type ElementRef } from 'react';
 import Link from 'next/link';
+import Script from 'next/script';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { registerUserAction } from '@/app/actions/auth-actions';
+
+declare global {
+  interface Window {
+    hcaptcha?: {
+      render: (container: string | HTMLElement, params: object) => string;
+      reset: (widgetId?: string) => void;
+      getResponse: (widgetId?: string) => string;
+    };
+  }
+}
+
+const HCAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY;
 
 export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -25,6 +38,28 @@ export default function SignUpPage() {
   });
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [honeypot, setHoneypot] = useState('');
+  const [captchaToken, setCaptchaToken] = useState('');
+  const [hcaptchaLoaded, setHcaptchaLoaded] = useState(false);
+  const hcaptchaWidgetId = useRef<string | null>(null);
+  const hcaptchaContainerRef = useRef<ElementRef<'div'>>(null);
+
+  const onHcaptchaVerify = useCallback((token: string) => {
+    setCaptchaToken(token);
+  }, []);
+
+  const onHcaptchaExpire = useCallback(() => {
+    setCaptchaToken('');
+  }, []);
+
+  useEffect(() => {
+    if (hcaptchaLoaded && HCAPTCHA_SITE_KEY && hcaptchaContainerRef.current && window.hcaptcha && !hcaptchaWidgetId.current) {
+      hcaptchaWidgetId.current = window.hcaptcha.render(hcaptchaContainerRef.current, {
+        sitekey: HCAPTCHA_SITE_KEY,
+        callback: onHcaptchaVerify,
+        'expired-callback': onHcaptchaExpire,
+      });
+    }
+  }, [hcaptchaLoaded, onHcaptchaVerify, onHcaptchaExpire]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
@@ -56,6 +91,12 @@ export default function SignUpPage() {
       return;
     }
 
+    // Validate CAPTCHA if configured
+    if (HCAPTCHA_SITE_KEY && !captchaToken) {
+      setError('Veuillez compléter le CAPTCHA');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -65,11 +106,17 @@ export default function SignUpPage() {
         formData.name || undefined,
         acceptTerms,
         acceptTerms, // Privacy is accepted with the same checkbox
-        honeypot
+        honeypot,
+        captchaToken || undefined
       );
 
       if (!result.success) {
         setError(result.error);
+        // Reset CAPTCHA on error
+        if (window.hcaptcha && hcaptchaWidgetId.current) {
+          window.hcaptcha.reset(hcaptchaWidgetId.current);
+          setCaptchaToken('');
+        }
         return;
       }
 
@@ -78,6 +125,11 @@ export default function SignUpPage() {
       setIsPendingApproval(true);
     } catch {
       setError('Une erreur est survenue. Veuillez réessayer.');
+      // Reset CAPTCHA on error
+      if (window.hcaptcha && hcaptchaWidgetId.current) {
+        window.hcaptcha.reset(hcaptchaWidgetId.current);
+        setCaptchaToken('');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -234,7 +286,20 @@ export default function SignUpPage() {
             />
           </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading || !acceptTerms}>
+          {/* hCaptcha widget */}
+          {HCAPTCHA_SITE_KEY && (
+            <>
+              <Script
+                src="https://js.hcaptcha.com/1/api.js?render=explicit"
+                onLoad={() => setHcaptchaLoaded(true)}
+              />
+              <div className="flex justify-center">
+                <div ref={hcaptchaContainerRef} />
+              </div>
+            </>
+          )}
+
+          <Button type="submit" className="w-full" disabled={isLoading || !acceptTerms || (!!HCAPTCHA_SITE_KEY && !captchaToken)}>
             {isLoading ? 'Création du compte...' : 'Créer un compte'}
           </Button>
         </form>

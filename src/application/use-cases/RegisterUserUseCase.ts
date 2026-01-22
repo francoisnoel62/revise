@@ -43,12 +43,22 @@ export class BlockedEmailDomainError extends Error {
 }
 
 const BLOCKED_EMAIL_DOMAINS = [
+  // Reserved/test domains
   'example.com',
   'example.org',
   'example.net',
   'test.com',
   'test.org',
   'localhost',
+  // Known spam/disposable domains
+  'validmail.com',
+  'mailinator.com',
+  'tempmail.com',
+  'fakeinbox.com',
+  'guerrillamail.com',
+  'yopmail.com',
+  'throwaway.email',
+  'temp-mail.org',
 ];
 
 export class RegisterUserUseCase {
