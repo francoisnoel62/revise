@@ -79,8 +79,9 @@ Desktop.ini
 /uploads/
 /temp/
 
-# Claude Code
-.claude/
+# Claude Code (keep commands/ for shared skills)
+.claude/*
+!.claude/commands/
 
 # Research files
 /thoughts/*
