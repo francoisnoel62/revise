@@ -8,8 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Pencil, Trash2, Calendar, AlertCircle } from 'lucide-react';
 import { SerializedProjectTask } from '@/app/actions/task-actions';
-import { TASK_STATUS_LABELS } from '@/domain/value-objects/TaskStatus';
-import { TASK_PRIORITY_LABELS } from '@/domain/value-objects/TaskPriority';
+import { TASK_STATUS_LABELS, TASK_PRIORITY_LABELS } from '@/lib/ui-labels';
 import { cn } from '@/lib/utils';
 
 interface TaskRowProps {

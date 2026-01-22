@@ -27,7 +27,14 @@ export {
   type MetadataTypeDefinition,
   METADATA_TYPES,
   isValidMetadataType,
-  getMetadataType
+  getMetadataType,
+  EDITORIAL_TYPE_KEYS,
+  type EditorialTypeKey,
+  EDITORIAL_PLACEHOLDERS,
+  EDITORIAL_ORDER,
+  isEditorialType,
+  getEditorialPlaceholder,
+  getEditorialOrder,
 } from './value-objects/MetadataType';
 export { type NarrativeAnalysis } from './value-objects/NarrativeAnalysis';
 export { type StylisticDNA } from './value-objects/StylisticDNA';

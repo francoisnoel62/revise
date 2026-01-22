@@ -10,20 +10,22 @@ import {
   getOverdueTaskCountAction,
 } from '@/app/actions/cockpit-actions';
 import { getTaskSummaryAction } from '@/app/actions/task-actions';
+import { getEditorialAnnexCountAction } from '@/app/actions/editorial-actions';
 import { StatCard, ProgressCard, UsageStatsCard, TaskSummaryCard, QuickActionsCard } from '@/components/cockpit';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, Type, Clock, BookOpen, Users } from 'lucide-react';
+import { FileText, Type, Clock, BookOpen, Users, BookMarked } from 'lucide-react';
 
 interface OverviewPageProps {
   params: Promise<{ projectId: string }>;
 }
 
 async function StatsGrid({ projectId }: { projectId: string }) {
-  const [result, summaryResult, lastEditedResult, overdueResult] = await Promise.all([
+  const [result, summaryResult, lastEditedResult, overdueResult, editorialResult] = await Promise.all([
     getProjectStatsAction(projectId),
     getTaskSummaryAction(projectId),
     getLastEditedChapterAction(projectId),
     getOverdueTaskCountAction(projectId),
+    getEditorialAnnexCountAction(projectId),
   ]);
 
   if (!result.success) {
@@ -34,6 +36,7 @@ async function StatsGrid({ projectId }: { projectId: string }) {
   const taskSummary = summaryResult.success ? summaryResult.summary : null;
   const lastEditedChapter = lastEditedResult.success ? lastEditedResult.chapter : null;
   const overdueTaskCount = overdueResult.success ? overdueResult.count : 0;
+  const editorialCount = editorialResult.success ? editorialResult.data : { count: 0, total: 8 };
 
   const targetWordCount = stats.activeGoal?.targetWords ?? 0;
   const hasGoal = stats.activeGoal !== null;
@@ -41,7 +44,7 @@ async function StatsGrid({ projectId }: { projectId: string }) {
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard
           title="Nombre de mots"
           value={stats.wordCount.toLocaleString('fr-FR')}
@@ -72,6 +75,13 @@ async function StatsGrid({ projectId }: { projectId: string }) {
           value={stats.readingTime}
           description="Estimé à 200 mots/min"
           icon={Clock}
+        />
+        <StatCard
+          title="Annexes"
+          value={`${editorialCount.count}/${editorialCount.total}`}
+          description="rédigées"
+          icon={BookMarked}
+          href={`/project/${projectId}/cockpit/editorial`}
         />
       </div>
 
@@ -133,8 +143,8 @@ async function StatsGrid({ projectId }: { projectId: string }) {
 function StatsGridSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        {[1, 2, 3, 4, 5].map((i) => (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
           <StatCard key={i} title="" value="" isLoading />
         ))}
       </div>

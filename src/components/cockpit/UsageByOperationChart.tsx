@@ -8,9 +8,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Bar, BarChart, XAxis, YAxis, Cell } from 'recharts';
-import { UsageStats } from '@/domain/interfaces/AIUsageRepository';
-import { AI_OPERATION_LABELS, AIOperationType } from '@/domain/value-objects/AIOperationType';
+import { AI_OPERATION_LABELS } from '@/lib/ui-labels';
 import { getProjectUsageStatsAction } from '@/app/actions/usage-actions';
+
+interface UsageStats {
+  totalOperations: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalDurationMs: number;
+  byOperation: Record<string, { count: number; inputTokens: number; outputTokens: number }>;
+}
 
 interface UsageByOperationChartProps {
   projectId: string;
@@ -91,7 +98,7 @@ export function UsageByOperationChart({ projectId }: UsageByOperationChartProps)
   const chartData = Object.entries(stats.byOperation)
     .filter(([, data]) => data.count > 0)
     .map(([operation, data]) => ({
-      operation: AI_OPERATION_LABELS[operation as AIOperationType] || operation,
+      operation: AI_OPERATION_LABELS[operation] || operation,
       count: data.count,
       tokens: data.inputTokens + data.outputTokens,
     }))

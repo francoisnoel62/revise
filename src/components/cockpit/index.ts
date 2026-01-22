@@ -18,3 +18,5 @@ export { ResearchDocumentCard } from './ResearchDocumentCard';
 export { ResearchDocumentForm } from './ResearchDocumentForm';
 export { QuickActionButton, type QuickActionButtonProps } from './QuickActionButton';
 export { QuickActionsCard } from './QuickActionsCard';
+export { EditorialCard } from './EditorialCard';
+export { EditorialEditor } from './EditorialEditor';

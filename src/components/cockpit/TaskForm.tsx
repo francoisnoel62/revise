@@ -16,8 +16,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TaskStatus, TASK_STATUS_LABELS } from '@/domain/value-objects/TaskStatus';
-import { TaskPriority, TASK_PRIORITY_LABELS } from '@/domain/value-objects/TaskPriority';
+import { TASK_STATUS_LABELS, TASK_PRIORITY_LABELS } from '@/lib/ui-labels';
+
+type TaskStatus = 'todo' | 'in_progress' | 'done';
+type TaskPriority = 'high' | 'medium' | 'low';
 
 interface TaskFormProps {
   onSubmit: (data: {

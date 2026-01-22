@@ -4,6 +4,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { UsageStatsCard } from '../UsageStatsCard';
+import type { UsageStats } from '@/domain/interfaces/AIUsageRepository';
+import type { ActionResult } from '@/app/actions/utils';
 
 // Mock the server action
 vi.mock('@/app/actions/usage-actions', () => ({
@@ -12,7 +14,7 @@ vi.mock('@/app/actions/usage-actions', () => ({
 
 import { getProjectUsageStatsAction } from '@/app/actions/usage-actions';
 
-const mockStatsWithData = {
+const mockStatsWithData: ActionResult<UsageStats> = {
   success: true,
   data: {
     totalOperations: 42,
@@ -34,7 +36,7 @@ const mockStatsWithData = {
   },
 };
 
-const mockStatsEmpty = {
+const mockStatsEmpty: ActionResult<UsageStats> = {
   success: true,
   data: {
     totalOperations: 0,

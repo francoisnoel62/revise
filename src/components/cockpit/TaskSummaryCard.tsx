@@ -4,7 +4,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle2, Circle, Clock, AlertTriangle } from 'lucide-react';
-import { TaskSummary } from '@/application/use-cases/GetTaskSummaryUseCase';
+
+interface TaskSummary {
+  total: number;
+  todo: number;
+  inProgress: number;
+  done: number;
+  overdue: number;
+}
 
 interface TaskSummaryCardProps {
   summary: TaskSummary | null;

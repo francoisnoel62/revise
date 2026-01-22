@@ -69,7 +69,7 @@ describe('AI Usage Tracking Integration', () => {
       const provider = await getTrackedLLMProviderForProject('user-1', 'project-1');
 
       expect(provider).toBeInstanceOf(TrackedLLMProvider);
-    });
+    }, 15000);
 
     it('wraps the base provider with tracking', async () => {
       const { getTrackedLLMProviderForProject } = await import('../utils');

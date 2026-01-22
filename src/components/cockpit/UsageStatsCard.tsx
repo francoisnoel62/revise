@@ -7,9 +7,16 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkles, Zap, Timer } from 'lucide-react';
-import { UsageStats } from '@/domain/interfaces/AIUsageRepository';
-import { AI_OPERATION_LABELS, AIOperationType } from '@/domain/value-objects/AIOperationType';
+import { AI_OPERATION_LABELS } from '@/lib/ui-labels';
 import { getProjectUsageStatsAction } from '@/app/actions/usage-actions';
+
+interface UsageStats {
+  totalOperations: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalDurationMs: number;
+  byOperation: Record<string, { count: number; inputTokens: number; outputTokens: number }>;
+}
 
 interface UsageStatsCardProps {
   projectId: string;
@@ -182,7 +189,7 @@ export function UsageStatsCard({ projectId }: UsageStatsCardProps) {
             {sortedOperations.map(([operation, data]) => (
               <div key={operation} className="flex justify-between text-sm">
                 <span className="text-muted-foreground">
-                  {AI_OPERATION_LABELS[operation as AIOperationType]}
+                  {AI_OPERATION_LABELS[operation]}
                 </span>
                 <span className="font-medium">{data.count}</span>
               </div>
