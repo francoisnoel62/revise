@@ -28,18 +28,34 @@ import { getHCaptchaVerifier } from '@/infrastructure/security/HCaptchaVerifier'
 
 /**
  * Get client IP address from headers.
+ * Checks multiple headers in priority order to support various hosting providers.
  */
 async function getClientIp(): Promise<string> {
   const headersList = await headers();
-  // Check common headers for proxied requests
+
+  // Vercel-specific header (highest priority for Vercel deployments)
+  const vercelForwardedFor = headersList.get('x-vercel-forwarded-for');
+  if (vercelForwardedFor) {
+    return vercelForwardedFor.split(',')[0].trim();
+  }
+
+  // Standard proxy headers
   const forwardedFor = headersList.get('x-forwarded-for');
   if (forwardedFor) {
     return forwardedFor.split(',')[0].trim();
   }
+
   const realIp = headersList.get('x-real-ip');
   if (realIp) {
     return realIp;
   }
+
+  // Cloudflare header
+  const cfConnectingIp = headersList.get('cf-connecting-ip');
+  if (cfConnectingIp) {
+    return cfConnectingIp;
+  }
+
   return 'unknown';
 }
 
