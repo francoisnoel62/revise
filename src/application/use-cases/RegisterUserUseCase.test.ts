@@ -45,7 +45,7 @@ describe('RegisterUserUseCase', () => {
     it('throws ValidationError for short password', async () => {
       await expect(
         useCase.execute({
-          email: 'user@validmail.com',
+          email: 'user@protonmail.com',
           password: 'short',
           acceptedTerms: true,
           acceptedPrivacy: true,
@@ -56,7 +56,7 @@ describe('RegisterUserUseCase', () => {
     it('throws ValidationError when terms not accepted', async () => {
       await expect(
         useCase.execute({
-          email: 'user@validmail.com',
+          email: 'user@protonmail.com',
           password: 'password123',
           acceptedTerms: false,
           acceptedPrivacy: true,
@@ -67,7 +67,7 @@ describe('RegisterUserUseCase', () => {
     it('throws ValidationError when privacy not accepted', async () => {
       await expect(
         useCase.execute({
-          email: 'user@validmail.com',
+          email: 'user@protonmail.com',
           password: 'password123',
           acceptedTerms: true,
           acceptedPrivacy: false,
@@ -121,6 +121,28 @@ describe('RegisterUserUseCase', () => {
       ).rejects.toThrow(BlockedEmailDomainError);
     });
 
+    it('throws BlockedEmailDomainError for validmail.com (spam domain)', async () => {
+      await expect(
+        useCase.execute({
+          email: 'user@validmail.com',
+          password: 'password123',
+          acceptedTerms: true,
+          acceptedPrivacy: true,
+        })
+      ).rejects.toThrow(BlockedEmailDomainError);
+    });
+
+    it('throws BlockedEmailDomainError for mailinator.com (disposable)', async () => {
+      await expect(
+        useCase.execute({
+          email: 'user@mailinator.com',
+          password: 'password123',
+          acceptedTerms: true,
+          acceptedPrivacy: true,
+        })
+      ).rejects.toThrow(BlockedEmailDomainError);
+    });
+
     it('accepts valid email domains', async () => {
       mockUserRepo.emailExists.mockResolvedValue(false);
       mockUserRepo.create.mockResolvedValue({
@@ -146,7 +168,7 @@ describe('RegisterUserUseCase', () => {
 
       await expect(
         useCase.execute({
-          email: 'existing@validmail.com',
+          email: 'existing@protonmail.com',
           password: 'password123',
           acceptedTerms: true,
           acceptedPrivacy: true,
@@ -160,21 +182,21 @@ describe('RegisterUserUseCase', () => {
       mockUserRepo.emailExists.mockResolvedValue(false);
       mockUserRepo.create.mockResolvedValue({
         id: 'user-123',
-        email: 'user@validmail.com',
+        email: 'user@protonmail.com',
         name: 'Test User',
       });
 
       const result = await useCase.execute({
-        email: 'user@validmail.com',
+        email: 'user@protonmail.com',
         password: 'password123',
         name: 'Test User',
         acceptedTerms: true,
         acceptedPrivacy: true,
       });
 
-      expect(result.email).toBe('user@validmail.com');
+      expect(result.email).toBe('user@protonmail.com');
       expect(mockUserRepo.create).toHaveBeenCalledWith({
-        email: 'user@validmail.com',
+        email: 'user@protonmail.com',
         password: 'password123',
         name: 'Test User',
         acceptedTerms: true,

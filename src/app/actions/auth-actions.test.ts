@@ -38,12 +38,12 @@ describe('auth-actions', () => {
       mockUserRepo.emailExists.mockResolvedValue(false);
       mockUserRepo.create.mockResolvedValue({
         id: 'user-123',
-        email: 'user@validmail.com',
+        email: 'user@protonmail.com',
         name: 'Test User',
       });
 
       const result = await registerUserAction(
-        'user@validmail.com',
+        'user@protonmail.com',
         'password123',
         'Test User',
         true, // acceptedTerms
@@ -52,7 +52,7 @@ describe('auth-actions', () => {
 
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.email).toBe('user@validmail.com');
+        expect(result.data.email).toBe('user@protonmail.com');
       }
     });
 
@@ -60,7 +60,7 @@ describe('auth-actions', () => {
       mockUserRepo.emailExists.mockResolvedValue(true);
 
       const result = await registerUserAction(
-        'existing@validmail.com',
+        'existing@protonmail.com',
         'password123',
         undefined,
         true,
@@ -75,7 +75,7 @@ describe('auth-actions', () => {
 
     it('rejects short password', async () => {
       const result = await registerUserAction(
-        'user@validmail.com',
+        'user@protonmail.com',
         'short',
         undefined,
         true,
@@ -105,7 +105,7 @@ describe('auth-actions', () => {
 
     it('rejects registration without terms acceptance', async () => {
       const result = await registerUserAction(
-        'user@validmail.com',
+        'user@protonmail.com',
         'password123',
         'Test User',
         false, // acceptedTerms = false
@@ -120,7 +120,7 @@ describe('auth-actions', () => {
 
     it('rejects registration without privacy acceptance', async () => {
       const result = await registerUserAction(
-        'user@validmail.com',
+        'user@protonmail.com',
         'password123',
         'Test User',
         true,
@@ -135,7 +135,7 @@ describe('auth-actions', () => {
 
     it('rejects registration when honeypot field is filled (bot detection)', async () => {
       const result = await registerUserAction(
-        'user@validmail.com',
+        'user@protonmail.com',
         'password123',
         'Test User',
         true,
@@ -150,12 +150,12 @@ describe('auth-actions', () => {
       mockUserRepo.emailExists.mockResolvedValue(false);
       mockUserRepo.create.mockResolvedValue({
         id: 'user-123',
-        email: 'user@validmail.com',
+        email: 'user@protonmail.com',
         name: 'Test User',
       });
 
       const result = await registerUserAction(
-        'user@validmail.com',
+        'user@protonmail.com',
         'password123',
         'Test User',
         true,
@@ -210,13 +210,43 @@ describe('auth-actions', () => {
         expect(result.error).toContain('autorisée');
       }
     });
+
+    it('rejects registration with blocked spam domain (validmail.com)', async () => {
+      const result = await registerUserAction(
+        'user@validmail.com',
+        'password123',
+        'Test User',
+        true,
+        true
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain('autorisée');
+      }
+    });
+
+    it('rejects registration with disposable email domain (mailinator.com)', async () => {
+      const result = await registerUserAction(
+        'user@mailinator.com',
+        'password123',
+        'Test User',
+        true,
+        true
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain('autorisée');
+      }
+    });
   });
 
   describe('checkEmailAvailableAction', () => {
     it('returns available for new email', async () => {
       mockUserRepo.emailExists.mockResolvedValue(false);
 
-      const result = await checkEmailAvailableAction('new@validmail.com');
+      const result = await checkEmailAvailableAction('new@protonmail.com');
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -227,7 +257,7 @@ describe('auth-actions', () => {
     it('returns not available for existing email', async () => {
       mockUserRepo.emailExists.mockResolvedValue(true);
 
-      const result = await checkEmailAvailableAction('existing@validmail.com');
+      const result = await checkEmailAvailableAction('existing@protonmail.com');
 
       expect(result.success).toBe(true);
       if (result.success) {
