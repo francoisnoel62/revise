@@ -168,23 +168,6 @@ Cet utilisateur ne pourra pas se connecter tant que vous n'aurez pas approuve so
       padding: 40px;
       border-top: 1px solid #f0f0f0;
     }
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 14px;
-      background: #f0fdf4;
-      color: #15803d;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 32px;
-      border: 1px solid #dcfce7;
-    }
-    .checkmark {
-      color: #22c55e;
-      font-size: 16px;
-    }
     .welcome-message {
       font-size: 16px;
       color: #525252;
@@ -420,11 +403,6 @@ Cet utilisateur ne pourra pas se connecter tant que vous n'aurez pas approuve so
     </div>
 
     <div class="content">
-      <div class="status-badge">
-        <span class="checkmark">&#10003;</span>
-        Disponible maintenant
-      </div>
-
       <p class="welcome-message">
         <strong>Felicitations</strong> — Votre compte est actif et votre espace d'ecriture vous attend. Vous avez desormais acces a tous les outils pour transformer vos idees en histoires abouties.
       </p>
@@ -522,8 +500,6 @@ Vous etes dans le Studio.
 Le partenaire d'ecriture que tout auteur creatif voudrait avoir. Pas un remplacant. Un allie silencieux qui enrichit votre voix.
 
 ---
-
-DISPONIBLE MAINTENANT
 
 Felicitations — Votre compte est actif et votre espace d'ecriture vous attend. Vous avez desormais acces a tous les outils pour transformer vos idees en histoires abouties.
 
