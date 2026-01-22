@@ -99,54 +99,471 @@ Cet utilisateur ne pourra pas se connecter tant que vous n'aurez pas approuve so
 
   async sendWelcomeEmail(user: SafeUser): Promise<void> {
     const loginUrl = `${this.baseUrl}/auth/signin`;
+    const featuresUrl = `${this.baseUrl}/features`;
 
     const html = `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    h1 { color: #1a1a1a; font-size: 24px; }
-    .content { margin: 20px 0; }
-    .content p { margin: 15px 0; }
-    .btn { display: inline-block; padding: 14px 28px; background: #2563eb; color: white; text-decoration: none; border-radius: 8px; font-weight: 500; margin: 20px 0; }
-    .signature { color: #666; margin-top: 30px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      color: #0a0a0a;
+      background: #fafafa;
+      padding: 40px 20px;
+    }
+    .email-wrapper {
+      max-width: 680px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #e5e5e5;
+    }
+    .header {
+      padding: 60px 40px 50px;
+      text-align: center;
+      background: white;
+      position: relative;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: 700;
+      color: #0a0a0a;
+      margin-bottom: 16px;
+      letter-spacing: -0.02em;
+    }
+    .tagline {
+      font-size: 13px;
+      color: #a3a3a3;
+      margin-bottom: 40px;
+      font-weight: 400;
+    }
+    .wave-emoji {
+      font-size: 48px;
+      display: inline-block;
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: 36px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      color: #0a0a0a;
+    }
+    .subtitle {
+      font-size: 17px;
+      color: #737373;
+      font-weight: 400;
+      line-height: 1.6;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+    .content {
+      padding: 40px;
+      border-top: 1px solid #f0f0f0;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: #f0fdf4;
+      color: #15803d;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 32px;
+      border: 1px solid #dcfce7;
+    }
+    .checkmark {
+      color: #22c55e;
+      font-size: 16px;
+    }
+    .welcome-message {
+      font-size: 16px;
+      color: #525252;
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+    .welcome-message strong {
+      color: #0a0a0a;
+      font-weight: 600;
+    }
+    .feature-grid {
+      display: grid;
+      gap: 12px;
+      margin: 32px 0;
+    }
+    .feature-item {
+      display: flex;
+      align-items: start;
+      gap: 14px;
+      padding: 20px;
+      background: #fafafa;
+      border-radius: 10px;
+      border: 1px solid #f0f0f0;
+    }
+    .feature-icon {
+      width: 44px;
+      height: 44px;
+      background: white;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+      border: 1px solid #f0f0f0;
+    }
+    .feature-text {
+      flex: 1;
+      padding-top: 2px;
+    }
+    .feature-title {
+      font-weight: 600;
+      color: #0a0a0a;
+      margin-bottom: 4px;
+      font-size: 15px;
+    }
+    .feature-desc {
+      font-size: 14px;
+      color: #737373;
+      line-height: 1.5;
+    }
+    .social-proof {
+      background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+      border: 1px solid #f0f0f0;
+      border-radius: 12px;
+      padding: 24px;
+      margin: 32px 0;
+      text-align: center;
+    }
+    .social-proof-title {
+      font-size: 13px;
+      color: #a3a3a3;
+      margin-bottom: 16px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .testimonial {
+      font-size: 15px;
+      color: #525252;
+      font-style: italic;
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+    .author {
+      font-size: 14px;
+      color: #0a0a0a;
+      font-weight: 600;
+      font-style: normal;
+    }
+    .author-role {
+      font-size: 13px;
+      color: #a3a3a3;
+    }
+    .cta-section {
+      text-align: center;
+      margin: 40px 0 32px;
+    }
+    .cta-label {
+      font-size: 13px;
+      color: #a3a3a3;
+      margin-bottom: 16px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 32px;
+      background: #0a0a0a;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 500;
+      font-size: 15px;
+    }
+    .btn-secondary {
+      background: white;
+      color: #0a0a0a;
+      border: 1px solid #e5e5e5;
+    }
+    .btn-arrow {
+      font-size: 16px;
+    }
+    .quick-start {
+      background: #fafafa;
+      border: 1px solid #f0f0f0;
+      border-radius: 10px;
+      padding: 24px;
+      margin-top: 32px;
+    }
+    .quick-start-title {
+      font-weight: 600;
+      color: #0a0a0a;
+      margin-bottom: 16px;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .steps {
+      display: grid;
+      gap: 12px;
+    }
+    .step {
+      display: flex;
+      align-items: start;
+      gap: 12px;
+    }
+    .step-number {
+      width: 24px;
+      height: 24px;
+      background: #0a0a0a;
+      color: white;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .step-text {
+      font-size: 14px;
+      color: #525252;
+      line-height: 1.5;
+      padding-top: 2px;
+    }
+    .footer {
+      background: #fafafa;
+      padding: 32px 40px;
+      border-top: 1px solid #f0f0f0;
+    }
+    .signature-box {
+      display: flex;
+      align-items: start;
+      gap: 16px;
+    }
+    .avatar {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #0a0a0a 0%, #404040 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .signature {
+      color: #737373;
+      font-size: 14px;
+      line-height: 1.8;
+      flex: 1;
+    }
+    .signature-name {
+      font-weight: 600;
+      color: #0a0a0a;
+      font-size: 15px;
+    }
+    .signature-role {
+      font-size: 13px;
+      color: #a3a3a3;
+    }
+    .ps {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #f0f0f0;
+      font-size: 13px;
+      color: #737373;
+      font-style: italic;
+    }
+    @media (max-width: 600px) {
+      body { padding: 20px 12px; }
+      .header { padding: 40px 24px 32px; }
+      h1 { font-size: 28px; }
+      .content { padding: 24px; }
+      .footer { padding: 24px; }
+      .btn-group { flex-direction: column; }
+      .btn { width: 100%; justify-content: center; }
+      .signature-box { flex-direction: column; align-items: center; text-align: center; }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Hello l'artiste, bienvenue au sein du Studio Revise &#9997;&#65039;</h1>
-
-    <div class="content">
-      <p>Nous sommes ravis de t'accueillir parmi nous.</p>
-
-      <p>Tu peux maintenant acceder a ton espace personnel, creer tes projets et profiter de l'assistant d'ecriture.</p>
-
-      <a href="${loginUrl}" class="btn">Se connecter</a>
+  <div class="email-wrapper">
+    <div class="header">
+      <div class="logo">Revise</div>
+      <div class="tagline">Studio d'ecriture creative</div>
+      <div class="wave-emoji">&#128075;</div>
+      <h1>Vous etes dans le Studio.</h1>
+      <p class="subtitle">Le partenaire d'ecriture que tout auteur creatif voudrait avoir. Pas un remplacant. Un allie silencieux qui enrichit votre voix.</p>
     </div>
 
-    <p class="signature">
-      A tres vite sur Studio Revise,<br>
-      Francois
-    </p>
+    <div class="content">
+      <div class="status-badge">
+        <span class="checkmark">&#10003;</span>
+        Disponible maintenant
+      </div>
+
+      <p class="welcome-message">
+        <strong>Felicitations</strong> — Votre compte est actif et votre espace d'ecriture vous attend. Vous avez desormais acces a tous les outils pour transformer vos idees en histoires abouties.
+      </p>
+
+      <div class="feature-grid">
+        <div class="feature-item">
+          <div class="feature-icon">&#128214;</div>
+          <div class="feature-text">
+            <div class="feature-title">Organisation par projets</div>
+            <div class="feature-desc">Chapitres, scenes, metadonnees. Tout est structure.</div>
+          </div>
+        </div>
+
+        <div class="feature-item">
+          <div class="feature-icon">&#9999;&#65039;</div>
+          <div class="feature-text">
+            <div class="feature-title">Editeur professionnel</div>
+            <div class="feature-desc">Format A4, typographie avancee, export .docx.</div>
+          </div>
+        </div>
+
+        <div class="feature-item">
+          <div class="feature-icon">&#9889;</div>
+          <div class="feature-text">
+            <div class="feature-title">Sauvegarde automatique</div>
+            <div class="feature-desc">Vos ecrits sont sauvegardes en temps reel.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="social-proof">
+        <div class="social-proof-title">Ce qu'en pensent les auteurs</div>
+        <div class="testimonial">
+          "Enfin un outil qui comprend qu'ecrire, c'est reecrire. Les variantes proposees m'ont debloquee a chaque fois."
+        </div>
+        <div class="author">Marie Lefebvre</div>
+        <div class="author-role">Auteure de romans historiques</div>
+      </div>
+
+      <div class="cta-section">
+        <div class="cta-label">Pret a commencer ?</div>
+        <div class="btn-group">
+          <a href="${loginUrl}" class="btn">
+            Acceder au Studio
+            <span class="btn-arrow">&#8594;</span>
+          </a>
+          <a href="${featuresUrl}" class="btn btn-secondary">
+            Decouvrir les fonctionnalites
+          </a>
+        </div>
+      </div>
+
+      <div class="quick-start">
+        <div class="quick-start-title">&#128640; Guide de demarrage rapide</div>
+        <div class="steps">
+          <div class="step">
+            <div class="step-number">1</div>
+            <div class="step-text">Creez votre premier projet et donnez-lui un titre</div>
+          </div>
+          <div class="step">
+            <div class="step-number">2</div>
+            <div class="step-text">Commencez a ecrire dans l'editeur ou importez un texte existant</div>
+          </div>
+          <div class="step">
+            <div class="step-number">3</div>
+            <div class="step-text">Utilisez l'assistant IA pour ameliorer vos passages</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="signature-box">
+        <div class="avatar">F</div>
+        <div class="signature">
+          A tres vite dans le Studio,<br>
+          <span class="signature-name">Francois</span><br>
+          <span class="signature-role">Fondateur — Studio Revise</span>
+          <div class="ps">
+            P.S. — Besoin d'aide ? Repondez simplement a cet email, je lis tous les messages personnellement.
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </body>
 </html>
     `.trim();
 
     const text = `
-Hello l'artiste, bienvenue au sein du Studio Revise!
+REVISE - Studio d'ecriture creative
 
-Nous sommes ravis de t'accueillir parmi nous.
+Vous etes dans le Studio.
 
-Tu peux maintenant acceder a ton espace personnel, creer tes projets et profiter de l'assistant d'ecriture.
+Le partenaire d'ecriture que tout auteur creatif voudrait avoir. Pas un remplacant. Un allie silencieux qui enrichit votre voix.
 
-Se connecter: ${loginUrl}
+---
 
-A tres vite sur Studio Revise,
+DISPONIBLE MAINTENANT
+
+Felicitations — Votre compte est actif et votre espace d'ecriture vous attend. Vous avez desormais acces a tous les outils pour transformer vos idees en histoires abouties.
+
+---
+
+CE QUE VOUS POUVEZ FAIRE :
+
+- Organisation par projets : Chapitres, scenes, metadonnees. Tout est structure.
+- Editeur professionnel : Format A4, typographie avancee, export .docx.
+- Sauvegarde automatique : Vos ecrits sont sauvegardes en temps reel.
+
+---
+
+CE QU'EN PENSENT LES AUTEURS :
+
+"Enfin un outil qui comprend qu'ecrire, c'est reecrire. Les variantes proposees m'ont debloquee a chaque fois."
+— Marie Lefebvre, Auteure de romans historiques
+
+---
+
+PRET A COMMENCER ?
+
+Acceder au Studio : ${loginUrl}
+Decouvrir les fonctionnalites : ${featuresUrl}
+
+---
+
+GUIDE DE DEMARRAGE RAPIDE :
+
+1. Creez votre premier projet et donnez-lui un titre
+2. Commencez a ecrire dans l'editeur ou importez un texte existant
+3. Utilisez l'assistant IA pour ameliorer vos passages
+
+---
+
+A tres vite dans le Studio,
 Francois
+Fondateur — Studio Revise
+
+P.S. — Besoin d'aide ? Repondez simplement a cet email, je lis tous les messages personnellement.
     `.trim();
 
     await this.resend.emails.send({
