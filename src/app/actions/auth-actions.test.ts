@@ -1,6 +1,8 @@
 // ABOUTME: Tests for authentication Server Actions.
+// ABOUTME: Includes tests for rate limiting and CAPTCHA verification.
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach
+ } from 'vitest';
 import { registerUserAction, checkEmailAvailableAction } from './auth-actions';
 
 // Mock the providers
@@ -9,7 +11,33 @@ vi.mock('@/infrastructure/config/providers', () => ({
   getEmailService: vi.fn(),
 }));
 
+// Mock next/headers
+vi.mock('next/headers', () => ({
+  headers: vi.fn(() => Promise.resolve({
+    get: vi.fn((name: string) => {
+      if (name === 'x-forwarded-for') return '127.0.0.1';
+      return null;
+    }),
+  })),
+}));
+
+// Mock rate limiter
+vi.mock('@/infrastructure/security/InMemoryRateLimiter', () => ({
+  getRateLimiter: vi.fn(() => ({
+    checkLimit: vi.fn().mockResolvedValue({ allowed: true, remainingAttempts: 5, resetInSeconds: 3600 }),
+    recordAttempt: vi.fn().mockResolvedValue(undefined),
+    resetLimit: vi.fn().mockResolvedValue(undefined),
+  })),
+}));
+
+// Mock hCaptcha verifier (disabled by default in tests)
+vi.mock('@/infrastructure/security/HCaptchaVerifier', () => ({
+  getHCaptchaVerifier: vi.fn(() => null),
+}));
+
 import { getUserRepository, getEmailService } from '@/infrastructure/config/providers';
+import { getRateLimiter } from '@/infrastructure/security/InMemoryRateLimiter';
+import { getHCaptchaVerifier } from '@/infrastructure/security/HCaptchaVerifier';
 
 describe('auth-actions', () => {
   const mockUserRepo = {
@@ -239,6 +267,114 @@ describe('auth-actions', () => {
       if (!result.success) {
         expect(result.error).toContain('autorisée');
       }
+    });
+
+    it('rejects registration when rate limit exceeded', async () => {
+      vi.mocked(getRateLimiter).mockReturnValue({
+        checkLimit: vi.fn().mockResolvedValue({ allowed: false, remainingAttempts: 0, resetInSeconds: 1800 }),
+        recordAttempt: vi.fn().mockResolvedValue(undefined),
+        resetLimit: vi.fn().mockResolvedValue(undefined),
+      });
+
+      const result = await registerUserAction(
+        'user@protonmail.com',
+        'password123',
+        'Test User',
+        true,
+        true
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain('Trop de tentatives');
+      }
+    });
+
+    it('requires CAPTCHA when configured', async () => {
+      // Reset rate limiter mock to allow
+      vi.mocked(getRateLimiter).mockReturnValue({
+        checkLimit: vi.fn().mockResolvedValue({ allowed: true, remainingAttempts: 5, resetInSeconds: 3600 }),
+        recordAttempt: vi.fn().mockResolvedValue(undefined),
+        resetLimit: vi.fn().mockResolvedValue(undefined),
+      });
+
+      // Enable CAPTCHA verifier
+      vi.mocked(getHCaptchaVerifier).mockReturnValue({
+        verify: vi.fn().mockResolvedValue({ success: true }),
+      });
+
+      const result = await registerUserAction(
+        'user@protonmail.com',
+        'password123',
+        'Test User',
+        true,
+        true,
+        '', // honeypot
+        undefined // no captcha token
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain('CAPTCHA');
+      }
+    });
+
+    it('rejects invalid CAPTCHA token', async () => {
+      vi.mocked(getRateLimiter).mockReturnValue({
+        checkLimit: vi.fn().mockResolvedValue({ allowed: true, remainingAttempts: 5, resetInSeconds: 3600 }),
+        recordAttempt: vi.fn().mockResolvedValue(undefined),
+        resetLimit: vi.fn().mockResolvedValue(undefined),
+      });
+
+      vi.mocked(getHCaptchaVerifier).mockReturnValue({
+        verify: vi.fn().mockResolvedValue({ success: false, errorCodes: ['invalid-input-response'] }),
+      });
+
+      const result = await registerUserAction(
+        'user@protonmail.com',
+        'password123',
+        'Test User',
+        true,
+        true,
+        '',
+        'invalid-token'
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain('CAPTCHA échouée');
+      }
+    });
+
+    it('accepts valid CAPTCHA token', async () => {
+      mockUserRepo.emailExists.mockResolvedValue(false);
+      mockUserRepo.create.mockResolvedValue({
+        id: 'user-123',
+        email: 'user@protonmail.com',
+        name: 'Test User',
+      });
+
+      vi.mocked(getRateLimiter).mockReturnValue({
+        checkLimit: vi.fn().mockResolvedValue({ allowed: true, remainingAttempts: 5, resetInSeconds: 3600 }),
+        recordAttempt: vi.fn().mockResolvedValue(undefined),
+        resetLimit: vi.fn().mockResolvedValue(undefined),
+      });
+
+      vi.mocked(getHCaptchaVerifier).mockReturnValue({
+        verify: vi.fn().mockResolvedValue({ success: true }),
+      });
+
+      const result = await registerUserAction(
+        'user@protonmail.com',
+        'password123',
+        'Test User',
+        true,
+        true,
+        '',
+        'valid-token'
+      );
+
+      expect(result.success).toBe(true);
     });
   });
 

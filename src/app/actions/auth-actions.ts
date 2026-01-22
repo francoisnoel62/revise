@@ -3,6 +3,7 @@
 
 'use server';
 
+import { headers } from 'next/headers';
 import { RegisterUserUseCase, EmailAlreadyExistsError, BlockedEmailDomainError } from '@/application/use-cases/RegisterUserUseCase';
 import {
   DeleteUserAccountUseCase,
@@ -21,11 +22,31 @@ import {
   getMetadataRepo,
   getCorrectionHistoryRepo,
 } from './utils';
+import { getRateLimiter } from '@/infrastructure/security/InMemoryRateLimiter';
+import { getHCaptchaVerifier } from '@/infrastructure/security/HCaptchaVerifier';
+
+/**
+ * Get client IP address from headers.
+ */
+async function getClientIp(): Promise<string> {
+  const headersList = await headers();
+  // Check common headers for proxied requests
+  const forwardedFor = headersList.get('x-forwarded-for');
+  if (forwardedFor) {
+    return forwardedFor.split(',')[0].trim();
+  }
+  const realIp = headersList.get('x-real-ip');
+  if (realIp) {
+    return realIp;
+  }
+  return 'unknown';
+}
 
 /**
  * Register a new user.
  * Delegates to RegisterUserUseCase for business logic.
  * Stores consent timestamps for RGPD compliance.
+ * Includes rate limiting and CAPTCHA verification for spam protection.
  */
 export async function registerUserAction(
   email: string,
@@ -33,13 +54,42 @@ export async function registerUserAction(
   name: string | undefined,
   acceptedTerms: boolean,
   acceptedPrivacy: boolean,
-  honeypot?: string
+  honeypot?: string,
+  captchaToken?: string
 ): Promise<ActionResult<SafeUser>> {
   try {
     // Anti-spam: reject if honeypot field is filled (bots fill all fields)
     if (honeypot) {
       return { success: false, error: 'Registration failed' };
     }
+
+    const clientIp = await getClientIp();
+
+    // Rate limiting check
+    const rateLimiter = getRateLimiter();
+    const rateLimit = await rateLimiter.checkLimit(clientIp, 'registration');
+    if (!rateLimit.allowed) {
+      return {
+        success: false,
+        error: `Trop de tentatives. Réessayez dans ${Math.ceil(rateLimit.resetInSeconds / 60)} minutes.`,
+      };
+    }
+
+    // CAPTCHA verification (if configured)
+    const captchaVerifier = getHCaptchaVerifier();
+    if (captchaVerifier) {
+      if (!captchaToken) {
+        return { success: false, error: 'Veuillez compléter le CAPTCHA' };
+      }
+
+      const captchaResult = await captchaVerifier.verify(captchaToken, clientIp);
+      if (!captchaResult.success) {
+        return { success: false, error: 'Vérification CAPTCHA échouée. Veuillez réessayer.' };
+      }
+    }
+
+    // Record the attempt for rate limiting
+    await rateLimiter.recordAttempt(clientIp, 'registration');
 
     const emailService = await getEmailService();
     const useCase = new RegisterUserUseCase(await getUserRepo(), emailService);
