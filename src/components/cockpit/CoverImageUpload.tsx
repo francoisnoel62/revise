@@ -49,7 +49,7 @@ export function CoverImageUpload({
     }
 
     // Show preview
-    const reader = new FileReader();
+    const reader = new globalThis.FileReader();
     reader.onload = (e) => {
       setPreviewUrl(e.target?.result as string);
     };

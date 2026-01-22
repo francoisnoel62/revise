@@ -68,7 +68,7 @@ export default function CockpitMetadataListPage() {
       if (providersResult.success) {
         setProviders(providersResult.data);
       }
-    } catch (err) {
+    } catch {
       setLoadError('Erreur lors du chargement');
     } finally {
       setIsLoading(false);

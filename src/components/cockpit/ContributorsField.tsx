@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Plus, Trash2 } from 'lucide-react';
-import { Contributor, ContributorRole, CONTRIBUTOR_ROLES, CONTRIBUTOR_ROLE_LABELS } from '@/domain/value-objects/Contributor';
+import { Contributor, CONTRIBUTOR_ROLES, CONTRIBUTOR_ROLE_LABELS } from '@/domain/value-objects/Contributor';
 
 interface ContributorsFieldProps {
   contributors: Contributor[];

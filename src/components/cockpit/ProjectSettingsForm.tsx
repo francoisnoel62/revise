@@ -140,7 +140,7 @@ export function ProjectSettingsForm({ projectId, initialSettings }: ProjectSetti
         // Clear success after 3 seconds
         setTimeout(() => setSuccess(false), 3000);
       }
-    } catch (err) {
+    } catch {
       setError('Une erreur est survenue');
     } finally {
       setIsSaving(false);
@@ -162,8 +162,6 @@ export function ProjectSettingsForm({ projectId, initialSettings }: ProjectSetti
       }
 
       setCoverImageUrl(result.settings.coverImageUrl);
-    } catch (err) {
-      throw err;
     } finally {
       setIsUploading(false);
     }
@@ -181,8 +179,6 @@ export function ProjectSettingsForm({ projectId, initialSettings }: ProjectSetti
       }
 
       setCoverImageUrl(undefined);
-    } catch (err) {
-      throw err;
     } finally {
       setIsDeleting(false);
     }
@@ -283,7 +279,7 @@ export function ProjectSettingsForm({ projectId, initialSettings }: ProjectSetti
         <CardHeader>
           <CardTitle>Synopsis</CardTitle>
           <CardDescription>
-            Description détaillée de l'histoire
+            Description détaillée de l&apos;histoire
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -4,7 +4,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -23,7 +23,6 @@ import { METADATA_TYPES } from '@/domain/value-objects/MetadataType';
 
 export default function CockpitMetadataEditorPage() {
   const params = useParams();
-  const router = useRouter();
   const projectId = params.projectId as string;
   const metadataId = params.metadataId as string;
 
@@ -47,7 +46,7 @@ export default function CockpitMetadataEditorPage() {
         return;
       }
       setMetadata(metadataResult.data);
-    } catch (err) {
+    } catch {
       setError('Erreur lors du chargement');
     } finally {
       setIsLoading(false);

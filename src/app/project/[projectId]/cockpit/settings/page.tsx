@@ -61,7 +61,7 @@ export default function SettingsPage() {
 
         setSettings(createResult.settings);
       }
-    } catch (err) {
+    } catch {
       setError('Erreur lors du chargement');
     } finally {
       setIsLoading(false);
