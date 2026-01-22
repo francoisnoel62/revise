@@ -58,7 +58,7 @@ export class ResendEmailService implements EmailService {
 
     <div class="info">
       <p><strong>Email:</strong> ${user.email}</p>
-      <p><strong>Nom:</strong> ${user.name || 'Non renseigne'}</p>
+      <p><strong>Nom:</strong> ${user.name || 'Non renseigné'}</p>
       <p><strong>Date:</strong> ${new Date().toLocaleDateString('fr-FR', { dateStyle: 'full' })}</p>
     </div>
 
@@ -68,7 +68,7 @@ export class ResendEmailService implements EmailService {
     </div>
 
     <p class="footer">
-      Cet utilisateur ne pourra pas se connecter tant que vous n'aurez pas approuve son inscription.
+      Cet utilisateur ne pourra pas se connecter tant que vous n'aurez pas approuvé son inscription.
     </p>
   </div>
 </body>
@@ -79,13 +79,13 @@ export class ResendEmailService implements EmailService {
 Nouvelle inscription sur Revise
 
 Email: ${user.email}
-Nom: ${user.name || 'Non renseigne'}
+Nom: ${user.name || 'Non renseigné'}
 Date: ${new Date().toLocaleDateString('fr-FR', { dateStyle: 'full' })}
 
 Pour approuver: ${approveUrl}
 Pour rejeter: ${rejectUrl}
 
-Cet utilisateur ne pourra pas se connecter tant que vous n'aurez pas approuve son inscription.
+Cet utilisateur ne pourra pas se connecter tant que vous n'aurez pas approuvé son inscription.
     `.trim();
 
     await this.resend.emails.send({
@@ -396,15 +396,15 @@ Cet utilisateur ne pourra pas se connecter tant que vous n'aurez pas approuve so
   <div class="email-wrapper">
     <div class="header">
       <div class="logo">Revise</div>
-      <div class="tagline">Studio d'ecriture creative</div>
+      <div class="tagline">Studio d'écriture créative</div>
       <div class="wave-emoji">&#128075;</div>
-      <h1>Vous etes dans le Studio.</h1>
-      <p class="subtitle">Le partenaire d'ecriture que tout auteur creatif voudrait avoir. Pas un remplacant. Un allie silencieux qui enrichit votre voix.</p>
+      <h1>Vous êtes dans le Studio.</h1>
+      <p class="subtitle">Le partenaire d'écriture que tout auteur créatif voudrait avoir. Pas un remplaçant. Un allié silencieux qui enrichit votre voix.</p>
     </div>
 
     <div class="content">
       <p class="welcome-message">
-        <strong>Felicitations</strong> — Votre compte est actif et votre espace d'ecriture vous attend. Vous avez desormais acces a tous les outils pour transformer vos idees en histoires abouties.
+        <strong>Félicitations</strong> — Votre compte est actif et votre espace d'écriture vous attend. Vous avez désormais accès à tous les outils pour transformer vos idées en histoires abouties.
       </p>
 
       <div class="feature-grid">
@@ -412,15 +412,15 @@ Cet utilisateur ne pourra pas se connecter tant que vous n'aurez pas approuve so
           <div class="feature-icon">&#128214;</div>
           <div class="feature-text">
             <div class="feature-title">Organisation par projets</div>
-            <div class="feature-desc">Chapitres, scenes, metadonnees. Tout est structure.</div>
+            <div class="feature-desc">Chapitres, scènes, métadonnées. Tout est structuré.</div>
           </div>
         </div>
 
         <div class="feature-item">
           <div class="feature-icon">&#9999;&#65039;</div>
           <div class="feature-text">
-            <div class="feature-title">Editeur professionnel</div>
-            <div class="feature-desc">Format A4, typographie avancee, export .docx.</div>
+            <div class="feature-title">Éditeur professionnel</div>
+            <div class="feature-desc">Format A4, typographie avancée, export .docx.</div>
           </div>
         </div>
 
@@ -428,7 +428,7 @@ Cet utilisateur ne pourra pas se connecter tant que vous n'aurez pas approuve so
           <div class="feature-icon">&#9889;</div>
           <div class="feature-text">
             <div class="feature-title">Sauvegarde automatique</div>
-            <div class="feature-desc">Vos ecrits sont sauvegardes en temps reel.</div>
+            <div class="feature-desc">Vos écrits sont sauvegardés en temps réel.</div>
           </div>
         </div>
       </div>
@@ -436,39 +436,39 @@ Cet utilisateur ne pourra pas se connecter tant que vous n'aurez pas approuve so
       <div class="social-proof">
         <div class="social-proof-title">Ce qu'en pensent les auteurs</div>
         <div class="testimonial">
-          "Enfin un outil qui comprend qu'ecrire, c'est reecrire. Les variantes proposees m'ont debloquee a chaque fois."
+          "Enfin un outil qui comprend qu'écrire, c'est réécrire. Les variantes proposées m'ont débloquée à chaque fois."
         </div>
         <div class="author">Marie Lefebvre</div>
         <div class="author-role">Auteure de romans historiques</div>
       </div>
 
       <div class="cta-section">
-        <div class="cta-label">Pret a commencer ?</div>
+        <div class="cta-label">Prêt à commencer ?</div>
         <div class="btn-group">
           <a href="${loginUrl}" class="btn">
-            Acceder au Studio
+            Accéder au Studio
             <span class="btn-arrow">&#8594;</span>
           </a>
           <a href="${featuresUrl}" class="btn btn-secondary">
-            Decouvrir les fonctionnalites
+            Découvrir les fonctionnalités
           </a>
         </div>
       </div>
 
       <div class="quick-start">
-        <div class="quick-start-title">&#128640; Guide de demarrage rapide</div>
+        <div class="quick-start-title">&#128640; Guide de démarrage rapide</div>
         <div class="steps">
           <div class="step">
             <div class="step-number">1</div>
-            <div class="step-text">Creez votre premier projet et donnez-lui un titre</div>
+            <div class="step-text">Créez votre premier projet et donnez-lui un titre</div>
           </div>
           <div class="step">
             <div class="step-number">2</div>
-            <div class="step-text">Commencez a ecrire dans l'editeur ou importez un texte existant</div>
+            <div class="step-text">Commencez à écrire dans l'éditeur ou importez un texte existant</div>
           </div>
           <div class="step">
             <div class="step-number">3</div>
-            <div class="step-text">Utilisez l'assistant IA pour ameliorer vos passages</div>
+            <div class="step-text">Utilisez l'assistant IA pour améliorer vos passages</div>
           </div>
         </div>
       </div>
@@ -478,8 +478,8 @@ Cet utilisateur ne pourra pas se connecter tant que vous n'aurez pas approuve so
       <div class="signature-box">
         <div class="avatar">F</div>
         <div class="signature">
-          A tres vite dans le Studio,<br>
-          <span class="signature-name">Francois</span><br>
+          À très vite dans le Studio,<br>
+          <span class="signature-name">François</span><br>
           <span class="signature-role">Fondateur — Studio Revise</span>
           <div class="ps">
             P.S. — Besoin d'aide ? Envoyez-moi un message sur mon adresse e-mail (francoisnoel62@gmail.com), je lis tous les messages personnellement :)
@@ -493,50 +493,50 @@ Cet utilisateur ne pourra pas se connecter tant que vous n'aurez pas approuve so
     `.trim();
 
     const text = `
-REVISE - Studio d'ecriture creative
+REVISE - Studio d'écriture créative
 
-Vous etes dans le Studio.
+Vous êtes dans le Studio.
 
-Le partenaire d'ecriture que tout auteur creatif voudrait avoir. Pas un remplacant. Un allie silencieux qui enrichit votre voix.
+Le partenaire d'écriture que tout auteur créatif voudrait avoir. Pas un remplaçant. Un allié silencieux qui enrichit votre voix.
 
 ---
 
-Felicitations — Votre compte est actif et votre espace d'ecriture vous attend. Vous avez desormais acces a tous les outils pour transformer vos idees en histoires abouties.
+Félicitations — Votre compte est actif et votre espace d'écriture vous attend. Vous avez désormais accès à tous les outils pour transformer vos idées en histoires abouties.
 
 ---
 
 CE QUE VOUS POUVEZ FAIRE :
 
-- Organisation par projets : Chapitres, scenes, metadonnees. Tout est structure.
-- Editeur professionnel : Format A4, typographie avancee, export .docx.
-- Sauvegarde automatique : Vos ecrits sont sauvegardes en temps reel.
+- Organisation par projets : Chapitres, scènes, métadonnées. Tout est structuré.
+- Éditeur professionnel : Format A4, typographie avancée, export .docx.
+- Sauvegarde automatique : Vos écrits sont sauvegardés en temps réel.
 
 ---
 
 CE QU'EN PENSENT LES AUTEURS :
 
-"Enfin un outil qui comprend qu'ecrire, c'est reecrire. Les variantes proposees m'ont debloquee a chaque fois."
+"Enfin un outil qui comprend qu'écrire, c'est réécrire. Les variantes proposées m'ont débloquée à chaque fois."
 — Marie Lefebvre, Auteure de romans historiques
 
 ---
 
-PRET A COMMENCER ?
+PRÊT À COMMENCER ?
 
-Acceder au Studio : ${loginUrl}
-Decouvrir les fonctionnalites : ${featuresUrl}
-
----
-
-GUIDE DE DEMARRAGE RAPIDE :
-
-1. Creez votre premier projet et donnez-lui un titre
-2. Commencez a ecrire dans l'editeur ou importez un texte existant
-3. Utilisez l'assistant IA pour ameliorer vos passages
+Accéder au Studio : ${loginUrl}
+Découvrir les fonctionnalités : ${featuresUrl}
 
 ---
 
-A tres vite dans le Studio,
-Francois
+GUIDE DE DÉMARRAGE RAPIDE :
+
+1. Créez votre premier projet et donnez-lui un titre
+2. Commencez à écrire dans l'éditeur ou importez un texte existant
+3. Utilisez l'assistant IA pour améliorer vos passages
+
+---
+
+À très vite dans le Studio,
+François
 Fondateur — Studio Revise
 
 P.S. — Besoin d'aide ? Envoyez-moi un message sur mon adresse e-mail (francoisnoel62@gmail.com), je lis tous les messages personnellement :)
