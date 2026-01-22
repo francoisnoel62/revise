@@ -18,6 +18,7 @@ import {
   withErrorHandling,
 } from './utils';
 import { SerializedProject, SerializedChapter } from './project-actions';
+import { recordWordCountSnapshotAction } from './word-count-actions';
 
 // Re-use serialization from project-actions
 function serializeProject(project: Project): SerializedProject {
@@ -176,6 +177,7 @@ export async function updateChapterTitleAction(
  * Update a chapter's content.
  * Used for autosave and manual saves.
  * Delegates to UpdateChapterContentUseCase for business logic.
+ * Also records a word count snapshot for daily/weekly progress tracking.
  */
 export async function updateChapterContentAction(
   projectId: string,
@@ -199,6 +201,10 @@ export async function updateChapterContentAction(
 
     const chapter = project.getChapter(chapterId)!;
     await repository.updateChapter(auth.userId, projectId, chapter);
+
+    // Record word count snapshot for daily/weekly progress tracking
+    const totalWordCount = project.getTotalWordCount();
+    await recordWordCountSnapshotAction(projectId, totalWordCount);
 
     return {
       saved: true,

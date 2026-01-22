@@ -12,6 +12,7 @@ import {
   getMetadataRepository,
   getCorrectionHistoryRepository,
   getWritingGoalRepository,
+  getWordCountSnapshotRepository,
   getAIUsageRepository as getAIUsageRepositoryFromConfig,
   getBlogArticleRepository,
   getArticleViewRepository,
@@ -37,6 +38,7 @@ import { UserRepository } from '@/domain/interfaces/UserRepository';
 import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
 import { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
 import { WritingGoalRepository } from '@/domain/interfaces/WritingGoalRepository';
+import { WordCountSnapshotRepository } from '@/domain/interfaces/WordCountSnapshotRepository';
 import { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
 import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository';
 import { ProjectTaskRepository } from '@/domain/interfaces/ProjectTaskRepository';
@@ -170,6 +172,13 @@ export async function getCorrectionHistoryRepo(): Promise<CorrectionHistoryRepos
  */
 export async function getWritingGoalRepo(): Promise<WritingGoalRepository> {
   return await getWritingGoalRepository();
+}
+
+/**
+ * Get word count snapshot repository instance.
+ */
+export async function getWordCountSnapshotRepo(): Promise<WordCountSnapshotRepository> {
+  return await getWordCountSnapshotRepository();
 }
 
 /**

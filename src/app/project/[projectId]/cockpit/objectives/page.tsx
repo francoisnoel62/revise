@@ -1,5 +1,5 @@
 // ABOUTME: Objectives page for managing writing goals
-// ABOUTME: Allows creating, viewing, editing, and deleting goals
+// ABOUTME: Allows creating, viewing, editing, and deleting goals with period-based progress
 
 'use client';
 
@@ -13,6 +13,10 @@ import {
   SerializedWritingGoal,
 } from '@/app/actions/writing-goal-actions';
 import { getProjectStatsAction } from '@/app/actions/cockpit-actions';
+import {
+  getBatchPeriodWordCountsAction,
+  PeriodWordCountResult,
+} from '@/app/actions/word-count-actions';
 import { GoalForm, GoalCard } from '@/components/cockpit';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -39,9 +43,18 @@ export default function ObjectivesPage() {
 
   const [goals, setGoals] = useState<SerializedWritingGoal[]>([]);
   const [wordCount, setWordCount] = useState(0);
+  const [periodWordCounts, setPeriodWordCounts] = useState<
+    Record<GoalType, PeriodWordCountResult>
+  >({
+    daily: { periodWordCount: 0, periodLabel: "Aujourd'hui" },
+    weekly: { periodWordCount: 0, periodLabel: 'Cette semaine' },
+    total: { periodWordCount: 0, periodLabel: 'Total du projet' },
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
-  const [editingGoal, setEditingGoal] = useState<SerializedWritingGoal | null>(null);
+  const [editingGoal, setEditingGoal] = useState<SerializedWritingGoal | null>(
+    null
+  );
   const [deletingGoalId, setDeletingGoalId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
@@ -57,7 +70,19 @@ export default function ObjectivesPage() {
       }
 
       if (statsResult.success) {
-        setWordCount(statsResult.stats.wordCount);
+        const totalWordCount = statsResult.stats.wordCount;
+        setWordCount(totalWordCount);
+
+        // Load period word counts for all goal types
+        const periodResult = await getBatchPeriodWordCountsAction(
+          projectId,
+          ['daily', 'weekly', 'total'],
+          totalWordCount
+        );
+
+        if (periodResult.success) {
+          setPeriodWordCounts(periodResult.data);
+        }
       }
     } finally {
       setIsLoading(false);
@@ -165,15 +190,19 @@ export default function ObjectivesPage() {
               Aucun objectif défini. Créez votre premier objectif !
             </p>
           ) : (
-            goals.map((goal) => (
-              <GoalCard
-                key={goal.id}
-                goal={goal}
-                currentWordCount={wordCount}
-                onEdit={setEditingGoal}
-                onDelete={setDeletingGoalId}
-              />
-            ))
+            goals.map((goal) => {
+              const periodData = periodWordCounts[goal.type];
+              return (
+                <GoalCard
+                  key={goal.id}
+                  goal={goal}
+                  periodWordCount={periodData.periodWordCount}
+                  periodLabel={periodData.periodLabel}
+                  onEdit={setEditingGoal}
+                  onDelete={setDeletingGoalId}
+                />
+              );
+            })
           )}
         </div>
       </div>
@@ -207,7 +236,8 @@ export default function ObjectivesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer l&apos;objectif ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Cette action est irréversible. L&apos;objectif sera définitivement supprimé.
+              Cette action est irréversible. L&apos;objectif sera définitivement
+              supprimé.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

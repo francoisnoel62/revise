@@ -1,5 +1,5 @@
 // ABOUTME: Card displaying a writing goal with progress and actions
-// ABOUTME: Shows target, progress, deadline, and edit/delete buttons
+// ABOUTME: Shows target, progress based on period (daily/weekly/total), deadline, and edit/delete buttons
 
 'use client';
 
@@ -13,7 +13,8 @@ import { GoalType } from '@/domain/entities/WritingGoal';
 
 interface GoalCardProps {
   goal: SerializedWritingGoal;
-  currentWordCount: number;
+  periodWordCount: number;
+  periodLabel: string;
   onEdit: (goal: SerializedWritingGoal) => void;
   onDelete: (goalId: string) => void;
 }
@@ -26,13 +27,14 @@ const goalTypeLabels: Record<GoalType, string> = {
 
 export function GoalCard({
   goal,
-  currentWordCount,
+  periodWordCount,
+  periodLabel,
   onEdit,
   onDelete,
 }: GoalCardProps) {
-  const progress = Math.min(100, (currentWordCount / goal.targetWords) * 100);
-  const isCompleted = currentWordCount >= goal.targetWords;
-  const remaining = Math.max(0, goal.targetWords - currentWordCount);
+  const progress = Math.min(100, (periodWordCount / goal.targetWords) * 100);
+  const isCompleted = periodWordCount >= goal.targetWords;
+  const remaining = Math.max(0, goal.targetWords - periodWordCount);
 
   const deadline = goal.deadline ? new Date(goal.deadline) : null;
   const isOverdue = deadline && new Date() > deadline && !isCompleted;
@@ -89,7 +91,7 @@ export function GoalCard({
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span>{currentWordCount.toLocaleString('fr-FR')} mots</span>
+            <span>{periodWordCount.toLocaleString('fr-FR')} mots</span>
             <span>{goal.targetWords.toLocaleString('fr-FR')} mots</span>
           </div>
           <Progress value={progress} className="h-2" />
@@ -98,6 +100,11 @@ export function GoalCard({
               ? 'Objectif atteint !'
               : `${remaining.toLocaleString('fr-FR')} mots restants (${progress.toFixed(0)}%)`}
           </p>
+          {goal.type !== 'total' && (
+            <p className="text-xs text-muted-foreground italic">
+              {periodLabel} : {periodWordCount.toLocaleString('fr-FR')} mots écrits
+            </p>
+          )}
         </div>
 
         {deadline && (

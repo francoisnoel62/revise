@@ -8,6 +8,7 @@ import { ProviderRepository } from '@/domain/interfaces/ProviderRepository';
 import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
 import { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
 import { WritingGoalRepository } from '@/domain/interfaces/WritingGoalRepository';
+import { WordCountSnapshotRepository } from '@/domain/interfaces/WordCountSnapshotRepository';
 import { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
 import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository';
 import { ContactMessageRepository } from '@/domain/interfaces/ContactMessageRepository';
@@ -29,6 +30,7 @@ import { MongoDBProviderRepository } from '@/infrastructure/persistence/MongoDBP
 import { MongoDBMetadataRepository } from '@/infrastructure/persistence/MongoDBMetadataRepository';
 import { MongoDBCorrectionHistoryRepository } from '@/infrastructure/persistence/MongoDBCorrectionHistoryRepository';
 import { MongoDBWritingGoalRepository } from '@/infrastructure/persistence/MongoDBWritingGoalRepository';
+import { MongoDBWordCountSnapshotRepository } from '@/infrastructure/persistence/MongoDBWordCountSnapshotRepository';
 import { MongoDBUsageRepository } from '@/infrastructure/persistence/MongoDBUsageRepository';
 import { MongoDBBlogArticleRepository } from '@/infrastructure/persistence/MongoDBBlogArticleRepository';
 import { MongoDBContactMessageRepository } from '@/infrastructure/persistence/MongoDBContactMessageRepository';
@@ -176,6 +178,14 @@ export async function getArticleViewRepository(): Promise<ArticleViewRepository>
 export async function getWritingGoalRepository(): Promise<WritingGoalRepository> {
   const db = await getDatabase();
   return new MongoDBWritingGoalRepository(db);
+}
+
+/**
+ * Get the word count snapshot repository.
+ */
+export async function getWordCountSnapshotRepository(): Promise<WordCountSnapshotRepository> {
+  const db = await getDatabase();
+  return new MongoDBWordCountSnapshotRepository(db);
 }
 
 /**
