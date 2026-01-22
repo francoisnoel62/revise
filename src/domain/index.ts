@@ -14,6 +14,11 @@ export { WritingGoal, type GoalType, type WritingGoalProperties } from './entiti
 export { AIUsageRecord, type AIUsageRecordProperties } from './entities/AIUsageRecord';
 export { ProjectTask, type ProjectTaskProperties } from './entities/ProjectTask';
 export { Character, type CharacterProperties } from './entities/Character';
+export {
+  ResearchDocument,
+  type ResearchDocumentProperties,
+  type ResearchDocumentType,
+} from './entities/ResearchDocument';
 
 // Value Objects
 export { TextSelection } from './value-objects/TextSelection';
@@ -86,3 +91,7 @@ export type { WritingGoalRepository } from './interfaces/WritingGoalRepository';
 export type { AIUsageRepository, UsageStats, DailyUsage } from './interfaces/AIUsageRepository';
 export type { ProjectTaskRepository, TaskFilters, TaskSortOptions } from './interfaces/ProjectTaskRepository';
 export type { CharacterRepository } from './interfaces/CharacterRepository';
+export type {
+  ResearchDocumentRepository,
+  ResearchDocumentFilters,
+} from './interfaces/ResearchDocumentRepository';

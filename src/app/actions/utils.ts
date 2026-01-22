@@ -18,6 +18,7 @@ import {
   getProjectTaskRepository,
   getCharacterRepository as getCharacterRepositoryFromConfig,
   getProjectSettingsRepository as getProjectSettingsRepositoryFromConfig,
+  getResearchDocumentRepository as getResearchDocumentRepositoryFromConfig,
   getBlobStorage as getBlobStorageFromConfig,
   getPromptRepository,
   createLLMProvider,
@@ -42,6 +43,7 @@ import { ProjectTaskRepository } from '@/domain/interfaces/ProjectTaskRepository
 import { CharacterRepository } from '@/domain/interfaces/CharacterRepository';
 import { ArticleViewRepository } from '@/domain/interfaces/ArticleViewRepository';
 import { ProjectSettingsRepository } from '@/domain/interfaces/ProjectSettingsRepository';
+import { ResearchDocumentRepository } from '@/domain/interfaces/ResearchDocumentRepository';
 import { BlobStorage } from '@/domain/interfaces/BlobStorage';
 import { LLMProviderFactory } from '@/domain/interfaces/LLMProviderFactory';
 import { IdGenerator } from '@/domain/interfaces/IdGenerator';
@@ -210,6 +212,13 @@ export async function getCharacterRepo(): Promise<CharacterRepository> {
  */
 export async function getProjectSettingsRepo(): Promise<ProjectSettingsRepository> {
   return await getProjectSettingsRepositoryFromConfig();
+}
+
+/**
+ * Get research document repository instance.
+ */
+export async function getResearchDocumentRepo(): Promise<ResearchDocumentRepository> {
+  return await getResearchDocumentRepositoryFromConfig();
 }
 
 /**

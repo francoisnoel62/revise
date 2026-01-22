@@ -3,7 +3,7 @@
 
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Editor } from '@tiptap/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,45 +33,47 @@ export function SearchReplaceBar({
 }: SearchReplaceBarProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [replaceTerm, setReplaceTerm] = useState('');
-  const [matches, setMatches] = useState<SearchMatch[]>([]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  // Track document version to re-compute matches after replacements
+  const [docVersion, setDocVersion] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const isNavigatingRef = useRef(false);
+  const prevSearchTermRef = useRef('');
 
-  // Find all matches in the document
-  const findMatches = useCallback(
-    (term: string): SearchMatch[] => {
-      if (!editor || !term) return [];
+  // Compute matches from search term (derived state, not synced)
+  const matches = useMemo((): SearchMatch[] => {
+    if (!editor || !searchTerm) return [];
 
-      const doc = editor.state.doc;
-      const results: SearchMatch[] = [];
-      const searchLower = term.toLowerCase();
+    const doc = editor.state.doc;
+    const results: SearchMatch[] = [];
+    const searchLower = searchTerm.toLowerCase();
 
-      doc.descendants((node, pos) => {
-        if (node.isText && node.text) {
-          const textLower = node.text.toLowerCase();
-          let index = 0;
-          while ((index = textLower.indexOf(searchLower, index)) !== -1) {
-            results.push({
-              from: pos + index,
-              to: pos + index + term.length,
-            });
-            index += term.length;
-          }
+    doc.descendants((node, pos) => {
+      if (node.isText && node.text) {
+        const textLower = node.text.toLowerCase();
+        let index = 0;
+        while ((index = textLower.indexOf(searchLower, index)) !== -1) {
+          results.push({
+            from: pos + index,
+            to: pos + index + searchTerm.length,
+          });
+          index += searchTerm.length;
         }
-      });
+      }
+    });
 
-      return results;
-    },
-    [editor]
-  );
+    return results;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor, searchTerm, docVersion]);
 
-  // Update matches when search term changes
-  useEffect(() => {
-    const newMatches = findMatches(searchTerm);
-    setMatches(newMatches);
-    setCurrentMatchIndex(newMatches.length > 0 ? 0 : -1);
-  }, [searchTerm, findMatches]);
+  // Reset match index when search term changes
+  if (searchTerm !== prevSearchTermRef.current) {
+    prevSearchTermRef.current = searchTerm;
+    const newIndex = matches.length > 0 ? 0 : -1;
+    if (currentMatchIndex !== newIndex) {
+      setCurrentMatchIndex(newIndex);
+    }
+  }
 
   // Highlight and scroll to current match - only when navigating
   useEffect(() => {
@@ -97,9 +99,21 @@ export function SearchReplaceBar({
     }
   }, [isOpen]);
 
+  const goToNextMatch = useCallback(() => {
+    if (matches.length === 0) return;
+    isNavigatingRef.current = true;
+    setCurrentMatchIndex((prev) => (prev + 1) % matches.length);
+  }, [matches.length]);
+
+  const goToPreviousMatch = useCallback(() => {
+    if (matches.length === 0) return;
+    isNavigatingRef.current = true;
+    setCurrentMatchIndex((prev) => (prev - 1 + matches.length) % matches.length);
+  }, [matches.length]);
+
   // Keyboard shortcuts
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
       if (!isOpen) return;
 
       // Escape to close
@@ -123,19 +137,7 @@ export function SearchReplaceBar({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, editor, matches, currentMatchIndex]);
-
-  const goToNextMatch = () => {
-    if (matches.length === 0) return;
-    isNavigatingRef.current = true;
-    setCurrentMatchIndex((prev) => (prev + 1) % matches.length);
-  };
-
-  const goToPreviousMatch = () => {
-    if (matches.length === 0) return;
-    isNavigatingRef.current = true;
-    setCurrentMatchIndex((prev) => (prev - 1 + matches.length) % matches.length);
-  };
+  }, [isOpen, onClose, editor, goToNextMatch, goToPreviousMatch]);
 
   const replaceCurrentMatch = () => {
     if (!editor || matches.length === 0 || currentMatchIndex < 0) return;
@@ -150,15 +152,10 @@ export function SearchReplaceBar({
       .insertContent(replaceTerm)
       .run();
 
-    // Refresh matches after replacement
+    // Trigger re-computation of matches after replacement
     setTimeout(() => {
-      const newMatches = findMatches(searchTerm);
-      setMatches(newMatches);
-      if (newMatches.length === 0) {
-        setCurrentMatchIndex(-1);
-      } else if (currentMatchIndex >= newMatches.length) {
-        setCurrentMatchIndex(newMatches.length - 1);
-      }
+      setDocVersion((v) => v + 1);
+      // Adjust match index if necessary (will be handled by new matches computation)
     }, 10);
   };
 
@@ -178,16 +175,16 @@ export function SearchReplaceBar({
         .run();
     }
 
-    // Clear matches after replacing all
-    setMatches([]);
+    // Trigger re-computation (will result in empty matches)
+    setDocVersion((v) => v + 1);
     setCurrentMatchIndex(-1);
   };
 
   const handleClose = () => {
     setSearchTerm('');
     setReplaceTerm('');
-    setMatches([]);
     setCurrentMatchIndex(-1);
+    setDocVersion(0);
     onClose();
     editor?.commands.focus();
   };

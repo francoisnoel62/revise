@@ -14,6 +14,7 @@ import { ContactMessageRepository } from '@/domain/interfaces/ContactMessageRepo
 import { ProjectTaskRepository } from '@/domain/interfaces/ProjectTaskRepository';
 import { CharacterRepository } from '@/domain/interfaces/CharacterRepository';
 import { ArticleViewRepository } from '@/domain/interfaces/ArticleViewRepository';
+import { ResearchDocumentRepository } from '@/domain/interfaces/ResearchDocumentRepository';
 import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import { ProjectSettingsRepository } from '@/domain/interfaces/ProjectSettingsRepository';
 import { BlobStorage } from '@/domain/interfaces/BlobStorage';
@@ -35,6 +36,7 @@ import { MongoDBArticleViewRepository } from '@/infrastructure/persistence/Mongo
 import { MongoDBProjectTaskRepository } from '@/infrastructure/persistence/MongoDBProjectTaskRepository';
 import { MongoDBCharacterRepository } from '@/infrastructure/persistence/MongoDBCharacterRepository';
 import { MongoDBProjectSettingsRepository } from '@/infrastructure/persistence/MongoDBProjectSettingsRepository';
+import { MongoDBResearchDocumentRepository } from '@/infrastructure/persistence/MongoDBResearchDocumentRepository';
 import { InMemoryProjectRepository } from '@/infrastructure/persistence/InMemoryProjectRepository';
 import { VercelBlobStorage } from '@/infrastructure/storage/VercelBlobStorage';
 import { FilePromptRepository } from '@/infrastructure/prompts/FilePromptRepository';
@@ -223,6 +225,20 @@ export async function getProjectSettingsRepository(): Promise<ProjectSettingsRep
     await projectSettingsRepoInstance.ensureIndexes();
   }
   return projectSettingsRepoInstance;
+}
+
+/**
+ * Get the research document repository.
+ */
+let researchDocumentRepoInstance: MongoDBResearchDocumentRepository | null = null;
+
+export async function getResearchDocumentRepository(): Promise<ResearchDocumentRepository> {
+  if (!researchDocumentRepoInstance) {
+    const db = await getDatabase();
+    researchDocumentRepoInstance = new MongoDBResearchDocumentRepository(db);
+    await researchDocumentRepoInstance.ensureIndexes();
+  }
+  return researchDocumentRepoInstance;
 }
 
 /**

@@ -14,5 +14,7 @@ export { TaskRow } from './TaskRow';
 export { TaskSummaryCard } from './TaskSummaryCard';
 export { CharacterCard } from './CharacterCard';
 export { CharacterForm } from './CharacterForm';
+export { ResearchDocumentCard } from './ResearchDocumentCard';
+export { ResearchDocumentForm } from './ResearchDocumentForm';
 export { QuickActionButton, type QuickActionButtonProps } from './QuickActionButton';
 export { QuickActionsCard } from './QuickActionsCard';
