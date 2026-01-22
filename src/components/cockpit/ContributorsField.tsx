@@ -15,11 +15,7 @@ import {
 } from '@/components/ui/select';
 import { Plus, Trash2 } from 'lucide-react';
 import { CONTRIBUTOR_ROLES, CONTRIBUTOR_ROLE_LABELS } from '@/lib/ui-labels';
-
-interface Contributor {
-  name: string;
-  role: string;
-}
+import type { Contributor, ContributorRole } from '@/domain/value-objects/Contributor';
 
 interface ContributorsFieldProps {
   contributors: Contributor[];
@@ -41,10 +37,18 @@ export function ContributorsField({
     onChange(updated);
   };
 
-  const handleChange = (index: number, field: keyof Contributor, value: string) => {
+  const handleNameChange = (index: number, value: string) => {
     const updated = contributors.map((c, i) => {
       if (i !== index) return c;
-      return { ...c, [field]: value };
+      return { ...c, name: value };
+    });
+    onChange(updated);
+  };
+
+  const handleRoleChange = (index: number, value: ContributorRole) => {
+    const updated = contributors.map((c, i) => {
+      if (i !== index) return c;
+      return { ...c, role: value };
     });
     onChange(updated);
   };
@@ -76,13 +80,13 @@ export function ContributorsField({
               <Input
                 placeholder="Nom"
                 value={contributor.name}
-                onChange={(e) => handleChange(index, 'name', e.target.value)}
+                onChange={(e) => handleNameChange(index, e.target.value)}
                 disabled={disabled}
                 className="flex-1"
               />
               <Select
                 value={contributor.role}
-                onValueChange={(value) => handleChange(index, 'role', value)}
+                onValueChange={(value) => handleRoleChange(index, value as ContributorRole)}
                 disabled={disabled}
               >
                 <SelectTrigger className="w-40">
