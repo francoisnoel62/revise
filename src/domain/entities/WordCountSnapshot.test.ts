@@ -1,6 +1,7 @@
 // ABOUTME: Tests for WordCountSnapshot entity
 // ABOUTME: Validates creation, date normalization, and word count rules
 
+import { describe, it, expect } from 'vitest';
 import {
   WordCountSnapshot,
   normalizeToParisDate,

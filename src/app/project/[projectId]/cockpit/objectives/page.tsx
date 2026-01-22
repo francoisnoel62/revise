@@ -42,7 +42,6 @@ export default function ObjectivesPage() {
   const projectId = params.projectId as string;
 
   const [goals, setGoals] = useState<SerializedWritingGoal[]>([]);
-  const [wordCount, setWordCount] = useState(0);
   const [periodWordCounts, setPeriodWordCounts] = useState<
     Record<GoalType, PeriodWordCountResult>
   >({
@@ -71,7 +70,6 @@ export default function ObjectivesPage() {
 
       if (statsResult.success) {
         const totalWordCount = statsResult.stats.wordCount;
-        setWordCount(totalWordCount);
 
         // Load period word counts for all goal types
         const periodResult = await getBatchPeriodWordCountsAction(
