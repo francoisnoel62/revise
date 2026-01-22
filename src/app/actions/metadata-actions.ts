@@ -23,8 +23,8 @@ import {
   getRepository,
   getMetadataRepo,
   getIdGenerator,
-  getLLMProviderForProject,
-  getLLMProviderById,
+  getTrackedLLMProviderForProject,
+  getTrackedLLMProviderById,
   withErrorHandling,
 } from './utils';
 import { canGenerateMetadata, recordMetadataGeneration } from './rate-limiter';
@@ -282,8 +282,8 @@ export async function generateNarrativeAnalysisAction(
 
     // Get LLM provider: use specified provider or project's default
     const llmProvider = providerId
-      ? await getLLMProviderById(auth.userId, providerId)
-      : await getLLMProviderForProject(auth.userId, projectId);
+      ? await getTrackedLLMProviderById(auth.userId, providerId, projectId)
+      : await getTrackedLLMProviderForProject(auth.userId, projectId);
 
     const useCase = new GenerateNarrativeAnalysisUseCase(
       await getMetadataRepo(),
@@ -337,8 +337,8 @@ export async function generateStylisticDNAAction(
     recordMetadataGeneration(auth.userId, 'stylistic-dna');
 
     const llmProvider = providerId
-      ? await getLLMProviderById(auth.userId, providerId)
-      : await getLLMProviderForProject(auth.userId, projectId);
+      ? await getTrackedLLMProviderById(auth.userId, providerId, projectId)
+      : await getTrackedLLMProviderForProject(auth.userId, projectId);
 
     const useCase = new GenerateStylisticDNAUseCase(
       await getMetadataRepo(),
@@ -392,8 +392,8 @@ export async function generateCharactersAction(
     recordMetadataGeneration(auth.userId, 'characters');
 
     const llmProvider = providerId
-      ? await getLLMProviderById(auth.userId, providerId)
-      : await getLLMProviderForProject(auth.userId, projectId);
+      ? await getTrackedLLMProviderById(auth.userId, providerId, projectId)
+      : await getTrackedLLMProviderForProject(auth.userId, projectId);
 
     const useCase = new GenerateCharactersUseCase(
       await getMetadataRepo(),
@@ -447,8 +447,8 @@ export async function generatePlotAction(
     recordMetadataGeneration(auth.userId, 'plot');
 
     const llmProvider = providerId
-      ? await getLLMProviderById(auth.userId, providerId)
-      : await getLLMProviderForProject(auth.userId, projectId);
+      ? await getTrackedLLMProviderById(auth.userId, providerId, projectId)
+      : await getTrackedLLMProviderForProject(auth.userId, projectId);
 
     const useCase = new GeneratePlotUseCase(
       await getMetadataRepo(),
@@ -502,8 +502,8 @@ export async function generateWorldbuildingAction(
     recordMetadataGeneration(auth.userId, 'worldbuilding');
 
     const llmProvider = providerId
-      ? await getLLMProviderById(auth.userId, providerId)
-      : await getLLMProviderForProject(auth.userId, projectId);
+      ? await getTrackedLLMProviderById(auth.userId, providerId, projectId)
+      : await getTrackedLLMProviderForProject(auth.userId, projectId);
 
     const useCase = new GenerateWorldbuildingUseCase(
       await getMetadataRepo(),
@@ -557,8 +557,8 @@ export async function generateSynthesisAction(
     recordMetadataGeneration(auth.userId, 'synthesis');
 
     const llmProvider = providerId
-      ? await getLLMProviderById(auth.userId, providerId)
-      : await getLLMProviderForProject(auth.userId, projectId);
+      ? await getTrackedLLMProviderById(auth.userId, providerId, projectId)
+      : await getTrackedLLMProviderForProject(auth.userId, projectId);
 
     const useCase = new GenerateSynthesisUseCase(
       await getMetadataRepo(),
@@ -612,8 +612,8 @@ export async function generateChapterSummariesAction(
     recordMetadataGeneration(auth.userId, 'chapter-summaries');
 
     const llmProvider = providerId
-      ? await getLLMProviderById(auth.userId, providerId)
-      : await getLLMProviderForProject(auth.userId, projectId);
+      ? await getTrackedLLMProviderById(auth.userId, providerId, projectId)
+      : await getTrackedLLMProviderForProject(auth.userId, projectId);
 
     const useCase = new GenerateChapterSummariesUseCase(
       await getMetadataRepo(),

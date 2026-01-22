@@ -83,7 +83,7 @@ function EditorContent() {
 
   // Keyboard shortcut for search (Ctrl+F / Cmd+F)
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
         e.preventDefault();
         setShowSearchReplace(true);

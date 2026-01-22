@@ -10,6 +10,15 @@ export type { ProviderType } from './entities/Provider';
 export * from './entities/User';
 export { ProjectMetadata, type ProjectMetadataProperties } from './entities/ProjectMetadata';
 export { CorrectionHistory } from './entities/CorrectionHistory';
+export { WritingGoal, type GoalType, type WritingGoalProperties } from './entities/WritingGoal';
+export { AIUsageRecord, type AIUsageRecordProperties } from './entities/AIUsageRecord';
+export { ProjectTask, type ProjectTaskProperties } from './entities/ProjectTask';
+export { Character, type CharacterProperties } from './entities/Character';
+export {
+  ResearchDocument,
+  type ResearchDocumentProperties,
+  type ResearchDocumentType,
+} from './entities/ResearchDocument';
 
 // Value Objects
 export { TextSelection } from './value-objects/TextSelection';
@@ -18,7 +27,14 @@ export {
   type MetadataTypeDefinition,
   METADATA_TYPES,
   isValidMetadataType,
-  getMetadataType
+  getMetadataType,
+  EDITORIAL_TYPE_KEYS,
+  type EditorialTypeKey,
+  EDITORIAL_PLACEHOLDERS,
+  EDITORIAL_ORDER,
+  isEditorialType,
+  getEditorialPlaceholder,
+  getEditorialOrder,
 } from './value-objects/MetadataType';
 export { type NarrativeAnalysis } from './value-objects/NarrativeAnalysis';
 export { type StylisticDNA } from './value-objects/StylisticDNA';
@@ -42,6 +58,26 @@ export {
   isValidChapterGenerationType,
   getChapterGenerationType,
 } from './value-objects/ChapterGenerationType';
+export {
+  type AIOperationType,
+  AI_OPERATION_TYPES,
+  AI_OPERATION_LABELS,
+  isValidAIOperationType,
+} from './value-objects/AIOperationType';
+export {
+  type TaskStatus,
+  TASK_STATUSES,
+  TASK_STATUS_LABELS,
+  TASK_STATUS_ORDER,
+  isValidTaskStatus,
+} from './value-objects/TaskStatus';
+export {
+  type TaskPriority,
+  TASK_PRIORITIES,
+  TASK_PRIORITY_LABELS,
+  TASK_PRIORITY_ORDER,
+  isValidTaskPriority,
+} from './value-objects/TaskPriority';
 
 // Interfaces
 export type { LLMProvider, ConnectionTestResult } from './interfaces/LLMProvider';
@@ -58,3 +94,11 @@ export * from './interfaces/UserRepository';
 export type { MetadataRepository } from './interfaces/MetadataRepository';
 export type { CorrectionHistoryRepository } from './interfaces/CorrectionHistoryRepository';
 export type { ContentConverter } from './interfaces/ContentConverter';
+export type { WritingGoalRepository } from './interfaces/WritingGoalRepository';
+export type { AIUsageRepository, UsageStats, DailyUsage } from './interfaces/AIUsageRepository';
+export type { ProjectTaskRepository, TaskFilters, TaskSortOptions } from './interfaces/ProjectTaskRepository';
+export type { CharacterRepository } from './interfaces/CharacterRepository';
+export type {
+  ResearchDocumentRepository,
+  ResearchDocumentFilters,
+} from './interfaces/ResearchDocumentRepository';

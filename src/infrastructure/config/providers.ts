@@ -7,10 +7,17 @@ import { UserRepository } from '@/domain/interfaces/UserRepository';
 import { ProviderRepository } from '@/domain/interfaces/ProviderRepository';
 import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
 import { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
+import { WritingGoalRepository } from '@/domain/interfaces/WritingGoalRepository';
+import { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
 import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository';
 import { ContactMessageRepository } from '@/domain/interfaces/ContactMessageRepository';
+import { ProjectTaskRepository } from '@/domain/interfaces/ProjectTaskRepository';
+import { CharacterRepository } from '@/domain/interfaces/CharacterRepository';
 import { ArticleViewRepository } from '@/domain/interfaces/ArticleViewRepository';
+import { ResearchDocumentRepository } from '@/domain/interfaces/ResearchDocumentRepository';
 import { PromptRepository } from '@/domain/interfaces/PromptRepository';
+import { ProjectSettingsRepository } from '@/domain/interfaces/ProjectSettingsRepository';
+import { BlobStorage } from '@/domain/interfaces/BlobStorage';
 import { LLMProvider } from '@/domain/interfaces/LLMProvider';
 import { DocumentParser } from '@/domain/interfaces/DocumentParser';
 import { DocumentExporter } from '@/domain/interfaces/DocumentExporter';
@@ -21,10 +28,17 @@ import { MongoDBUserRepository } from '@/infrastructure/persistence/MongoDBUserR
 import { MongoDBProviderRepository } from '@/infrastructure/persistence/MongoDBProviderRepository';
 import { MongoDBMetadataRepository } from '@/infrastructure/persistence/MongoDBMetadataRepository';
 import { MongoDBCorrectionHistoryRepository } from '@/infrastructure/persistence/MongoDBCorrectionHistoryRepository';
+import { MongoDBWritingGoalRepository } from '@/infrastructure/persistence/MongoDBWritingGoalRepository';
+import { MongoDBUsageRepository } from '@/infrastructure/persistence/MongoDBUsageRepository';
 import { MongoDBBlogArticleRepository } from '@/infrastructure/persistence/MongoDBBlogArticleRepository';
 import { MongoDBContactMessageRepository } from '@/infrastructure/persistence/MongoDBContactMessageRepository';
 import { MongoDBArticleViewRepository } from '@/infrastructure/persistence/MongoDBArticleViewRepository';
+import { MongoDBProjectTaskRepository } from '@/infrastructure/persistence/MongoDBProjectTaskRepository';
+import { MongoDBCharacterRepository } from '@/infrastructure/persistence/MongoDBCharacterRepository';
+import { MongoDBProjectSettingsRepository } from '@/infrastructure/persistence/MongoDBProjectSettingsRepository';
+import { MongoDBResearchDocumentRepository } from '@/infrastructure/persistence/MongoDBResearchDocumentRepository';
 import { InMemoryProjectRepository } from '@/infrastructure/persistence/InMemoryProjectRepository';
+import { VercelBlobStorage } from '@/infrastructure/storage/VercelBlobStorage';
 import { FilePromptRepository } from '@/infrastructure/prompts/FilePromptRepository';
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
 import { AnthropicProvider } from '@/infrastructure/ai/AnthropicProvider';
@@ -154,6 +168,90 @@ export async function getArticleViewRepository(): Promise<ArticleViewRepository>
     await articleViewRepoInstance.ensureIndexes();
   }
   return articleViewRepoInstance;
+}
+
+/**
+ * Get the writing goal repository.
+ */
+export async function getWritingGoalRepository(): Promise<WritingGoalRepository> {
+  const db = await getDatabase();
+  return new MongoDBWritingGoalRepository(db);
+}
+
+/**
+ * Get the AI usage repository.
+ */
+let aiUsageRepoInstance: MongoDBUsageRepository | null = null;
+
+export async function getAIUsageRepository(): Promise<AIUsageRepository> {
+  if (!aiUsageRepoInstance) {
+    const db = await getDatabase();
+    aiUsageRepoInstance = new MongoDBUsageRepository(db);
+  }
+  return aiUsageRepoInstance;
+}
+
+/**
+ * Get the project task repository.
+ */
+export async function getProjectTaskRepository(): Promise<ProjectTaskRepository> {
+  const db = await getDatabase();
+  return new MongoDBProjectTaskRepository(db);
+}
+
+/**
+ * Get the character repository.
+ */
+let characterRepoInstance: MongoDBCharacterRepository | null = null;
+
+export async function getCharacterRepository(): Promise<CharacterRepository> {
+  if (!characterRepoInstance) {
+    const db = await getDatabase();
+    characterRepoInstance = new MongoDBCharacterRepository(db);
+    await characterRepoInstance.ensureIndexes();
+  }
+  return characterRepoInstance;
+}
+
+/**
+ * Get the project settings repository.
+ */
+let projectSettingsRepoInstance: MongoDBProjectSettingsRepository | null = null;
+
+export async function getProjectSettingsRepository(): Promise<ProjectSettingsRepository> {
+  if (!projectSettingsRepoInstance) {
+    const db = await getDatabase();
+    projectSettingsRepoInstance = new MongoDBProjectSettingsRepository(db);
+    await projectSettingsRepoInstance.ensureIndexes();
+  }
+  return projectSettingsRepoInstance;
+}
+
+/**
+ * Get the research document repository.
+ */
+let researchDocumentRepoInstance: MongoDBResearchDocumentRepository | null = null;
+
+export async function getResearchDocumentRepository(): Promise<ResearchDocumentRepository> {
+  if (!researchDocumentRepoInstance) {
+    const db = await getDatabase();
+    researchDocumentRepoInstance = new MongoDBResearchDocumentRepository(db);
+    await researchDocumentRepoInstance.ensureIndexes();
+  }
+  return researchDocumentRepoInstance;
+}
+
+/**
+ * Get the blob storage service.
+ * Returns Vercel Blob storage implementation for cover images.
+ */
+let blobStorageInstance: BlobStorage | null = null;
+
+export function getBlobStorage(): BlobStorage {
+  if (!blobStorageInstance) {
+    blobStorageInstance = new VercelBlobStorage('covers');
+  }
+  return blobStorageInstance;
 }
 
 /**

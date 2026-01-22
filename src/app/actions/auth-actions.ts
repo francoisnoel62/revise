@@ -20,6 +20,7 @@ import {
   getProviderRepo,
   getMetadataRepo,
   getCorrectionHistoryRepo,
+  getProjectSettingsRepo,
 } from './utils';
 
 /**
@@ -107,6 +108,7 @@ export async function deleteAccountAction(
     const providerRepo = await getProviderRepo();
     const metadataRepo = await getMetadataRepo();
     const correctionHistoryRepo = await getCorrectionHistoryRepo();
+    const projectSettingsRepo = await getProjectSettingsRepo();
 
     // Execute deletion
     const useCase = new DeleteUserAccountUseCase(
@@ -114,7 +116,8 @@ export async function deleteAccountAction(
       projectRepo,
       providerRepo,
       metadataRepo,
-      correctionHistoryRepo
+      correctionHistoryRepo,
+      projectSettingsRepo
     );
 
     const result = await useCase.execute({

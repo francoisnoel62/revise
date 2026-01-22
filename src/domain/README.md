@@ -2,7 +2,7 @@
 
 Pure business logic with zero framework dependencies.
 
-**Status**: ✅ Phase 5.1 Complete (see [README.md](../../README.md) for test statistics)
+**Status**: ✅ Phase 6 Complete (see [README.md](../../README.md) for test statistics)
 
 ## Rules:
 - No imports from Next.js, React, or any external frameworks
@@ -12,7 +12,7 @@ Pure business logic with zero framework dependencies.
 
 ## Contents:
 
-### Entities (✅ Phase 4.1 Enhanced)
+### Entities (✅ Phase 6 Enhanced)
 
 #### `CorrectionHistory` ⭐ NEW (Phase 3.7)
 **Purpose**: Represents an AI rewrite history entry with proposals
@@ -167,6 +167,134 @@ Pure business logic with zero framework dependencies.
 
 ---
 
+#### `Character` ⭐ NEW (Phase 6)
+**Purpose**: Represents a fictional character in the project
+
+**Responsibilities**:
+- Manages character identity (unique ID, project association)
+- Stores character details (name, aliases, description)
+- Tracks personality traits and goals
+- Manages character relationships
+- Tracks source chapter for characters extracted from analysis
+- Timestamps for created/updated dates
+
+**Key Methods**:
+- `getId()`, `getProjectId()`, `getName()`, `getAliases()`
+- `getDescription()`, `getTraits()`, `getGoals()`, `getRelationships()`
+- `getSourceChapterId()`, `getCreatedAt()`, `getUpdatedAt()`
+- `update(updates)` - Returns new instance with updates
+- `static create(id, projectId, name, ...)` - Factory method
+
+**Tests**: 20+ tests covering entity creation, validation, and updates
+
+---
+
+#### `ProjectSettings` ⭐ NEW (Phase 6)
+**Purpose**: Represents project-level settings and metadata
+
+**Responsibilities**:
+- Manages project configuration (genre, themes)
+- Stores narration settings (POV, tense, person)
+- Tracks contributors with roles
+- Manages related works references
+- Stores cover image URL
+- Timestamps for created/updated dates
+
+**Key Methods**:
+- `getId()`, `getProjectId()`, `getGenre()`, `getThemes()`
+- `getNarrationSettings()`, `getContributors()`, `getRelatedWorks()`
+- `getCoverImageUrl()`, `getCreatedAt()`, `getUpdatedAt()`
+- `update(updates)` - Returns new instance with updates
+- `static create(id, projectId, ...)` - Factory method
+
+**Tests**: 20+ tests covering entity creation and updates
+
+---
+
+#### `ProjectTask` ⭐ NEW (Phase 6)
+**Purpose**: Represents a task associated with a project
+
+**Responsibilities**:
+- Manages task identity (unique ID, project association)
+- Stores task details (title, description)
+- Tracks priority and status
+- Manages due dates and completion
+- Tracks assigned contributors
+- Links to related chapters
+- Timestamps for created/updated/completed dates
+
+**Key Methods**:
+- `getId()`, `getProjectId()`, `getTitle()`, `getDescription()`
+- `getPriority()`, `getStatus()`, `getDueDate()`, `getCompletedAt()`
+- `getContributors()`, `getRelatedChapterIds()`
+- `update(updates)` - Returns new instance with updates
+- `complete()` - Marks task as done with timestamp
+- `static create(id, projectId, title, ...)` - Factory method
+
+**Tests**: 25+ tests covering entity creation, status transitions, and validation
+
+---
+
+#### `ResearchDocument` ⭐ NEW (Phase 6)
+**Purpose**: Represents a research document for the project
+
+**Responsibilities**:
+- Manages document identity (unique ID, project association)
+- Stores document content (title, content as TipTap JSON)
+- Tracks tags for categorization
+- Timestamps for created/updated dates
+
+**Key Methods**:
+- `getId()`, `getProjectId()`, `getTitle()`, `getContent()`, `getTags()`
+- `getCreatedAt()`, `getUpdatedAt()`
+- `update(updates)` - Returns new instance with updates
+- `static create(id, projectId, title, ...)` - Factory method
+
+**Tests**: 15+ tests covering entity creation and updates
+
+---
+
+#### `WritingGoal` ⭐ NEW (Phase 6)
+**Purpose**: Represents a writing goal for the project
+
+**Responsibilities**:
+- Manages goal identity (unique ID, project association)
+- Stores goal details (title, target word count)
+- Tracks deadline and active status
+- Calculates progress from current word count
+- Timestamps for created/updated dates
+
+**Key Methods**:
+- `getId()`, `getProjectId()`, `getTitle()`, `getTargetWordCount()`
+- `getDeadline()`, `isActive()`, `getCreatedAt()`, `getUpdatedAt()`
+- `calculateProgress(currentWordCount)` - Returns percentage
+- `update(updates)` - Returns new instance with updates
+- `static create(id, projectId, title, ...)` - Factory method
+
+**Tests**: 15+ tests covering entity creation and progress calculation
+
+---
+
+#### `AIUsageRecord` ⭐ NEW (Phase 6)
+**Purpose**: Represents an AI usage record for tracking and billing
+
+**Responsibilities**:
+- Manages usage identity (unique ID, project/user association)
+- Stores operation details (type, model, provider)
+- Tracks token counts (prompt, completion, total)
+- Calculates estimated cost based on model pricing
+- Timestamps for when the operation occurred
+
+**Key Methods**:
+- `getId()`, `getProjectId()`, `getUserId()`, `getOperationType()`
+- `getModel()`, `getProvider()`, `getPromptTokens()`, `getCompletionTokens()`
+- `getTotalTokens()`, `getEstimatedCost()`, `getCreatedAt()`
+- `static create(id, projectId, userId, ...)` - Factory method
+
+**Tests**: 15+ tests covering entity creation and cost calculation
+
+---
+
 #### `TextDocument` (Phase 1 - Legacy)
 **Purpose**: Represents a single document with content and metadata
 
@@ -195,13 +323,13 @@ Pure business logic with zero framework dependencies.
 
 ---
 
-#### `MetadataType` (Phase 3.6, 3.7)
-**Purpose**: Enum value object for 7 metadata analysis types
+#### `MetadataType` (Phase 3.6, 3.7, 6)
+**Purpose**: Enum value object for 8 metadata analysis types
 
 **Responsibilities**:
 - Type-safe metadata type enumeration
 - Validation of metadata types
-- Supports: narrative_analysis, characters, plot, stylistic_dna, worldbuilding, **chapter_summaries** ⭐ NEW, synthesis
+- Supports: narrative_analysis, characters, plot, stylistic_dna, worldbuilding, chapter_summaries, synthesis, **editorial** ⭐ NEW (Phase 6)
 
 **Tests**: 5+ tests for validation rules
 
@@ -219,6 +347,79 @@ Pure business logic with zero framework dependencies.
 
 ---
 
+#### `TaskPriority` ⭐ NEW (Phase 6)
+**Purpose**: Enum value object for task priority levels
+
+**Responsibilities**:
+- Type-safe priority enumeration
+- Validation of priority values
+- Supports: low, medium, high, urgent
+
+**Tests**: 5+ tests for validation rules
+
+---
+
+#### `TaskStatus` ⭐ NEW (Phase 6)
+**Purpose**: Enum value object for task status
+
+**Responsibilities**:
+- Type-safe status enumeration
+- Validation of status values
+- Supports: todo, in_progress, done, blocked
+
+**Tests**: 5+ tests for validation rules
+
+---
+
+#### `Contributor` ⭐ NEW (Phase 6)
+**Purpose**: Value object for project contributors
+
+**Responsibilities**:
+- Stores contributor name and role
+- Immutable by design
+- Validation of required fields
+
+**Tests**: 5+ tests for validation rules
+
+---
+
+#### `RelatedWork` ⭐ NEW (Phase 6)
+**Purpose**: Value object for related works references
+
+**Responsibilities**:
+- Stores work title, author, and type
+- Immutable by design
+- Validation of required fields
+
+**Tests**: 5+ tests for validation rules
+
+---
+
+#### `NarrationSettings` ⭐ NEW (Phase 6)
+**Purpose**: Value object for narration settings
+
+**Responsibilities**:
+- Stores POV (first, third limited, third omniscient)
+- Stores tense (past, present)
+- Stores person (first, second, third)
+- Immutable by design
+
+**Tests**: 5+ tests for validation rules
+
+---
+
+#### `AIOperationType` ⭐ NEW (Phase 6)
+**Purpose**: Enum value object for AI operation types
+
+**Responsibilities**:
+- Type-safe operation type enumeration
+- Validation of operation types
+- Supports: rewrite, generate, complete, analyze
+
+**Tests**: 5+ tests for validation rules
+
+---
+
 #### `RewriteProposal`
 **Purpose**: Immutable AI-generated text alternative
 
@@ -231,7 +432,7 @@ Pure business logic with zero framework dependencies.
 
 ---
 
-### Interfaces (✅ Phase 3 Enhanced)
+### Interfaces (✅ Phase 6 Enhanced)
 
 #### `LLMProvider` ⭐ ENHANCED (Phase 3.6)
 **Contract**: AI text generation and analysis service
@@ -458,7 +659,109 @@ Pure business logic with zero framework dependencies.
 
 ---
 
-### Value Objects (⭐ Phase 5.0+ Enhanced)
+#### `CharacterRepository` ⭐ NEW (Phase 6)
+**Contract**: Character persistence abstraction with multi-tenant support
+
+**Methods**:
+- `create(userId, character)` → `Promise<Character>`
+- `findById(userId, characterId)` → `Promise<Character | null>`
+- `findByProjectId(userId, projectId)` → `Promise<Character[]>`
+- `update(userId, character)` → `Promise<Character>`
+- `delete(userId, characterId)` → `Promise<void>`
+- `deleteAllByOwner(userId)` → `Promise<void>`
+
+**Implementation**: `MongoDBCharacterRepository`
+
+---
+
+#### `ProjectSettingsRepository` ⭐ NEW (Phase 6)
+**Contract**: Project settings persistence abstraction
+
+**Methods**:
+- `create(userId, settings)` → `Promise<ProjectSettings>`
+- `findByProjectId(userId, projectId)` → `Promise<ProjectSettings | null>`
+- `update(userId, settings)` → `Promise<ProjectSettings>`
+- `delete(userId, settingsId)` → `Promise<void>`
+- `deleteAllByOwner(userId)` → `Promise<void>`
+
+**Implementation**: `MongoDBProjectSettingsRepository`
+
+---
+
+#### `ProjectTaskRepository` ⭐ NEW (Phase 6)
+**Contract**: Task persistence abstraction with filtering
+
+**Methods**:
+- `create(userId, task)` → `Promise<ProjectTask>`
+- `findById(userId, taskId)` → `Promise<ProjectTask | null>`
+- `findByProjectId(userId, projectId, filters?)` → `Promise<ProjectTask[]>`
+- `update(userId, task)` → `Promise<ProjectTask>`
+- `delete(userId, taskId)` → `Promise<void>`
+- `getTaskSummary(userId, projectId)` → `Promise<TaskSummary>`
+- `deleteAllByOwner(userId)` → `Promise<void>`
+
+**Implementation**: `MongoDBProjectTaskRepository`
+
+---
+
+#### `ResearchDocumentRepository` ⭐ NEW (Phase 6)
+**Contract**: Research document persistence abstraction
+
+**Methods**:
+- `create(userId, document)` → `Promise<ResearchDocument>`
+- `findById(userId, documentId)` → `Promise<ResearchDocument | null>`
+- `findByProjectId(userId, projectId)` → `Promise<ResearchDocument[]>`
+- `update(userId, document)` → `Promise<ResearchDocument>`
+- `delete(userId, documentId)` → `Promise<void>`
+- `deleteAllByOwner(userId)` → `Promise<void>`
+
+**Implementation**: `MongoDBResearchDocumentRepository`
+
+---
+
+#### `WritingGoalRepository` ⭐ NEW (Phase 6)
+**Contract**: Writing goal persistence abstraction
+
+**Methods**:
+- `create(userId, goal)` → `Promise<WritingGoal>`
+- `findById(userId, goalId)` → `Promise<WritingGoal | null>`
+- `findByProjectId(userId, projectId)` → `Promise<WritingGoal[]>`
+- `findActiveByProjectId(userId, projectId)` → `Promise<WritingGoal | null>`
+- `update(userId, goal)` → `Promise<WritingGoal>`
+- `delete(userId, goalId)` → `Promise<void>`
+- `deleteAllByOwner(userId)` → `Promise<void>`
+
+**Implementation**: `MongoDBWritingGoalRepository`
+
+---
+
+#### `AIUsageRepository` ⭐ NEW (Phase 6)
+**Contract**: AI usage tracking persistence abstraction
+
+**Methods**:
+- `create(record)` → `Promise<AIUsageRecord>`
+- `findByUserId(userId, filters?)` → `Promise<AIUsageRecord[]>`
+- `findByProjectId(userId, projectId, filters?)` → `Promise<AIUsageRecord[]>`
+- `getUsageStats(userId, projectId?, dateRange?)` → `Promise<UsageStats>`
+- `getDailyUsage(userId, projectId?, days?)` → `Promise<DailyUsage[]>`
+- `getUsageByOperation(userId, projectId?, dateRange?)` → `Promise<OperationUsage[]>`
+
+**Implementation**: `MongoDBUsageRepository`
+
+---
+
+#### `BlobStorage` ⭐ NEW (Phase 6)
+**Contract**: Blob storage abstraction for images
+
+**Methods**:
+- `upload(file, path)` → `Promise<{ url: string }>`
+- `delete(url)` → `Promise<void>`
+
+**Implementation**: `VercelBlobStorage`
+
+---
+
+### Value Objects (⭐ Phase 6 Enhanced)
 
 #### `PaginatedResult<T>` ⭐ NEW (Phase 4.1+)
 **Purpose**: Generic pagination result for collections
@@ -479,12 +782,21 @@ Pure business logic with zero framework dependencies.
 **Coverage**: See [README.md](../../README.md) for current statistics.
 
 All domain logic has near-perfect test coverage with isolated unit tests:
-- CorrectionHistory: 15+ tests (entity creation, validation) ⭐ NEW (Phase 3.7)
+- CorrectionHistory: 15+ tests (entity creation, validation) (Phase 3.7)
 - ProjectMetadata: 10+ tests (CRUD, caching logic, hash validation) (Phase 3.6)
 - MetadataType: 3+ tests (validation) (Phase 3.6)
 - User: 5+ tests (validation, creation) (Phase 3)
 - Chapter: 15 tests (content management, metadata, validation)
 - Project: 25+ tests (collection management, business rules, owner tracking)
+- Character: 20+ tests (entity creation, updates, validation) ⭐ NEW (Phase 6)
+- ProjectSettings: 20+ tests (entity creation, updates) ⭐ NEW (Phase 6)
+- ProjectTask: 25+ tests (entity creation, status transitions, validation) ⭐ NEW (Phase 6)
+- ResearchDocument: 15+ tests (entity creation, updates) ⭐ NEW (Phase 6)
+- WritingGoal: 15+ tests (entity creation, progress calculation) ⭐ NEW (Phase 6)
+- AIUsageRecord: 15+ tests (entity creation, cost calculation) ⭐ NEW (Phase 6)
+- TaskPriority, TaskStatus: 10+ tests (validation) ⭐ NEW (Phase 6)
+- Contributor, RelatedWork, NarrationSettings: 15+ tests (validation) ⭐ NEW (Phase 6)
+- AIOperationType: 5+ tests (validation) ⭐ NEW (Phase 6)
 - TextDocument: 15 tests (legacy entity)
 - TextSelection: 9 tests (boundary cases)
 - RewriteProposal: 6 tests (validation)
