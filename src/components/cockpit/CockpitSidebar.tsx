@@ -57,7 +57,7 @@ export function CockpitSidebar({ projectId }: CockpitSidebarProps) {
   const basePath = `/project/${projectId}/cockpit`;
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" className="top-14 h-[calc(100svh-3.5rem)]">
       <SidebarContent>
         {navigationItems.map((section) => (
           <SidebarGroup key={section.group}>
