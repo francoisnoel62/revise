@@ -449,6 +449,7 @@ export class PdfExporter implements DocumentExporter {
     for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
       const line = lines[lineIndex];
       const isFirstLine = lineIndex === 0;
+      const isLastLine = lineIndex === lines.length - 1;
 
       this.ensureSpace(context, fontSize * PDF_CONFIG.typography.lineHeight);
 
@@ -463,11 +464,21 @@ export class PdfExporter implements DocumentExporter {
       const availableWidth =
         context.contentWidth - (isFirstLine && hasIndent ? PDF_CONFIG.typography.firstLineIndent : 0);
 
+      // Calculate extra space per word for justified text
+      let extraSpacePerWord = 0;
+      if (alignment === 'justify' && !isLastLine) {
+        const spaceCount = (line.match(/ /g) || []).length;
+        if (spaceCount > 0) {
+          extraSpacePerWord = (availableWidth - lineWidth) / spaceCount;
+        }
+      }
+
       if (alignment === 'center') {
         x += (availableWidth - lineWidth) / 2;
       } else if (alignment === 'right') {
         x += availableWidth - lineWidth;
       }
+      // For justify: x starts at left margin, extra space added after each word space
 
       // Render characters with appropriate styling
       let charIndex = 0;
@@ -522,7 +533,16 @@ export class PdfExporter implements DocumentExporter {
           });
         }
 
-        x += font.widthOfTextAtSize(normalizedText, effectiveFontSize);
+        // Advance x position
+        const textWidth = font.widthOfTextAtSize(normalizedText, effectiveFontSize);
+        x += textWidth;
+
+        // For justified text, add extra space after each space character
+        if (alignment === 'justify' && !isLastLine && extraSpacePerWord > 0) {
+          const spacesInText = (textToRender.match(/ /g) || []).length;
+          x += spacesInText * extraSpacePerWord;
+        }
+
         charIndex += charsToRender;
         runCharOffset += charsToRender;
       }
