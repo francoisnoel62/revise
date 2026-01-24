@@ -13,7 +13,7 @@ import { FormattingToolbar } from '@/components/editor/FormattingToolbar';
 import { RewriteLoadingOverlay } from '@/components/editor/RewriteLoadingOverlay';
 import { ChaptersSheet } from '@/components/navigation/ChaptersSheet';
 import { ProposalsSheet } from '@/components/proposals/ProposalsSheet';
-import { DocumentControls } from '@/components/document/DocumentControls';
+import { ExportDialog } from '@/components/document/ExportDialog';
 import { SaveStatus } from '@/components/ui/SaveStatus';
 import { CharacterCounter } from '@/components/editor/CharacterCounter';
 import { UserMenu } from '@/components/auth/UserMenu';
@@ -343,7 +343,7 @@ function EditorContent() {
             <SaveStatus compact />
           </div>
           <div className="flex items-center shrink-0">
-            <DocumentControls />
+            <ExportDialog />
             <UserMenu />
           </div>
         </div>
@@ -367,8 +367,8 @@ function EditorContent() {
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            <PublishDialog projectId={project.id} projectTitle={project.title} />
-            <DocumentControls />
+            <PublishDialog projectId={project.id} projectTitle={project.title} chapters={project.chapters} />
+            <ExportDialog />
             <UserMenu />
           </div>
         </div>
@@ -397,8 +397,8 @@ function EditorContent() {
           </div>
           {/* Right: controls */}
           <div className="flex items-center justify-end gap-2">
-            <PublishDialog projectId={project.id} projectTitle={project.title} />
-            <DocumentControls />
+            <PublishDialog projectId={project.id} projectTitle={project.title} chapters={project.chapters} />
+            <ExportDialog />
             <UserMenu />
           </div>
         </div>

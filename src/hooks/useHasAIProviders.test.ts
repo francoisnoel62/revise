@@ -89,18 +89,29 @@ describe('useHasAIProviders', () => {
     expect(result.current.hasAIProviders).toBe(true);
   });
 
-  it('should start with isLoading=true', () => {
-    mockListProvidersAction.mockResolvedValue({
-      success: true,
-      data: [],
+  it('should start with isLoading=true', async () => {
+    // Use a promise we can control to prevent immediate resolution
+    let resolvePromise: (value: { success: boolean; data: never[] }) => void;
+    const pendingPromise = new Promise<{ success: boolean; data: never[] }>((resolve) => {
+      resolvePromise = resolve;
     });
+    mockListProvidersAction.mockReturnValue(pendingPromise);
 
     const { result } = renderHook(() => useHasAIProviders());
 
+    // Initial state should be loading
     expect(result.current.isLoading).toBe(true);
+
+    // Clean up by resolving the promise
+    resolvePromise!({ success: true, data: [] });
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
   });
 
   it('should handle API errors gracefully', async () => {
+    // Suppress expected console error
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mockListProvidersAction.mockRejectedValue(new Error('API Error'));
 
     const { result } = renderHook(() => useHasAIProviders());
@@ -111,6 +122,7 @@ describe('useHasAIProviders', () => {
 
     expect(result.current.hasAIProviders).toBe(false);
     expect(result.current.providers).toEqual([]);
+    consoleSpy.mockRestore();
   });
 
   it('should provide refresh function to reload providers', async () => {

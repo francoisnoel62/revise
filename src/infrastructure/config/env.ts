@@ -25,9 +25,11 @@ export const config = {
   },
   app: {
     // Priority: NEXT_PUBLIC_APP_URL > VERCEL_URL (auto on Vercel) > localhost
-    baseUrl:
+    // Remove trailing slash to prevent double slashes in URLs
+    baseUrl: (
       process.env.NEXT_PUBLIC_APP_URL ||
-      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'),
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+    ).replace(/\/$/, ''),
   },
 } as const;
 

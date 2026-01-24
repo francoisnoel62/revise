@@ -148,6 +148,65 @@ export class DocxExporter implements DocumentExporter {
   }
 
   /**
+   * Export selected chapters
+   * Chapters separated by page breaks
+   */
+  async exportChapters(chapters: Chapter[], filename: string): Promise<Buffer> {
+    if (!this.supports(filename)) {
+      throw new Error(`Unsupported export format: ${filename}`);
+    }
+
+    if (chapters.length === 0) {
+      throw new Error('No chapters to export');
+    }
+
+    try {
+      const sections: Paragraph[] = [];
+
+      for (let i = 0; i < chapters.length; i++) {
+        const chapter = chapters[i];
+        const json = JSON.parse(chapter.getContent());
+
+        // Add chapter title as H1
+        sections.push(
+          new Paragraph({
+            text: chapter.getTitle(),
+            heading: HeadingLevel.HEADING_1,
+          })
+        );
+
+        // Convert TipTap JSON to DOCX paragraphs
+        const paragraphs = this.convertTipTapToDocx(json);
+        sections.push(...paragraphs);
+
+        // Add page break between chapters (except after last)
+        if (i < chapters.length - 1) {
+          sections.push(
+            new Paragraph({
+              children: [new PageBreak()],
+            })
+          );
+        }
+      }
+
+      const doc = new Document({
+        sections: [
+          {
+            children: sections,
+          },
+        ],
+      });
+
+      return await Packer.toBuffer(doc);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to export chapters: ${error.message}`);
+      }
+      throw new Error('Failed to export chapters');
+    }
+  }
+
+  /**
    * Convert TipTap JSON to DOCX paragraphs
    * @param json - TipTap JSON document
    * @returns Array of DOCX Paragraph objects

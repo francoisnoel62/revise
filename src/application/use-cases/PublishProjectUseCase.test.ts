@@ -86,4 +86,49 @@ describe('PublishProjectUseCase', () => {
     const expectedUrl = `${baseUrl}/read/${project.getId()}/${project.getShareToken()}`;
     expect(result.shareUrl).toBe(expectedUrl);
   });
+
+  describe('chapter selection', () => {
+    it('should publish with selected chapters', async () => {
+      const project = Project.createEmpty('user-1', 'Mon Roman');
+      const chapterId = project.getChapters()[0].getId();
+      vi.mocked(mockRepository.loadProject).mockResolvedValue(project);
+      vi.mocked(mockRepository.updateProject).mockResolvedValue(project);
+
+      const result = await useCase.execute({
+        ownerId: 'user-1',
+        projectId: project.getId(),
+        chapterIds: [chapterId],
+      });
+
+      expect(result.project.getIsPublished()).toBe(true);
+      expect(result.project.getPublishedChapterIds()).toEqual([chapterId]);
+    });
+
+    it('should publish all chapters when chapterIds not provided', async () => {
+      const project = Project.createEmpty('user-1', 'Mon Roman');
+      vi.mocked(mockRepository.loadProject).mockResolvedValue(project);
+      vi.mocked(mockRepository.updateProject).mockResolvedValue(project);
+
+      const result = await useCase.execute({
+        ownerId: 'user-1',
+        projectId: project.getId(),
+      });
+
+      expect(result.project.getIsPublished()).toBe(true);
+      expect(result.project.getPublishedChapterIds()).toBeNull();
+    });
+
+    it('should throw error for invalid chapter IDs', async () => {
+      const project = Project.createEmpty('user-1', 'Mon Roman');
+      vi.mocked(mockRepository.loadProject).mockResolvedValue(project);
+
+      await expect(
+        useCase.execute({
+          ownerId: 'user-1',
+          projectId: project.getId(),
+          chapterIds: ['invalid-chapter-id'],
+        })
+      ).rejects.toThrow('Invalid chapter IDs');
+    });
+  });
 });

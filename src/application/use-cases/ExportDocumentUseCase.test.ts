@@ -30,6 +30,12 @@ class MockDocumentExporter implements DocumentExporter {
     throw new Error('Not implemented in Phase 1 tests');
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async exportChapters(_chapters: any[], _filename: string): Promise<Buffer> {
+    // Stub for selected chapters export - not used in Phase 1 tests
+    throw new Error('Not implemented in Phase 1 tests');
+  }
+
   supports(filename: string): boolean {
     return filename.endsWith('.docx');
   }
@@ -71,6 +77,9 @@ describe('ExportDocumentUseCase', () => {
       async exportChapter() {
         throw new Error('Not implemented');
       },
+      async exportChapters() {
+        throw new Error('Not implemented');
+      },
       supports() {
         return true;
       },
@@ -110,6 +119,9 @@ describe('ExportDocumentUseCase', () => {
         throw new Error('Not implemented');
       },
       async exportChapter() {
+        throw new Error('Not implemented');
+      },
+      async exportChapters() {
         throw new Error('Not implemented');
       },
       supports() {

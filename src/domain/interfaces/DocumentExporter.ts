@@ -17,6 +17,12 @@ export interface DocumentExporter {
   exportProject(project: Project, filename: string): Promise<Buffer>;
 
   /**
+   * Export selected chapters
+   * Combines chapters with page breaks or section separators
+   */
+  exportChapters(chapters: Chapter[], filename: string): Promise<Buffer>;
+
+  /**
    * Export single chapter (Phase 2+)
    */
   exportChapter(chapter: Chapter, filename: string): Promise<Buffer>;

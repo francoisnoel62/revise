@@ -350,6 +350,53 @@ export class PdfExporter implements DocumentExporter {
     }
   }
 
+  async exportChapters(chapters: Chapter[], filename: string): Promise<Buffer> {
+    if (!this.supports(filename)) {
+      throw new Error(`Unsupported export format: ${filename}`);
+    }
+
+    if (chapters.length === 0) {
+      throw new Error('No chapters to export');
+    }
+
+    try {
+      const pdfDoc = await PDFDocument.create();
+      const fonts = await this.loadFonts(pdfDoc);
+      const contentWidth =
+        PDF_CONFIG.page.width - PDF_CONFIG.margins.left - PDF_CONFIG.margins.right;
+
+      for (let i = 0; i < chapters.length; i++) {
+        const chapter = chapters[i];
+
+        // Create new page for each chapter
+        const page = pdfDoc.addPage([PDF_CONFIG.page.width, PDF_CONFIG.page.height]);
+
+        const context: RenderContext = {
+          pdfDoc,
+          currentPage: page,
+          fonts,
+          yPosition: PDF_CONFIG.page.height - PDF_CONFIG.margins.top,
+          contentWidth,
+        };
+
+        // Render chapter title as H1
+        this.renderHeading(context, chapter.getTitle(), 1);
+
+        // Parse and render TipTap content
+        const json = JSON.parse(chapter.getContent()) as TipTapDocument;
+        this.renderTipTapDocument(context, json);
+      }
+
+      const pdfBytes = await pdfDoc.save();
+      return Buffer.from(pdfBytes);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to export chapters: ${error.message}`);
+      }
+      throw new Error('Failed to export chapters');
+    }
+  }
+
   private async loadFonts(pdfDoc: PDFDocument): Promise<FontSet> {
     // Use Times Roman (closest to Times New Roman / Georgia in standard fonts)
     const regular = await pdfDoc.embedFont(StandardFonts.TimesRoman);

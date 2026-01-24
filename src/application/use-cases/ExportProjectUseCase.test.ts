@@ -11,6 +11,7 @@ import { Chapter } from '@/domain/entities/Chapter';
 class MockDocumentExporter implements DocumentExporter {
   private lastExportedProject: Project | null = null;
   private lastExportedChapter: Chapter | null = null;
+  private lastExportedChapters: Chapter[] | null = null;
 
   async exportProject(project: Project, _filename: string): Promise<Buffer> {
     this.lastExportedProject = project;
@@ -20,6 +21,11 @@ class MockDocumentExporter implements DocumentExporter {
   async exportChapter(chapter: Chapter, _filename: string): Promise<Buffer> {
     this.lastExportedChapter = chapter;
     return Buffer.from('exported chapter buffer');
+  }
+
+  async exportChapters(chapters: Chapter[], _filename: string): Promise<Buffer> {
+    this.lastExportedChapters = chapters;
+    return Buffer.from('exported chapters buffer');
   }
 
   async export(_content: string, _filename: string): Promise<Buffer> {
@@ -36,6 +42,10 @@ class MockDocumentExporter implements DocumentExporter {
 
   getLastExportedChapter(): Chapter | null {
     return this.lastExportedChapter;
+  }
+
+  getLastExportedChapters(): Chapter[] | null {
+    return this.lastExportedChapters;
   }
 }
 
@@ -120,6 +130,57 @@ describe('ExportProjectUseCase', () => {
     });
   });
 
+  describe('exportProject - selected mode', () => {
+    it('should export only selected chapters', async () => {
+      const chapters = [
+        createMockChapter('id-1', 'Chapter 1', 0),
+        createMockChapter('id-2', 'Chapter 2', 1),
+        createMockChapter('id-3', 'Chapter 3', 2),
+      ];
+      const project = Project.create('test-user', 'Test Project', chapters);
+      const filename = 'test.docx';
+      const selectedIds = ['id-1', 'id-3'];
+
+      const result = await useCase.execute(project, filename, 'selected', selectedIds);
+
+      expect(result).toBeInstanceOf(Buffer);
+      expect(result.toString()).toBe('exported chapters buffer');
+      const exportedChapters = mockExporter.getLastExportedChapters();
+      expect(exportedChapters).toHaveLength(2);
+      expect(exportedChapters?.map((c) => c.getId())).toEqual(['id-1', 'id-3']);
+    });
+
+    it('should throw error when no chapters selected', async () => {
+      const chapter = createMockChapter('id-1', 'Chapter 1', 0);
+      const project = Project.create('test-user', 'Test Project', [chapter]);
+      const filename = 'test.docx';
+
+      await expect(async () => {
+        await useCase.execute(project, filename, 'selected', []);
+      }).rejects.toThrow('No chapters selected for export');
+    });
+
+    it('should throw error when chapterIds not provided in selected mode', async () => {
+      const chapter = createMockChapter('id-1', 'Chapter 1', 0);
+      const project = Project.create('test-user', 'Test Project', [chapter]);
+      const filename = 'test.docx';
+
+      await expect(async () => {
+        await useCase.execute(project, filename, 'selected');
+      }).rejects.toThrow('No chapters selected for export');
+    });
+
+    it('should throw error when selected chapters do not exist', async () => {
+      const chapter = createMockChapter('id-1', 'Chapter 1', 0);
+      const project = Project.create('test-user', 'Test Project', [chapter]);
+      const filename = 'test.docx';
+
+      await expect(async () => {
+        await useCase.execute(project, filename, 'selected', ['non-existent-id']);
+      }).rejects.toThrow('No valid chapters found for export');
+    });
+  });
+
   describe('error propagation', () => {
     it('should propagate exporter errors', async () => {
       const failingExporter: DocumentExporter = {
@@ -127,6 +188,9 @@ describe('ExportProjectUseCase', () => {
           throw new Error('Export failed');
         },
         async exportChapter() {
+          throw new Error('Export failed');
+        },
+        async exportChapters() {
           throw new Error('Export failed');
         },
         async export() {
