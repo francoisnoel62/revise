@@ -3,7 +3,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -50,10 +50,15 @@ export function PublishDialog({ projectId, projectTitle, chapters }: PublishDial
   // Chapter selection state (for unpublished projects)
   const [selectedChapterIds, setSelectedChapterIds] = useState<Set<string>>(new Set());
 
+  // Ref to access current chapters without causing re-renders
+  const chaptersRef = useRef(chapters);
+  chaptersRef.current = chapters;
+
   const sortedChapters = useMemo(() => {
     return [...chapters].sort((a, b) => a.order - b.order);
   }, [chapters]);
 
+  // Load publish status without resetting selection
   const loadPublishStatus = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -63,35 +68,40 @@ export function PublishDialog({ projectId, projectTitle, chapters }: PublishDial
         setIsPublished(result.data.isPublished);
         setShareUrl(result.data.shareUrl);
         setPublishedChapterIds(result.data.publishedChapterIds);
-
-        // Initialize selection based on current published state
-        if (result.data.publishedChapterIds) {
-          setSelectedChapterIds(new Set(result.data.publishedChapterIds));
-        } else {
-          // All chapters are published, select all
-          setSelectedChapterIds(new Set(chapters.map((ch) => ch.id)));
-        }
+        return result.data;
       } else {
         setError(result.error);
+        return null;
       }
     } catch {
       setError('Erreur lors du chargement du statut');
+      return null;
     } finally {
       setIsLoading(false);
     }
-  }, [projectId, chapters]);
+  }, [projectId]);
 
   // Load publish status on mount to show correct button label
   useEffect(() => {
     loadPublishStatus();
   }, [loadPublishStatus]);
 
-  // Refresh status when dialog opens
-  useEffect(() => {
-    if (open) {
-      loadPublishStatus();
+  // Initialize selection when dialog opens (like ExportDialog pattern)
+  const handleOpenChange = useCallback(async (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (isOpen) {
+      const status = await loadPublishStatus();
+      // Initialize selection based on current published state
+      if (status) {
+        if (status.publishedChapterIds) {
+          setSelectedChapterIds(new Set(status.publishedChapterIds));
+        } else {
+          // All chapters are published or not published yet, select all
+          setSelectedChapterIds(new Set(chaptersRef.current.map((ch) => ch.id)));
+        }
+      }
     }
-  }, [open, loadPublishStatus]);
+  }, [loadPublishStatus]);
 
   const toggleChapter = (chapterId: string) => {
     setSelectedChapterIds((prev) => {
@@ -106,7 +116,7 @@ export function PublishDialog({ projectId, projectTitle, chapters }: PublishDial
   };
 
   const selectAll = () => {
-    setSelectedChapterIds(new Set(chapters.map((ch) => ch.id)));
+    setSelectedChapterIds(new Set(chaptersRef.current.map((ch) => ch.id)));
   };
 
   const deselectAll = () => {
@@ -183,7 +193,7 @@ export function PublishDialog({ projectId, projectTitle, chapters }: PublishDial
     : chapters.length;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="gap-1 sm:gap-2 px-2 sm:px-3">
           {isPublished ? (
