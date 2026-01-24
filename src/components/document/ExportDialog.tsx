@@ -213,7 +213,7 @@ export function ExportDialog() {
               </div>
             </div>
 
-            <div className="max-h-60 overflow-y-auto rounded-lg border p-2 space-y-1">
+            <div className="max-h-64 sm:max-h-80 overflow-y-auto rounded-lg border p-2 space-y-1">
               {sortedChapters.map((chapter) => (
                 <label
                   key={chapter.id}
