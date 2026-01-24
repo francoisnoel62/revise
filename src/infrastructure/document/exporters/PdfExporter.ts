@@ -382,7 +382,7 @@ export class PdfExporter implements DocumentExporter {
 
   private renderParagraph(context: RenderContext, node: TipTapNode): void {
     const runs = this.extractTextRuns(node.content || []);
-    const alignment = (node.attrs?.textAlign as string) || 'left';
+    const alignment = (node.attrs?.textAlign as string) || 'justify';
     const hasIndent = node.attrs?.indent === true;
 
     this.renderTextBlock(context, runs, PDF_CONFIG.typography.defaultSize, alignment, hasIndent);
