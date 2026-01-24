@@ -200,6 +200,16 @@ interface TextRun {
   fontSize?: number;
 }
 
+// A word with its styling information
+interface StyledWord {
+  text: string;
+  bold: boolean;
+  italic: boolean;
+  underline: boolean;
+  highlightColor?: RGB;
+  fontSize?: number;
+}
+
 // Font set for different styles
 interface FontSet {
   regular: PDFFont;
@@ -438,16 +448,18 @@ export class PdfExporter implements DocumentExporter {
       return;
     }
 
-    // Combine all text for wrapping calculation
-    const fullText = runs.map((r) => r.text).join('');
-    const lines = this.wrapText(context, fullText, fontSize, hasIndent);
+    // Convert runs to styled words for proper justification
+    const styledWords = this.extractStyledWords(runs, fontSize);
+    if (styledWords.length === 0) {
+      context.yPosition -= fontSize * PDF_CONFIG.typography.lineHeight;
+      return;
+    }
 
-    // Track run position for styling
-    let runIndex = 0;
-    let runCharOffset = 0;
+    // Wrap styled words into lines
+    const lines = this.wrapStyledWords(context, styledWords, fontSize, hasIndent);
 
     for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-      const line = lines[lineIndex];
+      const lineWords = lines[lineIndex];
       const isFirstLine = lineIndex === 0;
       const isLastLine = lineIndex === lines.length - 1;
 
@@ -459,57 +471,51 @@ export class PdfExporter implements DocumentExporter {
         x += PDF_CONFIG.typography.firstLineIndent;
       }
 
-      // Adjust x for alignment
-      const lineWidth = this.measureText(context, normalizeForWinAnsi(line), fontSize);
+      // Calculate total width of words (without spaces)
+      let totalWordsWidth = 0;
+      for (const word of lineWords) {
+        const font = this.getFont(context.fonts, word.bold, word.italic);
+        const effectiveFontSize = word.fontSize || fontSize;
+        totalWordsWidth += font.widthOfTextAtSize(normalizeForWinAnsi(word.text), effectiveFontSize);
+      }
+
+      // Calculate available width and spacing
       const availableWidth =
         context.contentWidth - (isFirstLine && hasIndent ? PDF_CONFIG.typography.firstLineIndent : 0);
+      const numGaps = lineWords.length - 1;
 
-      // Calculate extra space per word for justified text
-      let extraSpacePerWord = 0;
-      if (alignment === 'justify' && !isLastLine) {
-        const spaceCount = (line.match(/ /g) || []).length;
-        if (spaceCount > 0) {
-          extraSpacePerWord = (availableWidth - lineWidth) / spaceCount;
-        }
+      // Calculate space width between words
+      let spaceWidth = context.fonts.regular.widthOfTextAtSize(' ', fontSize);
+      if (alignment === 'justify' && !isLastLine && numGaps > 0) {
+        // Distribute remaining space evenly between words
+        spaceWidth = (availableWidth - totalWordsWidth) / numGaps;
       }
 
+      // Adjust starting x for center/right alignment
       if (alignment === 'center') {
+        const lineWidth = totalWordsWidth + numGaps * spaceWidth;
         x += (availableWidth - lineWidth) / 2;
       } else if (alignment === 'right') {
+        const lineWidth = totalWordsWidth + numGaps * spaceWidth;
         x += availableWidth - lineWidth;
       }
-      // For justify: x starts at left margin, extra space added after each word space
 
-      // Render characters with appropriate styling
-      let charIndex = 0;
-      while (charIndex < line.length) {
-        // Find current run
-        while (runIndex < runs.length && runCharOffset >= runs[runIndex].text.length) {
-          runCharOffset = 0;
-          runIndex++;
-        }
-
-        if (runIndex >= runs.length) break;
-
-        const run = runs[runIndex];
-        const remainingInRun = run.text.length - runCharOffset;
-        const remainingInLine = line.length - charIndex;
-        const charsToRender = Math.min(remainingInRun, remainingInLine);
-        const textToRender = line.slice(charIndex, charIndex + charsToRender);
-
-        const font = this.getFont(context.fonts, run.bold, run.italic);
-        const effectiveFontSize = run.fontSize || fontSize;
-        const normalizedText = normalizeForWinAnsi(textToRender);
+      // Render each word
+      for (let wordIndex = 0; wordIndex < lineWords.length; wordIndex++) {
+        const word = lineWords[wordIndex];
+        const font = this.getFont(context.fonts, word.bold, word.italic);
+        const effectiveFontSize = word.fontSize || fontSize;
+        const normalizedText = normalizeForWinAnsi(word.text);
+        const textWidth = font.widthOfTextAtSize(normalizedText, effectiveFontSize);
 
         // Draw highlight background if present
-        if (run.highlightColor) {
-          const textWidth = font.widthOfTextAtSize(normalizedText, effectiveFontSize);
+        if (word.highlightColor) {
           context.currentPage.drawRectangle({
             x,
             y: context.yPosition - effectiveFontSize * 0.2,
             width: textWidth,
             height: effectiveFontSize * 1.2,
-            color: run.highlightColor,
+            color: word.highlightColor,
           });
         }
 
@@ -523,8 +529,7 @@ export class PdfExporter implements DocumentExporter {
         });
 
         // Draw underline if present
-        if (run.underline) {
-          const textWidth = font.widthOfTextAtSize(normalizedText, effectiveFontSize);
+        if (word.underline) {
           context.currentPage.drawLine({
             start: { x, y: context.yPosition - 2 },
             end: { x: x + textWidth, y: context.yPosition - 2 },
@@ -534,21 +539,84 @@ export class PdfExporter implements DocumentExporter {
         }
 
         // Advance x position
-        const textWidth = font.widthOfTextAtSize(normalizedText, effectiveFontSize);
         x += textWidth;
 
-        // For justified text, add extra space after each space character
-        if (alignment === 'justify' && !isLastLine && extraSpacePerWord > 0) {
-          const spacesInText = (textToRender.match(/ /g) || []).length;
-          x += spacesInText * extraSpacePerWord;
+        // Add space after word (except for last word)
+        if (wordIndex < lineWords.length - 1) {
+          x += spaceWidth;
         }
-
-        charIndex += charsToRender;
-        runCharOffset += charsToRender;
       }
 
       context.yPosition -= fontSize * PDF_CONFIG.typography.lineHeight;
     }
+  }
+
+  private extractStyledWords(runs: TextRun[], defaultFontSize: number): StyledWord[] {
+    const words: StyledWord[] = [];
+
+    for (const run of runs) {
+      // Split run text into words
+      const runWords = run.text.split(/\s+/).filter((w) => w.length > 0);
+
+      for (const wordText of runWords) {
+        words.push({
+          text: wordText,
+          bold: run.bold,
+          italic: run.italic,
+          underline: run.underline,
+          highlightColor: run.highlightColor,
+          fontSize: run.fontSize || defaultFontSize,
+        });
+      }
+    }
+
+    return words;
+  }
+
+  private wrapStyledWords(
+    context: RenderContext,
+    words: StyledWord[],
+    fontSize: number,
+    hasFirstLineIndent: boolean
+  ): StyledWord[][] {
+    const lines: StyledWord[][] = [];
+    let currentLine: StyledWord[] = [];
+    let currentLineWidth = 0;
+    let isFirstLine = true;
+    const spaceWidth = context.fonts.regular.widthOfTextAtSize(' ', fontSize);
+
+    for (const word of words) {
+      const font = this.getFont(context.fonts, word.bold, word.italic);
+      const effectiveFontSize = word.fontSize || fontSize;
+      const wordWidth = font.widthOfTextAtSize(normalizeForWinAnsi(word.text), effectiveFontSize);
+
+      const maxWidth =
+        context.contentWidth -
+        (isFirstLine && hasFirstLineIndent ? PDF_CONFIG.typography.firstLineIndent : 0);
+
+      // Check if word fits on current line
+      const widthWithWord =
+        currentLine.length === 0 ? wordWidth : currentLineWidth + spaceWidth + wordWidth;
+
+      if (widthWithWord > maxWidth && currentLine.length > 0) {
+        // Start new line
+        lines.push(currentLine);
+        currentLine = [word];
+        currentLineWidth = wordWidth;
+        isFirstLine = false;
+      } else {
+        // Add word to current line
+        currentLine.push(word);
+        currentLineWidth = widthWithWord;
+      }
+    }
+
+    // Don't forget the last line
+    if (currentLine.length > 0) {
+      lines.push(currentLine);
+    }
+
+    return lines.length > 0 ? lines : [[]];
   }
 
   private renderPlainTextParagraph(context: RenderContext, text: string): void {
@@ -607,48 +675,6 @@ export class PdfExporter implements DocumentExporter {
       .filter((n) => n.type === 'text')
       .map((n) => n.text || '')
       .join('');
-  }
-
-  private wrapText(
-    context: RenderContext,
-    text: string,
-    fontSize: number,
-    hasFirstLineIndent: boolean
-  ): string[] {
-    const font = context.fonts.regular;
-    const lines: string[] = [];
-    const words = text.split(/\s+/);
-
-    let currentLine = '';
-    let isFirstLine = true;
-
-    for (const word of words) {
-      const maxWidth =
-        context.contentWidth -
-        (isFirstLine && hasFirstLineIndent ? PDF_CONFIG.typography.firstLineIndent : 0);
-
-      const testLine = currentLine ? `${currentLine} ${word}` : word;
-      // Normalize for width calculation to avoid WinAnsi encoding errors
-      const testWidth = font.widthOfTextAtSize(normalizeForWinAnsi(testLine), fontSize);
-
-      if (testWidth > maxWidth && currentLine) {
-        lines.push(currentLine);
-        currentLine = word;
-        isFirstLine = false;
-      } else {
-        currentLine = testLine;
-      }
-    }
-
-    if (currentLine) {
-      lines.push(currentLine);
-    }
-
-    return lines.length > 0 ? lines : [''];
-  }
-
-  private measureText(context: RenderContext, text: string, fontSize: number): number {
-    return context.fonts.regular.widthOfTextAtSize(text, fontSize);
   }
 
   private ensureSpace(context: RenderContext, neededHeight: number): void {
