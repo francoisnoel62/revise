@@ -91,12 +91,19 @@ export function PublishDialog({ projectId, projectTitle, chapters }: PublishDial
     setOpen(isOpen);
     if (isOpen) {
       const status = await loadPublishStatus();
+      console.log('[PublishDialog] handleOpenChange:', {
+        status,
+        chaptersRefLength: chaptersRef.current.length,
+        chaptersRef: chaptersRef.current.map(c => ({ id: c.id, title: c.title })),
+      });
       // Initialize selection based on current published state
       if (status) {
         if (status.publishedChapterIds) {
+          console.log('[PublishDialog] Setting selection from publishedChapterIds:', status.publishedChapterIds);
           setSelectedChapterIds(new Set(status.publishedChapterIds));
         } else {
           // All chapters are published or not published yet, select all
+          console.log('[PublishDialog] Setting selection to all chapters');
           setSelectedChapterIds(new Set(chaptersRef.current.map((ch) => ch.id)));
         }
       }
@@ -104,6 +111,7 @@ export function PublishDialog({ projectId, projectTitle, chapters }: PublishDial
   }, [loadPublishStatus]);
 
   const toggleChapter = (chapterId: string) => {
+    console.log('[PublishDialog] toggleChapter:', chapterId);
     setSelectedChapterIds((prev) => {
       const next = new Set(prev);
       if (next.has(chapterId)) {
@@ -111,6 +119,7 @@ export function PublishDialog({ projectId, projectTitle, chapters }: PublishDial
       } else {
         next.add(chapterId);
       }
+      console.log('[PublishDialog] After toggle, selectedChapterIds:', Array.from(next));
       return next;
     });
   };
@@ -137,8 +146,10 @@ export function PublishDialog({ projectId, projectTitle, chapters }: PublishDial
         selectedChapterIds: chapterIds,
         selectedCount: chapterIds.length,
         totalChapters: chapters.length,
+        chaptersRefLength: chaptersRef.current.length,
         allSelected,
         passingUndefined: allSelected,
+        chaptersFromProp: chapters.map(c => ({ id: c.id, title: c.title })),
       });
       // Pass undefined if all chapters are selected
       const result = await publishProjectAction(

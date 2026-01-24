@@ -65,6 +65,13 @@ export class MongoDBProjectRepository implements ProjectRepository {
   async updateProject(userId: string, project: Project): Promise<Project> {
     const doc = serializeProject(project);
 
+    console.log('[MongoDBProjectRepository.updateProject] Saving:', {
+      projectId: project.getId(),
+      isPublished: doc.isPublished,
+      publishedChapterIds: doc.publishedChapterIds,
+      totalChapters: doc.chapters.length,
+    });
+
     // Update only if owned by user
     const result = await this.collection.replaceOne(
       { _id: project.getId(), ownerId: userId },
