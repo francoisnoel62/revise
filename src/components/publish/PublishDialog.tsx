@@ -220,7 +220,7 @@ export function PublishDialog({ projectId, projectTitle, chapters }: PublishDial
           )}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="w-[95vw] sm:w-[80vw] md:w-[70vw] lg:w-[60vw] max-w-4xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Globe className="h-5 w-5" />
@@ -340,7 +340,7 @@ export function PublishDialog({ projectId, projectTitle, chapters }: PublishDial
                   </div>
                 </div>
 
-                <div className="max-h-48 overflow-y-auto rounded-lg border p-2 space-y-1">
+                <div className="max-h-64 sm:max-h-80 overflow-y-auto rounded-lg border p-2 space-y-1">
                   {sortedChapters.map((chapter) => (
                     <label
                       key={chapter.id}
