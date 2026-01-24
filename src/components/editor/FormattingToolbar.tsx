@@ -3,6 +3,7 @@
 
 'use client';
 
+import { useState, useRef, useEffect } from 'react';
 import { Editor } from '@tiptap/react';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,7 +11,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
 import {
   Bold,
   Italic,
@@ -26,9 +29,101 @@ import {
   Redo2,
   Search,
 } from 'lucide-react';
+
+// Common font sizes like in Word/Google Docs
+const COMMON_FONT_SIZES = [8, 9, 10, 11, 12, 13, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72, 100];
+const MIN_FONT_SIZE = 8;
+const MAX_FONT_SIZE = 100;
 import { AIMenuDropdown } from './AIMenuDropdown';
 import { SafeProvider } from '@/app/actions/provider-actions';
 import { ChapterGenerationTypeKey } from '@/domain';
+
+// Font Size Dropdown Component
+function FontSizeDropdown({ editor }: { editor: Editor }) {
+  const [customSize, setCustomSize] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Get current font size from editor
+  const currentFontSize = editor.getAttributes('textStyle').fontSize || '13pt';
+  const currentSizeNumber = parseInt(currentFontSize);
+
+  // Apply font size with validation
+  const applyFontSize = (size: number) => {
+    if (!editor.view || editor.isDestroyed) return;
+
+    // Clamp size between MIN and MAX
+    const clampedSize = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, size));
+    editor.chain().focus().setFontSize(`${clampedSize}pt`).run();
+    setCustomSize('');
+    setIsOpen(false);
+  };
+
+  // Handle custom size input
+  const handleCustomSizeSubmit = () => {
+    const size = parseInt(customSize);
+    if (!isNaN(size)) {
+      applyFontSize(size);
+    }
+  };
+
+  // Handle key press in input
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleCustomSizeSubmit();
+    }
+  };
+
+  // Focus input when dropdown opens
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      setTimeout(() => inputRef.current?.focus(), 0);
+    }
+  }, [isOpen]);
+
+  return (
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          title="Taille de police"
+          className="hidden sm:flex w-auto px-1.5 md:px-2 text-xs md:text-sm"
+        >
+          {currentFontSize}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="max-h-80 overflow-y-auto">
+        {/* Custom size input */}
+        <div className="p-2">
+          <Input
+            ref={inputRef}
+            type="number"
+            min={MIN_FONT_SIZE}
+            max={MAX_FONT_SIZE}
+            placeholder="Taille (8-100)"
+            value={customSize}
+            onChange={(e) => setCustomSize(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="h-8 text-sm"
+          />
+        </div>
+        <DropdownMenuSeparator />
+        {/* Common font sizes */}
+        {COMMON_FONT_SIZES.map((size) => (
+          <DropdownMenuItem
+            key={size}
+            onClick={() => applyFontSize(size)}
+            className={currentSizeNumber === size ? 'bg-slate-100' : ''}
+          >
+            {size}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 interface FormattingToolbarProps {
   editor: Editor | null;
@@ -203,31 +298,7 @@ export function FormattingToolbar({
         </Button>
 
         {/* Font Size Dropdown - hidden on small mobile */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" title="Taille de police" className="hidden sm:flex w-auto px-1.5 md:px-2 text-xs md:text-sm">
-              {editor.getAttributes('textStyle').fontSize || '13pt'}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            {['11pt', '12pt', '13pt', '14pt', '16pt'].map((size) => (
-              <DropdownMenuItem
-                key={size}
-                onClick={() => {
-                  if (!editor.view || editor.isDestroyed) return;
-                  editor.chain().focus().setFontSize(size).run();
-                }}
-                className={
-                  editor.getAttributes('textStyle').fontSize === size
-                    ? 'bg-slate-100'
-                    : ''
-                }
-              >
-                {size}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <FontSizeDropdown editor={editor} />
 
         {/* Text Alignment Cycle - hidden on mobile */}
         <Button
