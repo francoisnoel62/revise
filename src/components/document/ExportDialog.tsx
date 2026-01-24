@@ -152,7 +152,7 @@ export function ExportDialog() {
           )}
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-[95vw] sm:w-[80vw] md:w-[70vw] lg:w-[60vw] max-w-4xl">
+      <DialogContent className="w-[95vw] sm:w-[80vw] md:w-[70vw] lg:w-[60vw] sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Download className="h-5 w-5" />
