@@ -77,6 +77,12 @@ export async function publishProjectAction(
   projectId: string,
   chapterIds?: string[]
 ): Promise<ActionResult<PublishResult>> {
+  console.log('[publishProjectAction] Called with:', {
+    projectId,
+    chapterIds,
+    chapterIdsLength: chapterIds?.length,
+  });
+
   const auth = await getAuthenticatedUserId();
   if ('error' in auth) return auth.error;
 
@@ -90,6 +96,12 @@ export async function publishProjectAction(
       ownerId: auth.userId,
       projectId,
       chapterIds,
+    });
+
+    console.log('[publishProjectAction] Result:', {
+      shareUrl: result.shareUrl,
+      isPublished: result.project.getIsPublished(),
+      publishedChapterIds: result.project.getPublishedChapterIds(),
     });
 
     return {
@@ -151,6 +163,9 @@ export async function loadPublishedProjectAction(
       id: project.getId(),
       title: project.getTitle(),
       isPublished: project.getIsPublished(),
+      publishedChapterIds: project.getPublishedChapterIds(),
+      totalChapters: project.getChapters().length,
+      publishedChaptersCount: project.getPublishedChapters().length,
     });
 
     return serializePublicProject(project);

@@ -137,6 +137,8 @@ export class MongoDBProjectRepository implements ProjectRepository {
       docId: doc?._id,
       isPublished: doc?.isPublished,
       hasShareToken: !!doc?.shareToken,
+      publishedChapterIds: doc?.publishedChapterIds,
+      totalChapters: doc?.chapters?.length,
     });
 
     if (!doc) return null;

@@ -123,6 +123,13 @@ export function PublishDialog({ projectId, projectTitle, chapters }: PublishDial
     setError(null);
     try {
       const chapterIds = Array.from(selectedChapterIds);
+      console.log('[PublishDialog] handlePublish:', {
+        selectedChapterIds: chapterIds,
+        selectedCount: chapterIds.length,
+        totalChapters: chapters.length,
+        allSelected,
+        passingUndefined: allSelected,
+      });
       // Pass undefined if all chapters are selected
       const result = await publishProjectAction(
         projectId,
