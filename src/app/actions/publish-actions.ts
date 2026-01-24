@@ -41,6 +41,7 @@ export interface PublishResult {
   shareUrl: string;
   isPublished: boolean;
   publishedAt: string | null;
+  publishedChapterIds: string[] | null;
 }
 
 // === Serialization Helpers ===
@@ -49,7 +50,7 @@ function serializePublicProject(project: Project): PublicProject {
   return {
     id: project.getId(),
     title: project.getTitle(),
-    chapters: project.getChapters().map(serializePublicChapter),
+    chapters: project.getPublishedChapters().map(serializePublicChapter),
     publishedAt: project.getPublishedAt()?.toISOString() ?? null,
   };
 }
@@ -69,9 +70,12 @@ function serializePublicChapter(chapter: Chapter): PublicChapter {
 /**
  * Publish a project with a shareable link.
  * Requires authentication.
+ * @param projectId - The project to publish
+ * @param chapterIds - Optional list of chapter IDs to publish. If not provided, all chapters are published.
  */
 export async function publishProjectAction(
-  projectId: string
+  projectId: string,
+  chapterIds?: string[]
 ): Promise<ActionResult<PublishResult>> {
   const auth = await getAuthenticatedUserId();
   if ('error' in auth) return auth.error;
@@ -85,12 +89,14 @@ export async function publishProjectAction(
     const result = await useCase.execute({
       ownerId: auth.userId,
       projectId,
+      chapterIds,
     });
 
     return {
       shareUrl: result.shareUrl,
       isPublished: result.project.getIsPublished(),
       publishedAt: result.project.getPublishedAt()?.toISOString() ?? null,
+      publishedChapterIds: result.project.getPublishedChapterIds(),
     };
   });
 }
@@ -161,6 +167,7 @@ export async function getPublishStatusAction(
   isPublished: boolean;
   shareUrl: string | null;
   publishedAt: string | null;
+  publishedChapterIds: string[] | null;
 }>> {
   const auth = await getAuthenticatedUserId();
   if ('error' in auth) return auth.error;
@@ -182,6 +189,7 @@ export async function getPublishStatusAction(
       isPublished: project.getIsPublished(),
       shareUrl,
       publishedAt: project.getPublishedAt()?.toISOString() ?? null,
+      publishedChapterIds: project.getPublishedChapterIds(),
     };
   });
 }

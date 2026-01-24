@@ -12,7 +12,7 @@ import { TextDocument } from '@/domain/entities/TextDocument';
 import { TextSelection } from '@/domain/value-objects/TextSelection';
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
 import { RewriteTextUseCase } from '@/application/use-cases/RewriteTextUseCase';
-import { ExportProjectUseCase } from '@/application/use-cases/ExportProjectUseCase';
+import { ExportProjectUseCase, ExportMode } from '@/application/use-cases/ExportProjectUseCase';
 import { getPromptRepository } from '@/infrastructure/config/providers';
 import {
   type ActionResult,
@@ -122,9 +122,12 @@ export async function importFolder(
 /**
  * Export a project to DOCX format.
  * Loads project from database by ID.
+ * @param projectId - The project to export
+ * @param chapterIds - Optional list of chapter IDs to export. If not provided, all chapters are exported.
  */
 export async function exportProject(
-  projectId: string
+  projectId: string,
+  chapterIds?: string[]
 ): Promise<ActionResult<{ buffer: number[]; filename: string }>> {
   const auth = await getAuthenticatedUserId();
   if ('error' in auth) return auth.error;
@@ -140,7 +143,9 @@ export async function exportProject(
     const exporter = await getDocumentExporter('docx');
     const useCase = new ExportProjectUseCase(exporter);
     const filename = `${project.getTitle()}.docx`;
-    const buffer = await useCase.execute(project, filename, 'all');
+
+    const mode: ExportMode = chapterIds && chapterIds.length > 0 ? 'selected' : 'all';
+    const buffer = await useCase.execute(project, filename, mode, chapterIds);
 
     return {
       buffer: Array.from(buffer),
@@ -152,9 +157,12 @@ export async function exportProject(
 /**
  * Export a project to PDF format.
  * Loads project from database by ID.
+ * @param projectId - The project to export
+ * @param chapterIds - Optional list of chapter IDs to export. If not provided, all chapters are exported.
  */
 export async function exportProjectPdf(
-  projectId: string
+  projectId: string,
+  chapterIds?: string[]
 ): Promise<ActionResult<{ buffer: number[]; filename: string }>> {
   const auth = await getAuthenticatedUserId();
   if ('error' in auth) return auth.error;
@@ -170,7 +178,9 @@ export async function exportProjectPdf(
     const exporter = await getDocumentExporter('pdf');
     const useCase = new ExportProjectUseCase(exporter);
     const filename = `${project.getTitle()}.pdf`;
-    const buffer = await useCase.execute(project, filename, 'all');
+
+    const mode: ExportMode = chapterIds && chapterIds.length > 0 ? 'selected' : 'all';
+    const buffer = await useCase.execute(project, filename, mode, chapterIds);
 
     return {
       buffer: Array.from(buffer),

@@ -47,6 +47,7 @@ describe('export-actions', () => {
       export: vi.fn().mockResolvedValue(Buffer.from('test')),
       exportProject: vi.fn().mockResolvedValue(Buffer.from('test-project')),
       exportChapter: vi.fn().mockResolvedValue(Buffer.from('test-chapter')),
+      exportChapters: vi.fn().mockResolvedValue(Buffer.from('test-chapters')),
     };
     vi.mocked(getDocumentExporter).mockResolvedValue(mockExporter);
   });

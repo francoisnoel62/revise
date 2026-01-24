@@ -19,6 +19,7 @@ export interface ProjectDocument {
   isPublished: boolean;
   shareToken: string | null;
   publishedAt: Date | null;
+  publishedChapterIds: string[] | null;
 }
 
 /**
@@ -52,6 +53,7 @@ export function serializeProject(project: Project): ProjectDocument {
     isPublished: project.getIsPublished(),
     shareToken: project.getShareToken(),
     publishedAt: project.getPublishedAt(),
+    publishedChapterIds: project.getPublishedChapterIds(),
   };
 }
 
@@ -88,7 +90,8 @@ export function deserializeProject(doc: ProjectDocument): Project {
     new Date(doc.updatedAt),
     doc.isPublished ?? false,
     doc.shareToken ?? null,
-    doc.publishedAt ? new Date(doc.publishedAt) : null
+    doc.publishedAt ? new Date(doc.publishedAt) : null,
+    doc.publishedChapterIds ?? null
   );
 }
 

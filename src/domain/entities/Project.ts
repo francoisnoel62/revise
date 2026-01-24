@@ -20,6 +20,7 @@ export class Project {
   private isPublished: boolean;
   private shareToken: string | null;
   private publishedAt: Date | null;
+  private publishedChapterIds: string[] | null;
 
   /**
    * Reconstruct a Project from persisted data.
@@ -36,7 +37,8 @@ export class Project {
     updatedAt: Date,
     isPublished: boolean = false,
     shareToken: string | null = null,
-    publishedAt: Date | null = null
+    publishedAt: Date | null = null,
+    publishedChapterIds: string[] | null = null
   ) {
     this.id = id;
     this.ownerId = ownerId;
@@ -49,6 +51,7 @@ export class Project {
     this.isPublished = isPublished;
     this.shareToken = shareToken;
     this.publishedAt = publishedAt;
+    this.publishedChapterIds = publishedChapterIds ? [...publishedChapterIds] : null;
   }
 
   /**
@@ -165,6 +168,23 @@ export class Project {
     return this.publishedAt;
   }
 
+  getPublishedChapterIds(): string[] | null {
+    return this.publishedChapterIds ? [...this.publishedChapterIds] : null;
+  }
+
+  /**
+   * Get chapters that are published.
+   * If no specific chapters are selected, returns all chapters.
+   */
+  getPublishedChapters(): Chapter[] {
+    if (!this.publishedChapterIds) {
+      return this.getChapters();
+    }
+    return this.getChapters().filter((ch) =>
+      this.publishedChapterIds!.includes(ch.getId())
+    );
+  }
+
   // === Mutations ===
 
   updateTitle(newTitle: string): void {
@@ -257,19 +277,21 @@ export class Project {
   /**
    * Publish the project with a shareable link.
    * Generates a share token if none exists.
+   * @param chapterIds - Optional list of chapter IDs to publish. If not provided, all chapters are published.
    */
-  publish(): void {
+  publish(chapterIds?: string[]): void {
     if (!this.shareToken) {
       this.shareToken = randomUUID();
     }
     this.isPublished = true;
     this.publishedAt = new Date();
+    this.publishedChapterIds = chapterIds ? [...chapterIds] : null;
     this.touch();
   }
 
   /**
    * Unpublish the project.
-   * The share token is preserved for potential re-publishing.
+   * The share token and published chapter IDs are preserved for potential re-publishing.
    */
   unpublish(): void {
     this.isPublished = false;

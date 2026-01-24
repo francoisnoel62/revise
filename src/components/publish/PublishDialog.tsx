@@ -1,9 +1,9 @@
-// ABOUTME: Dialog for publishing and sharing a project.
-// ABOUTME: Allows users to generate a shareable link and manage publishing status.
+// ABOUTME: Dialog for publishing and sharing a project with chapter selection.
+// ABOUTME: Allows users to choose which chapters to publish and generate a shareable link.
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Globe, Link2, Copy, Check, Loader2, Eye, EyeOff } from 'lucide-react';
 import {
   publishProjectAction,
@@ -22,18 +23,36 @@ import {
   getPublishStatusAction,
 } from '@/app/actions/publish-actions';
 
+interface Chapter {
+  id: string;
+  title: string;
+  order: number;
+  metadata: {
+    wordCount: number;
+  };
+}
+
 interface PublishDialogProps {
   projectId: string;
   projectTitle: string;
+  chapters: Chapter[];
 }
 
-export function PublishDialog({ projectId, projectTitle }: PublishDialogProps) {
+export function PublishDialog({ projectId, projectTitle, chapters }: PublishDialogProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [publishedChapterIds, setPublishedChapterIds] = useState<string[] | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Chapter selection state (for unpublished projects)
+  const [selectedChapterIds, setSelectedChapterIds] = useState<Set<string>>(new Set());
+
+  const sortedChapters = useMemo(() => {
+    return [...chapters].sort((a, b) => a.order - b.order);
+  }, [chapters]);
 
   const loadPublishStatus = useCallback(async () => {
     setIsLoading(true);
@@ -43,6 +62,15 @@ export function PublishDialog({ projectId, projectTitle }: PublishDialogProps) {
       if (result.success) {
         setIsPublished(result.data.isPublished);
         setShareUrl(result.data.shareUrl);
+        setPublishedChapterIds(result.data.publishedChapterIds);
+
+        // Initialize selection based on current published state
+        if (result.data.publishedChapterIds) {
+          setSelectedChapterIds(new Set(result.data.publishedChapterIds));
+        } else {
+          // All chapters are published, select all
+          setSelectedChapterIds(new Set(chapters.map((ch) => ch.id)));
+        }
       } else {
         setError(result.error);
       }
@@ -51,7 +79,7 @@ export function PublishDialog({ projectId, projectTitle }: PublishDialogProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, chapters]);
 
   // Load publish status on mount to show correct button label
   useEffect(() => {
@@ -65,14 +93,45 @@ export function PublishDialog({ projectId, projectTitle }: PublishDialogProps) {
     }
   }, [open, loadPublishStatus]);
 
+  const toggleChapter = (chapterId: string) => {
+    setSelectedChapterIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(chapterId)) {
+        next.delete(chapterId);
+      } else {
+        next.add(chapterId);
+      }
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    setSelectedChapterIds(new Set(chapters.map((ch) => ch.id)));
+  };
+
+  const deselectAll = () => {
+    setSelectedChapterIds(new Set());
+  };
+
+  const allSelected = selectedChapterIds.size === chapters.length;
+  const noneSelected = selectedChapterIds.size === 0;
+
   const handlePublish = async () => {
+    if (noneSelected) return;
+
     setIsLoading(true);
     setError(null);
     try {
-      const result = await publishProjectAction(projectId);
+      const chapterIds = Array.from(selectedChapterIds);
+      // Pass undefined if all chapters are selected
+      const result = await publishProjectAction(
+        projectId,
+        allSelected ? undefined : chapterIds
+      );
       if (result.success) {
         setIsPublished(true);
         setShareUrl(result.data.shareUrl);
+        setPublishedChapterIds(result.data.publishedChapterIds);
       } else {
         setError(result.error);
       }
@@ -111,14 +170,19 @@ export function PublishDialog({ projectId, projectTitle }: PublishDialogProps) {
     }
   };
 
+  // Get published chapter count for display
+  const publishedChapterCount = publishedChapterIds
+    ? publishedChapterIds.length
+    : chapters.length;
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="gap-1 sm:gap-2 px-2 sm:px-3">
           {isPublished ? (
             <>
-              <EyeOff className="h-4 w-4" />
-              <span className="hidden sm:inline">Dépublier</span>
+              <Eye className="h-4 w-4" />
+              <span className="hidden sm:inline">Publié</span>
             </>
           ) : (
             <>
@@ -161,7 +225,10 @@ export function PublishDialog({ projectId, projectTitle }: PublishDialogProps) {
               {/* Published State */}
               <div className="flex items-center gap-2 text-sm text-green-600">
                 <Eye className="h-4 w-4" />
-                <span>Votre projet est publié</span>
+                <span>
+                  Votre projet est publié ({publishedChapterCount} chapitre
+                  {publishedChapterCount > 1 ? 's' : ''})
+                </span>
               </div>
 
               {/* Share Link */}
@@ -219,6 +286,56 @@ export function PublishDialog({ projectId, projectTitle }: PublishDialogProps) {
                 <span>Votre projet n&apos;est pas publié</span>
               </div>
 
+              {/* Chapter Selection */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Chapitres à publier</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={selectAll}
+                      disabled={allSelected}
+                      className="h-7 text-xs"
+                    >
+                      Tout
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={deselectAll}
+                      disabled={noneSelected}
+                      className="h-7 text-xs"
+                    >
+                      Aucun
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="max-h-48 overflow-y-auto rounded-lg border p-2 space-y-1">
+                  {sortedChapters.map((chapter) => (
+                    <label
+                      key={chapter.id}
+                      className="flex items-center gap-3 p-2 rounded hover:bg-muted cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={selectedChapterIds.has(chapter.id)}
+                        onCheckedChange={() => toggleChapter(chapter.id)}
+                      />
+                      <span className="text-sm flex-1 truncate">{chapter.title}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {chapter.metadata.wordCount} mots
+                      </span>
+                    </label>
+                  ))}
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  {selectedChapterIds.size} chapitre{selectedChapterIds.size > 1 ? 's' : ''}{' '}
+                  sélectionné{selectedChapterIds.size > 1 ? 's' : ''}
+                </p>
+              </div>
+
               <div className="rounded-lg border p-4 space-y-3">
                 <h4 className="font-medium text-sm">En publiant votre projet :</h4>
                 <ul className="text-sm text-muted-foreground space-y-1.5">
@@ -238,9 +355,14 @@ export function PublishDialog({ projectId, projectTitle }: PublishDialogProps) {
               </div>
 
               {/* Publish Button */}
-              <Button className="w-full gap-2" onClick={handlePublish} disabled={isLoading}>
+              <Button
+                className="w-full gap-2"
+                onClick={handlePublish}
+                disabled={isLoading || noneSelected}
+              >
                 <Globe className="h-4 w-4" />
-                Publier mon projet
+                Publier {selectedChapterIds.size} chapitre
+                {selectedChapterIds.size > 1 ? 's' : ''}
               </Button>
             </>
           )}
