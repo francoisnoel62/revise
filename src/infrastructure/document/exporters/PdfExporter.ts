@@ -2,7 +2,7 @@
 // ABOUTME: Converts TipTap JSON to formatted PDF with typography preservation
 
 import { PDFDocument, PDFFont, PDFPage, rgb, StandardFonts, RGB } from 'pdf-lib';
-import { DocumentExporter } from '@/domain/interfaces/DocumentExporter';
+import { DocumentExporter, ExportOptions } from '@/domain/interfaces/DocumentExporter';
 import { Project } from '@/domain/entities/Project';
 import { Chapter } from '@/domain/entities/Chapter';
 
@@ -269,7 +269,7 @@ export class PdfExporter implements DocumentExporter {
     }
   }
 
-  async exportProject(project: Project, filename: string): Promise<Buffer> {
+  async exportProject(project: Project, filename: string, options?: ExportOptions): Promise<Buffer> {
     if (!this.supports(filename)) {
       throw new Error(`Unsupported export format: ${filename}`);
     }
@@ -280,6 +280,11 @@ export class PdfExporter implements DocumentExporter {
       const chapters = project.getChapters();
       const contentWidth =
         PDF_CONFIG.page.width - PDF_CONFIG.margins.left - PDF_CONFIG.margins.right;
+
+      // Add cover page if cover image is provided
+      if (options?.coverImageUrl) {
+        await this.addCoverPage(pdfDoc, options.coverImageUrl);
+      }
 
       for (let i = 0; i < chapters.length; i++) {
         const chapter = chapters[i];
@@ -313,7 +318,7 @@ export class PdfExporter implements DocumentExporter {
     }
   }
 
-  async exportChapter(chapter: Chapter, filename: string): Promise<Buffer> {
+  async exportChapter(chapter: Chapter, filename: string, options?: ExportOptions): Promise<Buffer> {
     if (!this.supports(filename)) {
       throw new Error(`Unsupported export format: ${filename}`);
     }
@@ -321,6 +326,12 @@ export class PdfExporter implements DocumentExporter {
     try {
       const pdfDoc = await PDFDocument.create();
       const fonts = await this.loadFonts(pdfDoc);
+
+      // Add cover page if cover image is provided
+      if (options?.coverImageUrl) {
+        await this.addCoverPage(pdfDoc, options.coverImageUrl);
+      }
+
       const page = pdfDoc.addPage([PDF_CONFIG.page.width, PDF_CONFIG.page.height]);
       const contentWidth =
         PDF_CONFIG.page.width - PDF_CONFIG.margins.left - PDF_CONFIG.margins.right;
@@ -350,7 +361,7 @@ export class PdfExporter implements DocumentExporter {
     }
   }
 
-  async exportChapters(chapters: Chapter[], filename: string): Promise<Buffer> {
+  async exportChapters(chapters: Chapter[], filename: string, options?: ExportOptions): Promise<Buffer> {
     if (!this.supports(filename)) {
       throw new Error(`Unsupported export format: ${filename}`);
     }
@@ -364,6 +375,11 @@ export class PdfExporter implements DocumentExporter {
       const fonts = await this.loadFonts(pdfDoc);
       const contentWidth =
         PDF_CONFIG.page.width - PDF_CONFIG.margins.left - PDF_CONFIG.margins.right;
+
+      // Add cover page if cover image is provided
+      if (options?.coverImageUrl) {
+        await this.addCoverPage(pdfDoc, options.coverImageUrl);
+      }
 
       for (let i = 0; i < chapters.length; i++) {
         const chapter = chapters[i];
@@ -405,6 +421,76 @@ export class PdfExporter implements DocumentExporter {
     const boldItalic = await pdfDoc.embedFont(StandardFonts.TimesRomanBoldItalic);
 
     return { regular, bold, italic, boldItalic };
+  }
+
+  private async addCoverPage(pdfDoc: PDFDocument, coverImageUrl: string): Promise<void> {
+    try {
+      // Fetch the image from URL
+      const response = await fetch(coverImageUrl);
+      if (!response.ok) {
+        console.warn(`Failed to fetch cover image: ${response.status}`);
+        return;
+      }
+
+      const imageBuffer = await response.arrayBuffer();
+      const imageBytes = new Uint8Array(imageBuffer);
+
+      // Detect image type from URL or content-type header
+      const contentType = response.headers.get('content-type') || '';
+      let image;
+
+      if (contentType.includes('png') || coverImageUrl.toLowerCase().endsWith('.png')) {
+        image = await pdfDoc.embedPng(imageBytes);
+      } else if (
+        contentType.includes('jpeg') ||
+        contentType.includes('jpg') ||
+        coverImageUrl.toLowerCase().endsWith('.jpg') ||
+        coverImageUrl.toLowerCase().endsWith('.jpeg')
+      ) {
+        image = await pdfDoc.embedJpg(imageBytes);
+      } else {
+        // Try to detect from magic bytes
+        if (imageBytes[0] === 0x89 && imageBytes[1] === 0x50) {
+          image = await pdfDoc.embedPng(imageBytes);
+        } else {
+          image = await pdfDoc.embedJpg(imageBytes);
+        }
+      }
+
+      // Create a cover page
+      const coverPage = pdfDoc.addPage([PDF_CONFIG.page.width, PDF_CONFIG.page.height]);
+
+      // Calculate dimensions to fit the image on the page while maintaining aspect ratio
+      const imageAspectRatio = image.width / image.height;
+      const pageAspectRatio = PDF_CONFIG.page.width / PDF_CONFIG.page.height;
+
+      let drawWidth: number;
+      let drawHeight: number;
+
+      if (imageAspectRatio > pageAspectRatio) {
+        // Image is wider than page proportionally - fit to width
+        drawWidth = PDF_CONFIG.page.width;
+        drawHeight = drawWidth / imageAspectRatio;
+      } else {
+        // Image is taller than page proportionally - fit to height
+        drawHeight = PDF_CONFIG.page.height;
+        drawWidth = drawHeight * imageAspectRatio;
+      }
+
+      // Center the image on the page
+      const x = (PDF_CONFIG.page.width - drawWidth) / 2;
+      const y = (PDF_CONFIG.page.height - drawHeight) / 2;
+
+      coverPage.drawImage(image, {
+        x,
+        y,
+        width: drawWidth,
+        height: drawHeight,
+      });
+    } catch (error) {
+      // Log error but don't fail the export if cover image fails
+      console.warn('Failed to add cover image to PDF:', error);
+    }
   }
 
   private getFont(fonts: FontSet, bold: boolean, italic: boolean): PDFFont {

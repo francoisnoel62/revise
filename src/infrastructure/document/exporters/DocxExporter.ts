@@ -10,8 +10,9 @@ import {
   PageBreak,
   HeadingLevel,
   AlignmentType,
+  ImageRun,
 } from 'docx';
-import { DocumentExporter } from '@/domain/interfaces/DocumentExporter';
+import { DocumentExporter, ExportOptions } from '@/domain/interfaces/DocumentExporter';
 import { Project } from '@/domain/entities/Project';
 import { Chapter } from '@/domain/entities/Chapter';
 
@@ -57,7 +58,7 @@ export class DocxExporter implements DocumentExporter {
    * Export entire project with all chapters (Phase 2)
    * Chapters separated by page breaks
    */
-  async exportProject(project: Project, filename: string): Promise<Buffer> {
+  async exportProject(project: Project, filename: string, options?: ExportOptions): Promise<Buffer> {
     if (!this.supports(filename)) {
       throw new Error(`Unsupported export format: ${filename}`);
     }
@@ -65,6 +66,13 @@ export class DocxExporter implements DocumentExporter {
     try {
       const chapters = project.getChapters();
       const sections: Paragraph[] = [];
+
+      // Add cover image if provided
+      const coverParagraph = await this.createCoverImageParagraph(options?.coverImageUrl);
+      if (coverParagraph) {
+        sections.push(coverParagraph);
+        sections.push(new Paragraph({ children: [new PageBreak()] }));
+      }
 
       for (let i = 0; i < chapters.length; i++) {
         const chapter = chapters[i];
@@ -112,7 +120,7 @@ export class DocxExporter implements DocumentExporter {
   /**
    * Export single chapter (Phase 2)
    */
-  async exportChapter(chapter: Chapter, filename: string): Promise<Buffer> {
+  async exportChapter(chapter: Chapter, filename: string, options?: ExportOptions): Promise<Buffer> {
     if (!this.supports(filename)) {
       throw new Error(`Unsupported export format: ${filename}`);
     }
@@ -121,14 +129,23 @@ export class DocxExporter implements DocumentExporter {
       const json = JSON.parse(chapter.getContent());
       const paragraphs = this.convertTipTapToDocx(json);
 
+      // Add cover image if provided
+      const coverParagraph = await this.createCoverImageParagraph(options?.coverImageUrl);
+      const sections: Paragraph[] = [];
+
+      if (coverParagraph) {
+        sections.push(coverParagraph);
+        sections.push(new Paragraph({ children: [new PageBreak()] }));
+      }
+
       // Add title as H1
-      const sections = [
+      sections.push(
         new Paragraph({
           text: chapter.getTitle(),
           heading: HeadingLevel.HEADING_1,
-        }),
-        ...paragraphs,
-      ];
+        })
+      );
+      sections.push(...paragraphs);
 
       const doc = new Document({
         sections: [
@@ -151,7 +168,7 @@ export class DocxExporter implements DocumentExporter {
    * Export selected chapters
    * Chapters separated by page breaks
    */
-  async exportChapters(chapters: Chapter[], filename: string): Promise<Buffer> {
+  async exportChapters(chapters: Chapter[], filename: string, options?: ExportOptions): Promise<Buffer> {
     if (!this.supports(filename)) {
       throw new Error(`Unsupported export format: ${filename}`);
     }
@@ -162,6 +179,13 @@ export class DocxExporter implements DocumentExporter {
 
     try {
       const sections: Paragraph[] = [];
+
+      // Add cover image if provided
+      const coverParagraph = await this.createCoverImageParagraph(options?.coverImageUrl);
+      if (coverParagraph) {
+        sections.push(coverParagraph);
+        sections.push(new Paragraph({ children: [new PageBreak()] }));
+      }
 
       for (let i = 0; i < chapters.length; i++) {
         const chapter = chapters[i];
@@ -203,6 +227,53 @@ export class DocxExporter implements DocumentExporter {
         throw new Error(`Failed to export chapters: ${error.message}`);
       }
       throw new Error('Failed to export chapters');
+    }
+  }
+
+  /**
+   * Create a paragraph with cover image if URL is provided
+   * @param coverImageUrl - URL of the cover image
+   * @returns Paragraph with centered image, or null if no URL or fetch failed
+   */
+  private async createCoverImageParagraph(coverImageUrl?: string): Promise<Paragraph | null> {
+    if (!coverImageUrl) return null;
+
+    try {
+      const response = await fetch(coverImageUrl);
+      if (!response.ok) {
+        console.warn(`Failed to fetch cover image: ${response.status}`);
+        return null;
+      }
+
+      const imageBuffer = await response.arrayBuffer();
+
+      // A4 dimensions in EMUs (English Metric Units)
+      // 1 inch = 914400 EMUs, A4 is 210mm x 297mm (8.27" x 11.69")
+      const pageWidthEmu = 8.27 * 914400;
+      const pageHeightEmu = 11.69 * 914400;
+
+      // Use 80% of page width/height max for the image
+      const maxWidth = pageWidthEmu * 0.8;
+      const maxHeight = pageHeightEmu * 0.8;
+
+      // Create image run with reasonable dimensions
+      // The actual aspect ratio will be maintained by docx library
+      const imageRun = new ImageRun({
+        data: Buffer.from(imageBuffer),
+        transformation: {
+          width: maxWidth / 914400 * 72, // Convert to points for transformation
+          height: maxHeight / 914400 * 72,
+        },
+        type: 'png', // Will work for jpg too
+      });
+
+      return new Paragraph({
+        children: [imageRun],
+        alignment: AlignmentType.CENTER,
+      });
+    } catch (error) {
+      console.warn('Failed to create cover image paragraph:', error);
+      return null;
     }
   }
 
