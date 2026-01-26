@@ -7,6 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('./utils', () => ({
   getAuthenticatedUserId: vi.fn(),
   getRepository: vi.fn(),
+  getProjectSettingsRepo: vi.fn(),
   withErrorHandling: vi.fn(async (fn) => {
     try {
       const data = await fn();
@@ -26,7 +27,7 @@ vi.mock('@/infrastructure/config/env', () => ({
   },
 }));
 
-import { getAuthenticatedUserId, getRepository } from './utils';
+import { getAuthenticatedUserId, getRepository, getProjectSettingsRepo } from './utils';
 import { Project } from '@/domain/entities/Project';
 import { Chapter } from '@/domain/entities/Chapter';
 import { ProjectRepository } from '@/domain/interfaces/ProjectRepository';
@@ -36,6 +37,7 @@ import { publishProjectAction, loadPublishedProjectAction } from './publish-acti
 
 describe('publish-actions', () => {
   let mockRepository: ProjectRepository;
+  let mockSettingsRepository: { findByProjectId: ReturnType<typeof vi.fn> };
   let testProject: Project;
   let chapter1: Chapter;
   let chapter2: Chapter;
@@ -73,6 +75,13 @@ describe('publish-actions', () => {
       findPublishedByToken: vi.fn(),
     };
     vi.mocked(getRepository).mockResolvedValue(mockRepository);
+
+    // Mock project settings repository
+    mockSettingsRepository = {
+      findByProjectId: vi.fn().mockResolvedValue(null),
+    };
+    vi.mocked(getProjectSettingsRepo).mockResolvedValue(mockSettingsRepository as never);
+
     vi.mocked(getAuthenticatedUserId).mockResolvedValue({ userId: 'user-123' });
   });
 
