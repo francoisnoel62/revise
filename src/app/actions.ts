@@ -21,6 +21,7 @@ import {
   getDocumentParser,
   getFolderParser,
   getDocumentExporter,
+  getProjectSettingsRepo,
   withErrorHandling,
 } from './actions/utils';
 import { type SerializedProject } from './actions/project-actions';
@@ -122,6 +123,7 @@ export async function importFolder(
 /**
  * Export a project to DOCX format.
  * Loads project from database by ID.
+ * Includes cover image as first page if one is set in project settings.
  * @param projectId - The project to export
  * @param chapterIds - Optional list of chapter IDs to export. If not provided, all chapters are exported.
  */
@@ -140,12 +142,17 @@ export async function exportProject(
       throw new Error('Project not found');
     }
 
+    // Get project settings for cover image
+    const settingsRepo = await getProjectSettingsRepo();
+    const settings = await settingsRepo.findByProjectId(auth.userId, projectId);
+    const coverImageUrl = settings?.getCoverImageUrl();
+
     const exporter = await getDocumentExporter('docx');
     const useCase = new ExportProjectUseCase(exporter);
     const filename = `${project.getTitle()}.docx`;
 
     const mode: ExportMode = chapterIds && chapterIds.length > 0 ? 'selected' : 'all';
-    const buffer = await useCase.execute(project, filename, mode, chapterIds);
+    const buffer = await useCase.execute(project, filename, mode, chapterIds, { coverImageUrl });
 
     return {
       buffer: Array.from(buffer),
@@ -157,6 +164,7 @@ export async function exportProject(
 /**
  * Export a project to PDF format.
  * Loads project from database by ID.
+ * Includes cover image as first page if one is set in project settings.
  * @param projectId - The project to export
  * @param chapterIds - Optional list of chapter IDs to export. If not provided, all chapters are exported.
  */
@@ -175,12 +183,17 @@ export async function exportProjectPdf(
       throw new Error('Project not found');
     }
 
+    // Get project settings for cover image
+    const settingsRepo = await getProjectSettingsRepo();
+    const settings = await settingsRepo.findByProjectId(auth.userId, projectId);
+    const coverImageUrl = settings?.getCoverImageUrl();
+
     const exporter = await getDocumentExporter('pdf');
     const useCase = new ExportProjectUseCase(exporter);
     const filename = `${project.getTitle()}.pdf`;
 
     const mode: ExportMode = chapterIds && chapterIds.length > 0 ? 'selected' : 'all';
-    const buffer = await useCase.execute(project, filename, mode, chapterIds);
+    const buffer = await useCase.execute(project, filename, mode, chapterIds, { coverImageUrl });
 
     return {
       buffer: Array.from(buffer),

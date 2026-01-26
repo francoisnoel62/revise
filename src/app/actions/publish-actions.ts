@@ -12,6 +12,7 @@ import {
   ActionResult,
   getAuthenticatedUserId,
   getRepository,
+  getProjectSettingsRepo,
   withErrorHandling,
 } from './utils';
 import { config } from '@/infrastructure/config/env';
@@ -24,6 +25,7 @@ export interface PublicProject {
   title: string;
   chapters: PublicChapter[];
   publishedAt: string | null;
+  coverImageUrl?: string;
 }
 
 export interface PublicChapter {
@@ -46,12 +48,13 @@ export interface PublishResult {
 
 // === Serialization Helpers ===
 
-function serializePublicProject(project: Project): PublicProject {
+function serializePublicProject(project: Project, coverImageUrl?: string): PublicProject {
   return {
     id: project.getId(),
     title: project.getTitle(),
     chapters: project.getPublishedChapters().map(serializePublicChapter),
     publishedAt: project.getPublishedAt()?.toISOString() ?? null,
+    coverImageUrl,
   };
 }
 
@@ -141,6 +144,7 @@ export async function unpublishProjectAction(
 /**
  * Load a published project via share token.
  * Does NOT require authentication - public access.
+ * Includes cover image if one is set in project settings.
  */
 export async function loadPublishedProjectAction(
   projectId: string,
@@ -159,6 +163,12 @@ export async function loadPublishedProjectAction(
       shareToken,
     });
 
+    // Get cover image from project settings
+    // Note: We use the project's ownerId to access settings (public access via share token)
+    const settingsRepo = await getProjectSettingsRepo();
+    const settings = await settingsRepo.findByProjectId(project.getOwnerId(), projectId);
+    const coverImageUrl = settings?.getCoverImageUrl();
+
     console.log('[loadPublishedProjectAction] Project found:', {
       id: project.getId(),
       title: project.getTitle(),
@@ -166,9 +176,10 @@ export async function loadPublishedProjectAction(
       publishedChapterIds: project.getPublishedChapterIds(),
       totalChapters: project.getChapters().length,
       publishedChaptersCount: project.getPublishedChapters().length,
+      hasCoverImage: !!coverImageUrl,
     });
 
-    return serializePublicProject(project);
+    return serializePublicProject(project, coverImageUrl);
   });
 }
 

@@ -32,6 +32,27 @@ const mockProject = {
   chapterCount: 5,
   wordCount: 2500,
   updatedAt: new Date().toISOString(),
+  coverImageUrl: undefined,
+  activeGoal: null,
+};
+
+const mockProjectWithCover = {
+  ...mockProject,
+  id: 'proj-2',
+  coverImageUrl: 'https://example.com/cover.jpg',
+};
+
+const mockProjectWithGoal = {
+  ...mockProject,
+  id: 'proj-3',
+  activeGoal: { targetWords: 10000 },
+};
+
+const mockProjectWithBoth = {
+  ...mockProject,
+  id: 'proj-4',
+  coverImageUrl: 'https://example.com/cover.jpg',
+  activeGoal: { targetWords: 10000 },
 };
 
 describe('ProjectCard', () => {
@@ -163,6 +184,82 @@ describe('ProjectCard', () => {
     await waitFor(() => {
       expect(updateProjectTitleAction).toHaveBeenCalledWith('proj-1', 'New Title');
       expect(mockOnRenamed).toHaveBeenCalledWith('proj-1', 'New Title');
+    });
+  });
+
+  describe('cover image', () => {
+    it('does not display cover image when not provided', () => {
+      render(
+        <ProjectCard
+          project={mockProject}
+          onOpen={mockOnOpen}
+          onDeleted={mockOnDeleted}
+          onRenamed={mockOnRenamed}
+        />
+      );
+
+      expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    });
+
+    it('displays cover image when provided', () => {
+      render(
+        <ProjectCard
+          project={mockProjectWithCover}
+          onOpen={mockOnOpen}
+          onDeleted={mockOnDeleted}
+          onRenamed={mockOnRenamed}
+        />
+      );
+
+      const image = screen.getByRole('img', { name: /couverture/i });
+      expect(image).toBeInTheDocument();
+      expect(image).toHaveAttribute('src', expect.stringContaining('cover.jpg'));
+    });
+  });
+
+  describe('progress bar', () => {
+    it('does not display progress bar when no goal is set', () => {
+      render(
+        <ProjectCard
+          project={mockProject}
+          onOpen={mockOnOpen}
+          onDeleted={mockOnDeleted}
+          onRenamed={mockOnRenamed}
+        />
+      );
+
+      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    });
+
+    it('displays progress bar when goal is set', () => {
+      render(
+        <ProjectCard
+          project={mockProjectWithGoal}
+          onOpen={mockOnOpen}
+          onDeleted={mockOnDeleted}
+          onRenamed={mockOnRenamed}
+        />
+      );
+
+      expect(screen.getByRole('progressbar')).toBeInTheDocument();
+      // 2500 / 10000 = 25%
+      expect(screen.getByText(/2[\s\u00a0]?500\s*\/\s*10[\s\u00a0]?000\s*mots/)).toBeInTheDocument();
+    });
+  });
+
+  describe('cover image and progress bar combined', () => {
+    it('displays both cover image and progress bar when both are provided', () => {
+      render(
+        <ProjectCard
+          project={mockProjectWithBoth}
+          onOpen={mockOnOpen}
+          onDeleted={mockOnDeleted}
+          onRenamed={mockOnRenamed}
+        />
+      );
+
+      expect(screen.getByRole('img', { name: /couverture/i })).toBeInTheDocument();
+      expect(screen.getByRole('progressbar')).toBeInTheDocument();
     });
   });
 });

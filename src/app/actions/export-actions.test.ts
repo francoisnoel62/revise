@@ -8,6 +8,7 @@ vi.mock('./utils', () => ({
   getAuthenticatedUserId: vi.fn(),
   getRepository: vi.fn(),
   getDocumentExporter: vi.fn(),
+  getProjectSettingsRepo: vi.fn(),
   withErrorHandling: vi.fn(async (fn) => {
     try {
       const data = await fn();
@@ -18,7 +19,7 @@ vi.mock('./utils', () => ({
   }),
 }));
 
-import { getAuthenticatedUserId, getRepository, getDocumentExporter } from './utils';
+import { getAuthenticatedUserId, getRepository, getDocumentExporter, getProjectSettingsRepo } from './utils';
 import { Project } from '@/domain/entities/Project';
 import { Chapter } from '@/domain/entities/Chapter';
 import { DocumentExporter } from '@/domain/interfaces/DocumentExporter';
@@ -30,6 +31,9 @@ describe('export-actions', () => {
   let mockRepository: {
     loadProject: ReturnType<typeof vi.fn>;
   };
+  let mockSettingsRepository: {
+    findByProjectId: ReturnType<typeof vi.fn>;
+  };
   let mockExporter: DocumentExporter;
 
   beforeEach(() => {
@@ -40,6 +44,12 @@ describe('export-actions', () => {
       loadProject: vi.fn(),
     };
     vi.mocked(getRepository).mockResolvedValue(mockRepository as never);
+
+    // Mock settings repository
+    mockSettingsRepository = {
+      findByProjectId: vi.fn().mockResolvedValue(null),
+    };
+    vi.mocked(getProjectSettingsRepo).mockResolvedValue(mockSettingsRepository as never);
 
     // Mock exporter - implements DocumentExporter interface
     mockExporter = {
@@ -79,7 +89,7 @@ describe('export-actions', () => {
 
       // Verify the exporter was called via use case
       expect(getDocumentExporter).toHaveBeenCalled();
-      expect(mockExporter.exportProject).toHaveBeenCalledWith(project, 'My Novel.docx');
+      expect(mockExporter.exportProject).toHaveBeenCalledWith(project, 'My Novel.docx', { coverImageUrl: undefined });
     });
 
     it('returns error for unauthenticated user', async () => {

@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const totalWords = result.data.chapters.reduce((sum, ch) => sum + ch.wordCount, 0);
   const readingTime = formatReadingTime(totalWords);
 
-  return {
+  const metadata: Metadata = {
     title: `${result.data.title} - Revise`,
     description: `Lisez "${result.data.title}" sur Revise. ${result.data.chapters.length} chapitre${result.data.chapters.length > 1 ? 's' : ''}, ${readingTime} de lecture.`,
     openGraph: {
@@ -37,6 +37,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       type: 'article',
     },
   };
+
+  // Add cover image to OpenGraph if available
+  if (result.data.coverImageUrl) {
+    metadata.openGraph = {
+      ...metadata.openGraph,
+      images: [
+        {
+          url: result.data.coverImageUrl,
+          alt: result.data.title,
+        },
+      ],
+    };
+  }
+
+  return metadata;
 }
 
 export default async function PublicReadPage({ params }: PageProps) {

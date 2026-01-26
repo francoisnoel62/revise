@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Highlight from '@tiptap/extension-highlight';
@@ -110,6 +111,20 @@ export function PublicReader({ project }: PublicReaderProps) {
             showChapterList ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
           )}
         >
+          {/* Cover Image */}
+          {project.coverImageUrl && (
+            <div className="p-4 border-b flex-shrink-0 flex justify-center">
+              <div className="relative w-24 h-36 rounded-md overflow-hidden shadow-md">
+                <Image
+                  src={project.coverImageUrl}
+                  alt={`Couverture de ${project.title}`}
+                  fill
+                  className="object-cover"
+                  sizes="96px"
+                />
+              </div>
+            </div>
+          )}
           <div className="p-3 sm:p-4 border-b flex-shrink-0">
             <h2 className="font-semibold text-xs sm:text-sm text-muted-foreground uppercase tracking-wide">
               Table des matières

@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { MoreVertical, Pencil, Trash2, FileText } from 'lucide-react';
 import {
   Card,
@@ -32,6 +33,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
 import {
   Dialog,
   DialogContent,
@@ -164,7 +166,37 @@ export function ProjectCard({ project, onOpen, onDeleted, onRenamed }: ProjectCa
             </DropdownMenuContent>
           </DropdownMenu>
         </CardHeader>
-        <CardContent>
+
+        {/* Cover Image */}
+        {project.coverImageUrl && (
+          <div className="px-6 pb-4 flex justify-center">
+            <div className="relative w-24 h-36 rounded-md overflow-hidden shadow-sm">
+              <Image
+                src={project.coverImageUrl}
+                alt={`Couverture de ${project.title}`}
+                fill
+                className="object-cover"
+                sizes="96px"
+              />
+            </div>
+          </div>
+        )}
+
+        <CardContent className="space-y-3">
+          {/* Progress Bar */}
+          {project.activeGoal && (
+            <div className="space-y-1">
+              <Progress
+                value={Math.min(100, (project.wordCount / project.activeGoal.targetWords) * 100)}
+                className="h-2"
+              />
+              <p className="text-xs text-muted-foreground">
+                {project.wordCount.toLocaleString('fr-FR')} / {project.activeGoal.targetWords.toLocaleString('fr-FR')} mots ({Math.min(100, Math.round((project.wordCount / project.activeGoal.targetWords) * 100))}%)
+              </p>
+            </div>
+          )}
+
+          {/* Stats */}
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>{formatWordCount(project.wordCount)}</span>
             <span>{formatDate(project.updatedAt)}</span>

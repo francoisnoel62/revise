@@ -2,7 +2,7 @@
 // ABOUTME: Supports full project export, single chapter export, and selected chapters export
 
 import { Project } from '@/domain/entities/Project';
-import { DocumentExporter } from '@/domain/interfaces/DocumentExporter';
+import { DocumentExporter, ExportOptions } from '@/domain/interfaces/DocumentExporter';
 
 export type ExportMode = 'all' | 'active' | 'selected';
 
@@ -13,7 +13,8 @@ export class ExportProjectUseCase {
     project: Project,
     filename: string,
     mode: ExportMode = 'all',
-    chapterIds?: string[]
+    chapterIds?: string[],
+    options?: ExportOptions
   ): Promise<Buffer> {
     if (!this.exporter.supports(filename)) {
       throw new Error(`Unsupported export format: ${filename}`);
@@ -24,7 +25,7 @@ export class ExportProjectUseCase {
       if (!activeChapter) {
         throw new Error('No active chapter to export');
       }
-      return await this.exporter.exportChapter(activeChapter, filename);
+      return await this.exporter.exportChapter(activeChapter, filename, options);
     }
 
     if (mode === 'selected') {
@@ -41,9 +42,9 @@ export class ExportProjectUseCase {
         throw new Error('No valid chapters found for export');
       }
 
-      return await this.exporter.exportChapters(selectedChapters, filename);
+      return await this.exporter.exportChapters(selectedChapters, filename, options);
     }
 
-    return await this.exporter.exportProject(project, filename);
+    return await this.exporter.exportProject(project, filename, options);
   }
 }
