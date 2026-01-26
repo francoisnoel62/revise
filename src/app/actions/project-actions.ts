@@ -18,8 +18,10 @@ import {
   getProviderRepo,
   getMetadataRepo,
   getProjectSettingsRepo,
+  getWritingGoalRepo,
   withErrorHandling,
 } from './utils';
+import { GetActiveWritingGoalUseCase } from '@/application/use-cases/GetActiveWritingGoalUseCase';
 
 /**
  * Serialized project for client transport.
@@ -55,6 +57,8 @@ export interface ProjectListItem {
   chapterCount: number;
   wordCount: number;
   updatedAt: string;
+  coverImageUrl?: string;
+  activeGoal: { targetWords: number } | null;
 }
 
 // === Serialization Helpers ===
@@ -86,13 +90,23 @@ function serializeChapter(chapter: Chapter): SerializedChapter {
   };
 }
 
-function serializeProjectListItem(project: Project): ProjectListItem {
+interface ProjectListItemExtras {
+  coverImageUrl?: string;
+  activeGoal: { targetWords: number } | null;
+}
+
+function serializeProjectListItem(
+  project: Project,
+  extras: ProjectListItemExtras
+): ProjectListItem {
   return {
     id: project.getId(),
     title: project.getTitle(),
     chapterCount: project.getChapterCount(),
     wordCount: project.getTotalWordCount(),
     updatedAt: project.getUpdatedAt().toISOString(),
+    coverImageUrl: extras.coverImageUrl,
+    activeGoal: extras.activeGoal,
   };
 }
 
@@ -153,6 +167,7 @@ export async function loadProjectAction(
 /**
  * List all projects for current user.
  * Delegates to ListProjectsUseCase for business logic.
+ * Also fetches cover images and active goals for each project.
  */
 export async function listProjectsAction(): Promise<ActionResult<ProjectListItem[]>> {
   const auth = await getAuthenticatedUserId();
@@ -165,7 +180,34 @@ export async function listProjectsAction(): Promise<ActionResult<ProjectListItem
       ownerId: auth.userId,
     });
 
-    return projects.map(serializeProjectListItem);
+    // Fetch settings and goals for all projects in parallel
+    const settingsRepo = await getProjectSettingsRepo();
+    const goalRepo = await getWritingGoalRepo();
+    const getActiveGoalUseCase = new GetActiveWritingGoalUseCase(goalRepo);
+
+    const projectListItems = await Promise.all(
+      projects.map(async (project) => {
+        const projectId = project.getId();
+
+        // Fetch settings and active goal in parallel
+        const [settings, activeGoal] = await Promise.all([
+          settingsRepo.findByProjectId(auth.userId, projectId),
+          getActiveGoalUseCase.execute({
+            userId: auth.userId,
+            projectId,
+          }),
+        ]);
+
+        return serializeProjectListItem(project, {
+          coverImageUrl: settings?.getCoverImageUrl(),
+          activeGoal: activeGoal
+            ? { targetWords: activeGoal.getTargetWords() }
+            : null,
+        });
+      })
+    );
+
+    return projectListItems;
   });
 }
 
