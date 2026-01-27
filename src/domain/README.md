@@ -2,7 +2,7 @@
 
 Pure business logic with zero framework dependencies.
 
-**Status**: ✅ Phase 6 Complete (see [README.md](../../README.md) for test statistics)
+**Status**: ✅ Phase 6.1 Complete (see [README.md](../../README.md) for test statistics)
 
 ## Rules:
 - No imports from Next.js, React, or any external frameworks
@@ -140,7 +140,7 @@ Pure business logic with zero framework dependencies.
 
 ---
 
-#### `Project` ⭐ ENHANCED (Phase 3, 5.0)
+#### `Project` ⭐ ENHANCED (Phase 3, 5.0, 6.1)
 **Purpose**: Aggregate managing a collection of chapters with owner tracking and publishing
 
 **Responsibilities**:
@@ -153,6 +153,7 @@ Pure business logic with zero framework dependencies.
 - **Timestamps for created/updated dates** (Phase 3)
 - **Publishing support** (`shareToken`, `isPublished`, `publishedAt`) ⭐ Phase 5.0
 - **Publish/unpublish methods** for public sharing ⭐ Phase 5.0
+- **Cover image support** (`coverImageUrl`) ⭐ Phase 6.1
 
 **Key Methods**:
 - `getChapters()`, `getActiveChapter()`, `getActiveChapterId()`

@@ -93,13 +93,16 @@ Pas de chat. Pas d'explications. Pas de friction. Vous restez dans votre flow.
 - **Import .docx intelligent** : Détection automatique des chapitres (H1)
 - **Import de dossier Markdown** : Importez un dossier de fichiers .md comme chapitres
 - **Navigation par chapitres** : Panneau latéral, drag & drop, renommage inline
-- **Export multi-format** : DOCX et PDF avec typographie préservée
+- **Export multi-format** : DOCX et PDF avec typographie préservée et image de couverture
+- **Sélection des chapitres** : Choisissez les chapitres à exporter ou publier
 - **Auto-save** : Vers MongoDB, debounce 1 seconde
 - **Historique des corrections** : Retrouvez toutes vos réécritures par chapitre
 - **Génération de texte IA** : Générez le début d'un chapitre vide avec contexte du projet
 - **Autocomplétion IA** : Appuyez sur Tab pour compléter vos phrases (streaming temps réel)
 - **Partage public** : Partagez votre projet via un lien unique en lecture seule
 - **Temps de lecture** : Affichage du temps de lecture estimé par chapitre
+- **Image de couverture** : Uploadez une image de couverture pour vos projets
+- **Objectifs d'écriture** : Définissez des objectifs quotidiens, hebdomadaires ou totaux
 
 ### 📄 Expérience d'écriture A4
 
@@ -149,6 +152,8 @@ Apportez votre propre clé API :
 - **Auth.js + bcrypt** (12 rounds)
 - **Clés jamais exposées** côté client
 - **Approbation des inscriptions** par administrateur avec email de notification
+- **Rate limiting** : Protection contre les abus (5 requêtes/IP/heure à l'inscription)
+- **hCaptcha** : Vérification anti-bot à l'inscription
 - **Consentement RGPD** enregistré avec timestamps
 - **Suppression de compte** avec effacement de toutes les données associées
 - **Export des données personnelles** (Article 20 RGPD)
@@ -309,18 +314,17 @@ src/
 ## 🧪 Tests
 
 ```bash
-npm test                  # 871+ tests passed
-npm run test:coverage     # Rapport de couverture (42%)
+npm test                  # 1375+ tests passed
+npm run test:coverage     # Rapport de couverture
 npm run test:integration  # Tests avec vraies APIs (OpenAI & Anthropic)
 npm run test:e2e          # Tests end-to-end (Playwright)
 ```
 
 | Statistiques | Valeur |
 |--------------|--------|
-| Tests totaux | 897 |
-| Tests passés | 871 |
-| Fichiers de test | 112 |
-| Couverture globale | 42% (v8) |
+| Tests totaux | 1401 |
+| Tests passés | 1375 |
+| Fichiers de test | 160 |
 | Couverture domaine | 92%+ (entités) |
 | Couverture application | **100%** (use cases) |
 | Tests d'intégration | 30+ provider-specific (conditional) |
@@ -347,6 +351,7 @@ npm run test:e2e          # Tests end-to-end (Playwright)
 - [x] Phase 5.0 : Partage public de projets via liens uniques
 - [x] Phase 5.1 : Import de dossier Markdown
 - [x] Phase 6.0 : Project Cockpit (tableau de bord projet, gestion personnages, tâches, objectifs, recherche, statistiques IA)
+- [x] Phase 6.1 : Images de couverture, objectifs d'écriture, sélection des chapitres, rate limiting, hCaptcha
 
 ### 🔜 Phase 7
 

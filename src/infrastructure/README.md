@@ -2,7 +2,7 @@
 
 Implements domain interfaces with concrete external services.
 
-**Status**: ✅ Phase 6 Complete (see [README.md](../../README.md) for test statistics)
+**Status**: ✅ Phase 6.1 Complete (see [README.md](../../README.md) for test statistics)
 
 ## Rules:
 - Implements interfaces defined in Domain layer
@@ -152,7 +152,7 @@ Implements domain interfaces with concrete external services.
 
 ### Document Exporters (✅ Phase 3.7 Enhanced)
 
-#### `PdfExporter` ⭐ NEW (Phase 3.7)
+#### `PdfExporter` ⭐ ENHANCED (Phase 3.7, 6.1)
 **Implements**: `DocumentExporter` interface
 **Technology**: pdf-lib npm package
 
@@ -165,12 +165,15 @@ Implements domain interfaces with concrete external services.
 - Multi-chapter export with page breaks
 - Chapter titles as H1 headings
 - Professional document layout
+- **Cover image as first page** ⭐ Phase 6.1
+- **Word-based text justification** for improved text layout ⭐ Phase 6.1
+- **Chapter selection** - Export only selected chapters ⭐ Phase 6.1
 
-**Tests**: 10+ tests covering export and special characters
+**Tests**: 15+ tests covering export, special characters, and cover images
 
 ---
 
-#### `DocxExporter`
+#### `DocxExporter` ⭐ ENHANCED (Phase 6.1)
 **Implements**: `DocumentExporter` interface
 **Technology**: docx npm package
 
@@ -185,6 +188,10 @@ Implements domain interfaces with concrete external services.
 - **Formatting Preservation**: TipTap JSON → DOCX formatting
 - **Chapter Titles**: H1 headings for each chapter
 - **Supported Formatting**: Bold, italic, underline, highlight
+
+**Phase 6.1 Enhancements** ⭐:
+- **Cover image support** - Includes cover image in export
+- **Chapter selection** - Export only selected chapters
 
 **Workflow**:
 1. Iterate through all chapters in Project
@@ -294,6 +301,10 @@ Implements domain interfaces with concrete external services.
 - Environment-based configuration (RESEND_API_KEY, ADMIN_EMAIL)
 
 **Tests**: 8+ tests covering email sending and templates
+
+**Phase 6.1 Enhancements**:
+- ✅ **Redesigned welcome email** - Modern layout with enhanced UX
+- ✅ **Responsive email templates** - Mobile-friendly design
 
 ---
 
@@ -803,6 +814,44 @@ Implements domain interfaces with concrete external services.
 - Error handling for upload failures
 
 **Tests**: 10+ tests covering upload and delete operations
+
+---
+
+### Security ⭐ NEW (Phase 6.1)
+
+#### `HCaptchaVerifier`
+**Implements**: `CaptchaVerifier` interface
+**Technology**: hCaptcha API
+
+**Purpose**: Bot protection for registration
+
+**Methods**:
+- `verify(token, remoteIp?)` - Verifies hCaptcha token
+
+**Features**:
+- Server-side verification
+- IP address logging
+- Error handling for verification failures
+
+**Tests**: 10+ tests covering verification scenarios
+
+---
+
+#### `InMemoryRateLimiter`
+**Implements**: `RateLimiter` interface
+**Purpose**: Rate limiting for registration protection
+
+**Methods**:
+- `checkLimit(key)` - Checks if rate limit exceeded
+- `increment(key)` - Increments request count
+
+**Features**:
+- Sliding window algorithm
+- Configurable limits (default: 5 requests/IP/hour)
+- Automatic cleanup of expired entries
+- In-memory storage
+
+**Tests**: 15+ tests covering rate limiting scenarios
 
 ---
 

@@ -6,6 +6,32 @@ For current features and roadmap, see [README.md](README.md).
 
 ---
 
+## Phase 6.1 - Cover Images, Writing Goals & Security (January 2026)
+
+### Domain Layer
+- **Project entity enhanced** - coverImageUrl field for project cover images
+- **RateLimiter interface** - Rate limiting abstraction for registration protection
+- **CaptchaVerifier interface** - CAPTCHA verification abstraction
+
+### Infrastructure Layer
+- **HCaptchaVerifier** - hCaptcha verification implementation for bot protection
+- **InMemoryRateLimiter** - In-memory rate limiting with sliding window
+- **PdfExporter enhanced** - Cover image as first page, improved text justification with word-based layout
+- **DocxExporter enhanced** - Cover image support in exports
+- **ResendEmailService enhanced** - Redesigned welcome email with modern layout
+
+### Interface Layer
+- **Cover image upload** - Upload cover images for projects via Vercel Blob
+- **Cover image display** - Show cover image in dashboard cards, public reader, and OpenGraph metadata
+- **Chapter selection** - Select specific chapters for publishing and exporting
+- **Rate limiting** - 5 requests per IP per hour for registration
+- **hCaptcha verification** - Bot protection on registration form
+- **Font size extended** - 8pt to 100pt range in editor (was 8-24pt)
+- **PDF improvements** - Better text justification with word-based layout algorithm
+- **Cockpit header** - Fixed header with navigation in cockpit layout
+
+---
+
 ## Phase 6 - Project Cockpit (January 2026)
 
 ### Domain Layer

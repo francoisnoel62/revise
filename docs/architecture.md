@@ -12,7 +12,7 @@ Pure business logic with no framework dependencies.
 
 **Entities**:
 - `Chapter` - Single chapter with rich text content (TipTap JSON)
-- `Project` - Aggregate managing chapter collection with owner tracking, publishing support (shareToken, isPublished, publishedAt)
+- `Project` - Aggregate managing chapter collection with owner tracking, publishing support (shareToken, isPublished, publishedAt), cover image (coverImageUrl)
 - `ProjectMetadata` - Metadata document with TipTap JSON content and content hash (Phase 3.6)
 - `Provider` - AI provider configuration with encrypted credentials (Phase 3.5)
 - `User` - User entity with email, hashed password, approval status, and consent timestamps (Phase 3.8, 3.11)
@@ -60,6 +60,8 @@ Pure business logic with no framework dependencies.
 - `WritingGoalRepository` - Writing goal persistence (Phase 6)
 - `AIUsageRepository` - AI usage tracking persistence (Phase 6)
 - `BlobStorage` - Blob storage abstraction for images (Phase 6)
+- `RateLimiter` - Rate limiting abstraction for registration protection (Phase 6.1)
+- `CaptchaVerifier` - CAPTCHA verification abstraction (Phase 6.1)
 - `AuthProvider` - Authentication service abstraction
 - `EmailService` - Email notification service (Phase 3.8)
 - `ApprovalTokenGenerator` - HMAC token generation for approval links (Phase 3.8)
@@ -137,8 +139,8 @@ External service implementations.
 - `DocxParser` - Mammoth-based parser with chapter splitting
 - `MarkdownParser` - Single .md file parser to TipTap JSON (Phase 5.1)
 - `MarkdownFolderParser` - Folder of .md files parser to chapters (Phase 5.1)
-- `DocxExporter` - docx library exporter with full typography support
-- `PdfExporter` - PDF export with full typography (Phase 3.7)
+- `DocxExporter` - docx library exporter with full typography support and cover image
+- `PdfExporter` - PDF export with full typography, cover image, and word-based text justification (Phase 3.7, 6.1)
 - `TipTapContentService` - TipTap content manipulation (Phase 4.1)
 - TipTap conversion utilities (HTML ↔ JSON)
 
@@ -191,6 +193,10 @@ External service implementations.
 **Storage** (Phase 6):
 - `VercelBlobStorage` - Cover image storage using Vercel Blob
 
+**Security** (Phase 6.1):
+- `HCaptchaVerifier` - hCaptcha verification for bot protection
+- `InMemoryRateLimiter` - Rate limiting with sliding window (5 requests/IP/hour)
+
 **Prompts** (Phase 3.6, 4.1):
 - `FilePromptRepository` - Load AI prompts from markdown files in `/docs/prompt/`
 
@@ -238,7 +244,7 @@ React components and UI.
 - **Legal**: `CookieConsent` (3 variants), `ContactForm` (Phase 3.11)
 - **Generation**: `FloatingGenerationMenu` (Phase 4.1)
 - **AI Menu**: `AIMenuDropdown`, `CommandPalette` (Ctrl+Shift+I) (Phase 4.1+)
-- **Publishing**: `PublishDialog`, `PublicReader` (Phase 5.0)
+- **Publishing**: `PublishDialog` (with chapter selection), `PublicReader` (with cover image) (Phase 5.0, 6.1)
 - **Cockpit**: `CockpitSidebar`, `StatCard`, `ProgressCard`, `QuickActionsCard`, `QuickActionButton` (Phase 6)
 - **Characters**: `CharacterCard`, `CharacterForm` (Phase 6)
 - **Tasks**: `TaskForm`, `TaskRow`, `TaskSummaryCard` (Phase 6)
@@ -246,7 +252,8 @@ React components and UI.
 - **Usage**: `UsageStatsCard`, `DailyUsageChart`, `UsageByOperationChart` (Phase 6)
 - **Settings**: `ProjectSettingsForm`, `CoverImageUpload`, `ContributorsField`, `RelatedWorksField` (Phase 6)
 - **Research**: `ResearchDocumentCard`, `ResearchDocumentForm` (Phase 6)
-- **Document**: `DocumentControls` (DOCX/PDF export), `SaveStatus`
+- **Document**: `DocumentControls` (DOCX/PDF export with chapter selection), `SaveStatus`, `ExportDialog`
+- **Publish**: `PublishDialog` (with chapter selection), `PublicReader` (with cover image)
 - **UI**: shadcn/ui components (Sheet, Button, Card, Dialog, Input, Label, Sidebar, Tabs, Chart, Breadcrumb, etc.)
 
 **State**:
@@ -440,11 +447,11 @@ We use Repository pattern for swappable persistence.
 
 ## Testing Strategy
 
-- **Unit Tests**: Domain and application layers (~500+ tests)
-- **Integration Tests**: Infrastructure and store (~250+ tests including 30+ provider-specific)
+- **Unit Tests**: Domain and application layers (~800+ tests)
+- **Integration Tests**: Infrastructure and store (~400+ tests including 30+ provider-specific)
 - **E2E Tests**: Complete workflows (10+ tests planned)
-- **Coverage Achieved**: 42% global, 92%+ domain entities, 100% use cases
-- **Total Tests**: 871 passed (897 total, 97%+ pass rate, 112 test files)
+- **Coverage Achieved**: 92%+ domain entities, 100% use cases
+- **Total Tests**: 1375 passed (1401 total, 98%+ pass rate, 160 test files)
 
 ---
 
