@@ -5,6 +5,7 @@
 
 import { describe, it, expect, beforeAll } from 'vitest';
 import { AnthropicProvider } from './AnthropicProvider';
+import { FilePromptRepository } from '@/infrastructure/prompts/FilePromptRepository';
 
 describe.skipIf(!process.env.ANTHROPIC_API_KEY)('AnthropicProvider Integration', () => {
   let provider: AnthropicProvider;
@@ -12,7 +13,8 @@ describe.skipIf(!process.env.ANTHROPIC_API_KEY)('AnthropicProvider Integration',
   beforeAll(() => {
     const apiKey = process.env.ANTHROPIC_API_KEY!;
     const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929';
-    provider = new AnthropicProvider(apiKey, model);
+    const promptRepo = new FilePromptRepository();
+    provider = new AnthropicProvider(apiKey, promptRepo, model);
   });
 
   it('should generate 3 distinct proposals with real API', async () => {
