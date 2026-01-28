@@ -1,4 +1,4 @@
-// ABOUTME: Landing page for Revise - AI-powered creative writing tool
+// ABOUTME: Landing page for Revise Studio - All-in-one writing platform for fiction authors
 // ABOUTME: Presents value proposition, features, testimonials, and beta signup CTA
 
 import Link from 'next/link';
@@ -29,8 +29,8 @@ import {
 } from 'lucide-react';
 
 export const metadata = {
-  title: 'Revise - L\'assistant IA pour les auteurs de fiction',
-  description: 'Le partenaire d\'écriture IA que tout auteur créatif voudrait avoir. Développez vos scènes, réécrivez vos passages, obtenez du feedback constructif.',
+  title: 'Revise Studio - La plateforme d\'écriture pour auteurs de fiction',
+  description: 'De l\'idée au livre publié. Idéation, rédaction, correction, édition, publication. Le studio tout-en-un pour les auteurs de fiction.',
 };
 
 // Feature card component
@@ -105,7 +105,7 @@ export default function LandingPage() {
       <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="text-2xl font-bold">
-            Revise
+            Revise Studio
           </Link>
           <div className="flex items-center gap-4">
             <Link href="/auth/signin">
@@ -123,29 +123,29 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 text-center">
           <div className="max-w-4xl mx-auto">
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
-              Écrivez votre fiction.
+              De l&apos;idée au livre publié.
               <br />
-              <span className="text-primary">L&apos;IA vous accompagne.</span>
+              <span className="text-primary">Tout est dans Revise Studio.</span>
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Le partenaire d&apos;écriture que tout auteur créatif voudrait avoir.
-              Pas un remplaçant. Un allié silencieux qui enrichit votre voix.
+              La première plateforme d&apos;écriture qui vous accompagne à chaque étape :
+              idéation, rédaction, correction, édition, publication.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/auth/signup">
                 <Button size="lg" className="text-lg px-8 py-6">
-                  Demander un accès bêta
+                  Commencer à écrire
                   <ChevronRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
               <Link href="#features">
                 <Button size="lg" variant="outline" className="text-lg px-8 py-6">
-                  Découvrir les fonctionnalités
+                  Découvrir le Studio
                 </Button>
               </Link>
             </div>
             <p className="mt-6 text-sm text-muted-foreground">
-              Accès gratuit sur invitation. Aucune carte bancaire requise.
+              Accès bêta gratuit. Aucune carte bancaire requise.
             </p>
           </div>
         </div>
@@ -157,15 +157,15 @@ export default function LandingPage() {
           <div className="flex flex-wrap justify-center gap-8 md:gap-16 text-muted-foreground">
             <div className="flex items-center gap-2">
               <Pen className="h-5 w-5" />
-              <span>100% fiction française</span>
+              <span>Conçu pour la fiction francophone</span>
             </div>
             <div className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
-              <span>Vos textes vous appartiennent</span>
+              <span>Vos manuscrits restent les vôtres</span>
             </div>
             <div className="flex items-center gap-2">
               <Zap className="h-5 w-5" />
-              <span>Propositions en 3 secondes</span>
+              <span>Un studio complet, une seule plateforme</span>
             </div>
           </div>
         </div>
@@ -179,22 +179,22 @@ export default function LandingPage() {
               Ce qu&apos;en pensent les auteurs
             </h2>
             <p className="text-xl text-muted-foreground">
-              Des créatifs qui ont testé Revise en avant-première
+              Des créatifs qui ont adopté Revise Studio
             </p>
           </div>
           <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
             <TestimonialCard
-              quote="Enfin un outil qui comprend qu'écrire, c'est réécrire. Les variantes proposées m'ont débloquée à chaque fois."
+              quote="Les variantes de réécriture m'ont débloquée à chaque fois. Revise comprend qu'écrire, c'est réécrire."
               author="Marie Lefebvre"
               role="Auteure de romans historiques"
             />
             <TestimonialCard
-              quote="Je cherchais un assistant, pas un automate. Revise me propose des directions sans jamais imposer sa voix."
+              quote="Revise me propose des directions sans jamais imposer. C'est un vrai compagnon d'écriture, pas un automate."
               author="Thomas Durand"
               role="Scénariste, Prix Jean Vigo"
             />
             <TestimonialCard
-              quote="L'analyse narrative est impressionnante. Il repère des incohérences que je n'aurais pas vues avant la 5e relecture."
+              quote="L'analyse narrative repère des incohérences que je n'aurais pas vues avant la 5e relecture. Un gain de temps énorme."
               author="Claire Martin"
               role="Journaliste culturelle"
             />
@@ -202,15 +202,101 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 md:py-28 bg-muted/30">
+      {/* Writer's Journey Section */}
+      <section className="py-20 md:py-28 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Une boîte à outils narrative complète
+              Le parcours de l&apos;écrivain
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              De l&apos;idée brute au texte final, Revise couvre tout le cycle créatif
+              Revise Studio vous accompagne à chaque étape de votre projet
+            </p>
+          </div>
+          <div className="max-w-5xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 md:gap-2">
+              {/* Step 1 */}
+              <div className="text-center">
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl font-bold text-primary">1</span>
+                </div>
+                <h3 className="font-semibold mb-2">Idéation</h3>
+                <p className="text-sm text-muted-foreground">
+                  Brainstorm, fiches personnages, worldbuilding
+                </p>
+              </div>
+              {/* Arrow */}
+              <div className="hidden md:flex items-center justify-center">
+                <ChevronRight className="h-6 w-6 text-muted-foreground/50" />
+              </div>
+              {/* Step 2 */}
+              <div className="text-center">
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl font-bold text-primary">2</span>
+                </div>
+                <h3 className="font-semibold mb-2">Rédaction</h3>
+                <p className="text-sm text-muted-foreground">
+                  Écriture, chapitres, suggestions intelligentes
+                </p>
+              </div>
+              {/* Arrow */}
+              <div className="hidden md:flex items-center justify-center">
+                <ChevronRight className="h-6 w-6 text-muted-foreground/50" />
+              </div>
+              {/* Step 3 */}
+              <div className="text-center">
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl font-bold text-primary">3</span>
+                </div>
+                <h3 className="font-semibold mb-2">Correction</h3>
+                <p className="text-sm text-muted-foreground">
+                  Relecture, style, cohérence narrative
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 md:gap-2 mt-8 md:mt-4">
+              {/* Spacer */}
+              <div className="hidden md:block" />
+              {/* Step 4 */}
+              <div className="text-center">
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl font-bold text-primary">4</span>
+                </div>
+                <h3 className="font-semibold mb-2">Édition</h3>
+                <p className="text-sm text-muted-foreground">
+                  Mise en page, export DOCX/PDF, couverture
+                </p>
+              </div>
+              {/* Arrow */}
+              <div className="hidden md:flex items-center justify-center">
+                <ChevronRight className="h-6 w-6 text-muted-foreground/50" />
+              </div>
+              {/* Step 5 */}
+              <div className="text-center">
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl font-bold text-primary">5</span>
+                </div>
+                <h3 className="font-semibold mb-2">Publication</h3>
+                <p className="text-sm text-muted-foreground">
+                  Partage, liens publics, lecteurs bêta
+                </p>
+              </div>
+              {/* Spacer */}
+              <div className="hidden md:block" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section id="features" className="py-20 md:py-28">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Tous les outils dont vous avez besoin
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Un studio complet pour chaque étape de votre projet d&apos;écriture
             </p>
           </div>
 
@@ -223,38 +309,38 @@ export default function LandingPage() {
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
               <FeatureCard
                 icon={Pen}
-                title="Scène"
-                description="Développe une scène trop courte, améliore le rythme, ajoute de la matière narrative sans changer votre style."
+                title="Développement de scènes"
+                description="Enrichissez une scène trop courte, améliorez le rythme, ajoutez de la matière narrative tout en préservant votre style."
                 available={true}
               />
               <FeatureCard
                 icon={RefreshCw}
-                title="Réécrire"
-                description="Réécrit un passage selon vos consignes, avec 3 variantes stylistiques distinctes. Vous choisissez, vous insérez."
+                title="Réécriture en 3 variantes"
+                description="Obtenez 3 propositions stylistiques pour chaque passage : épuré, lyrique, amplifié. Vous choisissez, vous insérez."
                 available={true}
               />
               <FeatureCard
                 icon={MessageSquare}
-                title="Feedback"
-                description="Analyse votre texte selon 5 axes narratifs (intrigue, personnages, rythme, voix, cohérence) avec recommandations concrètes."
+                title="Analyse narrative"
+                description="Diagnostic complet selon 5 axes : intrigue, personnages, rythme, voix, cohérence. Avec recommandations concrètes."
                 available={true}
               />
               <FeatureCard
                 icon={Eye}
-                title="Describe"
-                description="Génère des descriptions immersives adaptées à votre style et au ton de votre projet."
+                title="Descriptions immersives"
+                description="Créez des descriptions riches adaptées à votre style et au ton de votre projet."
                 available={true}
               />
               <FeatureCard
                 icon={BookOpen}
-                title="Story Bible"
+                title="Bible de projet"
                 description="Structurez votre univers : personnages, lieux, chronologie, règles du monde. Tout centralisé."
                 available={true}
               />
               <FeatureCard
-                icon={Pen}
-                title="Write"
-                description="Autocomplétion longue (~300 mots) qui écrit dans votre voix, pas celle d'un modèle générique."
+                icon={Sparkles}
+                title="Suggestions intelligentes"
+                description="Complétez vos phrases avec des propositions adaptées à votre voix, pas des formules génériques."
                 available={true}
               />
             </div>
@@ -270,19 +356,19 @@ export default function LandingPage() {
               <FeatureCard
                 icon={Lightbulb}
                 title="Brainstorm"
-                description="Idées de noms, titres, objets, retournements. Pour les moments où l'inspiration manque."
+                description="Trouvez des noms, titres, objets, retournements. Pour les moments où l'inspiration manque."
                 available={false}
               />
               <FeatureCard
                 icon={Map}
-                title="Canvas"
+                title="Canvas narratif"
                 description="Visualisez vos arcs narratifs, vos twists, vos progressions. Une carte de votre histoire."
                 available={false}
               />
               <FeatureCard
                 icon={Image}
-                title="Visualize"
-                description="Illustrations pour vos personnages et votre worldbuilding. Donnez un visage à votre imaginaire."
+                title="Moodboard"
+                description="Illustrations pour vos personnages et votre univers. Donnez un visage à votre imaginaire."
                 available={false}
               />
             </div>
@@ -296,10 +382,10 @@ export default function LandingPage() {
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Un environnement pensé pour l&apos;écriture
+                Votre espace de création
               </h2>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Pas un chatbot. Un véritable espace de création avec les outils qu&apos;il faut, là où il faut.
+                Un environnement professionnel pensé pour l&apos;écriture longue, pas un simple éditeur de texte.
               </p>
             </div>
 
@@ -398,16 +484,16 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* AI & Ethics Section */}
+      {/* Ownership & Privacy Section */}
       <section className="py-20 md:py-28 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Une IA au service de la création
+                Vos mots, votre œuvre
               </h2>
               <p className="text-xl text-muted-foreground">
-                Transparence technique et respect de votre travail
+                Respect total de votre travail et de votre vie privée
               </p>
             </div>
 
@@ -415,13 +501,12 @@ export default function LandingPage() {
               <Card>
                 <CardContent className="pt-6">
                   <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                    <Sparkles className="h-6 w-6 text-primary" />
+                    <Shield className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-3">Génération originale</h3>
+                  <h3 className="text-xl font-semibold mb-3">Propriété totale</h3>
                   <p className="text-muted-foreground">
-                    Chaque texte est généré mot par mot, de manière unique.
-                    Pas de copier-coller de phrases existantes.
-                    Pas de plagiat à partir de vos textes.
+                    Vos textes ne sont jamais utilisés pour quoi que ce soit.
+                    Ils vous appartiennent à 100%, point final.
                   </p>
                 </CardContent>
               </Card>
@@ -429,12 +514,12 @@ export default function LandingPage() {
               <Card>
                 <CardContent className="pt-6">
                   <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                    <Shield className="h-6 w-6 text-primary" />
+                    <Eye className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-3">Vos textes, votre propriété</h3>
+                  <h3 className="text-xl font-semibold mb-3">Confidentialité absolue</h3>
                   <p className="text-muted-foreground">
-                    Vos écrits ne sont jamais utilisés pour entraîner des modèles.
-                    Ils restent privés, chiffrés, et vous appartiennent à 100%.
+                    Manuscrits chiffrés, accès privé.
+                    Personne ne lit vos écrits à part vous.
                   </p>
                 </CardContent>
               </Card>
@@ -444,10 +529,10 @@ export default function LandingPage() {
                   <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                     <Users className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-3">Choix du fournisseur IA</h3>
+                  <h3 className="text-xl font-semibold mb-3">Contrôle complet</h3>
                   <p className="text-muted-foreground">
-                    Vous choisissez votre modèle : OpenAI, Anthropic, ou d&apos;autres.
-                    Revise est l&apos;interface, vous gardez le contrôle technique.
+                    Vous décidez ce que vous gardez, modifiez ou supprimez.
+                    Revise propose, vous disposez.
                   </p>
                 </CardContent>
               </Card>
@@ -455,12 +540,12 @@ export default function LandingPage() {
               <Card className="bg-muted/50">
                 <CardContent className="pt-6">
                   <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                    <Lightbulb className="h-6 w-6 text-primary" />
+                    <Zap className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-3">Vision future</h3>
+                  <h3 className="text-xl font-semibold mb-3">Export libre</h3>
                   <p className="text-muted-foreground">
-                    Modèles fine-tunés par genre (SF, policier, romance, fantasy).
-                    Priorité absolue : la créativité en français.
+                    Récupérez tout à tout moment en DOCX ou PDF.
+                    Aucun verrouillage, aucune dépendance.
                   </p>
                 </CardContent>
               </Card>
@@ -474,27 +559,27 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto text-center">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Commencez à écrire
+              Rejoignez le Studio
             </h2>
             <p className="text-xl text-muted-foreground mb-12">
-              Accès bêta gratuit, puis abonnement simple et sans engagement
+              Accès bêta gratuit, puis abonnement simple sans engagement
             </p>
 
             <Card className="border-2 border-primary">
               <CardHeader className="text-center pb-2">
                 <div className="inline-block bg-primary text-primary-foreground text-sm px-3 py-1 rounded-full mb-4">
-                  Accès bêta
+                  Revise Studio
                 </div>
                 <CardTitle className="text-4xl font-bold">Gratuit</CardTitle>
                 <CardDescription className="text-lg">
-                  Sur invitation, places limitées
+                  Pendant la bêta, places limitées
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-6">
                 <ul className="space-y-3 text-left mb-8">
                   <li className="flex items-center gap-2">
                     <Check className="h-5 w-5 text-green-600 flex-shrink-0" />
-                    <span>Toutes les fonctionnalités disponibles</span>
+                    <span>Toutes les fonctionnalités du Studio</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-5 w-5 text-green-600 flex-shrink-0" />
@@ -502,11 +587,11 @@ export default function LandingPage() {
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-5 w-5 text-green-600 flex-shrink-0" />
-                    <span>Support prioritaire</span>
+                    <span>Export DOCX & PDF</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-5 w-5 text-green-600 flex-shrink-0" />
-                    <span>Aucune carte bancaire requise</span>
+                    <span>Support prioritaire</span>
                   </li>
                 </ul>
 
@@ -518,13 +603,13 @@ export default function LandingPage() {
                     9,90 &euro;<span className="text-base font-normal text-muted-foreground">/mois</span>
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Annulation à tout moment
+                    Sans engagement, annulation libre
                   </p>
                 </div>
 
                 <Link href="/auth/signup" className="block">
                   <Button size="lg" className="w-full text-lg py-6">
-                    Demander un accès bêta
+                    Rejoindre la bêta
                     <ChevronRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
@@ -560,16 +645,15 @@ export default function LandingPage() {
                       </p>
 
                       <p>
-                        J&apos;ai passé des heures devant des outils d&apos;IA qui me proposaient
-                        des textes lisses, génériques, interchangeables. Des phrases que
-                        n&apos;importe qui aurait pu écrire. Des suggestions qui effaçaient
-                        ma voix au lieu de l&apos;enrichir.
+                        Des outils d&apos;écriture qui ne comprennent pas la fiction.
+                        Des logiciels pensés pour la productivité, pas pour la créativité.
+                        Des fonctions dispersées dans 10 applications différentes.
                       </p>
 
                       <p>
-                        Je voulais autre chose : un outil qui comprenne que l&apos;écriture
-                        de fiction est un travail lent, imparfait, exigeant. Pas une course
-                        à la production.
+                        Je voulais un seul endroit pour tout faire : imaginer, écrire,
+                        corriger, publier. Un outil qui comprenne que l&apos;écriture
+                        de fiction est un travail lent, imparfait, exigeant.
                       </p>
 
                       <div className="border-l-2 border-primary pl-4 my-6">
@@ -577,8 +661,8 @@ export default function LandingPage() {
                           Ce que je refuse :
                         </p>
                         <p>
-                          L&apos;écriture jetable. Les textes standardisés. L&apos;IA qui remplace
-                          l&apos;auteur. La vitesse qui sacrifie la singularité.
+                          L&apos;écriture à la chaîne. Les textes standardisés.
+                          Les outils qui imposent leur vision. La vitesse qui sacrifie la singularité.
                         </p>
                       </div>
 
@@ -593,14 +677,14 @@ export default function LandingPage() {
                       </div>
 
                       <p>
-                        Revise n&apos;écrit pas à ta place. Il t&apos;aide à aller plus loin
+                        Revise ne décide pas à ta place. Il t&apos;aide à aller plus loin
                         dans ce que <span className="italic">toi</span> tu veux dire.
                       </p>
 
                       <p className="font-medium text-foreground">
-                        Mon ambition : offrir aux auteurs francophones un environnement
-                        d&apos;écriture à la hauteur de leur créativité. Face aux géants
-                        anglo-saxons, construire l&apos;outil que nous méritons.
+                        Mon ambition : offrir aux auteurs francophones un studio d&apos;écriture
+                        à la hauteur de leur créativité. Face aux géants anglo-saxons,
+                        construire l&apos;outil que nous méritons.
                       </p>
                     </div>
                   </div>
@@ -609,7 +693,7 @@ export default function LandingPage() {
                 <div className="mt-8 pt-8 border-t text-center">
                   <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
                     <Heart className="h-4 w-4 text-red-500" />
-                    Revise recherche des investisseurs partageant cette vision du storytelling francophone
+                    Revise Studio recherche des partenaires partageant cette vision de l&apos;écriture francophone
                   </p>
                 </div>
               </CardContent>
@@ -626,18 +710,18 @@ export default function LandingPage() {
               Prêt à écrire différemment ?
             </h2>
             <p className="text-xl text-muted-foreground mb-8">
-              Rejoignez les auteurs qui ont déjà adopté Revise comme partenaire créatif.
+              Rejoignez les auteurs qui ont déjà adopté Revise Studio comme compagnon d&apos;écriture.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/auth/signup">
                 <Button size="lg" className="text-lg px-8 py-6">
-                  Demander un accès bêta
+                  Rejoindre la bêta
                   <ChevronRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
               <Link href="#features">
                 <Button size="lg" variant="outline" className="text-lg px-8 py-6">
-                  En savoir plus
+                  Découvrir le Studio
                 </Button>
               </Link>
             </div>
@@ -669,9 +753,9 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-2">
-              <span className="text-xl font-bold">Revise</span>
+              <span className="text-xl font-bold">Revise Studio</span>
               <span className="text-muted-foreground">
-                &mdash; L&apos;assistant IA pour les auteurs de fiction
+                &mdash; La plateforme d&apos;écriture pour auteurs de fiction
               </span>
             </div>
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
@@ -704,7 +788,7 @@ export default function LandingPage() {
                 Cookies
               </Link>
             </div>
-            <p>&copy; {new Date().getFullYear()} Revise. Tous droits réservés.</p>
+            <p>&copy; {new Date().getFullYear()} Revise Studio. Tous droits réservés.</p>
           </div>
         </div>
       </footer>
