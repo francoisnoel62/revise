@@ -97,6 +97,7 @@ export default function MetadataEditorPage() {
     editorProps: {
       attributes: {
         class: 'prose prose-slate max-w-none p-8 min-h-[500px] focus:outline-none',
+        spellcheck: 'false',
       },
     },
     onUpdate: ({ editor }) => {

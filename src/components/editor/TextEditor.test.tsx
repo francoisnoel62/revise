@@ -192,4 +192,17 @@ describe('TextEditor', () => {
     // Should not call onContentChange when content is updated externally
     expect(onContentChange).not.toHaveBeenCalled();
   });
+
+  it('should have spellcheck disabled to support multilingual content', () => {
+    const onSelectionChange = vi.fn();
+
+    render(
+      <TextEditor
+        onSelectionChange={onSelectionChange}
+      />
+    );
+
+    const editor = document.querySelector('.ProseMirror');
+    expect(editor).toHaveAttribute('spellcheck', 'false');
+  });
 });
