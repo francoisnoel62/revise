@@ -100,7 +100,7 @@ export class ChangePasswordUseCase {
     // 7. Invalidate all password reset tokens (security)
     await this.tokenRepository.invalidateAllForUser(user.id);
 
-    // 8. Send confirmation email
+    // 8. Send confirmation email (best effort - don't fail if email fails)
     const safeUser: SafeUser = {
       id: user.id,
       email: user.email,
@@ -108,7 +108,13 @@ export class ChangePasswordUseCase {
       isApproved: user.isApproved,
       isAdmin: user.isAdmin,
     };
-    await this.emailService.sendPasswordChangedEmail(safeUser);
+
+    try {
+      await this.emailService.sendPasswordChangedEmail(safeUser);
+    } catch (emailError) {
+      // Log but don't fail - password was already changed successfully
+      console.error('Failed to send password changed email:', emailError);
+    }
 
     return { success: true };
   }

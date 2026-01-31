@@ -635,10 +635,10 @@ Cet email a été envoyé à ${user.email} suite à une demande de réinitialisa
 
   async sendPasswordChangedEmail(user: SafeUser): Promise<void> {
     const loginUrl = `${this.baseUrl}/auth/signin`;
-    const now = new Date().toLocaleDateString('fr-FR', {
+    const now = new Date().toLocaleString('fr-FR', {
       dateStyle: 'full',
       timeStyle: 'short',
-    } as Intl.DateTimeFormatOptions);
+    });
 
     const html = `
 <!DOCTYPE html>
