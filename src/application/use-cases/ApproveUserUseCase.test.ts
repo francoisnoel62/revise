@@ -37,6 +37,9 @@ describe('ApproveUserUseCase', () => {
       emailExists: vi.fn(),
       approveUser: vi.fn(),
       deleteUser: vi.fn(),
+      updatePassword: vi.fn(),
+      verifyPassword: vi.fn(),
+      hashPassword: vi.fn(),
     };
 
     mockTokenGenerator = {
@@ -47,6 +50,8 @@ describe('ApproveUserUseCase', () => {
     mockEmailService = {
       sendRegistrationNotification: vi.fn().mockResolvedValue(undefined),
       sendWelcomeEmail: vi.fn().mockResolvedValue(undefined),
+      sendPasswordResetEmail: vi.fn().mockResolvedValue(undefined),
+      sendPasswordChangedEmail: vi.fn().mockResolvedValue(undefined),
     };
 
     useCase = new ApproveUserUseCase(mockUserRepository, mockTokenGenerator, mockEmailService);

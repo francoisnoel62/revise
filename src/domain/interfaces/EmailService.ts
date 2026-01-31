@@ -14,4 +14,14 @@ export interface EmailService {
    * Send welcome email to user when their account is approved.
    */
   sendWelcomeEmail(user: SafeUser): Promise<void>;
+
+  /**
+   * Send password reset email with reset link.
+   */
+  sendPasswordResetEmail(user: SafeUser, resetLink: string): Promise<void>;
+
+  /**
+   * Send confirmation email after password has been changed.
+   */
+  sendPasswordChangedEmail(user: SafeUser): Promise<void>;
 }

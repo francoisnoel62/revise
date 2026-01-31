@@ -62,6 +62,12 @@ async function createIndexes(db: Db): Promise<void> {
   await blogArticles.createIndex({ slug: 1 }, { unique: true });
   await blogArticles.createIndex({ isPublished: 1, publishedAt: -1 });
   await blogArticles.createIndex({ updatedAt: -1 });
+
+  // Password reset tokens collection indexes
+  const passwordResetTokens = db.collection('password_reset_tokens');
+  await passwordResetTokens.createIndex({ token: 1 }, { unique: true });
+  await passwordResetTokens.createIndex({ userId: 1 });
+  await passwordResetTokens.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 }
 
 /**
