@@ -135,8 +135,30 @@ export class MongoDBUserRepository implements UserRepository {
     return result.deletedCount > 0;
   }
 
+  async updatePassword(userId: string, newPasswordHash: string): Promise<boolean> {
+    const result = await this.collection.updateOne(
+      { _id: userId },
+      {
+        $set: {
+          passwordHash: newPasswordHash,
+          updatedAt: new Date(),
+        },
+      }
+    );
+    return result.matchedCount > 0;
+  }
+
+  async verifyPassword(password: string, hash: string): Promise<boolean> {
+    return bcrypt.compare(password, hash);
+  }
+
+  async hashPassword(password: string): Promise<string> {
+    return bcrypt.hash(password, SALT_ROUNDS);
+  }
+
   /**
    * Verify password against stored hash.
+   * @deprecated Use instance method verifyPassword instead
    */
   static async verifyPassword(password: string, hash: string): Promise<boolean> {
     return bcrypt.compare(password, hash);

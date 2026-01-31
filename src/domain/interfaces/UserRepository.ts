@@ -39,4 +39,22 @@ export interface UserRepository {
    * @returns true if user was deleted, false if user not found
    */
   deleteUser(userId: string): Promise<boolean>;
+
+  /**
+   * Update a user's password.
+   * The new password should already be hashed.
+   * @returns true if password was updated, false if user not found
+   */
+  updatePassword(userId: string, newPasswordHash: string): Promise<boolean>;
+
+  /**
+   * Verify a password against a hash.
+   * @returns true if password matches
+   */
+  verifyPassword(password: string, hash: string): Promise<boolean>;
+
+  /**
+   * Hash a password for storage.
+   */
+  hashPassword(password: string): Promise<string>;
 }

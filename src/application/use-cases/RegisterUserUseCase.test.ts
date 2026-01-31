@@ -17,10 +17,16 @@ describe('RegisterUserUseCase', () => {
     emailExists: vi.fn(),
     approveUser: vi.fn(),
     deleteUser: vi.fn(),
+    updatePassword: vi.fn(),
+    verifyPassword: vi.fn(),
+    hashPassword: vi.fn(),
   };
 
   const mockEmailService = {
     sendRegistrationNotification: vi.fn().mockResolvedValue(undefined),
+    sendWelcomeEmail: vi.fn().mockResolvedValue(undefined),
+    sendPasswordResetEmail: vi.fn().mockResolvedValue(undefined),
+    sendPasswordChangedEmail: vi.fn().mockResolvedValue(undefined),
   };
 
   let useCase: RegisterUserUseCase;

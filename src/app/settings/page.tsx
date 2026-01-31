@@ -22,9 +22,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Trash2, Download, Shield } from 'lucide-react';
+import { ArrowLeft, Trash2, Download, Shield, KeyRound, CheckCircle } from 'lucide-react';
 import { deleteAccountAction } from '@/app/actions/auth-actions';
 import { exportUserDataAction } from '@/app/actions/user-actions';
+import { changePasswordAction } from '@/app/actions/password-actions';
 
 export default function SettingsPage() {
   const { data: session, status } = useSession();
@@ -35,6 +36,16 @@ export default function SettingsPage() {
   const [deleteError, setDeleteError] = useState('');
   const [exportError, setExportError] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Password change states
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   if (status === 'loading') {
     return (
@@ -73,6 +84,51 @@ export default function SettingsPage() {
       setDeleteError('Une erreur est survenue. Veuillez réessayer.');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError('');
+    setPasswordSuccess(false);
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError('Les mots de passe ne correspondent pas.');
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      setPasswordError('Le nouveau mot de passe doit contenir au moins 8 caractères.');
+      return;
+    }
+
+    setIsChangingPassword(true);
+
+    try {
+      const result = await changePasswordAction(
+        passwordData.currentPassword,
+        passwordData.newPassword,
+        passwordData.confirmPassword
+      );
+
+      if (!result.success) {
+        setPasswordError(result.error || 'Une erreur est survenue.');
+        return;
+      }
+
+      setPasswordSuccess(true);
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+
+      // Clear success message after 5 seconds
+      setTimeout(() => setPasswordSuccess(false), 5000);
+    } catch {
+      setPasswordError('Une erreur est survenue. Veuillez réessayer.');
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -151,6 +207,90 @@ export default function SettingsPage() {
                   <p className="font-medium">{session.user.name}</p>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Security - Password Change */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <KeyRound className="h-5 w-5" />
+                Sécurité
+              </CardTitle>
+              <CardDescription>
+                Modifiez votre mot de passe pour sécuriser votre compte
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {passwordSuccess && (
+                <div className="mb-4 rounded-md bg-green-50 p-3 text-sm text-green-600 flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  Mot de passe modifié avec succès. Un email de confirmation vous a été envoyé.
+                </div>
+              )}
+
+              {passwordError && (
+                <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">
+                  {passwordError}
+                </div>
+              )}
+
+              <form onSubmit={handleChangePassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="currentPassword">Mot de passe actuel</Label>
+                  <Input
+                    id="currentPassword"
+                    type="password"
+                    placeholder="Votre mot de passe actuel"
+                    value={passwordData.currentPassword}
+                    onChange={(e) => {
+                      setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }));
+                      setPasswordError('');
+                    }}
+                    disabled={isChangingPassword}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">Nouveau mot de passe</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    placeholder="Minimum 8 caractères"
+                    value={passwordData.newPassword}
+                    onChange={(e) => {
+                      setPasswordData(prev => ({ ...prev, newPassword: e.target.value }));
+                      setPasswordError('');
+                    }}
+                    disabled={isChangingPassword}
+                    minLength={8}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirmer le nouveau mot de passe</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="Retapez le nouveau mot de passe"
+                    value={passwordData.confirmPassword}
+                    onChange={(e) => {
+                      setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }));
+                      setPasswordError('');
+                    }}
+                    disabled={isChangingPassword}
+                    minLength={8}
+                    required
+                  />
+                </div>
+
+                <Button type="submit" disabled={isChangingPassword}>
+                  <KeyRound className="mr-2 h-4 w-4" />
+                  {isChangingPassword ? 'Modification...' : 'Modifier le mot de passe'}
+                </Button>
+              </form>
             </CardContent>
           </Card>
 

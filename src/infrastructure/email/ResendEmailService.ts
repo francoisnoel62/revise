@@ -550,4 +550,182 @@ P.S. — Besoin d'aide ? Envoyez-moi un message sur mon adresse e-mail (francois
       text,
     });
   }
+
+  async sendPasswordResetEmail(user: SafeUser, resetLink: string): Promise<void> {
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; background: #f5f5f5; padding: 40px 20px; }
+    .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; padding: 40px; border: 1px solid #e5e5e5; }
+    .logo { font-size: 24px; font-weight: 700; color: #0a0a0a; margin-bottom: 8px; }
+    .tagline { font-size: 13px; color: #a3a3a3; margin-bottom: 32px; }
+    h1 { color: #0a0a0a; font-size: 24px; margin-bottom: 16px; }
+    p { color: #525252; margin-bottom: 16px; }
+    .warning { background: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px; padding: 16px; margin: 24px 0; }
+    .warning p { color: #92400e; margin: 0; font-size: 14px; }
+    .btn { display: inline-block; padding: 14px 32px; background: #0a0a0a; color: white; text-decoration: none; border-radius: 8px; font-weight: 500; margin: 24px 0; }
+    .link-fallback { font-size: 13px; color: #737373; word-break: break-all; margin-top: 16px; padding: 16px; background: #f5f5f5; border-radius: 8px; }
+    .footer { margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e5e5; font-size: 13px; color: #737373; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">Revise</div>
+    <div class="tagline">Studio d'écriture créative</div>
+
+    <h1>Réinitialisation de votre mot de passe</h1>
+
+    <p>Bonjour${user.name ? ` ${user.name}` : ''},</p>
+
+    <p>Nous avons reçu une demande de réinitialisation de mot de passe pour votre compte Revise.</p>
+
+    <p>Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe :</p>
+
+    <a href="${resetLink}" class="btn">Réinitialiser mon mot de passe</a>
+
+    <div class="warning">
+      <p><strong>Ce lien expire dans 1 heure.</strong> Si vous n'avez pas demandé cette réinitialisation, vous pouvez ignorer cet email en toute sécurité.</p>
+    </div>
+
+    <div class="link-fallback">
+      <strong>Le bouton ne fonctionne pas ?</strong><br>
+      Copiez et collez ce lien dans votre navigateur :<br>
+      ${resetLink}
+    </div>
+
+    <div class="footer">
+      <p>Cet email a été envoyé à ${user.email} suite à une demande de réinitialisation de mot de passe sur Revise.</p>
+      <p>Si vous n'êtes pas à l'origine de cette demande, nous vous recommandons de vérifier la sécurité de votre compte email.</p>
+    </div>
+  </div>
+</body>
+</html>
+    `.trim();
+
+    const text = `
+REVISE - Réinitialisation de votre mot de passe
+
+Bonjour${user.name ? ` ${user.name}` : ''},
+
+Nous avons reçu une demande de réinitialisation de mot de passe pour votre compte Revise.
+
+Pour créer un nouveau mot de passe, cliquez sur le lien ci-dessous :
+${resetLink}
+
+IMPORTANT : Ce lien expire dans 1 heure.
+
+Si vous n'avez pas demandé cette réinitialisation, vous pouvez ignorer cet email en toute sécurité.
+
+---
+Cet email a été envoyé à ${user.email} suite à une demande de réinitialisation de mot de passe sur Revise.
+    `.trim();
+
+    await this.resend.emails.send({
+      from: this.fromEmail,
+      to: user.email,
+      subject: '[Revise] Réinitialisation de votre mot de passe',
+      html,
+      text,
+    });
+  }
+
+  async sendPasswordChangedEmail(user: SafeUser): Promise<void> {
+    const loginUrl = `${this.baseUrl}/auth/signin`;
+    const now = new Date().toLocaleDateString('fr-FR', {
+      dateStyle: 'full',
+      timeStyle: 'short',
+    } as Intl.DateTimeFormatOptions);
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; background: #f5f5f5; padding: 40px 20px; }
+    .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; padding: 40px; border: 1px solid #e5e5e5; }
+    .logo { font-size: 24px; font-weight: 700; color: #0a0a0a; margin-bottom: 8px; }
+    .tagline { font-size: 13px; color: #a3a3a3; margin-bottom: 32px; }
+    .success-icon { font-size: 48px; margin-bottom: 16px; }
+    h1 { color: #0a0a0a; font-size: 24px; margin-bottom: 16px; }
+    p { color: #525252; margin-bottom: 16px; }
+    .info-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 24px 0; }
+    .info-box p { color: #166534; margin: 0; font-size: 14px; }
+    .warning { background: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px; padding: 16px; margin: 24px 0; }
+    .warning p { color: #92400e; margin: 0; font-size: 14px; }
+    .btn { display: inline-block; padding: 14px 32px; background: #0a0a0a; color: white; text-decoration: none; border-radius: 8px; font-weight: 500; margin: 24px 0; }
+    .footer { margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e5e5; font-size: 13px; color: #737373; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">Revise</div>
+    <div class="tagline">Studio d'écriture créative</div>
+
+    <div class="success-icon">&#9989;</div>
+    <h1>Mot de passe modifié avec succès</h1>
+
+    <p>Bonjour${user.name ? ` ${user.name}` : ''},</p>
+
+    <p>Votre mot de passe Revise a été modifié avec succès.</p>
+
+    <div class="info-box">
+      <p><strong>Date de modification :</strong> ${now}</p>
+    </div>
+
+    <div class="warning">
+      <p><strong>Vous n'êtes pas à l'origine de cette modification ?</strong><br>
+      Si vous n'avez pas effectué ce changement, votre compte a peut-être été compromis. Veuillez nous contacter immédiatement à francoisnoel62@gmail.com.</p>
+    </div>
+
+    <p>Vous pouvez maintenant vous connecter avec votre nouveau mot de passe :</p>
+
+    <a href="${loginUrl}" class="btn">Se connecter</a>
+
+    <div class="footer">
+      <p>Cet email de confirmation a été envoyé à ${user.email} suite à une modification de mot de passe sur votre compte Revise.</p>
+    </div>
+  </div>
+</body>
+</html>
+    `.trim();
+
+    const text = `
+REVISE - Mot de passe modifié avec succès
+
+Bonjour${user.name ? ` ${user.name}` : ''},
+
+Votre mot de passe Revise a été modifié avec succès.
+
+Date de modification : ${now}
+
+---
+
+VOUS N'ÊTES PAS À L'ORIGINE DE CETTE MODIFICATION ?
+
+Si vous n'avez pas effectué ce changement, votre compte a peut-être été compromis.
+Veuillez nous contacter immédiatement à francoisnoel62@gmail.com.
+
+---
+
+Vous pouvez maintenant vous connecter avec votre nouveau mot de passe :
+${loginUrl}
+
+---
+Cet email de confirmation a été envoyé à ${user.email} suite à une modification de mot de passe sur votre compte Revise.
+    `.trim();
+
+    await this.resend.emails.send({
+      from: this.fromEmail,
+      to: user.email,
+      subject: '[Revise] Votre mot de passe a été modifié',
+      html,
+      text,
+    });
+  }
 }
