@@ -67,6 +67,7 @@ export function EditorialEditor({
       attributes: {
         class:
           'prose prose-slate max-w-none min-h-[300px] focus:outline-none p-4 border rounded-md bg-white',
+        spellcheck: 'false',
       },
     },
   });

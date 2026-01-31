@@ -120,6 +120,7 @@ export function TextEditor({
     editorProps: {
       attributes: {
         class: 'editor-a4-page focus:outline-none tiptap',
+        spellcheck: 'false',
       },
     },
   });
