@@ -37,7 +37,9 @@ import { MongoDBProjectTaskRepository } from '@/infrastructure/persistence/Mongo
 import { MongoDBCharacterRepository } from '@/infrastructure/persistence/MongoDBCharacterRepository';
 import { MongoDBProjectSettingsRepository } from '@/infrastructure/persistence/MongoDBProjectSettingsRepository';
 import { MongoDBResearchDocumentRepository } from '@/infrastructure/persistence/MongoDBResearchDocumentRepository';
+import { MongoDBAnalysisRepository } from '@/infrastructure/persistence/MongoDBAnalysisRepository';
 import { InMemoryProjectRepository } from '@/infrastructure/persistence/InMemoryProjectRepository';
+import { AnalysisRepository } from '@/domain/interfaces/AnalysisRepository';
 import { VercelBlobStorage } from '@/infrastructure/storage/VercelBlobStorage';
 import { FilePromptRepository } from '@/infrastructure/prompts/FilePromptRepository';
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
@@ -239,6 +241,20 @@ export async function getResearchDocumentRepository(): Promise<ResearchDocumentR
     await researchDocumentRepoInstance.ensureIndexes();
   }
   return researchDocumentRepoInstance;
+}
+
+/**
+ * Get the analysis repository.
+ */
+let analysisRepoInstance: MongoDBAnalysisRepository | null = null;
+
+export async function getAnalysisRepository(): Promise<AnalysisRepository> {
+  if (!analysisRepoInstance) {
+    const db = await getDatabase();
+    analysisRepoInstance = new MongoDBAnalysisRepository(db);
+    await analysisRepoInstance.ensureIndexes();
+  }
+  return analysisRepoInstance;
 }
 
 /**
