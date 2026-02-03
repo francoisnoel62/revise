@@ -132,9 +132,9 @@ export class ApplyBatchCorrectionsUseCase {
 
     // 8. Save updated chapter if any corrections were applied
     if (appliedCorrections.length > 0) {
-      const updatedChapter = chapter.updateContent(currentContent);
-      const updatedProject = project.updateChapter(updatedChapter);
-      await this.projectRepository.saveProject(input.ownerId, updatedProject);
+      chapter.updateContent(currentContent);
+      project.touch();
+      await this.projectRepository.saveProject(input.ownerId, project);
       await this.analysisRepository.updateAnalysis(input.ownerId, analysis);
     }
 

@@ -90,10 +90,10 @@ export class ApplyCorrectionUseCase {
       issue.suggestion +
       originalContent.substring(end);
 
-    // 7. Update chapter content
-    const updatedChapter = chapter.updateContent(updatedContent);
-    const updatedProject = project.updateChapter(updatedChapter);
-    await this.projectRepository.saveProject(input.ownerId, updatedProject);
+    // 7. Update chapter content (mutates chapter in place)
+    chapter.updateContent(updatedContent);
+    project.touch();
+    await this.projectRepository.saveProject(input.ownerId, project);
 
     // 8. Mark issue as applied in analysis
     const updatedAnalysis = analysis.applyIssue(input.issueId);
