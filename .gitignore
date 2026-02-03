@@ -95,3 +95,6 @@ Desktop.ini
 
 #Screenshots
 /screenshots/*
+
+# Playwright reports
+/playwright-report/*
