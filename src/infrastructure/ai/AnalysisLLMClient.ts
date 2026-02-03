@@ -111,6 +111,36 @@ export class OpenAIAnalysisLLMClient implements AnalysisLLMClient {
     return this.callLLM<RepetitionAnalysisResponse>(prompt);
   }
 
+  /**
+   * Extract JSON from response, handling markdown code blocks.
+   */
+  private extractJson(content: string): string {
+    let text = content.trim();
+
+    // Try to extract from complete markdown code block
+    const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (codeBlockMatch) {
+      text = codeBlockMatch[1].trim();
+    } else {
+      // Handle unclosed code block (response might be truncated)
+      const openBlockMatch = text.match(/^```(?:json)?\s*([\s\S]*)/);
+      if (openBlockMatch) {
+        text = openBlockMatch[1].trim();
+      }
+    }
+
+    // If no code block, try to find JSON object directly
+    if (!text.startsWith('{')) {
+      const jsonStart = text.indexOf('{');
+      const jsonEnd = text.lastIndexOf('}');
+      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+        text = text.slice(jsonStart, jsonEnd + 1);
+      }
+    }
+
+    return text;
+  }
+
   private async callLLM<T>(prompt: string): Promise<T> {
     const response = await this.client.chat.completions.create({
       model: this.model,
@@ -124,6 +154,7 @@ export class OpenAIAnalysisLLMClient implements AnalysisLLMClient {
       ],
       response_format: { type: 'json_object' },
       temperature: 0.3, // Lower temperature for more consistent analysis
+      max_tokens: 8192, // Ensure enough tokens for detailed analysis
     });
 
     const content = response.choices[0]?.message?.content;
@@ -132,7 +163,8 @@ export class OpenAIAnalysisLLMClient implements AnalysisLLMClient {
     }
 
     try {
-      return JSON.parse(content) as T;
+      const jsonText = this.extractJson(content);
+      return JSON.parse(jsonText) as T;
     } catch {
       throw new Error(`Failed to parse LLM response: ${content}`);
     }
@@ -215,10 +247,16 @@ export class AnthropicAnalysisLLMClient implements AnalysisLLMClient {
   private extractJson(content: string): string {
     let text = content.trim();
 
-    // Try to extract from markdown code block
+    // Try to extract from complete markdown code block
     const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (codeBlockMatch) {
       text = codeBlockMatch[1].trim();
+    } else {
+      // Handle unclosed code block (response might be truncated)
+      const openBlockMatch = text.match(/^```(?:json)?\s*([\s\S]*)/);
+      if (openBlockMatch) {
+        text = openBlockMatch[1].trim();
+      }
     }
 
     // If no code block, try to find JSON object directly
@@ -236,7 +274,7 @@ export class AnthropicAnalysisLLMClient implements AnalysisLLMClient {
   private async callLLM<T>(prompt: string): Promise<T> {
     const message = await this.client.messages.create({
       model: this.model,
-      max_tokens: 4096,
+      max_tokens: 8192, // Ensure enough tokens for detailed analysis
       temperature: 0.3, // Lower temperature for consistent analysis
       system:
         'You are a professional text analysis assistant. Always respond with valid JSON only, no markdown formatting or explanatory text.',
@@ -333,10 +371,16 @@ export class GoogleAnalysisLLMClient implements AnalysisLLMClient {
   private extractJson(content: string): string {
     let text = content.trim();
 
-    // Try to extract from markdown code block
+    // Try to extract from complete markdown code block
     const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (codeBlockMatch) {
       text = codeBlockMatch[1].trim();
+    } else {
+      // Handle unclosed code block (response might be truncated)
+      const openBlockMatch = text.match(/^```(?:json)?\s*([\s\S]*)/);
+      if (openBlockMatch) {
+        text = openBlockMatch[1].trim();
+      }
     }
 
     // If no code block, try to find JSON object directly
@@ -360,7 +404,7 @@ export class GoogleAnalysisLLMClient implements AnalysisLLMClient {
       contents: `${systemPrompt}\n\n---\n\n${prompt}`,
       config: {
         temperature: 0.3, // Lower temperature for consistent analysis
-        maxOutputTokens: 4096,
+        maxOutputTokens: 8192, // Ensure enough tokens for detailed analysis
       },
     });
 

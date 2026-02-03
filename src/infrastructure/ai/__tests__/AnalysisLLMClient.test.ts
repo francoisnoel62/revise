@@ -202,7 +202,7 @@ describe('AnalysisLLMClient', () => {
         expect.objectContaining({
           model: 'claude-sonnet-4-5-20250929',
           temperature: 0.3,
-          max_tokens: 4096,
+          max_tokens: 8192,
         })
       );
     });
@@ -214,6 +214,20 @@ describe('AnalysisLLMClient', () => {
 
       mockAnthropicCreate.mockResolvedValue({
         content: [{ type: 'text', text: '```json\n' + JSON.stringify(mockResponse) + '\n```' }],
+      });
+
+      const result = await client.analyzeGrammar('test', { language: 'en' });
+      expect(result.issues).toHaveLength(0);
+    });
+
+    it('should extract JSON from unclosed markdown code block', async () => {
+      const mockResponse = {
+        issues: [],
+      };
+
+      // Simulate truncated response without closing ```
+      mockAnthropicCreate.mockResolvedValue({
+        content: [{ type: 'text', text: '```json\n' + JSON.stringify(mockResponse) }],
       });
 
       const result = await client.analyzeGrammar('test', { language: 'en' });
@@ -320,7 +334,7 @@ describe('AnalysisLLMClient', () => {
           model: 'gemini-3-flash-preview',
           config: expect.objectContaining({
             temperature: 0.3,
-            maxOutputTokens: 4096,
+            maxOutputTokens: 8192,
           }),
         })
       );
