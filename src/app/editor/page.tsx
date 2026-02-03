@@ -29,6 +29,17 @@ import { PublishDialog } from '@/components/publish/PublishDialog';
 import { CommandPalette } from '@/components/editor/CommandPalette';
 import { SearchReplaceBar } from '@/components/editor/SearchReplaceBar';
 import { ChapterGenerationTypeKey } from '@/domain';
+import { AnalysisConfigDialog, AnalysisConfig } from '@/components/analysis/AnalysisConfigDialog';
+import { ChapterAnalysisPanel } from '@/components/analysis/ChapterAnalysisPanel';
+import {
+  analyzeChapter,
+  applyCorrection,
+  applyBatchCorrections,
+  ignoreIssue,
+  type AnalysisResultDTO,
+} from '@/app/actions/analysis-actions';
+import type { AnalysisIssueData } from '@/components/analysis/AnalysisIssueCard';
+import type { AnalysisSummaryStats } from '@/components/analysis/AnalysisSummaryCard';
 
 interface Proposal {
   content: string;
@@ -80,6 +91,15 @@ function EditorContent() {
 
   // Search/Replace state
   const [showSearchReplace, setShowSearchReplace] = useState(false);
+
+  // Chapter analysis state
+  const [showAnalysisConfig, setShowAnalysisConfig] = useState(false);
+  const [showAnalysisPanel, setShowAnalysisPanel] = useState(false);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResultDTO | null>(null);
+  const [analysisId, setAnalysisId] = useState<string | null>(null);
+  const [applyingIssueId, setApplyingIssueId] = useState<string | null>(null);
+  const [isApplyingAll, setIsApplyingAll] = useState(false);
 
   // Keyboard shortcut for search (Ctrl+F / Cmd+F)
   useEffect(() => {
@@ -293,6 +313,154 @@ function EditorContent() {
     setShowProposals(false);
   };
 
+  // Chapter analysis handlers
+  const handleOpenAnalysisConfig = () => {
+    setShowAnalysisConfig(true);
+  };
+
+  const handleStartAnalysis = async (config: AnalysisConfig) => {
+    if (!project?.id || !project.activeChapterId) return;
+
+    setAnalysisLoading(true);
+    setShowAnalysisConfig(false);
+
+    try {
+      const result = await analyzeChapter(
+        project.id,
+        project.activeChapterId,
+        config.categories,
+        config.styleRigor
+      );
+
+      if (result.success && result.data) {
+        setAnalysisId(result.data.analysisId);
+        setAnalysisResult(result.data);
+        setShowAnalysisPanel(true);
+      } else if (!result.success) {
+        alert(result.error || 'Erreur lors de l\'analyse');
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Erreur inattendue');
+    } finally {
+      setAnalysisLoading(false);
+    }
+  };
+
+  const handleApplyCorrection = async (issueId: string) => {
+    if (!project?.id || !project.activeChapterId || !analysisId) return;
+
+    setApplyingIssueId(issueId);
+    try {
+      const result = await applyCorrection(
+        project.id,
+        project.activeChapterId,
+        analysisId,
+        issueId
+      );
+
+      if (result.success && result.data) {
+        // Update the editor content
+        editor?.commands.setContent(result.data.newContent);
+
+        // Update analysis result to mark issue as applied
+        setAnalysisResult((prev) =>
+          prev
+            ? {
+                ...prev,
+                issues: prev.issues.map((i) =>
+                  i.id === issueId ? { ...i, status: 'applied' as const } : i
+                ),
+              }
+            : null
+        );
+      } else if (!result.success) {
+        alert(result.error || 'Erreur lors de l\'application');
+      }
+    } finally {
+      setApplyingIssueId(null);
+    }
+  };
+
+  const handleIgnoreIssue = async (issueId: string) => {
+    if (!project?.id || !project.activeChapterId || !analysisId) return;
+
+    await ignoreIssue(project.id, project.activeChapterId, analysisId, issueId);
+
+    // Update analysis result to mark issue as ignored
+    setAnalysisResult((prev) =>
+      prev
+        ? {
+            ...prev,
+            issues: prev.issues.map((i) =>
+              i.id === issueId ? { ...i, status: 'ignored' as const } : i
+            ),
+          }
+        : null
+    );
+  };
+
+  const handleApplyAllCorrections = async () => {
+    if (!project?.id || !project.activeChapterId || !analysisId || !analysisResult) return;
+
+    setIsApplyingAll(true);
+    try {
+      const pendingIssueIds = analysisResult.issues
+        .filter((i) => i.status === 'pending')
+        .map((i) => i.id);
+
+      if (pendingIssueIds.length === 0) return;
+
+      const result = await applyBatchCorrections(
+        project.id,
+        project.activeChapterId,
+        analysisId,
+        pendingIssueIds
+      );
+
+      if (result.success && result.data) {
+        editor?.commands.setContent(result.data.newContent);
+
+        // Mark all pending issues as applied
+        setAnalysisResult((prev) =>
+          prev
+            ? {
+                ...prev,
+                issues: prev.issues.map((i) =>
+                  i.status === 'pending' ? { ...i, status: 'applied' as const } : i
+                ),
+              }
+            : null
+        );
+      } else if (!result.success) {
+        alert(result.error || 'Erreur lors de l\'application');
+      }
+    } finally {
+      setIsApplyingAll(false);
+    }
+  };
+
+  const handleCloseAnalysisPanel = () => {
+    setShowAnalysisPanel(false);
+  };
+
+  // Transform AnalysisResultDTO to component types
+  const analysisIssues: AnalysisIssueData[] = analysisResult?.issues ?? [];
+  const analysisStats: AnalysisSummaryStats = analysisResult
+    ? {
+        totalIssues: analysisResult.stats.totalIssues,
+        pendingIssues: analysisResult.issues.filter((i) => i.status === 'pending').length,
+        appliedIssues: analysisResult.issues.filter((i) => i.status === 'applied').length,
+        ignoredIssues: analysisResult.issues.filter((i) => i.status === 'ignored').length,
+        byCategory: analysisResult.stats.byCategory,
+      }
+    : {
+        totalIssues: 0,
+        pendingIssues: 0,
+        appliedIssues: 0,
+        ignoredIssues: 0,
+        byCategory: { spelling: 0, grammar: 0, punctuation: 0, repetition: 0, style: 0 },
+      };
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -427,6 +595,8 @@ function EditorContent() {
               activeGenerationType={activeGenerationType}
               onOpenCommandPalette={() => setShowCommandPalette(true)}
               onSearchClick={() => setShowSearchReplace(true)}
+              onAnalyze={handleOpenAnalysisConfig}
+              analysisLoading={analysisLoading}
             />
           </div>
         </div>
@@ -505,6 +675,28 @@ function EditorContent() {
           onProviderChange={handleProviderChange}
         />
       )}
+
+      {/* Chapter analysis configuration dialog */}
+      <AnalysisConfigDialog
+        open={showAnalysisConfig}
+        onStart={handleStartAnalysis}
+        onCancel={() => setShowAnalysisConfig(false)}
+        isLoading={analysisLoading}
+      />
+
+      {/* Chapter analysis results panel */}
+      <ChapterAnalysisPanel
+        open={showAnalysisPanel}
+        issues={analysisIssues}
+        stats={analysisStats}
+        onApply={handleApplyCorrection}
+        onIgnore={handleIgnoreIssue}
+        onApplyAll={handleApplyAllCorrections}
+        onClose={handleCloseAnalysisPanel}
+        chapterTitle={project.chapters.find((c) => c.id === project.activeChapterId)?.title || 'Chapitre'}
+        applyingIssueId={applyingIssueId}
+        isApplyingAll={isApplyingAll}
+      />
     </main>
   );
 }
