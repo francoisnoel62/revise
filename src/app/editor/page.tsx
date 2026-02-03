@@ -529,7 +529,7 @@ function EditorContent() {
           <div className="flex-1 text-center min-w-0 px-2">
             <h1 className="text-base font-semibold truncate">{project.title}</h1>
             <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-              <span className="truncate max-w-[150px]">{project.chapters.find((c) => c.id === project.activeChapterId)?.title || 'Sans titre'}</span>
+              <span className="truncate max-w-37.5">{project.chapters.find((c) => c.id === project.activeChapterId)?.title || 'Sans titre'}</span>
               <span>·</span>
               <SaveStatus compact />
             </div>
@@ -573,8 +573,8 @@ function EditorContent() {
       </header>
 
       {/* Toolbar sticky - responsive positioning for 3 breakpoints */}
-      <div className="sticky top-[52px] lg:top-[73px] z-40 flex flex-col items-center py-1 lg:py-2 bg-slate-50 px-2 gap-2">
-        <div className="w-full max-w-[794px]">
+      <div className="sticky top-13 lg:top-18.25 z-40 flex flex-col items-center py-1 lg:py-2 bg-slate-50 px-2 gap-2">
+        <div className="w-full max-w-198.5">
           <div className="bg-white rounded-lg shadow border border-slate-200 px-1 md:px-2 py-1 overflow-x-auto">
             <FormattingToolbar
               editor={editor}
@@ -601,7 +601,7 @@ function EditorContent() {
           </div>
         </div>
         {/* Search/Replace bar */}
-        <div className="w-full max-w-[794px]">
+        <div className="w-full max-w-198.5">
           <SearchReplaceBar
             editor={editor}
             isOpen={showSearchReplace}
@@ -612,7 +612,7 @@ function EditorContent() {
 
       {/* Editor container - responsive width */}
       <div className="flex justify-center px-2 md:px-4 pb-8">
-        <div className="w-full max-w-[794px]">
+        <div className="w-full max-w-198.5">
           <div className="bg-white rounded-lg shadow-lg overflow-hidden relative">
             <TextEditor
               onSelectionChange={handleSelectionChange}
