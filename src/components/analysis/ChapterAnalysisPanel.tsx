@@ -76,7 +76,7 @@ export function ChapterAnalysisPanel({
 
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <SheetContent side="right" className="w-full md:w-[33vw] md:min-w-100 flex flex-col p-0">
+      <SheetContent side="right" className="w-full sm:max-w-none md:w-[33vw] md:min-w-100 flex flex-col p-0">
         <SheetHeader className="px-6 py-4 border-b">
           <div className="flex items-center justify-between">
             <SheetTitle className="text-lg">
