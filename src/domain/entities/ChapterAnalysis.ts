@@ -158,6 +158,23 @@ export class ChapterAnalysis {
     });
   }
 
+  adjustPositionsAfterCorrection(
+    correctionEnd: number,
+    delta: number
+  ): ChapterAnalysis {
+    const adjustedIssues = this.issues.map((issue) => {
+      if (issue.position.start >= correctionEnd) {
+        return issue.withAdjustedPosition(delta);
+      }
+      return issue;
+    });
+
+    return new ChapterAnalysis({
+      ...this.toData(),
+      issues: adjustedIssues,
+    });
+  }
+
   // Filtering
   getIssuesByCategory(category: AnalysisCategory): AnalysisIssue[] {
     return this.issues.filter((issue) => issue.category === category);

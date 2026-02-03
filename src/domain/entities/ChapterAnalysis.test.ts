@@ -421,4 +421,118 @@ describe('ChapterAnalysis', () => {
       expect(analysis.hasChanges('xyz789')).toBe(true);
     });
   });
+
+  describe('adjustPositionsAfterCorrection', () => {
+    const createIssueAtPosition = (id: string, start: number, end: number): AnalysisIssue => {
+      return createAnalysisIssue({
+        id,
+        category: 'spelling',
+        severity: 'error',
+        originalText: 'x'.repeat(end - start),
+        suggestion: 'fixed',
+        explanation: 'test',
+        position: { start, end },
+        context: 'context',
+      });
+    };
+
+    it('should adjust positions of issues after the correction point', () => {
+      const issue1 = createIssueAtPosition('issue-1', 10, 15);
+      const issue2 = createIssueAtPosition('issue-2', 50, 60);
+      const issue3 = createIssueAtPosition('issue-3', 100, 110);
+
+      const analysis = new ChapterAnalysis({
+        id: 'analysis-1',
+        chapterId: 'chapter-1',
+        projectId: 'project-1',
+        ownerId: 'user-1',
+        categories: ['spelling'],
+        styleRigor: 'moderate',
+        issues: [issue1, issue2, issue3],
+        repetitions: [],
+        contentHash: 'abc123',
+      });
+
+      // Correction ended at position 15, delta is -3 (removed 3 chars)
+      const adjusted = analysis.adjustPositionsAfterCorrection(15, -3);
+
+      // Issue 1 ends at 15, so it should NOT be adjusted
+      expect(adjusted.getIssue('issue-1')?.position).toEqual({ start: 10, end: 15 });
+
+      // Issue 2 starts at 50 (> 15), should be adjusted by -3
+      expect(adjusted.getIssue('issue-2')?.position).toEqual({ start: 47, end: 57 });
+
+      // Issue 3 starts at 100 (> 15), should be adjusted by -3
+      expect(adjusted.getIssue('issue-3')?.position).toEqual({ start: 97, end: 107 });
+    });
+
+    it('should handle positive delta (text got longer)', () => {
+      const issue1 = createIssueAtPosition('issue-1', 10, 15);
+      const issue2 = createIssueAtPosition('issue-2', 50, 60);
+
+      const analysis = new ChapterAnalysis({
+        id: 'analysis-1',
+        chapterId: 'chapter-1',
+        projectId: 'project-1',
+        ownerId: 'user-1',
+        categories: ['spelling'],
+        styleRigor: 'moderate',
+        issues: [issue1, issue2],
+        repetitions: [],
+        contentHash: 'abc123',
+      });
+
+      // Correction ended at position 15, delta is +5 (added 5 chars)
+      const adjusted = analysis.adjustPositionsAfterCorrection(15, 5);
+
+      expect(adjusted.getIssue('issue-1')?.position).toEqual({ start: 10, end: 15 });
+      expect(adjusted.getIssue('issue-2')?.position).toEqual({ start: 55, end: 65 });
+    });
+
+    it('should not adjust issues before the correction point', () => {
+      const issue1 = createIssueAtPosition('issue-1', 10, 15);
+      const issue2 = createIssueAtPosition('issue-2', 50, 60);
+
+      const analysis = new ChapterAnalysis({
+        id: 'analysis-1',
+        chapterId: 'chapter-1',
+        projectId: 'project-1',
+        ownerId: 'user-1',
+        categories: ['spelling'],
+        styleRigor: 'moderate',
+        issues: [issue1, issue2],
+        repetitions: [],
+        contentHash: 'abc123',
+      });
+
+      // Correction ended at position 60
+      const adjusted = analysis.adjustPositionsAfterCorrection(60, -5);
+
+      // Both issues are before position 60, so neither should be adjusted
+      expect(adjusted.getIssue('issue-1')?.position).toEqual({ start: 10, end: 15 });
+      expect(adjusted.getIssue('issue-2')?.position).toEqual({ start: 50, end: 60 });
+    });
+
+    it('should be immutable', () => {
+      const issue = createIssueAtPosition('issue-1', 50, 60);
+
+      const analysis = new ChapterAnalysis({
+        id: 'analysis-1',
+        chapterId: 'chapter-1',
+        projectId: 'project-1',
+        ownerId: 'user-1',
+        categories: ['spelling'],
+        styleRigor: 'moderate',
+        issues: [issue],
+        repetitions: [],
+        contentHash: 'abc123',
+      });
+
+      const adjusted = analysis.adjustPositionsAfterCorrection(15, -3);
+
+      // Original should be unchanged
+      expect(analysis.getIssue('issue-1')?.position).toEqual({ start: 50, end: 60 });
+      expect(adjusted.getIssue('issue-1')?.position).toEqual({ start: 47, end: 57 });
+    });
+  });
 });

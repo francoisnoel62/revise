@@ -96,7 +96,14 @@ export class ApplyCorrectionUseCase {
     await this.projectRepository.updateProject(input.ownerId, project);
 
     // 8. Mark issue as applied in analysis
-    const updatedAnalysis = analysis.applyIssue(input.issueId);
+    let updatedAnalysis = analysis.applyIssue(input.issueId);
+
+    // 9. Adjust positions of remaining issues after the correction
+    const delta = issue.suggestion.length - issue.originalText.length;
+    if (delta !== 0) {
+      updatedAnalysis = updatedAnalysis.adjustPositionsAfterCorrection(end, delta);
+    }
+
     await this.analysisRepository.updateAnalysis(input.ownerId, updatedAnalysis);
 
     return {

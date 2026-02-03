@@ -106,6 +106,15 @@ export class AnalysisIssue {
     return this.status === 'applied' || this.status === 'ignored';
   }
 
+  withAdjustedPosition(delta: number): AnalysisIssue {
+    const data = this.toData();
+    data.position = {
+      start: data.position.start + delta,
+      end: data.position.end + delta,
+    };
+    return new AnalysisIssue(data, this.status);
+  }
+
   private toData(): AnalysisIssueData {
     return {
       id: this.id,

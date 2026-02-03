@@ -194,4 +194,53 @@ describe('AnalysisIssue', () => {
       expect(appliedIssue.id).toBe(issue.id);
     });
   });
+
+  describe('withAdjustedPosition', () => {
+    it('should adjust position by positive delta', () => {
+      const issue = createAnalysisIssue(validIssueData);
+      const adjusted = issue.withAdjustedPosition(5);
+
+      expect(adjusted.position.start).toBe(15);
+      expect(adjusted.position.end).toBe(25);
+      expect(adjusted.id).toBe(issue.id);
+      expect(adjusted.status).toBe(issue.status);
+    });
+
+    it('should adjust position by negative delta', () => {
+      const issue = createAnalysisIssue(validIssueData);
+      const adjusted = issue.withAdjustedPosition(-3);
+
+      expect(adjusted.position.start).toBe(7);
+      expect(adjusted.position.end).toBe(17);
+    });
+
+    it('should preserve all other properties', () => {
+      const issue = createAnalysisIssue(validIssueData);
+      const adjusted = issue.withAdjustedPosition(5);
+
+      expect(adjusted.category).toBe(issue.category);
+      expect(adjusted.severity).toBe(issue.severity);
+      expect(adjusted.originalText).toBe(issue.originalText);
+      expect(adjusted.suggestion).toBe(issue.suggestion);
+      expect(adjusted.explanation).toBe(issue.explanation);
+      expect(adjusted.context).toBe(issue.context);
+    });
+
+    it('should preserve status after adjustment', () => {
+      const issue = createAnalysisIssue(validIssueData);
+      const appliedIssue = issue.apply();
+      const adjusted = appliedIssue.withAdjustedPosition(5);
+
+      expect(adjusted.status).toBe('applied');
+    });
+
+    it('should return new instance (immutability)', () => {
+      const issue = createAnalysisIssue(validIssueData);
+      const adjusted = issue.withAdjustedPosition(5);
+
+      expect(adjusted).not.toBe(issue);
+      expect(issue.position.start).toBe(10);
+      expect(issue.position.end).toBe(20);
+    });
+  });
 });
