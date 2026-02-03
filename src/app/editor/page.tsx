@@ -670,6 +670,11 @@ function EditorContent() {
           }}
           autocompleteEnabled={autocompleteEnabled}
           onAutocompleteChange={setAutocompleteEnabled}
+          onAnalyze={() => {
+            setShowCommandPalette(false);
+            handleOpenAnalysisConfig();
+          }}
+          analysisLoading={analysisLoading}
           providers={providers}
           selectedProviderId={selectedProviderId}
           onProviderChange={handleProviderChange}

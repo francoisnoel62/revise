@@ -14,6 +14,7 @@ import {
   PenLine,
   Settings2,
   Check,
+  CheckCircle,
 } from 'lucide-react';
 import {
   CommandDialog,
@@ -42,6 +43,10 @@ interface CommandPaletteProps {
   onHistoryClick: () => void;
   autocompleteEnabled: boolean;
   onAutocompleteChange: (enabled: boolean) => void;
+
+  // Analysis
+  onAnalyze?: () => void;
+  analysisLoading?: boolean;
 
   // Provider
   providers: SafeProvider[];
@@ -73,6 +78,8 @@ export function CommandPalette({
   onHistoryClick,
   autocompleteEnabled,
   onAutocompleteChange,
+  onAnalyze,
+  analysisLoading = false,
   providers,
   selectedProviderId,
   onProviderChange,
@@ -166,6 +173,16 @@ export function CommandPalette({
       category: 'settings',
       keywords: ['history', 'historique', 'corrections', 'rewrites'],
     },
+    ...(onAnalyze ? [{
+      id: 'analyze',
+      label: 'Vérifier le chapitre',
+      description: 'Analyser orthographe, grammaire, style et répétitions',
+      icon: <CheckCircle className="h-4 w-4" />,
+      action: () => executeCommand(onAnalyze),
+      available: hasValidProvider && !analysisLoading,
+      category: 'settings' as const,
+      keywords: ['analyze', 'analyser', 'vérifier', 'check', 'orthographe', 'grammaire', 'style'],
+    }] : []),
     {
       id: 'toggle-autocomplete',
       label: autocompleteEnabled ? 'Désactiver l\'autocomplétion' : 'Activer l\'autocomplétion',
