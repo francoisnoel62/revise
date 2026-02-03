@@ -211,8 +211,8 @@ describe('ChapterAnalysisPanel', () => {
     const user = userEvent.setup();
     render(<ChapterAnalysisPanel {...defaultProps} />);
 
-    // Find the close button (X icon button)
-    const closeButton = screen.getByRole('button', { name: /fermer/i });
+    // Find the close button (Dialog's built-in close button has aria-label="Close")
+    const closeButton = screen.getByRole('button', { name: /close/i });
     await user.click(closeButton);
 
     expect(mockOnClose).toHaveBeenCalled();

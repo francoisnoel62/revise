@@ -94,7 +94,7 @@ export function CorrectionHistoryTable({
       </div>
 
       {/* Accordion list */}
-      <ScrollArea className="h-[400px] rounded-md border">
+      <ScrollArea className="h-100 rounded-md border">
         {filteredData.length === 0 ? (
           <div className="h-24 flex items-center justify-center text-muted-foreground">
             {data.length === 0
@@ -111,7 +111,7 @@ export function CorrectionHistoryTable({
                       <span className="font-mono text-xs text-muted-foreground whitespace-nowrap shrink-0">
                         {formatDate(item.createdAt)}
                       </span>
-                      <span className="text-sm line-clamp-1 flex-1 text-left break-words">
+                      <span className="text-sm line-clamp-1 flex-1 text-left wrap-break-word">
                         {item.selectedText}
                       </span>
                     </div>
@@ -202,7 +202,7 @@ function TextBlock({ label, text, id, copiedId, onCopy, variant = 'default' }: T
           )}
         </Button>
       </div>
-      <p className="text-sm whitespace-pre-wrap break-words">{text}</p>
+      <p className="text-sm whitespace-pre-wrap wrap-break-word">{text}</p>
     </div>
   );
 }

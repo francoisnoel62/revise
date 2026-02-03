@@ -1,17 +1,16 @@
-// ABOUTME: Main panel component for chapter analysis results
+// ABOUTME: Main dialog component for chapter analysis results
 // ABOUTME: Displays summary, category tabs, and list of issues with actions
 
 'use client';
 
 import { useState, useMemo } from 'react';
-import { X } from 'lucide-react';
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AnalysisCategory } from '@/domain/value-objects/AnalysisCategory';
@@ -75,25 +74,18 @@ export function ChapterAnalysisPanel({
   }, [issues, selectedCategory]);
 
   return (
-    <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-none md:w-[33vw] md:min-w-100 flex flex-col p-0">
-        <SheetHeader className="px-6 py-4 border-b">
-          <div className="flex items-center justify-between">
-            <SheetTitle className="text-lg">
-              Vérification : {chapterTitle}
-            </SheetTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              aria-label="Fermer"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </SheetHeader>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent className="w-[85vw]! max-w-none! max-h-[90vh] overflow-hidden flex flex-col p-0">
+        <DialogHeader className="px-6 py-4 border-b shrink-0">
+          <DialogTitle className="text-lg">
+            Vérification : {chapterTitle}
+          </DialogTitle>
+          <DialogDescription className="sr-only">
+            Liste des corrections suggérées pour ce chapitre
+          </DialogDescription>
+        </DialogHeader>
 
-        <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
           {isLoading ? (
             <div className="p-6 space-y-4">
               <Skeleton className="h-32 w-full animate-pulse" />
@@ -107,7 +99,7 @@ export function ChapterAnalysisPanel({
           ) : (
             <>
               {/* Summary */}
-              <div className="px-6 py-4 border-b">
+              <div className="px-6 py-4 border-b shrink-0">
                 <AnalysisSummaryCard
                   stats={stats}
                   onApplyAll={onApplyAll}
@@ -117,7 +109,7 @@ export function ChapterAnalysisPanel({
 
               {/* Category tabs */}
               {stats.totalIssues > 0 && (
-                <div className="px-6 py-3 border-b bg-muted/30">
+                <div className="px-6 py-3 border-b bg-muted/30 shrink-0">
                   <AnalysisCategoryTabs
                     selectedCategory={selectedCategory}
                     counts={categoryCounts}
@@ -128,7 +120,7 @@ export function ChapterAnalysisPanel({
               )}
 
               {/* Issues list */}
-              <ScrollArea className="flex-1">
+              <ScrollArea className="flex-1 min-h-0">
                 <div className="p-6 space-y-3">
                   {filteredIssues.length === 0 && stats.totalIssues === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
@@ -155,7 +147,7 @@ export function ChapterAnalysisPanel({
             </>
           )}
         </div>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
