@@ -2,11 +2,9 @@
 // ABOUTME: Verifies configuration options for chapter analysis
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AnalysisConfigDialog } from '../AnalysisConfigDialog';
-import { AnalysisCategory } from '@/domain/value-objects/AnalysisCategory';
-import { StyleRigor } from '@/domain/value-objects/StyleRigor';
 
 describe('AnalysisConfigDialog', () => {
   const mockOnStart = vi.fn();

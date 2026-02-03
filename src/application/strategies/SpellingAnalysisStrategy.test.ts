@@ -194,8 +194,7 @@ describe('SpellingAnalysisStrategy', () => {
       const content = 'Test content';
 
       // Consume the generator
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      for await (const _ of strategy.analyze(content, defaultOptions)) {
+      for await (const _issue of strategy.analyze(content, defaultOptions)) {
         // Just consume
       }
 

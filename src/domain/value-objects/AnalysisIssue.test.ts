@@ -3,9 +3,7 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  AnalysisIssue,
   createAnalysisIssue,
-  AnalysisIssueStatus,
   ANALYSIS_ISSUE_STATUSES,
   isValidAnalysisIssueStatus,
 } from './AnalysisIssue';
@@ -107,7 +105,7 @@ describe('AnalysisIssue', () => {
     });
 
     it('should generate id if not provided', () => {
-      const { id, ...dataWithoutId } = validIssueData;
+      const { id: _id, ...dataWithoutId } = validIssueData;
       const issue = createAnalysisIssue(dataWithoutId);
 
       expect(issue.id).toBeDefined();

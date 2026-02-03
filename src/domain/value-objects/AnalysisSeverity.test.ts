@@ -4,7 +4,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   ANALYSIS_SEVERITIES,
-  AnalysisSeverity,
   isValidAnalysisSeverity,
   ANALYSIS_SEVERITY_LABELS,
   ANALYSIS_SEVERITY_PRIORITY,

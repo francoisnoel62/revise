@@ -2,11 +2,7 @@
 // ABOUTME: Validates exclusion management from multiple sources (characters, places, user-defined)
 
 import { describe, it, expect } from 'vitest';
-import {
-  RepetitionExclusions,
-  createRepetitionExclusions,
-  ExclusionSource,
-} from './RepetitionExclusions';
+import { createRepetitionExclusions } from './RepetitionExclusions';
 
 describe('RepetitionExclusions', () => {
   describe('createRepetitionExclusions', () => {

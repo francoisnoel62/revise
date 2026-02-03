@@ -4,7 +4,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   ANALYSIS_CATEGORIES,
-  AnalysisCategory,
   isValidAnalysisCategory,
   ANALYSIS_CATEGORY_LABELS,
   ANALYSIS_CATEGORY_ICONS,

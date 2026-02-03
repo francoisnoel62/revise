@@ -6,7 +6,6 @@ import { ChapterAnalysis } from './ChapterAnalysis';
 import { createAnalysisIssue, AnalysisIssue } from '../value-objects/AnalysisIssue';
 import { createRepetitionCluster, RepetitionCluster } from '../value-objects/RepetitionCluster';
 import { AnalysisCategory } from '../value-objects/AnalysisCategory';
-import { StyleRigor } from '../value-objects/StyleRigor';
 
 describe('ChapterAnalysis', () => {
   const createTestIssue = (overrides: Partial<{

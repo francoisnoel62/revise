@@ -4,7 +4,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   STYLE_RIGOR_LEVELS,
-  StyleRigor,
   isValidStyleRigor,
   STYLE_RIGOR_LABELS,
   STYLE_RIGOR_DESCRIPTIONS,

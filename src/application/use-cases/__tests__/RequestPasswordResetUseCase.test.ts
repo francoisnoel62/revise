@@ -2,10 +2,7 @@
 // ABOUTME: Validates password reset request flow including token generation and email sending.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  RequestPasswordResetUseCase,
-  RequestPasswordResetInput,
-} from '../RequestPasswordResetUseCase';
+import { RequestPasswordResetUseCase } from '../RequestPasswordResetUseCase';
 
 describe('RequestPasswordResetUseCase', () => {
   const mockUserRepository = {

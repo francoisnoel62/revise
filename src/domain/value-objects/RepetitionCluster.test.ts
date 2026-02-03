@@ -3,7 +3,6 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  RepetitionCluster,
   createRepetitionCluster,
   RepetitionPosition,
 } from './RepetitionCluster';

@@ -7,7 +7,6 @@ import { ApplyBatchCorrectionsUseCase } from '../ApplyBatchCorrectionsUseCase';
 import { IgnoreAnalysisIssueUseCase } from '../IgnoreAnalysisIssueUseCase';
 import { SaveChapterAnalysisHistoryUseCase } from '../SaveChapterAnalysisHistoryUseCase';
 import { ListChapterAnalysisHistoryUseCase } from '../ListChapterAnalysisHistoryUseCase';
-import { GetAnalysisDiffUseCase } from '../GetAnalysisDiffUseCase';
 import { ExportAnalysisReportUseCase } from '../ExportAnalysisReportUseCase';
 import { ManageRepetitionExclusionsUseCase } from '../ManageRepetitionExclusionsUseCase';
 import { ChapterAnalysis, ChapterAnalysisData } from '@/domain/entities/ChapterAnalysis';
@@ -116,8 +115,9 @@ describe('Chapter Analysis Integration', () => {
       loadProject: vi.fn().mockImplementation(async (owner: string, id: string) => {
         return projects.get(`${owner}-${id}`) || null;
       }),
-      saveProject: vi.fn().mockImplementation(async (owner: string, project: Project) => {
+      updateProject: vi.fn().mockImplementation(async (owner: string, project: Project) => {
         projects.set(`${owner}-${project.getId()}`, project);
+        return project;
       }),
       listProjects: vi.fn(),
       deleteProject: vi.fn(),

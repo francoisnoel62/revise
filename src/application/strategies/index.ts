@@ -1,34 +1,20 @@
 // ABOUTME: Barrel export for all analysis strategies
 // ABOUTME: Provides unified access to strategy interfaces and implementations
 
-export { AnalysisStrategy, BaseAnalysisStrategy, AnalysisOptions } from './AnalysisStrategy';
+export type { AnalysisStrategy, AnalysisOptions } from './AnalysisStrategy';
+export { BaseAnalysisStrategy } from './AnalysisStrategy';
 
-export {
-  SpellingAnalysisStrategy,
-  SpellingLLMClient,
-  SPELLING_ANALYSIS_PROMPT,
-} from './SpellingAnalysisStrategy';
+export { SpellingAnalysisStrategy, SPELLING_ANALYSIS_PROMPT } from './SpellingAnalysisStrategy';
+export type { SpellingLLMClient } from './SpellingAnalysisStrategy';
 
-export {
-  GrammarAnalysisStrategy,
-  GrammarLLMClient,
-  GRAMMAR_ANALYSIS_PROMPT,
-} from './GrammarAnalysisStrategy';
+export { GrammarAnalysisStrategy, GRAMMAR_ANALYSIS_PROMPT } from './GrammarAnalysisStrategy';
+export type { GrammarLLMClient } from './GrammarAnalysisStrategy';
 
-export {
-  PunctuationAnalysisStrategy,
-  PunctuationLLMClient,
-  PUNCTUATION_ANALYSIS_PROMPT,
-} from './PunctuationAnalysisStrategy';
+export { PunctuationAnalysisStrategy, PUNCTUATION_ANALYSIS_PROMPT } from './PunctuationAnalysisStrategy';
+export type { PunctuationLLMClient } from './PunctuationAnalysisStrategy';
 
-export {
-  StyleAnalysisStrategy,
-  StyleLLMClient,
-  STYLE_ANALYSIS_PROMPT,
-} from './StyleAnalysisStrategy';
+export { StyleAnalysisStrategy, STYLE_ANALYSIS_PROMPT } from './StyleAnalysisStrategy';
+export type { StyleLLMClient } from './StyleAnalysisStrategy';
 
-export {
-  RepetitionAnalysisStrategy,
-  RepetitionLLMClient,
-  REPETITION_ANALYSIS_PROMPT,
-} from './RepetitionAnalysisStrategy';
+export { RepetitionAnalysisStrategy, REPETITION_ANALYSIS_PROMPT } from './RepetitionAnalysisStrategy';
+export type { RepetitionLLMClient } from './RepetitionAnalysisStrategy';

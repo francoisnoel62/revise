@@ -134,7 +134,7 @@ export class ApplyBatchCorrectionsUseCase {
     if (appliedCorrections.length > 0) {
       chapter.updateContent(currentContent);
       project.touch();
-      await this.projectRepository.saveProject(input.ownerId, project);
+      await this.projectRepository.updateProject(input.ownerId, project);
       await this.analysisRepository.updateAnalysis(input.ownerId, analysis);
     }
 
