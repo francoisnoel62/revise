@@ -76,6 +76,14 @@ export class RepetitionAnalysisStrategy extends BaseAnalysisStrategy {
         continue;
       }
 
+      // Use first suggestion, or empty string if none
+      const suggestion = repetition.suggestions[0] || '';
+
+      // Skip issues where LLM couldn't suggest a fix
+      if (!this.hasActionableSuggestion(repetition.word, suggestion)) {
+        continue;
+      }
+
       // Create an issue for each repetition cluster
       const suggestionText =
         repetition.suggestions.length > 0
@@ -93,7 +101,7 @@ export class RepetitionAnalysisStrategy extends BaseAnalysisStrategy {
         category: this.category,
         severity: 'warning',
         originalText: repetition.word,
-        suggestion: repetition.suggestions[0] || '',
+        suggestion,
         explanation,
         position: firstPosition,
         context: `Répétition détectée à ${repetition.positions.length} endroits`,

@@ -118,4 +118,21 @@ export abstract class BaseAnalysisStrategy implements AnalysisStrategy {
 
     return frenchMatches >= 2 ? 'fr' : 'en';
   }
+
+  /**
+   * Check if an issue has an actionable suggestion.
+   * For non-style categories, skip issues where suggestion equals originalText
+   * since they're not actionable (LLM couldn't suggest a fix).
+   */
+  protected hasActionableSuggestion(
+    originalText: string,
+    suggestion: string
+  ): boolean {
+    // Style category allows same text (just flagging)
+    if (this.category === 'style') {
+      return true;
+    }
+    // For other categories, suggestion must differ from original
+    return suggestion !== originalText;
+  }
 }

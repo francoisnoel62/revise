@@ -59,6 +59,11 @@ export class GrammarAnalysisStrategy extends BaseAnalysisStrategy {
         continue;
       }
 
+      // Skip issues where LLM couldn't suggest a fix
+      if (!this.hasActionableSuggestion(issueData.originalText, issueData.suggestion)) {
+        continue;
+      }
+
       const issue = createAnalysisIssue({
         category: this.category,
         severity: issueData.severity,

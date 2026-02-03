@@ -241,5 +241,41 @@ describe('SpellingAnalysisStrategy', () => {
 
       expect(issues[0].severity).toBe('warning');
     });
+
+    it('should skip issues where suggestion equals original text', async () => {
+      const mockResponse: MockLLMResponse = {
+        issues: [
+          {
+            originalText: 'valid',
+            suggestion: 'validated',
+            explanation: 'Valid fix',
+            position: { start: 0, end: 5 },
+            context: 'valid context',
+            severity: 'error',
+          },
+          {
+            // LLM returned same text - not actionable
+            originalText: 'unchanged',
+            suggestion: 'unchanged',
+            explanation: 'No fix available',
+            position: { start: 10, end: 19 },
+            context: 'unchanged context',
+            severity: 'warning',
+          },
+        ],
+      };
+
+      mockLLMClient = createMockLLMClient(mockResponse);
+      strategy = new SpellingAnalysisStrategy(mockLLMClient);
+
+      const issues: unknown[] = [];
+      for await (const issue of strategy.analyze('valid unchanged', defaultOptions)) {
+        issues.push(issue);
+      }
+
+      // Only the valid issue should be returned, the unchanged one is skipped
+      expect(issues).toHaveLength(1);
+      expect((issues[0] as { originalText: string }).originalText).toBe('valid');
+    });
   });
 });
