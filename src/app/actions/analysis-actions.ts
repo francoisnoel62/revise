@@ -11,6 +11,7 @@ import {
   getAnalysisRepo,
   getIdGenerator,
   getCharacterRepo,
+  getProviderRepo,
 } from './utils';
 import { AnalyzeChapterUseCase, HashService } from '@/application/use-cases/AnalyzeChapterUseCase';
 import { ApplyCorrectionUseCase } from '@/application/use-cases/ApplyCorrectionUseCase';
@@ -26,7 +27,7 @@ import { GrammarAnalysisStrategy } from '@/application/strategies/GrammarAnalysi
 import { PunctuationAnalysisStrategy } from '@/application/strategies/PunctuationAnalysisStrategy';
 import { StyleAnalysisStrategy } from '@/application/strategies/StyleAnalysisStrategy';
 import { RepetitionAnalysisStrategy } from '@/application/strategies/RepetitionAnalysisStrategy';
-import { OpenAIAnalysisLLMClient } from '@/infrastructure/ai/AnalysisLLMClient';
+import { createAnalysisLLMClient } from '@/infrastructure/ai/AnalysisLLMClient';
 import { ContentHashService } from '@/infrastructure/services/ContentHashService';
 import { AnalysisCategory } from '@/domain/value-objects/AnalysisCategory';
 import { StyleRigor } from '@/domain/value-objects/StyleRigor';
@@ -132,10 +133,34 @@ export async function analyzeChapter(
     const chapter = project.getChapters().find((c) => c.getId() === chapterId);
     if (!chapter) throw new Error('Chapter not found');
 
-    // Create analysis LLM client
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) throw new Error('OPENAI_API_KEY not configured');
-    const analysisClient = new OpenAIAnalysisLLMClient(apiKey);
+    // Get the project's configured provider
+    const providerId = project.getProviderId();
+    if (!providerId) {
+      throw new Error(
+        'Aucun fournisseur IA configuré pour ce projet. Veuillez en sélectionner un dans les paramètres du projet.'
+      );
+    }
+
+    const providerRepo = await getProviderRepo();
+    const provider = await providerRepo.findById(userId, providerId);
+    if (!provider) {
+      throw new Error(
+        'Le fournisseur IA configuré est introuvable. Veuillez en sélectionner un autre.'
+      );
+    }
+
+    if (!provider.isValidProvider()) {
+      throw new Error(
+        'Le fournisseur IA configuré est invalide. Veuillez tester la connexion ou en choisir un autre.'
+      );
+    }
+
+    // Create analysis LLM client with project's provider
+    const analysisClient = createAnalysisLLMClient(
+      provider.getType(),
+      provider.getApiKey(),
+      provider.getModel()
+    );
 
     // Create strategies based on requested categories
     const strategiesMap = new Map<AnalysisCategory, AnalysisStrategy>();
