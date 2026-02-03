@@ -2,7 +2,7 @@
 
 Orchestrates domain logic through use cases.
 
-**Status**: ✅ Phase 6 Complete (see [README.md](../../README.md) for test statistics)
+**Status**: ✅ Phase 7.0 Complete (see [README.md](../../README.md) for test statistics)
 
 ## Rules:
 - Depends only on Domain layer
@@ -475,6 +475,204 @@ Orchestrates domain logic through use cases.
 4. Persist to repository
 
 **Tests**: 5+ tests covering submission and validation
+
+---
+
+### Chapter Verification Use Cases ⭐ NEW (Phase 7)
+
+---
+
+#### `AnalyzeChapterUseCase`
+**Purpose**: Analyze a chapter for spelling, grammar, punctuation, style, and repetition issues
+
+**Dependencies**: `ProjectRepository`, `AnalysisRepository`, `CharacterRepository`, `IdGenerator`, `HashService`, `AnalysisStrategy` map
+**Input**: Owner ID, project ID, chapter ID, categories array, style rigor
+**Output**: `{ analysis: ChapterAnalysis, fromCache: boolean }`
+
+**Workflow**:
+1. Validate input and ownership
+2. Load project and find chapter
+3. Check cache for existing analysis (by content hash)
+4. If cache miss, collect exclusions (character names, user-defined words)
+5. Execute selected analysis strategies (spelling, grammar, etc.)
+6. Create ChapterAnalysis entity with all issues and repetitions
+7. Save to repository and return
+
+**Tests**: 25+ tests covering caching, strategies, and exclusions
+
+---
+
+#### `ApplyCorrectionUseCase`
+**Purpose**: Apply a single correction to chapter content
+
+**Dependencies**: `ProjectRepository`, `AnalysisRepository`
+**Input**: Owner ID, project ID, chapter ID, issue ID
+**Output**: Updated chapter content
+
+**Workflow**:
+1. Load analysis and find issue
+2. Apply correction to chapter content
+3. Update issue status to 'applied'
+4. Save updated chapter and analysis
+
+**Tests**: 10+ tests covering correction application
+
+---
+
+#### `ApplyBatchCorrectionsUseCase`
+**Purpose**: Apply multiple corrections in batch
+
+**Dependencies**: `ProjectRepository`, `AnalysisRepository`
+**Input**: Owner ID, project ID, chapter ID, issue IDs array
+**Output**: Updated chapter content, count of applied corrections
+
+**Workflow**:
+1. Sort issues by position (descending to avoid offset issues)
+2. Apply each correction in order
+3. Update all issue statuses
+4. Save updated chapter and analysis
+
+**Tests**: 10+ tests covering batch operations
+
+---
+
+#### `IgnoreAnalysisIssueUseCase`
+**Purpose**: Mark an issue as ignored (won't appear in future analyses)
+
+**Dependencies**: `AnalysisRepository`
+**Input**: Owner ID, chapter ID, issue ID
+**Output**: void
+
+**Workflow**:
+1. Load analysis and find issue
+2. Update issue status to 'ignored'
+3. Save ignored issue record for future exclusion
+
+**Tests**: 8+ tests covering ignore functionality
+
+---
+
+#### `GetAnalysisDiffUseCase`
+**Purpose**: Generate diff between original and corrected content
+
+**Dependencies**: `AnalysisRepository`
+**Input**: Owner ID, analysis ID
+**Output**: Diff with added/removed lines
+
+**Tests**: 5+ tests covering diff generation
+
+---
+
+#### `ExportAnalysisReportUseCase`
+**Purpose**: Export analysis results as markdown report
+
+**Dependencies**: `AnalysisRepository`
+**Input**: Owner ID, analysis ID
+**Output**: Markdown string with formatted report
+
+**Tests**: 5+ tests covering report generation
+
+---
+
+#### `ManageRepetitionExclusionsUseCase`
+**Purpose**: Add or remove words from repetition exclusion list
+
+**Dependencies**: `AnalysisRepository`, `IdGenerator`
+**Input**: Owner ID, project ID, word, action (add/remove), optional reason
+**Output**: Updated exclusions list
+
+**Tests**: 8+ tests covering add/remove operations
+
+---
+
+#### `SaveChapterAnalysisHistoryUseCase`
+**Purpose**: Save analysis history entry after corrections applied
+
+**Dependencies**: `AnalysisRepository`, `IdGenerator`
+**Input**: Owner ID, chapter ID, analysis data, corrections applied/ignored
+**Output**: Created AnalysisHistory entity
+
+**Tests**: 5+ tests covering history saving
+
+---
+
+#### `ListChapterAnalysisHistoryUseCase`
+**Purpose**: List analysis history for a chapter
+
+**Dependencies**: `AnalysisRepository`
+**Input**: Owner ID, chapter ID
+**Output**: Array of AnalysisHistory entities (sorted by date descending)
+
+**Tests**: 5+ tests covering history listing
+
+---
+
+### Analysis Strategies ⭐ NEW (Phase 7)
+
+Analysis strategies implement the Strategy pattern for different analysis types:
+
+---
+
+#### `SpellingAnalysisStrategy`
+**Purpose**: Detect spelling errors via AI
+
+**Features**:
+- Uses AnalysisLLMClient for AI-powered detection
+- Respects style rigor settings
+- Excludes character names and user-defined words
+- Returns AnalysisIssue array with suggestions
+
+**Tests**: 15+ tests covering detection scenarios
+
+---
+
+#### `GrammarAnalysisStrategy`
+**Purpose**: Detect grammar issues via AI
+
+**Features**:
+- Identifies subject-verb agreement errors
+- Detects tense inconsistencies
+- Suggests corrections with context
+
+**Tests**: 15+ tests covering grammar detection
+
+---
+
+#### `PunctuationAnalysisStrategy`
+**Purpose**: Detect punctuation errors via AI
+
+**Features**:
+- Missing/extra punctuation detection
+- Typography issues (curly quotes, em dashes)
+- French-specific rules (non-breaking spaces)
+
+**Tests**: 15+ tests covering punctuation detection
+
+---
+
+#### `StyleAnalysisStrategy`
+**Purpose**: Suggest style improvements via AI
+
+**Features**:
+- Weak word detection
+- Passive voice identification
+- Sentence length analysis
+- Respects style rigor (strict shows more suggestions)
+
+**Tests**: 15+ tests covering style suggestions
+
+---
+
+#### `RepetitionAnalysisStrategy`
+**Purpose**: Detect repeated words and phrases
+
+**Features**:
+- Configurable proximity threshold
+- Excludes common words (articles, prepositions)
+- Respects character names and user exclusions
+- Marks intentional repetitions (anaphora, etc.)
+
+**Tests**: 20+ tests covering repetition detection
 
 ---
 
@@ -1176,6 +1374,17 @@ Orchestrates domain logic through use cases.
 **Coverage**: See [README.md](../../README.md) for current statistics.
 
 All use cases tested with mocked dependencies following Clean Architecture principles:
+- **Chapter Verification Use Cases**: 100+ tests ⭐ NEW (Phase 7)
+  - AnalyzeChapterUseCase: 25 tests (including integration tests)
+  - ApplyCorrectionUseCase: 10 tests
+  - ApplyBatchCorrectionsUseCase: 10 tests
+  - IgnoreAnalysisIssueUseCase: 8 tests
+  - GetAnalysisDiffUseCase: 5 tests
+  - ExportAnalysisReportUseCase: 5 tests
+  - ManageRepetitionExclusionsUseCase: 8 tests
+  - SaveChapterAnalysisHistoryUseCase: 5 tests
+  - ListChapterAnalysisHistoryUseCase: 5 tests
+  - Analysis Strategies: 80+ tests (SpellingAnalysisStrategy, GrammarAnalysisStrategy, PunctuationAnalysisStrategy, StyleAnalysisStrategy, RepetitionAnalysisStrategy)
 - **Character Use Cases**: 33+ tests ⭐ NEW (Phase 6)
   - CreateCharacterUseCase: 5 tests
   - LoadCharacterUseCase: 4 tests

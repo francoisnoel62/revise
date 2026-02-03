@@ -26,6 +26,8 @@ Pure business logic with no framework dependencies.
 - `ResearchDocument` - Research document with title, content, tags (Phase 6)
 - `WritingGoal` - Writing goal with target word count, deadline, progress (Phase 6)
 - `AIUsageRecord` - AI usage tracking with operation type, tokens, cost (Phase 6)
+- `ChapterAnalysis` - Complete chapter analysis result with issues, repetitions, statistics (Phase 7)
+- `AnalysisHistory` - Tracks analysis runs and corrections over time (Phase 7)
 - `TextDocument` - Legacy single document (Phase 1)
 
 **Value Objects**:
@@ -39,6 +41,12 @@ Pure business logic with no framework dependencies.
 - `RelatedWork` - Related work with title, author, type (Phase 6)
 - `NarrationSettings` - Narration settings with POV, tense, person (Phase 6)
 - `AIOperationType` - AI operation type enum (rewrite, generate, complete, analyze) (Phase 6)
+- `AnalysisCategory` - Analysis category enum (spelling, grammar, punctuation, style, repetition) (Phase 7)
+- `AnalysisSeverity` - Issue severity enum (error, warning, suggestion) (Phase 7)
+- `AnalysisIssue` - Individual analysis issue with position, suggestion, status (Phase 7)
+- `RepetitionCluster` - Cluster of repeated words/phrases with positions (Phase 7)
+- `RepetitionExclusions` - User-defined words to exclude from repetition analysis (Phase 7)
+- `StyleRigor` - Analysis strictness level (strict, balanced, light) (Phase 7)
 
 **Interfaces**:
 - `DocumentParser` - Parse documents to entities
@@ -70,6 +78,7 @@ Pure business logic with no framework dependencies.
 - `PaginatedResult` - Pagination result interface for blog articles (Phase 4.1+)
 - `IdGenerator` - UUID generation abstraction (Phase 3.5)
 - `LLMProviderFactory` - Factory for creating LLM providers (Phase 3.5)
+- `AnalysisRepository` - Analysis results, history, and exclusions persistence (Phase 7)
 
 ### Application Layer (`src/application/`)
 
@@ -120,6 +129,24 @@ Use cases orchestrating domain logic.
 - `GenerateChapterUseCase` - Generate chapter content from metadata context
 - `GenerateCompletionUseCase` - Generate autocompletion suggestions
 
+**Chapter Verification Use Cases** (Phase 7):
+- `AnalyzeChapterUseCase` - Orchestrates analysis with caching and exclusions
+- `ApplyCorrectionUseCase` - Apply a single correction to chapter content
+- `ApplyBatchCorrectionsUseCase` - Apply multiple corrections in batch
+- `IgnoreAnalysisIssueUseCase` - Mark an issue as ignored
+- `GetAnalysisDiffUseCase` - Generate diff between original and corrected content
+- `ExportAnalysisReportUseCase` - Export analysis results as markdown report
+- `ManageRepetitionExclusionsUseCase` - Add/remove words from exclusion list
+- `SaveChapterAnalysisHistoryUseCase` - Save analysis history entry
+- `ListChapterAnalysisHistoryUseCase` - List analysis history for a chapter
+
+**Analysis Strategies** (Phase 7):
+- `SpellingAnalysisStrategy` - Spelling error detection via AI
+- `GrammarAnalysisStrategy` - Grammar issue detection via AI
+- `PunctuationAnalysisStrategy` - Punctuation error detection via AI
+- `StyleAnalysisStrategy` - Style improvement suggestions via AI
+- `RepetitionAnalysisStrategy` - Repeated word/phrase detection
+
 **Blog Use Cases** (Phase 4.0, 4.1+):
 - `CreateBlogArticleUseCase`, `UpdateBlogArticleUseCase`, `DeleteBlogArticleUseCase`, `ListBlogArticlesUseCase`
 - `LoadPublishedBlogArticlesPaginatedUseCase` - Paginated blog listing (Phase 4.1+)
@@ -149,6 +176,7 @@ External service implementations.
 - `AnthropicProvider` - Claude + 7 analysis types + generation (Phase 3.6, 4.1)
 - `LLMProviderFactoryImpl` - Factory for creating LLM providers (Phase 3.5)
 - `TrackedLLMProvider` - LLM provider wrapper that tracks AI usage (Phase 6)
+- `AnalysisLLMClient` - AI client for spelling, grammar, punctuation, and style analysis (Phase 7)
 
 **Utils**:
 - `UUIDGenerator` - IdGenerator implementation using crypto.randomUUID() (Phase 3.5)
@@ -171,7 +199,7 @@ External service implementations.
 - Middleware for route protection
 - User approval workflow integration (Phase 3.8)
 
-**Persistence** (Phase 3, 3.5, 3.6, 3.7, 4.0, 5.0, 6):
+**Persistence** (Phase 3, 3.5, 3.6, 3.7, 4.0, 5.0, 6, 7):
 - `MongoDBProjectRepository` - MongoDB Atlas persistence with multi-tenant isolation, `findPublishedByToken()` (Phase 5.0)
 - `MongoDBProviderRepository` - Provider storage with encrypted credentials (Phase 3.5)
 - `MongoDBMetadataRepository` - Metadata storage with multi-tenant isolation (Phase 3.6)
@@ -186,6 +214,7 @@ External service implementations.
 - `MongoDBResearchDocumentRepository` - Research document storage (Phase 6)
 - `MongoDBWritingGoalRepository` - Writing goal storage (Phase 6)
 - `MongoDBUsageRepository` - AI usage statistics with aggregation (Phase 6)
+- `MongoDBAnalysisRepository` - Chapter analysis results and history storage (Phase 7)
 - `InMemoryProjectRepository` - Ephemeral storage (testing/legacy)
 - All repositories support `deleteAllByOwner()` for RGPD compliance (Phase 3.11)
 - Serialization utilities for all entity types
@@ -252,6 +281,7 @@ React components and UI.
 - **Usage**: `UsageStatsCard`, `DailyUsageChart`, `UsageByOperationChart` (Phase 6)
 - **Settings**: `ProjectSettingsForm`, `CoverImageUpload`, `ContributorsField`, `RelatedWorksField` (Phase 6)
 - **Research**: `ResearchDocumentCard`, `ResearchDocumentForm` (Phase 6)
+- **Analysis**: `ChapterAnalysisPanel`, `AnalysisCategoryTabs`, `AnalysisConfigDialog`, `AnalysisIssueCard`, `AnalysisSummaryCard` (Phase 7)
 - **Document**: `DocumentControls` (DOCX/PDF export with chapter selection), `SaveStatus`, `ExportDialog`
 - **Publish**: `PublishDialog` (with chapter selection), `PublicReader` (with cover image)
 - **UI**: shadcn/ui components (Sheet, Button, Card, Dialog, Input, Label, Sidebar, Tabs, Chart, Breadcrumb, etc.)
@@ -277,6 +307,7 @@ React components and UI.
 - `character-actions` - Character CRUD + sync (→ Character Use Cases, Phase 6)
 - `research-document-actions` - Research document CRUD (→ ResearchDocument Use Cases, Phase 6)
 - `project-settings-actions` - Project settings CRUD (→ ProjectSettings Use Cases, Phase 6)
+- `analysis-actions` - Chapter analysis operations (→ Analysis Use Cases, Phase 7)
 
 **Dependency Injection** (`utils.ts`):
 - `getRepository()` - Project repository
@@ -297,6 +328,7 @@ React components and UI.
 - `getWritingGoalRepo()` - Writing goal repository (Phase 6)
 - `getUsageRepo()` - AI usage repository (Phase 6)
 - `getBlobStorage()` - Blob storage for images (Phase 6)
+- `getAnalysisRepository()` - Analysis repository (Phase 7)
 
 **Hooks**:
 - `useAutosave` - Auto-save hook with 1-second debounce
@@ -447,11 +479,11 @@ We use Repository pattern for swappable persistence.
 
 ## Testing Strategy
 
-- **Unit Tests**: Domain and application layers (~800+ tests)
-- **Integration Tests**: Infrastructure and store (~400+ tests including 30+ provider-specific)
+- **Unit Tests**: Domain and application layers (~900+ tests)
+- **Integration Tests**: Infrastructure and store (~500+ tests including 35+ provider-specific)
 - **E2E Tests**: Complete workflows (10+ tests planned)
 - **Coverage Achieved**: 92%+ domain entities, 100% use cases
-- **Total Tests**: 1375 passed (1401 total, 98%+ pass rate, 160 test files)
+- **Total Tests**: 1500+ passed (1550+ total, 98%+ pass rate, 180+ test files)
 
 ---
 

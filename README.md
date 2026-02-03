@@ -129,6 +129,25 @@ Sept types d'analyse pour comprendre votre texte en profondeur :
 
 > **Cache intelligent** : Les analyses ne se régénèrent que si votre contenu change réellement (hash SHA-256).
 
+### ✅ Vérification de chapitre
+
+Analysez vos chapitres pour détecter et corriger les erreurs :
+
+| Catégorie | Ce qu'elle détecte |
+|-----------|-------------------|
+| **Orthographe** | Fautes d'orthographe avec suggestions de correction |
+| **Grammaire** | Erreurs grammaticales et accords |
+| **Ponctuation** | Erreurs de ponctuation et typographie |
+| **Style** | Suggestions d'amélioration stylistique |
+| **Répétitions** | Mots et phrases répétés trop souvent |
+
+**Fonctionnalités** :
+- 3 niveaux de rigueur : strict, équilibré, léger
+- Application des corrections en un clic
+- Exclusion de mots des répétitions (noms de personnages)
+- Historique des analyses par chapitre
+- Export du rapport d'analyse en Markdown
+
 ### ✨ UX soignée
 
 - **Citations d'auteurs** : 100 citations inspirantes pendant l'attente IA
@@ -314,7 +333,7 @@ src/
 ## 🧪 Tests
 
 ```bash
-npm test                  # 1375+ tests passed
+npm test                  # 1500+ tests passed
 npm run test:coverage     # Rapport de couverture
 npm run test:integration  # Tests avec vraies APIs (OpenAI & Anthropic)
 npm run test:e2e          # Tests end-to-end (Playwright)
@@ -322,12 +341,12 @@ npm run test:e2e          # Tests end-to-end (Playwright)
 
 | Statistiques | Valeur |
 |--------------|--------|
-| Tests totaux | 1401 |
-| Tests passés | 1375 |
-| Fichiers de test | 160 |
+| Tests totaux | 1550+ |
+| Tests passés | 1500+ |
+| Fichiers de test | 180+ |
 | Couverture domaine | 92%+ (entités) |
 | Couverture application | **100%** (use cases) |
-| Tests d'intégration | 30+ provider-specific (conditional) |
+| Tests d'intégration | 35+ provider-specific (conditional) |
 
 ---
 
@@ -352,8 +371,9 @@ npm run test:e2e          # Tests end-to-end (Playwright)
 - [x] Phase 5.1 : Import de dossier Markdown
 - [x] Phase 6.0 : Project Cockpit (tableau de bord projet, gestion personnages, tâches, objectifs, recherche, statistiques IA)
 - [x] Phase 6.1 : Images de couverture, objectifs d'écriture, sélection des chapitres, rate limiting, hCaptcha
+- [x] Phase 7.0 : Vérification de chapitre (orthographe, grammaire, ponctuation, style, répétitions)
 
-### 🔜 Phase 7
+### 🔜 Phase 7.1
 
 - [ ] Recherche full-text dans les chapitres
 - [ ] Templates de chapitres
