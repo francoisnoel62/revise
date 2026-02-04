@@ -358,8 +358,8 @@ function EditorContent() {
       );
 
       if (result.success && result.data) {
-        // Update the editor content
-        editor?.commands.setContent(result.data.newContent);
+        // Update the editor content (parse JSON string to object for TipTap)
+        editor?.commands.setContent(JSON.parse(result.data.newContent));
 
         // Mark issue as applied (no position adjustment needed with text-based matching)
         setAnalysisResult((prev) =>
@@ -409,7 +409,8 @@ function EditorContent() {
       );
 
       if (result.success && result.data) {
-        editor?.commands.setContent(result.data.newContent);
+        // Parse JSON string to object for TipTap
+        editor?.commands.setContent(JSON.parse(result.data.newContent));
 
         // Mark all pending issues as applied
         setAnalysisResult((prev) =>
