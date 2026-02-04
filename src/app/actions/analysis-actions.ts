@@ -8,30 +8,22 @@ import {
   getAuthenticatedUserId,
   withErrorHandling,
   getRepository,
-  getAnalysisRepo,
   getIdGenerator,
   getCharacterRepo,
   getProviderRepo,
 } from './utils';
-import { AnalyzeChapterUseCase, HashService } from '@/application/use-cases/AnalyzeChapterUseCase';
-import { ApplyCorrectionUseCase } from '@/application/use-cases/ApplyCorrectionUseCase';
-import { ApplyBatchCorrectionsUseCase } from '@/application/use-cases/ApplyBatchCorrectionsUseCase';
-import { IgnoreAnalysisIssueUseCase } from '@/application/use-cases/IgnoreAnalysisIssueUseCase';
-import { SaveChapterAnalysisHistoryUseCase } from '@/application/use-cases/SaveChapterAnalysisHistoryUseCase';
-import { ListChapterAnalysisHistoryUseCase } from '@/application/use-cases/ListChapterAnalysisHistoryUseCase';
-import { GetAnalysisDiffUseCase } from '@/application/use-cases/GetAnalysisDiffUseCase';
-import { ExportAnalysisReportUseCase } from '@/application/use-cases/ExportAnalysisReportUseCase';
-import { ManageRepetitionExclusionsUseCase } from '@/application/use-cases/ManageRepetitionExclusionsUseCase';
+import { AnalyzeChapterUseCase } from '@/application/use-cases/AnalyzeChapterUseCase';
+import { ApplyCorrectionUseCase, CorrectionIssue } from '@/application/use-cases/ApplyCorrectionUseCase';
+import { ApplyBatchCorrectionsUseCase, BatchCorrectionIssue } from '@/application/use-cases/ApplyBatchCorrectionsUseCase';
 import { SpellingAnalysisStrategy } from '@/application/strategies/SpellingAnalysisStrategy';
 import { GrammarAnalysisStrategy } from '@/application/strategies/GrammarAnalysisStrategy';
 import { PunctuationAnalysisStrategy } from '@/application/strategies/PunctuationAnalysisStrategy';
 import { StyleAnalysisStrategy } from '@/application/strategies/StyleAnalysisStrategy';
 import { RepetitionAnalysisStrategy } from '@/application/strategies/RepetitionAnalysisStrategy';
 import { createAnalysisLLMClient } from '@/infrastructure/ai/AnalysisLLMClient';
-import { ContentHashService } from '@/infrastructure/services/ContentHashService';
 import { AnalysisCategory } from '@/domain/value-objects/AnalysisCategory';
 import { StyleRigor } from '@/domain/value-objects/StyleRigor';
-import type { AnalysisIssue } from '@/domain/value-objects/AnalysisIssue';
+import type { AnalysisIssue as DomainAnalysisIssue } from '@/domain/value-objects/AnalysisIssue';
 import type { RepetitionCluster } from '@/domain/value-objects/RepetitionCluster';
 import type { AnalysisStrategy } from '@/application/strategies/AnalysisStrategy';
 
@@ -65,27 +57,8 @@ export interface AnalysisResultDTO {
   };
 }
 
-export interface AnalysisHistoryDTO {
-  id: string;
-  chapterId: string;
-  projectId: string;
-  originalContent: string;
-  totalIssuesFound: number;
-  categoriesAnalyzed: AnalysisCategory[];
-  appliedCorrections: number;
-  ignoredIssues: number;
-  createdAt: string;
-}
-
-export interface DiffResultDTO {
-  originalContent: string;
-  currentContent: string;
-  diff: { type: 'unchanged' | 'removed' | 'added'; text: string }[];
-  changeCount: number;
-}
-
 // Mappers
-function mapIssueToDTO(issue: AnalysisIssue): AnalysisIssueDTO {
+function mapIssueToDTO(issue: DomainAnalysisIssue): AnalysisIssueDTO {
   return {
     id: issue.id,
     category: issue.category,
@@ -107,8 +80,26 @@ function mapRepetitionToDTO(cluster: RepetitionCluster): RepetitionClusterDTO {
   };
 }
 
+function mapDTOToCorrectionIssue(dto: AnalysisIssueDTO): CorrectionIssue {
+  return {
+    originalText: dto.originalText,
+    suggestion: dto.suggestedText,
+    position: { start: dto.position.start, end: dto.position.end },
+  };
+}
+
+function mapDTOToBatchCorrectionIssue(dto: AnalysisIssueDTO): BatchCorrectionIssue {
+  return {
+    id: dto.id,
+    originalText: dto.originalText,
+    suggestion: dto.suggestedText,
+    position: { start: dto.position.start, end: dto.position.end },
+  };
+}
+
 /**
  * Analyze a chapter for issues across multiple categories.
+ * Results are returned in-memory only (no persistence).
  */
 export async function analyzeChapter(
   projectId: string,
@@ -122,7 +113,6 @@ export async function analyzeChapter(
 
   return withErrorHandling(async () => {
     const projectRepo = await getRepository();
-    const analysisRepo = await getAnalysisRepo();
     const characterRepo = await getCharacterRepo();
     const idGenerator = await getIdGenerator();
 
@@ -184,14 +174,10 @@ export async function analyzeChapter(
       }
     }
 
-    const hashService: HashService = new ContentHashService();
-
     const useCase = new AnalyzeChapterUseCase(
       projectRepo,
-      analysisRepo,
       characterRepo,
       idGenerator,
-      hashService,
       strategiesMap
     );
 
@@ -241,12 +227,12 @@ export async function analyzeChapter(
 
 /**
  * Apply a single correction to the chapter content.
+ * The issue is passed directly since analysis is in-memory only.
  */
 export async function applyCorrection(
   projectId: string,
   chapterId: string,
-  analysisId: string,
-  issueId: string
+  issue: AnalysisIssueDTO
 ): Promise<ActionResult<{ newContent: string }>> {
   const auth = await getAuthenticatedUserId();
   if ('error' in auth) return auth.error;
@@ -254,15 +240,13 @@ export async function applyCorrection(
 
   return withErrorHandling(async () => {
     const projectRepo = await getRepository();
-    const analysisRepo = await getAnalysisRepo();
 
-    const useCase = new ApplyCorrectionUseCase(projectRepo, analysisRepo);
+    const useCase = new ApplyCorrectionUseCase(projectRepo);
     const result = await useCase.execute({
       ownerId: userId,
       projectId,
       chapterId,
-      analysisId,
-      issueId,
+      issue: mapDTOToCorrectionIssue(issue),
     });
 
     return { newContent: result.updatedContent };
@@ -271,12 +255,12 @@ export async function applyCorrection(
 
 /**
  * Apply multiple corrections in batch.
+ * Issues are passed directly since analysis is in-memory only.
  */
 export async function applyBatchCorrections(
   projectId: string,
   chapterId: string,
-  analysisId: string,
-  issueIds: string[]
+  issues: AnalysisIssueDTO[]
 ): Promise<ActionResult<{ newContent: string; appliedCount: number }>> {
   const auth = await getAuthenticatedUserId();
   if ('error' in auth) return auth.error;
@@ -284,279 +268,18 @@ export async function applyBatchCorrections(
 
   return withErrorHandling(async () => {
     const projectRepo = await getRepository();
-    const analysisRepo = await getAnalysisRepo();
 
-    const useCase = new ApplyBatchCorrectionsUseCase(projectRepo, analysisRepo);
+    const useCase = new ApplyBatchCorrectionsUseCase(projectRepo);
     const result = await useCase.execute({
       ownerId: userId,
       projectId,
       chapterId,
-      analysisId,
-      corrections: issueIds.map((id) => ({ issueId: id })),
+      issues: issues.map(mapDTOToBatchCorrectionIssue),
     });
 
     return {
       newContent: result.updatedContent,
       appliedCount: result.appliedCount,
     };
-  });
-}
-
-/**
- * Ignore an analysis issue.
- */
-export async function ignoreIssue(
-  projectId: string,
-  chapterId: string,
-  analysisId: string,
-  issueId: string
-): Promise<ActionResult<{ success: boolean }>> {
-  const auth = await getAuthenticatedUserId();
-  if ('error' in auth) return auth.error;
-  const { userId } = auth;
-
-  return withErrorHandling(async () => {
-    const projectRepo = await getRepository();
-    const analysisRepo = await getAnalysisRepo();
-
-    const useCase = new IgnoreAnalysisIssueUseCase(projectRepo, analysisRepo);
-    await useCase.execute({
-      ownerId: userId,
-      projectId,
-      chapterId,
-      analysisId,
-      issueId,
-    });
-
-    return { success: true };
-  });
-}
-
-/**
- * Save analysis history snapshot.
- */
-export async function saveAnalysisHistory(
-  projectId: string,
-  chapterId: string,
-  analysisId: string
-): Promise<ActionResult<AnalysisHistoryDTO>> {
-  const auth = await getAuthenticatedUserId();
-  if ('error' in auth) return auth.error;
-  const { userId } = auth;
-
-  return withErrorHandling(async () => {
-    const projectRepo = await getRepository();
-    const analysisRepo = await getAnalysisRepo();
-    const idGenerator = await getIdGenerator();
-
-    const useCase = new SaveChapterAnalysisHistoryUseCase(
-      projectRepo,
-      analysisRepo,
-      idGenerator
-    );
-
-    const result = await useCase.execute({
-      ownerId: userId,
-      projectId,
-      chapterId,
-      analysisId,
-    });
-
-    const history = result.history;
-    return {
-      id: history.getId(),
-      chapterId: history.getChapterId(),
-      projectId: history.getProjectId(),
-      originalContent: history.getOriginalContent(),
-      totalIssuesFound: history.getTotalIssuesFound(),
-      categoriesAnalyzed: history.getCategoriesAnalyzed(),
-      appliedCorrections: history.getAppliedCount(),
-      ignoredIssues: history.getIgnoredCount(),
-      createdAt: history.getCreatedAt().toISOString(),
-    };
-  });
-}
-
-/**
- * List analysis history for a chapter.
- */
-export async function listAnalysisHistory(
-  projectId: string,
-  chapterId: string
-): Promise<ActionResult<AnalysisHistoryDTO[]>> {
-  const auth = await getAuthenticatedUserId();
-  if ('error' in auth) return auth.error;
-  const { userId } = auth;
-
-  return withErrorHandling(async () => {
-    const projectRepo = await getRepository();
-    const analysisRepo = await getAnalysisRepo();
-
-    const useCase = new ListChapterAnalysisHistoryUseCase(projectRepo, analysisRepo);
-    const result = await useCase.execute({
-      ownerId: userId,
-      projectId,
-      chapterId,
-    });
-
-    return result.history.map((h) => ({
-      id: h.getId(),
-      chapterId: h.getChapterId(),
-      projectId: h.getProjectId(),
-      originalContent: h.getOriginalContent(),
-      totalIssuesFound: h.getTotalIssuesFound(),
-      categoriesAnalyzed: h.getCategoriesAnalyzed(),
-      appliedCorrections: h.getAppliedCount(),
-      ignoredIssues: h.getIgnoredCount(),
-      createdAt: h.getCreatedAt().toISOString(),
-    }));
-  });
-}
-
-/**
- * Get diff between history snapshot and current content.
- */
-export async function getAnalysisDiff(
-  projectId: string,
-  chapterId: string,
-  historyId: string
-): Promise<ActionResult<DiffResultDTO>> {
-  const auth = await getAuthenticatedUserId();
-  if ('error' in auth) return auth.error;
-  const { userId } = auth;
-
-  return withErrorHandling(async () => {
-    const projectRepo = await getRepository();
-    const analysisRepo = await getAnalysisRepo();
-
-    const useCase = new GetAnalysisDiffUseCase(projectRepo, analysisRepo);
-    const result = await useCase.execute({
-      ownerId: userId,
-      projectId,
-      chapterId,
-      historyId,
-    });
-
-    return {
-      originalContent: result.originalContent,
-      currentContent: result.currentContent,
-      diff: result.diff,
-      changeCount: result.changeCount,
-    };
-  });
-}
-
-/**
- * Export analysis report as text or markdown.
- */
-export async function exportAnalysisReport(
-  projectId: string,
-  chapterId: string,
-  analysisId: string,
-  format: 'text' | 'markdown' = 'markdown'
-): Promise<ActionResult<{ content: string; filename: string }>> {
-  const auth = await getAuthenticatedUserId();
-  if ('error' in auth) return auth.error;
-  const { userId } = auth;
-
-  return withErrorHandling(async () => {
-    const projectRepo = await getRepository();
-    const analysisRepo = await getAnalysisRepo();
-
-    const useCase = new ExportAnalysisReportUseCase(projectRepo, analysisRepo);
-    const result = await useCase.execute({
-      ownerId: userId,
-      projectId,
-      chapterId,
-      analysisId,
-      format,
-    });
-
-    return {
-      content: result.content,
-      filename: result.filename,
-    };
-  });
-}
-
-/**
- * Add a word to repetition exclusions.
- */
-export async function addRepetitionExclusion(
-  projectId: string,
-  word: string,
-  reason?: string
-): Promise<ActionResult<{ success: boolean }>> {
-  const auth = await getAuthenticatedUserId();
-  if ('error' in auth) return auth.error;
-  const { userId } = auth;
-
-  return withErrorHandling(async () => {
-    const projectRepo = await getRepository();
-    const analysisRepo = await getAnalysisRepo();
-
-    const useCase = new ManageRepetitionExclusionsUseCase(projectRepo, analysisRepo);
-    await useCase.addExclusion({
-      ownerId: userId,
-      projectId,
-      word,
-      reason,
-    });
-
-    return { success: true };
-  });
-}
-
-/**
- * Remove a word from repetition exclusions.
- */
-export async function removeRepetitionExclusion(
-  projectId: string,
-  word: string
-): Promise<ActionResult<{ success: boolean }>> {
-  const auth = await getAuthenticatedUserId();
-  if ('error' in auth) return auth.error;
-  const { userId } = auth;
-
-  return withErrorHandling(async () => {
-    const projectRepo = await getRepository();
-    const analysisRepo = await getAnalysisRepo();
-
-    const useCase = new ManageRepetitionExclusionsUseCase(projectRepo, analysisRepo);
-    await useCase.removeExclusion({
-      ownerId: userId,
-      projectId,
-      word,
-    });
-
-    return { success: true };
-  });
-}
-
-/**
- * List all repetition exclusions for a project.
- */
-export async function listRepetitionExclusions(
-  projectId: string
-): Promise<ActionResult<{ word: string; reason?: string; createdAt: string }[]>> {
-  const auth = await getAuthenticatedUserId();
-  if ('error' in auth) return auth.error;
-  const { userId } = auth;
-
-  return withErrorHandling(async () => {
-    const projectRepo = await getRepository();
-    const analysisRepo = await getAnalysisRepo();
-
-    const useCase = new ManageRepetitionExclusionsUseCase(projectRepo, analysisRepo);
-    const result = await useCase.listExclusions({
-      ownerId: userId,
-      projectId,
-    });
-
-    return result.exclusions.map((e) => ({
-      word: e.word,
-      reason: e.reason,
-      createdAt: e.createdAt.toISOString(),
-    }));
   });
 }

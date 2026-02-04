@@ -1,5 +1,5 @@
 // ABOUTME: Test suite for AnalyzeChapterUseCase
-// ABOUTME: Validates orchestration of analysis strategies, caching, and streaming
+// ABOUTME: Validates orchestration of analysis strategies (in-memory, no persistence)
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AnalyzeChapterUseCase, AnalyzeChapterInput } from '../AnalyzeChapterUseCase';
@@ -21,23 +21,12 @@ const createMockProjectRepository = (project: ReturnType<typeof createMockProjec
   loadProject: vi.fn().mockResolvedValue(project),
 });
 
-const createMockAnalysisRepository = () => ({
-  findAnalysisByContentHash: vi.fn().mockResolvedValue(null),
-  saveAnalysis: vi.fn().mockResolvedValue(undefined),
-  findIgnoredIssues: vi.fn().mockResolvedValue([]),
-  findRepetitionExclusions: vi.fn().mockResolvedValue([]),
-});
-
 const createMockCharacterRepository = () => ({
   findByProjectId: vi.fn().mockResolvedValue([]),
 });
 
 const createMockIdGenerator = () => ({
   generate: vi.fn().mockReturnValue('generated-id'),
-});
-
-const createMockHashService = () => ({
-  hash: vi.fn().mockReturnValue('content-hash-123'),
 });
 
 const createMockIssue = (category: AnalysisCategory, id: string) =>
@@ -66,10 +55,8 @@ const createMockStrategy = (category: AnalysisCategory, issues: ReturnType<typeo
 describe('AnalyzeChapterUseCase', () => {
   let useCase: AnalyzeChapterUseCase;
   let mockProjectRepository: ReturnType<typeof createMockProjectRepository>;
-  let mockAnalysisRepository: ReturnType<typeof createMockAnalysisRepository>;
   let mockCharacterRepository: ReturnType<typeof createMockCharacterRepository>;
   let mockIdGenerator: ReturnType<typeof createMockIdGenerator>;
-  let mockHashService: ReturnType<typeof createMockHashService>;
   let mockStrategies: Map<AnalysisCategory, ReturnType<typeof createMockStrategy>>;
 
   const defaultInput: AnalyzeChapterInput = {
@@ -83,10 +70,8 @@ describe('AnalyzeChapterUseCase', () => {
   beforeEach(() => {
     const mockProject = createMockProject('chapter-1', 'Test chapter content');
     mockProjectRepository = createMockProjectRepository(mockProject);
-    mockAnalysisRepository = createMockAnalysisRepository();
     mockCharacterRepository = createMockCharacterRepository();
     mockIdGenerator = createMockIdGenerator();
-    mockHashService = createMockHashService();
 
     mockStrategies = new Map([
       ['spelling', createMockStrategy('spelling', [createMockIssue('spelling', 'issue-1')])],
@@ -98,10 +83,8 @@ describe('AnalyzeChapterUseCase', () => {
 
     useCase = new AnalyzeChapterUseCase(
       mockProjectRepository,
-      mockAnalysisRepository,
       mockCharacterRepository,
       mockIdGenerator,
-      mockHashService,
       mockStrategies
     );
   });
@@ -137,10 +120,8 @@ describe('AnalyzeChapterUseCase', () => {
       mockProjectRepository = createMockProjectRepository(null);
       useCase = new AnalyzeChapterUseCase(
         mockProjectRepository,
-        mockAnalysisRepository,
         mockCharacterRepository,
         mockIdGenerator,
-        mockHashService,
         mockStrategies
       );
 
@@ -152,45 +133,12 @@ describe('AnalyzeChapterUseCase', () => {
       mockProjectRepository = createMockProjectRepository(mockProject);
       useCase = new AnalyzeChapterUseCase(
         mockProjectRepository,
-        mockAnalysisRepository,
         mockCharacterRepository,
         mockIdGenerator,
-        mockHashService,
         mockStrategies
       );
 
       await expect(useCase.execute(defaultInput)).rejects.toThrow('Chapter not found');
-    });
-  });
-
-  describe('caching', () => {
-    it('should return cached analysis if content hash matches', async () => {
-      const cachedAnalysis = {
-        getId: () => 'cached-analysis',
-        getIssues: () => [createMockIssue('spelling', 'cached-issue')],
-        getRepetitions: () => [],
-      };
-      mockAnalysisRepository.findAnalysisByContentHash.mockResolvedValue(cachedAnalysis);
-
-      const result = await useCase.execute(defaultInput);
-
-      expect(result.fromCache).toBe(true);
-      expect(mockStrategies.get('spelling')?.analyze).not.toHaveBeenCalled();
-    });
-
-    it('should run analysis if no cached result', async () => {
-      mockAnalysisRepository.findAnalysisByContentHash.mockResolvedValue(null);
-
-      await useCase.execute(defaultInput);
-
-      expect(mockStrategies.get('spelling')?.analyze).toHaveBeenCalled();
-      expect(mockStrategies.get('grammar')?.analyze).toHaveBeenCalled();
-    });
-
-    it('should save analysis to repository after completion', async () => {
-      await useCase.execute(defaultInput);
-
-      expect(mockAnalysisRepository.saveAnalysis).toHaveBeenCalled();
     });
   });
 
@@ -252,39 +200,6 @@ describe('AnalyzeChapterUseCase', () => {
         })
       );
     });
-
-    it('should pass user exclusions from repository', async () => {
-      mockAnalysisRepository.findRepetitionExclusions.mockResolvedValue([
-        { word: 'magie' },
-        { word: 'sortilège' },
-      ]);
-
-      const input = { ...defaultInput, categories: ['repetition'] as AnalysisCategory[] };
-      await useCase.execute(input);
-
-      expect(mockStrategies.get('repetition')?.analyze).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          exclusions: expect.arrayContaining(['magie', 'sortilège']),
-        })
-      );
-    });
-
-    it('should pass ignored texts from repository', async () => {
-      mockAnalysisRepository.findIgnoredIssues.mockResolvedValue([
-        { originalText: 'ignored1' },
-        { originalText: 'ignored2' },
-      ]);
-
-      await useCase.execute(defaultInput);
-
-      expect(mockStrategies.get('spelling')?.analyze).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          ignoredTexts: expect.arrayContaining(['ignored1', 'ignored2']),
-        })
-      );
-    });
   });
 
   describe('result', () => {
@@ -298,10 +213,10 @@ describe('AnalyzeChapterUseCase', () => {
       expect(result.analysis.getStyleRigor()).toBe('moderate');
     });
 
-    it('should include content hash in result', async () => {
+    it('should return analysis result without fromCache property', async () => {
       const result = await useCase.execute(defaultInput);
 
-      expect(result.analysis.getContentHash()).toBe('content-hash-123');
+      expect(result).not.toHaveProperty('fromCache');
     });
   });
 });

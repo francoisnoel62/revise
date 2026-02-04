@@ -35,8 +35,8 @@ import {
   analyzeChapter,
   applyCorrection,
   applyBatchCorrections,
-  ignoreIssue,
   type AnalysisResultDTO,
+  type AnalysisIssueDTO,
 } from '@/app/actions/analysis-actions';
 import type { AnalysisIssueData } from '@/components/analysis/AnalysisIssueCard';
 import type { AnalysisSummaryStats } from '@/components/analysis/AnalysisSummaryCard';
@@ -97,7 +97,6 @@ function EditorContent() {
   const [showAnalysisPanel, setShowAnalysisPanel] = useState(false);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResultDTO | null>(null);
-  const [analysisId, setAnalysisId] = useState<string | null>(null);
   const [applyingIssueId, setApplyingIssueId] = useState<string | null>(null);
   const [isApplyingAll, setIsApplyingAll] = useState(false);
 
@@ -333,7 +332,6 @@ function EditorContent() {
       );
 
       if (result.success && result.data) {
-        setAnalysisId(result.data.analysisId);
         setAnalysisResult(result.data);
         setShowAnalysisPanel(true);
       } else if (!result.success) {
@@ -347,29 +345,45 @@ function EditorContent() {
   };
 
   const handleApplyCorrection = async (issueId: string) => {
-    if (!project?.id || !project.activeChapterId || !analysisId) return;
+    if (!project?.id || !project.activeChapterId || !analysisResult) return;
+
+    const issue = analysisResult.issues.find((i) => i.id === issueId);
+    if (!issue) return;
 
     setApplyingIssueId(issueId);
     try {
       const result = await applyCorrection(
         project.id,
         project.activeChapterId,
-        analysisId,
-        issueId
+        issue
       );
 
       if (result.success && result.data) {
         // Update the editor content
         editor?.commands.setContent(result.data.newContent);
 
-        // Update analysis result to mark issue as applied
+        // Update analysis result to mark issue as applied and adjust positions
+        const delta = issue.suggestedText.length - issue.originalText.length;
         setAnalysisResult((prev) =>
           prev
             ? {
                 ...prev,
-                issues: prev.issues.map((i) =>
-                  i.id === issueId ? { ...i, status: 'applied' as const } : i
-                ),
+                issues: prev.issues.map((i) => {
+                  if (i.id === issueId) {
+                    return { ...i, status: 'applied' as const };
+                  }
+                  // Adjust positions of issues that come after the applied correction
+                  if (i.position.start > issue.position.end) {
+                    return {
+                      ...i,
+                      position: {
+                        start: i.position.start + delta,
+                        end: i.position.end + delta,
+                      },
+                    };
+                  }
+                  return i;
+                }),
               }
             : null
         );
@@ -381,12 +395,8 @@ function EditorContent() {
     }
   };
 
-  const handleIgnoreIssue = async (issueId: string) => {
-    if (!project?.id || !project.activeChapterId || !analysisId) return;
-
-    await ignoreIssue(project.id, project.activeChapterId, analysisId, issueId);
-
-    // Update analysis result to mark issue as ignored
+  const handleIgnoreIssue = (issueId: string) => {
+    // Update analysis result to mark issue as ignored (local state only)
     setAnalysisResult((prev) =>
       prev
         ? {
@@ -400,21 +410,17 @@ function EditorContent() {
   };
 
   const handleApplyAllCorrections = async () => {
-    if (!project?.id || !project.activeChapterId || !analysisId || !analysisResult) return;
+    if (!project?.id || !project.activeChapterId || !analysisResult) return;
+
+    const pendingIssues = analysisResult.issues.filter((i) => i.status === 'pending');
+    if (pendingIssues.length === 0) return;
 
     setIsApplyingAll(true);
     try {
-      const pendingIssueIds = analysisResult.issues
-        .filter((i) => i.status === 'pending')
-        .map((i) => i.id);
-
-      if (pendingIssueIds.length === 0) return;
-
       const result = await applyBatchCorrections(
         project.id,
         project.activeChapterId,
-        analysisId,
-        pendingIssueIds
+        pendingIssues
       );
 
       if (result.success && result.data) {

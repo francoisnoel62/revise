@@ -1,15 +1,19 @@
 // ABOUTME: Use case for applying a single correction to chapter content
-// ABOUTME: Updates chapter content and marks the issue as applied in the analysis
+// ABOUTME: Updates chapter content with the provided correction (in-memory analysis)
 
-import { AnalysisRepository } from '../../domain/interfaces/AnalysisRepository';
 import { ProjectRepository } from '../../domain/interfaces/ProjectRepository';
+
+export interface CorrectionIssue {
+  originalText: string;
+  suggestion: string;
+  position: { start: number; end: number };
+}
 
 export interface ApplyCorrectionInput {
   ownerId: string;
   projectId: string;
   chapterId: string;
-  analysisId: string;
-  issueId: string;
+  issue: CorrectionIssue;
 }
 
 export interface ApplyCorrectionResult {
@@ -20,19 +24,16 @@ export interface ApplyCorrectionResult {
 }
 
 /**
- * Use case for applying a single correction from an analysis.
+ * Use case for applying a single correction to chapter content.
  *
  * This use case:
  * 1. Validates ownership
- * 2. Finds the analysis and issue
- * 3. Applies the correction to chapter content
- * 4. Marks the issue as applied
- * 5. Saves the updated chapter
+ * 2. Applies the correction to chapter content
+ * 3. Saves the updated chapter
  */
 export class ApplyCorrectionUseCase {
   constructor(
-    private readonly projectRepository: ProjectRepository,
-    private readonly analysisRepository: AnalysisRepository
+    private readonly projectRepository: ProjectRepository
   ) {}
 
   async execute(input: ApplyCorrectionInput): Promise<ApplyCorrectionResult> {
@@ -55,27 +56,9 @@ export class ApplyCorrectionUseCase {
       throw new Error('Chapter not found');
     }
 
-    // 4. Find analysis
-    const analysis = await this.analysisRepository.findAnalysisByChapterId(
-      input.ownerId,
-      input.chapterId
-    );
+    const issue = input.issue;
 
-    if (!analysis || analysis.getId() !== input.analysisId) {
-      throw new Error('Analysis not found');
-    }
-
-    // 5. Find issue
-    const issue = analysis.getIssue(input.issueId);
-    if (!issue) {
-      throw new Error('Issue not found');
-    }
-
-    if (issue.status !== 'pending') {
-      throw new Error('Issue has already been resolved');
-    }
-
-    // 6. Apply correction to content
+    // 4. Apply correction to content
     const originalContent = chapter.getContent();
     const { start, end } = issue.position;
 
@@ -90,21 +73,10 @@ export class ApplyCorrectionUseCase {
       issue.suggestion +
       originalContent.substring(end);
 
-    // 7. Update chapter content (mutates chapter in place)
+    // 5. Update chapter content
     chapter.updateContent(updatedContent);
     project.touch();
     await this.projectRepository.updateProject(input.ownerId, project);
-
-    // 8. Mark issue as applied in analysis
-    let updatedAnalysis = analysis.applyIssue(input.issueId);
-
-    // 9. Adjust positions of remaining issues after the correction
-    const delta = issue.suggestion.length - issue.originalText.length;
-    if (delta !== 0) {
-      updatedAnalysis = updatedAnalysis.adjustPositionsAfterCorrection(end, delta);
-    }
-
-    await this.analysisRepository.updateAnalysis(input.ownerId, updatedAnalysis);
 
     return {
       success: true,
@@ -127,12 +99,8 @@ export class ApplyCorrectionUseCase {
       throw new Error('Chapter ID is required');
     }
 
-    if (!input.analysisId || input.analysisId.trim().length === 0) {
-      throw new Error('Analysis ID is required');
-    }
-
-    if (!input.issueId || input.issueId.trim().length === 0) {
-      throw new Error('Issue ID is required');
+    if (!input.issue) {
+      throw new Error('Issue is required');
     }
   }
 }

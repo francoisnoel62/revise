@@ -10,14 +10,11 @@ For current features and roadmap, see [README.md](README.md).
 
 ### Domain Layer
 - **ChapterAnalysis entity** - Complete chapter analysis result with issues, repetitions, and statistics
-- **AnalysisHistory entity** - Tracks analysis runs and corrections over time
 - **AnalysisCategory value object** - Enum for analysis types (spelling, grammar, punctuation, style, repetition)
 - **AnalysisSeverity value object** - Enum for issue severity (error, warning, suggestion)
 - **AnalysisIssue value object** - Individual analysis issue with position, suggestion, and status
 - **RepetitionCluster value object** - Cluster of repeated words/phrases with positions
-- **RepetitionExclusions value object** - User-defined words to exclude from repetition analysis
 - **StyleRigor value object** - Analysis strictness level (strict, balanced, light)
-- **AnalysisRepository interface** - Repository for analysis results, history, and exclusions
 
 ### Application Layer
 - **Analysis Strategies** - Strategy pattern implementation for each analysis type:
@@ -26,22 +23,12 @@ For current features and roadmap, see [README.md](README.md).
   - `PunctuationAnalysisStrategy` - Punctuation error detection via AI
   - `StyleAnalysisStrategy` - Style improvement suggestions via AI
   - `RepetitionAnalysisStrategy` - Repeated word/phrase detection
-- **AnalyzeChapterUseCase** - Orchestrates analysis with caching and exclusions
+- **AnalyzeChapterUseCase** - Orchestrates analysis strategies (in-memory results, no persistence)
 - **ApplyCorrectionUseCase** - Apply a single correction to chapter content
 - **ApplyBatchCorrectionsUseCase** - Apply multiple corrections in batch
-- **IgnoreAnalysisIssueUseCase** - Mark an issue as ignored
-- **GetAnalysisDiffUseCase** - Generate diff between original and corrected content
-- **ExportAnalysisReportUseCase** - Export analysis results as markdown report
-- **ManageRepetitionExclusionsUseCase** - Add/remove words from exclusion list
-- **SaveChapterAnalysisHistoryUseCase** - Save analysis history entry
-- **ListChapterAnalysisHistoryUseCase** - List analysis history for a chapter
 
 ### Infrastructure Layer
 - **AnalysisLLMClient** - AI client for spelling, grammar, punctuation, and style analysis
-- **MongoDBAnalysisRepository** - MongoDB persistence for analysis results and history
-- **chapter-analysis-serializer** - Serialization for ChapterAnalysis entities
-- **analysis-history-serializer** - Serialization for AnalysisHistory entities
-- **ContentHashService** - SHA-256 hashing for cache invalidation
 
 ### Interface Layer
 - **ChapterAnalysisPanel** - Main panel for chapter verification UI
@@ -50,6 +37,13 @@ For current features and roadmap, see [README.md](README.md).
 - **AnalysisIssueCard** - Card component for individual issues
 - **AnalysisSummaryCard** - Summary statistics for analysis results
 - **analysis-actions.ts** - Server actions for analysis operations
+
+### Simplification (February 2026)
+- Removed analysis persistence (no more MongoDB storage for analysis results)
+- Analysis results are now in-memory only (React state)
+- Removed history, diff, and export features
+- Removed repetition exclusions feature
+- User ignores issues locally (state update only)
 
 ---
 

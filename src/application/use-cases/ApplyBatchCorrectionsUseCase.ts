@@ -1,22 +1,20 @@
 // ABOUTME: Use case for applying multiple corrections at once
 // ABOUTME: Handles position offset adjustments when applying sequential corrections
 
-import { AnalysisRepository } from '../../domain/interfaces/AnalysisRepository';
 import { ProjectRepository } from '../../domain/interfaces/ProjectRepository';
-import { AnalysisCategory } from '../../domain/value-objects/AnalysisCategory';
 
-export interface BatchCorrectionItem {
-  issueId: string;
+export interface BatchCorrectionIssue {
+  id: string;
+  originalText: string;
+  suggestion: string;
+  position: { start: number; end: number };
 }
 
 export interface ApplyBatchCorrectionsInput {
   ownerId: string;
   projectId: string;
   chapterId: string;
-  analysisId: string;
-  corrections: BatchCorrectionItem[];
-  /** Optional: only apply corrections from this category */
-  category?: AnalysisCategory;
+  issues: BatchCorrectionIssue[];
 }
 
 export interface ApplyBatchCorrectionsResult {
@@ -44,8 +42,7 @@ export interface ApplyBatchCorrectionsResult {
  */
 export class ApplyBatchCorrectionsUseCase {
   constructor(
-    private readonly projectRepository: ProjectRepository,
-    private readonly analysisRepository: AnalysisRepository
+    private readonly projectRepository: ProjectRepository
   ) {}
 
   async execute(input: ApplyBatchCorrectionsInput): Promise<ApplyBatchCorrectionsResult> {
@@ -68,40 +65,17 @@ export class ApplyBatchCorrectionsUseCase {
       throw new Error('Chapter not found');
     }
 
-    // 4. Find analysis
-    let analysis = await this.analysisRepository.findAnalysisByChapterId(
-      input.ownerId,
-      input.chapterId
+    // 4. Sort by position descending (apply from end to start to preserve positions)
+    const sortedIssues = [...input.issues].sort(
+      (a, b) => b.position.start - a.position.start
     );
 
-    if (!analysis || analysis.getId() !== input.analysisId) {
-      throw new Error('Analysis not found');
-    }
-
-    // 5. Get issues to apply
-    let issuesToApply = input.corrections
-      .map((c) => analysis!.getIssue(c.issueId))
-      .filter((issue) => issue !== undefined);
-
-    // Filter by category if specified
-    if (input.category) {
-      issuesToApply = issuesToApply.filter((issue) => issue!.category === input.category);
-    }
-
-    // Filter out already resolved issues
-    issuesToApply = issuesToApply.filter((issue) => issue!.status === 'pending');
-
-    // 6. Sort by position descending (apply from end to start to preserve positions)
-    issuesToApply.sort((a, b) => b!.position.start - a!.position.start);
-
-    // 7. Apply corrections
+    // 5. Apply corrections
     let currentContent = chapter.getContent();
     const appliedCorrections: ApplyBatchCorrectionsResult['appliedCorrections'] = [];
     const failedCorrections: ApplyBatchCorrectionsResult['failedCorrections'] = [];
 
-    for (const issue of issuesToApply) {
-      if (!issue) continue;
-
+    for (const issue of sortedIssues) {
       const { start, end } = issue.position;
       const textAtPosition = currentContent.substring(start, end);
 
@@ -120,9 +94,6 @@ export class ApplyBatchCorrectionsUseCase {
         issue.suggestion +
         currentContent.substring(end);
 
-      // Mark as applied
-      analysis = analysis.applyIssue(issue.id);
-
       appliedCorrections.push({
         issueId: issue.id,
         originalText: issue.originalText,
@@ -130,12 +101,11 @@ export class ApplyBatchCorrectionsUseCase {
       });
     }
 
-    // 8. Save updated chapter if any corrections were applied
+    // 6. Save updated chapter if any corrections were applied
     if (appliedCorrections.length > 0) {
       chapter.updateContent(currentContent);
       project.touch();
       await this.projectRepository.updateProject(input.ownerId, project);
-      await this.analysisRepository.updateAnalysis(input.ownerId, analysis);
     }
 
     return {
@@ -161,12 +131,8 @@ export class ApplyBatchCorrectionsUseCase {
       throw new Error('Chapter ID is required');
     }
 
-    if (!input.analysisId || input.analysisId.trim().length === 0) {
-      throw new Error('Analysis ID is required');
-    }
-
-    if (!input.corrections || input.corrections.length === 0) {
-      throw new Error('At least one correction is required');
+    if (!input.issues || input.issues.length === 0) {
+      throw new Error('At least one issue is required');
     }
   }
 }

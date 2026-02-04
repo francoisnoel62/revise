@@ -27,7 +27,6 @@ Pure business logic with no framework dependencies.
 - `WritingGoal` - Writing goal with target word count, deadline, progress (Phase 6)
 - `AIUsageRecord` - AI usage tracking with operation type, tokens, cost (Phase 6)
 - `ChapterAnalysis` - Complete chapter analysis result with issues, repetitions, statistics (Phase 7)
-- `AnalysisHistory` - Tracks analysis runs and corrections over time (Phase 7)
 - `TextDocument` - Legacy single document (Phase 1)
 
 **Value Objects**:
@@ -45,7 +44,6 @@ Pure business logic with no framework dependencies.
 - `AnalysisSeverity` - Issue severity enum (error, warning, suggestion) (Phase 7)
 - `AnalysisIssue` - Individual analysis issue with position, suggestion, status (Phase 7)
 - `RepetitionCluster` - Cluster of repeated words/phrases with positions (Phase 7)
-- `RepetitionExclusions` - User-defined words to exclude from repetition analysis (Phase 7)
 - `StyleRigor` - Analysis strictness level (strict, balanced, light) (Phase 7)
 
 **Interfaces**:
@@ -78,7 +76,6 @@ Pure business logic with no framework dependencies.
 - `PaginatedResult` - Pagination result interface for blog articles (Phase 4.1+)
 - `IdGenerator` - UUID generation abstraction (Phase 3.5)
 - `LLMProviderFactory` - Factory for creating LLM providers (Phase 3.5)
-- `AnalysisRepository` - Analysis results, history, and exclusions persistence (Phase 7)
 
 ### Application Layer (`src/application/`)
 
@@ -130,15 +127,9 @@ Use cases orchestrating domain logic.
 - `GenerateCompletionUseCase` - Generate autocompletion suggestions
 
 **Chapter Verification Use Cases** (Phase 7):
-- `AnalyzeChapterUseCase` - Orchestrates analysis with caching and exclusions
+- `AnalyzeChapterUseCase` - Orchestrates analysis strategies (in-memory results, no persistence)
 - `ApplyCorrectionUseCase` - Apply a single correction to chapter content
 - `ApplyBatchCorrectionsUseCase` - Apply multiple corrections in batch
-- `IgnoreAnalysisIssueUseCase` - Mark an issue as ignored
-- `GetAnalysisDiffUseCase` - Generate diff between original and corrected content
-- `ExportAnalysisReportUseCase` - Export analysis results as markdown report
-- `ManageRepetitionExclusionsUseCase` - Add/remove words from exclusion list
-- `SaveChapterAnalysisHistoryUseCase` - Save analysis history entry
-- `ListChapterAnalysisHistoryUseCase` - List analysis history for a chapter
 
 **Analysis Strategies** (Phase 7):
 - `SpellingAnalysisStrategy` - Spelling error detection via AI
@@ -214,7 +205,6 @@ External service implementations.
 - `MongoDBResearchDocumentRepository` - Research document storage (Phase 6)
 - `MongoDBWritingGoalRepository` - Writing goal storage (Phase 6)
 - `MongoDBUsageRepository` - AI usage statistics with aggregation (Phase 6)
-- `MongoDBAnalysisRepository` - Chapter analysis results and history storage (Phase 7)
 - `InMemoryProjectRepository` - Ephemeral storage (testing/legacy)
 - All repositories support `deleteAllByOwner()` for RGPD compliance (Phase 3.11)
 - Serialization utilities for all entity types
@@ -328,8 +318,6 @@ React components and UI.
 - `getWritingGoalRepo()` - Writing goal repository (Phase 6)
 - `getUsageRepo()` - AI usage repository (Phase 6)
 - `getBlobStorage()` - Blob storage for images (Phase 6)
-- `getAnalysisRepository()` - Analysis repository (Phase 7)
-
 **Hooks**:
 - `useAutosave` - Auto-save hook with 1-second debounce
 - `useHasAIProviders` - Check provider availability (Phase 3.10)

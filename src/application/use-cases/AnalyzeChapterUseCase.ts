@@ -1,23 +1,15 @@
 // ABOUTME: Use case for analyzing a chapter for spelling, grammar, and style issues
-// ABOUTME: Orchestrates multiple analysis strategies and manages caching
+// ABOUTME: Orchestrates multiple analysis strategies and returns results in-memory (no persistence)
 
 import { ChapterAnalysis, ChapterAnalysisData } from '../../domain/entities/ChapterAnalysis';
 import { AnalysisCategory } from '../../domain/value-objects/AnalysisCategory';
 import { StyleRigor } from '../../domain/value-objects/StyleRigor';
 import { AnalysisIssue } from '../../domain/value-objects/AnalysisIssue';
 import { RepetitionCluster } from '../../domain/value-objects/RepetitionCluster';
-import { AnalysisRepository } from '../../domain/interfaces/AnalysisRepository';
 import { ProjectRepository } from '../../domain/interfaces/ProjectRepository';
 import { CharacterRepository } from '../../domain/interfaces/CharacterRepository';
 import { IdGenerator } from '../../domain/interfaces/IdGenerator';
 import { AnalysisStrategy, AnalysisOptions } from '../strategies/AnalysisStrategy';
-
-/**
- * Service for computing content hashes
- */
-export interface HashService {
-  hash(content: string): string;
-}
 
 export interface AnalyzeChapterInput {
   ownerId: string;
@@ -29,7 +21,6 @@ export interface AnalyzeChapterInput {
 
 export interface AnalyzeChapterResult {
   analysis: ChapterAnalysis;
-  fromCache: boolean;
 }
 
 /**
@@ -37,18 +28,15 @@ export interface AnalyzeChapterResult {
  *
  * This use case:
  * 1. Validates input and ownership
- * 2. Checks cache for existing analysis
- * 3. Collects exclusions (character names, user-defined words)
- * 4. Executes selected analysis strategies
- * 5. Creates and saves the ChapterAnalysis entity
+ * 2. Collects exclusions (character names)
+ * 3. Executes selected analysis strategies
+ * 4. Returns the ChapterAnalysis entity (in-memory only, no persistence)
  */
 export class AnalyzeChapterUseCase {
   constructor(
     private readonly projectRepository: ProjectRepository,
-    private readonly analysisRepository: AnalysisRepository,
     private readonly characterRepository: CharacterRepository,
     private readonly idGenerator: IdGenerator,
-    private readonly hashService: HashService,
     private readonly strategies: Map<AnalysisCategory, AnalysisStrategy>
   ) {}
 
@@ -73,44 +61,22 @@ export class AnalyzeChapterUseCase {
     }
 
     const content = chapter.getContent();
-    const contentHash = this.hashService.hash(content);
 
-    // 4. Check cache
-    const cachedAnalysis = await this.analysisRepository.findAnalysisByContentHash(
-      input.ownerId,
-      input.chapterId,
-      contentHash
-    );
-
-    if (cachedAnalysis) {
-      return {
-        analysis: cachedAnalysis as unknown as ChapterAnalysis,
-        fromCache: true,
-      };
-    }
-
-    // 5. Collect exclusions for repetition analysis
+    // 4. Collect exclusions for repetition analysis (character names)
     const exclusions = await this.collectExclusions(input.ownerId, input.projectId);
 
-    // 6. Collect previously ignored texts
-    const ignoredIssues = await this.analysisRepository.findIgnoredIssues(
-      input.ownerId,
-      input.chapterId
-    );
-    const ignoredTexts = ignoredIssues.map((i) => i.originalText);
-
-    // 7. Detect language
+    // 5. Detect language
     const language = this.detectLanguage(content);
 
-    // 8. Prepare analysis options
+    // 6. Prepare analysis options
     const analysisOptions: AnalysisOptions = {
       language,
       styleRigor: input.styleRigor,
       exclusions,
-      ignoredTexts,
+      ignoredTexts: [],
     };
 
-    // 9. Execute strategies and collect issues
+    // 7. Execute strategies and collect issues
     const issues: AnalysisIssue[] = [];
     const repetitions: RepetitionCluster[] = [];
 
@@ -126,7 +92,7 @@ export class AnalyzeChapterUseCase {
       }
     }
 
-    // 10. Create ChapterAnalysis entity
+    // 8. Create ChapterAnalysis entity (in-memory only)
     const analysisData: ChapterAnalysisData = {
       id: this.idGenerator.generate(),
       chapterId: input.chapterId,
@@ -136,17 +102,13 @@ export class AnalyzeChapterUseCase {
       styleRigor: input.styleRigor,
       issues,
       repetitions,
-      contentHash,
+      contentHash: 'in-memory',
     };
 
     const analysis = new ChapterAnalysis(analysisData);
 
-    // 11. Save to repository
-    await this.analysisRepository.saveAnalysis(input.ownerId, analysis);
-
     return {
       analysis,
-      fromCache: false,
     };
   }
 
@@ -178,15 +140,6 @@ export class AnalyzeChapterUseCase {
     const characters = await this.characterRepository.findByProjectId(ownerId, projectId);
     for (const character of characters) {
       exclusions.push(character.getName());
-    }
-
-    // Get user-defined exclusions
-    const userExclusions = await this.analysisRepository.findRepetitionExclusions(
-      ownerId,
-      projectId
-    );
-    for (const exclusion of userExclusions) {
-      exclusions.push(exclusion.word);
     }
 
     return exclusions;
