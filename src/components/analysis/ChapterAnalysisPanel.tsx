@@ -11,7 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AnalysisCategory } from '@/domain/value-objects/AnalysisCategory';
 import { AnalysisIssueCard, type AnalysisIssueData } from './AnalysisIssueCard';
@@ -75,7 +74,7 @@ export function ChapterAnalysisPanel({
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="w-[85vw]! max-w-none! max-h-[90vh] overflow-hidden flex flex-col p-0">
+      <DialogContent className="w-[85vw]! max-w-none! h-[90vh] overflow-hidden flex flex-col p-0">
         <DialogHeader className="px-6 py-4 border-b shrink-0">
           <DialogTitle className="text-lg">
             Vérification : {chapterTitle}
@@ -120,7 +119,7 @@ export function ChapterAnalysisPanel({
               )}
 
               {/* Issues list */}
-              <ScrollArea className="flex-1 min-h-0">
+              <div className="flex-1 min-h-0 overflow-y-auto">
                 <div className="p-6 space-y-3">
                   {filteredIssues.length === 0 && stats.totalIssues === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
@@ -143,7 +142,7 @@ export function ChapterAnalysisPanel({
                     ))
                   )}
                 </div>
-              </ScrollArea>
+              </div>
             </>
           )}
         </div>
