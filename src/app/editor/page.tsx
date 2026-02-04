@@ -36,7 +36,6 @@ import {
   applyCorrection,
   applyBatchCorrections,
   type AnalysisResultDTO,
-  type AnalysisIssueDTO,
 } from '@/app/actions/analysis-actions';
 import type { AnalysisIssueData } from '@/components/analysis/AnalysisIssueCard';
 import type { AnalysisSummaryStats } from '@/components/analysis/AnalysisSummaryCard';
@@ -362,28 +361,14 @@ function EditorContent() {
         // Update the editor content
         editor?.commands.setContent(result.data.newContent);
 
-        // Update analysis result to mark issue as applied and adjust positions
-        const delta = issue.suggestedText.length - issue.originalText.length;
+        // Mark issue as applied (no position adjustment needed with text-based matching)
         setAnalysisResult((prev) =>
           prev
             ? {
                 ...prev,
-                issues: prev.issues.map((i) => {
-                  if (i.id === issueId) {
-                    return { ...i, status: 'applied' as const };
-                  }
-                  // Adjust positions of issues that come after the applied correction
-                  if (i.position.start > issue.position.end) {
-                    return {
-                      ...i,
-                      position: {
-                        start: i.position.start + delta,
-                        end: i.position.end + delta,
-                      },
-                    };
-                  }
-                  return i;
-                }),
+                issues: prev.issues.map((i) =>
+                  i.id === issueId ? { ...i, status: 'applied' as const } : i
+                ),
               }
             : null
         );

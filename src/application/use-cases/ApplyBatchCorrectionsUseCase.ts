@@ -1,13 +1,16 @@
 // ABOUTME: Use case for applying multiple corrections at once
-// ABOUTME: Handles position offset adjustments when applying sequential corrections
+// ABOUTME: Uses text-based matching for robust sequential corrections
 
 import { ProjectRepository } from '../../domain/interfaces/ProjectRepository';
+import { findTextInContent, applyTextReplacement } from './text-matching';
 
 export interface BatchCorrectionIssue {
   id: string;
   originalText: string;
   suggestion: string;
-  position: { start: number; end: number };
+  context?: string;
+  // Position is kept for backwards compatibility but no longer used for matching
+  position?: { start: number; end: number };
 }
 
 export interface ApplyBatchCorrectionsInput {
@@ -36,9 +39,9 @@ export interface ApplyBatchCorrectionsResult {
 /**
  * Use case for applying multiple corrections at once.
  *
- * This use case handles the complexity of applying multiple corrections
- * to the same text by sorting issues by position (descending) to avoid
- * position offset issues.
+ * Uses text-based matching to find and replace text, which is more robust
+ * than position-based matching. Each correction is applied sequentially
+ * and the content is updated for the next correction.
  */
 export class ApplyBatchCorrectionsUseCase {
   constructor(
@@ -65,34 +68,35 @@ export class ApplyBatchCorrectionsUseCase {
       throw new Error('Chapter not found');
     }
 
-    // 4. Sort by position descending (apply from end to start to preserve positions)
-    const sortedIssues = [...input.issues].sort(
-      (a, b) => b.position.start - a.position.start
-    );
-
-    // 5. Apply corrections
+    // 4. Apply corrections using text-based matching
+    // No sorting needed - each correction updates the content for the next one
     let currentContent = chapter.getContent();
     const appliedCorrections: ApplyBatchCorrectionsResult['appliedCorrections'] = [];
     const failedCorrections: ApplyBatchCorrectionsResult['failedCorrections'] = [];
 
-    for (const issue of sortedIssues) {
-      const { start, end } = issue.position;
-      const textAtPosition = currentContent.substring(start, end);
+    for (const issue of input.issues) {
+      // Find the text using text-based search
+      const matchResult = findTextInContent(
+        currentContent,
+        issue.originalText,
+        issue.context
+      );
 
-      // Verify position still matches
-      if (textAtPosition !== issue.originalText) {
+      if (!matchResult.found) {
         failedCorrections.push({
           issueId: issue.id,
-          reason: 'Position mismatch - content may have changed',
+          reason: `Text not found: "${issue.originalText.substring(0, 30)}${issue.originalText.length > 30 ? '...' : ''}"`,
         });
         continue;
       }
 
       // Apply correction
-      currentContent =
-        currentContent.substring(0, start) +
-        issue.suggestion +
-        currentContent.substring(end);
+      currentContent = applyTextReplacement(
+        currentContent,
+        matchResult.index,
+        issue.originalText,
+        issue.suggestion
+      );
 
       appliedCorrections.push({
         issueId: issue.id,

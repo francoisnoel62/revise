@@ -35,6 +35,7 @@ export interface AnalysisIssueDTO {
   originalText: string;
   suggestedText: string;
   explanation?: string;
+  context?: string;
   position: { start: number; end: number };
   status: 'pending' | 'applied' | 'ignored';
 }
@@ -66,6 +67,7 @@ function mapIssueToDTO(issue: DomainAnalysisIssue): AnalysisIssueDTO {
     originalText: issue.originalText,
     suggestedText: issue.suggestion,
     explanation: issue.explanation,
+    context: issue.context,
     position: { start: issue.position.start, end: issue.position.end },
     status: issue.status,
   };
@@ -84,7 +86,7 @@ function mapDTOToCorrectionIssue(dto: AnalysisIssueDTO): CorrectionIssue {
   return {
     originalText: dto.originalText,
     suggestion: dto.suggestedText,
-    position: { start: dto.position.start, end: dto.position.end },
+    context: dto.context,
   };
 }
 
@@ -93,7 +95,7 @@ function mapDTOToBatchCorrectionIssue(dto: AnalysisIssueDTO): BatchCorrectionIss
     id: dto.id,
     originalText: dto.originalText,
     suggestion: dto.suggestedText,
-    position: { start: dto.position.start, end: dto.position.end },
+    context: dto.context,
   };
 }
 

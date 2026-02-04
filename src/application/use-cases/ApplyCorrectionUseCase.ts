@@ -1,12 +1,15 @@
 // ABOUTME: Use case for applying a single correction to chapter content
-// ABOUTME: Updates chapter content with the provided correction (in-memory analysis)
+// ABOUTME: Uses text-based matching instead of fragile position-based approach
 
 import { ProjectRepository } from '../../domain/interfaces/ProjectRepository';
+import { findTextInContent, applyTextReplacement } from './text-matching';
 
 export interface CorrectionIssue {
   originalText: string;
   suggestion: string;
-  position: { start: number; end: number };
+  context?: string;
+  // Position is kept for backwards compatibility but no longer used for matching
+  position?: { start: number; end: number };
 }
 
 export interface ApplyCorrectionInput {
@@ -58,20 +61,28 @@ export class ApplyCorrectionUseCase {
 
     const issue = input.issue;
 
-    // 4. Apply correction to content
+    // 4. Apply correction to content using text-based matching
     const originalContent = chapter.getContent();
-    const { start, end } = issue.position;
 
-    // Verify the text at the position matches
-    const textAtPosition = originalContent.substring(start, end);
-    if (textAtPosition !== issue.originalText) {
-      throw new Error('Content has changed since analysis - position mismatch');
+    // Find the text to replace using text search (not position)
+    const matchResult = findTextInContent(
+      originalContent,
+      issue.originalText,
+      issue.context
+    );
+
+    if (!matchResult.found) {
+      throw new Error(
+        `Text not found in content: "${issue.originalText.substring(0, 50)}${issue.originalText.length > 50 ? '...' : ''}"`
+      );
     }
 
-    const updatedContent =
-      originalContent.substring(0, start) +
-      issue.suggestion +
-      originalContent.substring(end);
+    const updatedContent = applyTextReplacement(
+      originalContent,
+      matchResult.index,
+      issue.originalText,
+      issue.suggestion
+    );
 
     // 5. Update chapter content
     chapter.updateContent(updatedContent);
