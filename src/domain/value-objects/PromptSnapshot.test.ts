@@ -1,6 +1,7 @@
 // ABOUTME: Tests for PromptSnapshot value object
 // ABOUTME: Verifies structure for capturing AI request prompts
 
+import { describe, it, expect } from 'vitest';
 import { PromptSnapshot } from './PromptSnapshot';
 
 describe('PromptSnapshot', () => {

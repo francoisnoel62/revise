@@ -1,6 +1,7 @@
 // ABOUTME: Tests for GenerationParameters value object
 // ABOUTME: Verifies parameter structure for AI generation configuration
 
+import { describe, it, expect } from 'vitest';
 import { GenerationParameters } from './GenerationParameters';
 
 describe('GenerationParameters', () => {

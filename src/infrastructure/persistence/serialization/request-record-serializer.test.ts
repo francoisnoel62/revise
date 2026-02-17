@@ -1,6 +1,7 @@
 // ABOUTME: Tests for AIRequestRecord serializer
 // ABOUTME: Verifies serialize/deserialize roundtrip for MongoDB persistence
 
+import { describe, it, expect } from 'vitest';
 import { AIRequestRecord } from '@/domain/entities/AIRequestRecord';
 import { serializeRequestRecord, deserializeRequestRecord } from './request-record-serializer';
 

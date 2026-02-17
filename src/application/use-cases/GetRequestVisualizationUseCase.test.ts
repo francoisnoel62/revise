@@ -1,7 +1,7 @@
 // ABOUTME: Tests for GetRequestVisualizationUseCase
 // ABOUTME: Verifies fetching of a single AI request record with proper validation
 
-import { vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { GetRequestVisualizationUseCase } from './GetRequestVisualizationUseCase';
 import { AIRequestRepository } from '../../domain/interfaces/AIRequestRepository';
 import { AIRequestRecord } from '../../domain/entities/AIRequestRecord';

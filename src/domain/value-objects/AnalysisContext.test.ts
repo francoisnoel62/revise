@@ -1,6 +1,7 @@
 // ABOUTME: Tests for AnalysisContext value object
 // ABOUTME: Verifies structure, color codes, and labels for analysis context entries
 
+import { describe, it, expect } from 'vitest';
 import {
   AnalysisContext,
   AnalysisContextEntry,

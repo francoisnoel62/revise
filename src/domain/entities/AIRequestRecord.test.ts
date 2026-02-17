@@ -1,6 +1,7 @@
 // ABOUTME: Tests for AIRequestRecord domain entity
 // ABOUTME: Verifies creation, reconstruction, getters, and validation rules
 
+import { describe, it, expect } from 'vitest';
 import { AIRequestRecord } from './AIRequestRecord';
 import { AnalysisContext } from '../value-objects/AnalysisContext';
 import { GenerationParameters } from '../value-objects/GenerationParameters';

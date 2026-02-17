@@ -1,7 +1,7 @@
 // ABOUTME: Tests for ListRequestHistoryUseCase
 // ABOUTME: Verifies paginated listing of AI request records per project
 
-import { vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { ListRequestHistoryUseCase } from './ListRequestHistoryUseCase';
 import { AIRequestRepository } from '../../domain/interfaces/AIRequestRepository';
 import { AIRequestRecord } from '../../domain/entities/AIRequestRecord';
