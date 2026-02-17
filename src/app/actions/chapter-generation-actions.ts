@@ -24,6 +24,7 @@ export interface ChapterGenerationResult {
   tipTapContent: string;
   narrativeContext?: string;
   suggestions?: string[];
+  requestRecordId?: string;  // ID for fetching the visualization of this generation
 }
 
 /**
@@ -85,11 +86,14 @@ export async function generateChapterAction(
       generationType: generationType as ChapterGenerationTypeKey,
     });
 
-    // 7. Return serialized result
+    // 7. Return serialized result with request record ID for visualization
+    const requestRecordId = llmProvider.getLastRequestRecordId() ?? undefined;
+
     return {
       tipTapContent: result.editorContent,
       narrativeContext: result.generation.narrativeContext,
       suggestions: result.generation.suggestions,
+      requestRecordId,
     };
   });
 }

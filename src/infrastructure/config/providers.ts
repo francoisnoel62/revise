@@ -9,6 +9,7 @@ import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
 import { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
 import { WritingGoalRepository } from '@/domain/interfaces/WritingGoalRepository';
 import { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
+import { AIRequestRepository } from '@/domain/interfaces/AIRequestRepository';
 import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository';
 import { ContactMessageRepository } from '@/domain/interfaces/ContactMessageRepository';
 import { ProjectTaskRepository } from '@/domain/interfaces/ProjectTaskRepository';
@@ -30,6 +31,7 @@ import { MongoDBMetadataRepository } from '@/infrastructure/persistence/MongoDBM
 import { MongoDBCorrectionHistoryRepository } from '@/infrastructure/persistence/MongoDBCorrectionHistoryRepository';
 import { MongoDBWritingGoalRepository } from '@/infrastructure/persistence/MongoDBWritingGoalRepository';
 import { MongoDBUsageRepository } from '@/infrastructure/persistence/MongoDBUsageRepository';
+import { MongoDBRequestRepository } from '@/infrastructure/persistence/MongoDBRequestRepository';
 import { MongoDBBlogArticleRepository } from '@/infrastructure/persistence/MongoDBBlogArticleRepository';
 import { MongoDBContactMessageRepository } from '@/infrastructure/persistence/MongoDBContactMessageRepository';
 import { MongoDBArticleViewRepository } from '@/infrastructure/persistence/MongoDBArticleViewRepository';
@@ -189,6 +191,20 @@ export async function getAIUsageRepository(): Promise<AIUsageRepository> {
     aiUsageRepoInstance = new MongoDBUsageRepository(db);
   }
   return aiUsageRepoInstance;
+}
+
+/**
+ * Get the AI request repository for visualization data.
+ */
+let aiRequestRepoInstance: MongoDBRequestRepository | null = null;
+
+export async function getAIRequestRepository(): Promise<AIRequestRepository> {
+  if (!aiRequestRepoInstance) {
+    const db = await getDatabase();
+    aiRequestRepoInstance = new MongoDBRequestRepository(db);
+    await aiRequestRepoInstance.ensureIndexes();
+  }
+  return aiRequestRepoInstance;
 }
 
 /**

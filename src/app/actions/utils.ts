@@ -13,6 +13,7 @@ import {
   getCorrectionHistoryRepository,
   getWritingGoalRepository,
   getAIUsageRepository as getAIUsageRepositoryFromConfig,
+  getAIRequestRepository as getAIRequestRepositoryFromConfig,
   getBlogArticleRepository,
   getArticleViewRepository,
   getProjectTaskRepository,
@@ -38,6 +39,7 @@ import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
 import { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
 import { WritingGoalRepository } from '@/domain/interfaces/WritingGoalRepository';
 import { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
+import { AIRequestRepository } from '@/domain/interfaces/AIRequestRepository';
 import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository';
 import { ProjectTaskRepository } from '@/domain/interfaces/ProjectTaskRepository';
 import { CharacterRepository } from '@/domain/interfaces/CharacterRepository';
@@ -177,6 +179,13 @@ export async function getWritingGoalRepo(): Promise<WritingGoalRepository> {
  */
 export async function getAIUsageRepo(): Promise<AIUsageRepository> {
   return await getAIUsageRepositoryFromConfig();
+}
+
+/**
+ * Get AI request repository instance for visualization data.
+ */
+export async function getAIRequestRepo(): Promise<AIRequestRepository> {
+  return await getAIRequestRepositoryFromConfig();
 }
 
 /**
@@ -324,21 +333,23 @@ export async function getLLMProviderForProject(
 
 /**
  * Get LLM provider for a project with usage tracking enabled.
- * Wraps the provider in TrackedLLMProvider to record AI usage.
+ * Wraps the provider in TrackedLLMProvider to record AI usage and request details.
  */
 export async function getTrackedLLMProviderForProject(
   userId: string,
   projectId: string
-): Promise<LLMProvider> {
+): Promise<TrackedLLMProvider> {
   const baseProvider = await getLLMProviderForProject(userId, projectId);
   const usageRepo = await getAIUsageRepo();
+  const requestRepo = await getAIRequestRepo();
 
   return new TrackedLLMProvider(
     baseProvider,
     usageRepo,
     objectIdGenerator,
     userId,
-    projectId
+    projectId,
+    requestRepo
   );
 }
 
@@ -368,22 +379,24 @@ export async function getLLMProviderById(
 
 /**
  * Get LLM provider by provider ID with usage tracking enabled.
- * Wraps the provider in TrackedLLMProvider to record AI usage.
+ * Wraps the provider in TrackedLLMProvider to record AI usage and request details.
  */
 export async function getTrackedLLMProviderById(
   userId: string,
   providerId: string,
   projectId: string
-): Promise<LLMProvider> {
+): Promise<TrackedLLMProvider> {
   const baseProvider = await getLLMProviderById(userId, providerId);
   const usageRepo = await getAIUsageRepo();
+  const requestRepo = await getAIRequestRepo();
 
   return new TrackedLLMProvider(
     baseProvider,
     usageRepo,
     objectIdGenerator,
     userId,
-    projectId
+    projectId,
+    requestRepo
   );
 }
 

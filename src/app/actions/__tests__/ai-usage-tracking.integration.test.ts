@@ -43,6 +43,13 @@ vi.mock('@/infrastructure/config/providers', () => ({
     getStatsForUser: vi.fn(),
     deleteAllByOwner: vi.fn(),
   }),
+  getAIRequestRepository: vi.fn().mockResolvedValue({
+    save: vi.fn(),
+    findById: vi.fn(),
+    findByProject: vi.fn(),
+    deleteByProjectId: vi.fn(),
+    deleteAllByOwner: vi.fn(),
+  }),
 }));
 
 vi.mock('@/infrastructure/utils/ObjectIdGenerator', () => ({

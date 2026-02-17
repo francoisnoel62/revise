@@ -5,6 +5,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import { MessageCreateParamsNonStreaming } from '@anthropic-ai/sdk/resources/messages/messages';
 import { LLMProvider, ConnectionTestResult } from '@/domain/interfaces/LLMProvider';
 import { PromptRepository } from '@/domain/interfaces/PromptRepository';
+import { IntrospectableProvider, LastRequestDetails } from './IntrospectableProvider';
+import { GenerationParameters } from '@/domain/value-objects/GenerationParameters';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
 import { NarrativeAnalysis } from '@/domain/value-objects/NarrativeAnalysis';
 import { StylisticDNA } from '@/domain/value-objects/StylisticDNA';
@@ -49,10 +51,15 @@ interface NarrativeAnalysisResponse {
   summary: string;
 }
 
-export class AnthropicProvider implements LLMProvider {
+export class AnthropicProvider implements LLMProvider, IntrospectableProvider {
   private client: Anthropic;
   private model: string;
   private promptRepository: PromptRepository;
+
+  // Introspection: stores details of the last generateChapter request
+  private lastSystemPrompt: string | null = null;
+  private lastUserMessage: string | null = null;
+  private lastParameters: GenerationParameters | null = null;
 
   constructor(
     apiKey: string,
@@ -249,6 +256,18 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans aucun texte avant ou après.
    */
   getModel(): string {
     return this.model;
+  }
+
+  /**
+   * Return details of the last generateChapter request for visualization.
+   * Returns null values if generateChapter has not been called yet.
+   */
+  getLastRequestDetails(): LastRequestDetails {
+    return {
+      systemPrompt: this.lastSystemPrompt,
+      userMessage: this.lastUserMessage,
+      parameters: this.lastParameters,
+    };
   }
 
   /**
@@ -1278,14 +1297,27 @@ INSTRUCTIONS SUPPLÉMENTAIRES:
 
     // Determine token limit based on generation type
     const tokenLimit = generationType === 'chapter-full' ? 4096 : 2048;
+    const thinkingBudget = 6144;
+    const temperature = 0.75;
+    const useThinking = this.supportsThinking() && thinkingBudget > 0;
+
+    // Capture request details for introspection/visualization before calling the API
+    this.lastSystemPrompt = systemPrompt;
+    this.lastUserMessage = fullText;
+    this.lastParameters = {
+      temperature: useThinking ? null : temperature,
+      maxTokens: useThinking ? tokenLimit + thinkingBudget : tokenLimit,
+      thinkingBudget,
+      thinkingEnabled: useThinking,
+    };
 
     try {
       const params = this.buildApiParams({
         system: systemPrompt,
         messages: [{ role: 'user', content: fullText }],
         baseMaxTokens: tokenLimit,
-        temperature: 0.75,
-        thinkingBudget: 6144,
+        temperature,
+        thinkingBudget,
       });
 
       const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);

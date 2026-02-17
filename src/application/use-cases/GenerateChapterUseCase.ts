@@ -15,6 +15,12 @@ import {
 } from '../../domain';
 import { ChapterGeneration } from '../../domain/value-objects/ChapterGeneration';
 import { ChapterGenerationTypeKey } from '../../domain/value-objects/ChapterGenerationType';
+import {
+  AnalysisContext,
+  AnalysisContextEntry,
+  ANALYSIS_COLORS,
+  ANALYSIS_LABELS,
+} from '../../domain/value-objects/AnalysisContext';
 
 export interface GenerateChapterInput {
   ownerId: string;
@@ -25,6 +31,7 @@ export interface GenerateChapterInput {
 export interface GenerateChapterResult {
   generation: ChapterGeneration;
   editorContent: string; // Editor-formatted content ready to insert
+  analysisContext: AnalysisContext; // Which analyses were used as context
 }
 
 export class GenerateChapterUseCase {
@@ -70,14 +77,17 @@ export class GenerateChapterUseCase {
     // 4. Load all available metadata for enhanced context
     const metadata = await this.loadProjectMetadata(input.ownerId, input.projectId);
 
-    // 5. Generate chapter content using LLM
+    // 5. Build analysis context for visualization
+    const analysisContext = this.buildAnalysisContext(metadata);
+
+    // 6. Generate chapter content using LLM
     const generation = await this.llmProvider.generateChapter(
       fullText,
       input.generationType,
       metadata
     );
 
-    // 6. Convert generated content to editor format
+    // 7. Convert generated content to editor format
     const editorContent = this.contentConverter.toEditorContent(
       generation.content,
       input.generationType
@@ -86,6 +96,79 @@ export class GenerateChapterUseCase {
     return {
       generation,
       editorContent,
+      analysisContext,
+    };
+  }
+
+  /**
+   * Build an AnalysisContext value object from loaded metadata.
+   * Records which analyses were present and provides summaries for visualization.
+   */
+  private buildAnalysisContext(metadata: {
+    narrative?: NarrativeAnalysis;
+    stylisticDNA?: StylisticDNA;
+    characters?: Characters;
+    plot?: Plot;
+    worldbuilding?: Worldbuilding;
+    chapterSummaries?: ChapterSummaries;
+  }): AnalysisContext {
+    const ALL_ANALYSIS_KEYS: Array<{
+      typeKey: string;
+      metadataKey: keyof typeof metadata;
+      getSummary: (m: typeof metadata) => string | undefined;
+    }> = [
+      {
+        typeKey: 'narrative-analysis',
+        metadataKey: 'narrative',
+        getSummary: (m) => m.narrative?.summary,
+      },
+      {
+        typeKey: 'stylistic-dna',
+        metadataKey: 'stylisticDNA',
+        getSummary: (m) => m.stylisticDNA?.summary,
+      },
+      {
+        typeKey: 'characters',
+        metadataKey: 'characters',
+        getSummary: (m) => m.characters?.summary,
+      },
+      {
+        typeKey: 'plot',
+        metadataKey: 'plot',
+        getSummary: (m) => m.plot?.summary,
+      },
+      {
+        typeKey: 'worldbuilding',
+        metadataKey: 'worldbuilding',
+        getSummary: (m) => m.worldbuilding?.summary,
+      },
+      {
+        typeKey: 'chapter-summaries',
+        metadataKey: 'chapterSummaries',
+        getSummary: (m) => m.chapterSummaries?.overallArc,
+      },
+    ];
+
+    const entries: AnalysisContextEntry[] = ALL_ANALYSIS_KEYS.map(({ typeKey, metadataKey, getSummary }) => {
+      const present = metadata[metadataKey] !== undefined;
+      const rawSummary = present ? getSummary(metadata) : undefined;
+      const summary = rawSummary ? rawSummary.substring(0, 200) : undefined;
+
+      return {
+        typeKey,
+        label: ANALYSIS_LABELS[typeKey] ?? typeKey,
+        present,
+        summary,
+        colorCode: ANALYSIS_COLORS[typeKey] ?? '#64748b',
+      };
+    });
+
+    const totalAvailable = entries.filter((e) => e.present).length;
+
+    return {
+      entries,
+      totalAvailable,
+      totalPossible: ALL_ANALYSIS_KEYS.length,
     };
   }
 

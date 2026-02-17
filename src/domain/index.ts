@@ -12,6 +12,7 @@ export { ProjectMetadata, type ProjectMetadataProperties } from './entities/Proj
 export { CorrectionHistory } from './entities/CorrectionHistory';
 export { WritingGoal, type GoalType, type WritingGoalProperties } from './entities/WritingGoal';
 export { AIUsageRecord, type AIUsageRecordProperties } from './entities/AIUsageRecord';
+export { AIRequestRecord, type AIRequestRecordProperties } from './entities/AIRequestRecord';
 export { ProjectTask, type ProjectTaskProperties } from './entities/ProjectTask';
 export { Character, type CharacterProperties } from './entities/Character';
 export {
@@ -65,6 +66,14 @@ export {
   isValidAIOperationType,
 } from './value-objects/AIOperationType';
 export {
+  type AnalysisContext,
+  type AnalysisContextEntry,
+  ANALYSIS_COLORS,
+  ANALYSIS_LABELS,
+} from './value-objects/AnalysisContext';
+export { type GenerationParameters } from './value-objects/GenerationParameters';
+export { type PromptSnapshot } from './value-objects/PromptSnapshot';
+export {
   type TaskStatus,
   TASK_STATUSES,
   TASK_STATUS_LABELS,
@@ -96,6 +105,7 @@ export type { CorrectionHistoryRepository } from './interfaces/CorrectionHistory
 export type { ContentConverter } from './interfaces/ContentConverter';
 export type { WritingGoalRepository } from './interfaces/WritingGoalRepository';
 export type { AIUsageRepository, UsageStats, DailyUsage } from './interfaces/AIUsageRepository';
+export type { AIRequestRepository } from './interfaces/AIRequestRepository';
 export type { ProjectTaskRepository, TaskFilters, TaskSortOptions } from './interfaces/ProjectTaskRepository';
 export type { CharacterRepository } from './interfaces/CharacterRepository';
 export type {

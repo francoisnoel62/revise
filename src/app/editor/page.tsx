@@ -23,6 +23,8 @@ import { rewriteText } from '@/app/actions/rewrite-text';
 import { listProvidersAction, SafeProvider } from '@/app/actions/provider-actions';
 import { updateProjectProviderAction } from '@/app/actions/project-actions';
 import { generateChapterAction } from '@/app/actions/chapter-generation-actions';
+import { RequestVisualizationSheet } from '@/components/visualization/RequestVisualizationSheet';
+import { useRequestVisualizationStore } from '@/store/requestVisualizationStore';
 import { CorrectionHistoryDialog } from '@/components/history/CorrectionHistoryDialog';
 import { FloatingGenerationMenu } from '@/components/editor/FloatingGenerationMenu';
 import { PublishDialog } from '@/components/publish/PublishDialog';
@@ -77,6 +79,9 @@ function EditorContent() {
 
   // Command palette state
   const [showCommandPalette, setShowCommandPalette] = useState(false);
+
+  // Request visualization
+  const { openPanel: openVisualizationPanel } = useRequestVisualizationStore();
 
   // Search/Replace state
   const [showSearchReplace, setShowSearchReplace] = useState(false);
@@ -247,6 +252,11 @@ function EditorContent() {
       // Insert generated content into editor
       const content = JSON.parse(result.data.tipTapContent);
       editor.commands.setContent(content);
+
+      // Open visualization panel if request record is available
+      if (result.data.requestRecordId) {
+        openVisualizationPanel(result.data.requestRecordId);
+      }
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Erreur inattendue');
     } finally {
@@ -504,6 +514,11 @@ function EditorContent() {
           selectedProviderId={selectedProviderId}
           onProviderChange={handleProviderChange}
         />
+      )}
+
+      {/* AI Request Visualization Panel */}
+      {project?.id && (
+        <RequestVisualizationSheet projectId={project.id} />
       )}
     </main>
   );
