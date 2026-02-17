@@ -1,6 +1,7 @@
 // ABOUTME: Tests for AI model configuration
 // ABOUTME: Validates that all expected models are present with correct properties
 
+import { describe, it, expect } from 'vitest';
 import { AI_MODELS, getModelsForProvider, getDefaultModel, getModelInfo } from './ai-models';
 
 describe('AI_MODELS', () => {
