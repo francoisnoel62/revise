@@ -64,6 +64,12 @@ export const AI_MODELS: Record<ProviderType, ModelInfo[]> = {
       description: 'Premium model combining maximum intelligence with practical performance',
       contextWindow: 200000,
     },
+    {
+      id: 'claude-opus-4-6',
+      name: 'Claude Opus 4.6',
+      description: 'Flagship model with adaptive thinking and 128K output',
+      contextWindow: 200000,
+    },
   ],
   google: [
     {

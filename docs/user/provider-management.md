@@ -106,11 +106,11 @@ Once in the editor, you can also access provider management through the AI Menu:
 3. **Model**: Select the AI model
    - Options automatically update based on provider type
    - Common models:
-     - OpenAI: gpt-4o, gpt-4o-mini (recommended), gpt-4-turbo
-     - Anthropic: claude-3-5-sonnet-20241022 (recommended), claude-3-opus, claude-3-sonnet
+     - OpenAI: gpt-5.2 (recommended), gpt-5-mini, gpt-5-nano, gpt-4o
+     - Anthropic: claude-sonnet-4-5 (recommended), claude-haiku-4-5, claude-opus-4-5, claude-opus-4-6
      - Mistral: mistral-large-latest, mistral-medium-latest
      - Cohere: command-r-plus, command-r
-     - Google: gemini-1.5-pro, gemini-1.5-flash
+     - Google: gemini-3-flash-preview (recommended), gemini-3-pro-preview
 
 4. **API Key**: Paste your API key
    - The key will be encrypted before storage
@@ -216,7 +216,7 @@ When you create or edit a project:
 
 Each project can use a different provider:
 - Project A → OpenAI GPT-4o-mini
-- Project B → Anthropic Claude 3.5 Sonnet
+- Project B → Anthropic Claude Opus 4.6
 - Project C → Mistral Large
 
 ### Changing Project Provider
@@ -405,13 +405,14 @@ If your selected provider fails:
 
 **It depends on your needs:**
 
-- **OpenAI GPT-4o-mini**: Best balance of speed, quality, and cost (recommended)
-- **Anthropic Claude 3.5 Sonnet**: Excellent for long-form content, strong instruction following
+- **OpenAI GPT-5.2**: Best balance of speed, quality, and cost (recommended)
+- **Anthropic Claude Sonnet 4.5**: Excellent for long-form content, strong instruction following
+- **Anthropic Claude Opus 4.6**: Flagship model with adaptive thinking and 128K output
 - **Mistral Large**: European option, good for multilingual text
 - **Cohere Command R+**: Specialized for business writing
-- **Google Gemini 1.5 Flash**: Fast and cost-effective
+- **Google Gemini 3 Flash**: Fast and cost-effective with 1M context
 
-**Recommendation**: Start with OpenAI GPT-4o-mini for the best experience.
+**Recommendation**: Start with OpenAI GPT-5.2 or Anthropic Claude Sonnet 4.5 for the best experience.
 
 ### How much does it cost?
 
@@ -423,8 +424,9 @@ If your selected provider fails:
 - [Google AI Pricing](https://ai.google.dev/pricing)
 
 **Typical costs** for 100 rewrites (500 proposals):
-- GPT-4o-mini: ~$0.05-0.10
-- Claude 3.5 Sonnet: ~$0.30-0.50
+- GPT-5-mini: ~$0.05-0.10
+- Claude Sonnet 4.5: ~$0.30-0.50
+- Claude Opus 4.6: ~$0.50-1.00
 - Mistral Large: ~$0.20-0.40
 
 ### Can I use the free environment variable method instead?
