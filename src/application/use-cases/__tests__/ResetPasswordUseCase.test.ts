@@ -5,7 +5,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   ResetPasswordUseCase,
   InvalidTokenError,
-  ExpiredTokenError,
   ValidationError,
 } from '../ResetPasswordUseCase';
 
