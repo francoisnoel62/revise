@@ -2,6 +2,7 @@
 // ABOUTME: Generates 3 stylistically distinct proposals using carefully crafted prompt
 
 import Anthropic from '@anthropic-ai/sdk';
+import { MessageCreateParamsNonStreaming } from '@anthropic-ai/sdk/resources/messages/messages';
 import { LLMProvider, ConnectionTestResult } from '@/domain/interfaces/LLMProvider';
 import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
@@ -104,7 +105,7 @@ export class AnthropicProvider implements LLMProvider {
         thinkingBudget: 4096,
       });
 
-      const message = await this.client.messages.create(params as Parameters<typeof this.client.messages.create>[0]);
+      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
 
       this.checkRefusal(message);
 
@@ -342,7 +343,7 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans aucun texte avant ou après.
         thinkingBudget: 8192,
       });
 
-      const message = await this.client.messages.create(params as Parameters<typeof this.client.messages.create>[0]);
+      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
 
       this.checkRefusal(message);
 
@@ -471,7 +472,7 @@ INSTRUCTIONS FINALES:
         thinkingBudget: 8192,
       });
 
-      const message = await this.client.messages.create(params as Parameters<typeof this.client.messages.create>[0]);
+      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
 
       this.checkRefusal(message);
 
@@ -571,7 +572,7 @@ INSTRUCTIONS:
         thinkingBudget: 8192,
       });
 
-      const message = await this.client.messages.create(params as Parameters<typeof this.client.messages.create>[0]);
+      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
 
       this.checkRefusal(message);
 
@@ -700,7 +701,7 @@ INSTRUCTIONS:
         thinkingBudget: 8192,
       });
 
-      const message = await this.client.messages.create(params as Parameters<typeof this.client.messages.create>[0]);
+      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
 
       this.checkRefusal(message);
 
@@ -856,7 +857,7 @@ INSTRUCTIONS:
         thinkingBudget: 8192,
       });
 
-      const message = await this.client.messages.create(params as Parameters<typeof this.client.messages.create>[0]);
+      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
 
       this.checkRefusal(message);
 
@@ -1014,7 +1015,7 @@ INSTRUCTIONS:
         thinkingBudget: 10240,
       });
 
-      const message = await this.client.messages.create(params as Parameters<typeof this.client.messages.create>[0]);
+      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
 
       this.checkRefusal(message);
 
@@ -1192,7 +1193,7 @@ INSTRUCTIONS:
         thinkingBudget: 4096,
       });
 
-      const message = await this.client.messages.create(params as Parameters<typeof this.client.messages.create>[0]);
+      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
 
       this.checkRefusal(message);
 
@@ -1287,7 +1288,7 @@ INSTRUCTIONS SUPPLÉMENTAIRES:
         thinkingBudget: 6144,
       });
 
-      const message = await this.client.messages.create(params as Parameters<typeof this.client.messages.create>[0]);
+      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
 
       this.checkRefusal(message);
 
@@ -1434,7 +1435,7 @@ INSTRUCTIONS FINALES:
         thinkingBudget: 0, // No thinking for autocompletion (latency critical)
       });
 
-      const response = await this.client.messages.create(params as Parameters<typeof this.client.messages.create>[0]);
+      const response = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
 
       this.checkRefusal(response);
 
