@@ -14,6 +14,7 @@ import {
   Loader2,
   Zap,
   PenLine,
+  CheckCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -54,6 +55,10 @@ interface AIMenuDropdownProps {
 
   // Command palette
   onOpenCommandPalette?: () => void;
+
+  // Chapter analysis
+  onAnalyze?: () => void;
+  analysisLoading?: boolean;
 }
 
 export function AIMenuDropdown({
@@ -72,6 +77,8 @@ export function AIMenuDropdown({
   autocompleteEnabled,
   onAutocompleteChange,
   onOpenCommandPalette,
+  onAnalyze,
+  analysisLoading = false,
 }: AIMenuDropdownProps) {
   const [open, setOpen] = useState(false);
 
@@ -117,8 +124,13 @@ export function AIMenuDropdown({
     onOpenCommandPalette?.();
   };
 
+  const handleAnalyzeClick = () => {
+    setOpen(false);
+    onAnalyze?.();
+  };
+
   // Determine if the menu is in a loading state
-  const isLoading = rewriteLoading || generationLoading;
+  const isLoading = rewriteLoading || generationLoading || analysisLoading;
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -235,6 +247,22 @@ export function AIMenuDropdown({
           <History className="h-4 w-4" />
           <span>Historique des corrections</span>
         </DropdownMenuItem>
+
+        {/* Chapter Analysis */}
+        {onAnalyze && (
+          <DropdownMenuItem
+            onClick={handleAnalyzeClick}
+            disabled={analysisLoading || !hasValidProvider}
+            className="gap-2"
+          >
+            {analysisLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircle className="h-4 w-4" />
+            )}
+            <span>Vérifier le chapitre</span>
+          </DropdownMenuItem>
+        )}
 
         {/* Autocomplete toggle */}
         <DropdownMenuItem

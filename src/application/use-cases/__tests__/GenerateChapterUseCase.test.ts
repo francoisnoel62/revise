@@ -47,7 +47,6 @@ describe('GenerateChapterUseCase', () => {
   beforeEach(() => {
     mockProjectRepo = {
       loadProject: vi.fn(),
-      saveProject: vi.fn(),
       createProject: vi.fn(),
       listProjects: vi.fn(),
       deleteProject: vi.fn(),

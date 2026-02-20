@@ -145,6 +145,9 @@ interface FormattingToolbarProps {
   activeGenerationType?: ChapterGenerationTypeKey | null;
   onOpenCommandPalette?: () => void;
   onSearchClick?: () => void;
+  // Chapter analysis
+  onAnalyze?: () => void;
+  analysisLoading?: boolean;
 }
 
 export function FormattingToolbar({
@@ -166,6 +169,8 @@ export function FormattingToolbar({
   activeGenerationType = null,
   onOpenCommandPalette,
   onSearchClick,
+  onAnalyze,
+  analysisLoading = false,
 }: FormattingToolbarProps) {
   if (!editor) return null;
 
@@ -383,6 +388,8 @@ export function FormattingToolbar({
             autocompleteEnabled={autocompleteEnabled}
             onAutocompleteChange={onAutocompleteChange}
             onOpenCommandPalette={onOpenCommandPalette}
+            onAnalyze={onAnalyze}
+            analysisLoading={analysisLoading}
           />
         </div>
       )}

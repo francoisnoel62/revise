@@ -34,14 +34,14 @@ export function ProposalsSheet({
 }: ProposalsSheetProps) {
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <SheetContent side="right" className="w-[500px] sm:w-[600px] flex flex-col">
+      <SheetContent side="right" className="w-125 sm:w-150 flex flex-col">
         <SheetHeader>
           <SheetTitle>Propositions de réécriture</SheetTitle>
         </SheetHeader>
 
         {/* Original selected text */}
         {originalText && (
-          <div className="mt-4 mx-4 p-3 bg-slate-100 border border-slate-200 rounded-lg flex-shrink-0">
+          <div className="mt-4 mx-4 p-3 bg-slate-100 border border-slate-200 rounded-lg shrink-0">
             <p className="text-xs text-slate-500 font-medium mb-1">Texte original</p>
             <p className="text-sm text-slate-700 whitespace-pre-wrap">{originalText}</p>
           </div>

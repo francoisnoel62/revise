@@ -138,4 +138,19 @@ describe('CommandPalette', () => {
 
     expect(onOpenChange).not.toHaveBeenCalled();
   });
+
+  it('accepts onAnalyze and analysisLoading props', () => {
+    const onAnalyze = vi.fn();
+    const { container } = render(
+      <CommandPalette
+        {...defaultProps}
+        open={true}
+        onAnalyze={onAnalyze}
+        analysisLoading={false}
+      />
+    );
+
+    // Component should render without error
+    expect(container).toBeDefined();
+  });
 });

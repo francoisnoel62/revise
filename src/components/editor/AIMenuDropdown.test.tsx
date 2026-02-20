@@ -124,4 +124,55 @@ describe('AIMenuDropdown', () => {
     const button = screen.getByRole('button');
     expect(button).toBeInTheDocument();
   });
+
+  describe('Chapter Analysis', () => {
+    it('renders "Vérifier le chapitre" menu item when onAnalyze is provided', async () => {
+      const user = await import('@testing-library/user-event');
+      const onAnalyze = vi.fn();
+      render(<AIMenuDropdown {...defaultProps} onAnalyze={onAnalyze} />);
+
+      // Open the menu
+      const menuButton = screen.getByRole('button');
+      await user.default.setup().click(menuButton);
+
+      expect(screen.getByText('Vérifier le chapitre')).toBeInTheDocument();
+    });
+
+    it('calls onAnalyze when "Vérifier le chapitre" is clicked', async () => {
+      const user = await import('@testing-library/user-event');
+      const onAnalyze = vi.fn();
+      render(<AIMenuDropdown {...defaultProps} onAnalyze={onAnalyze} />);
+
+      // Open the menu
+      const menuButton = screen.getByRole('button');
+      await user.default.setup().click(menuButton);
+
+      // Click the analyze option
+      const analyzeItem = screen.getByText('Vérifier le chapitre');
+      await user.default.setup().click(analyzeItem);
+
+      expect(onAnalyze).toHaveBeenCalledTimes(1);
+    });
+
+    it('disables "Vérifier le chapitre" when analysisLoading is true', async () => {
+      const user = await import('@testing-library/user-event');
+      const onAnalyze = vi.fn();
+      render(<AIMenuDropdown {...defaultProps} onAnalyze={onAnalyze} analysisLoading={true} />);
+
+      // Open the menu
+      const menuButton = screen.getByRole('button');
+      await user.default.setup().click(menuButton);
+
+      const analyzeItem = screen.getByText('Vérifier le chapitre').closest('[role="menuitem"]');
+      expect(analyzeItem).toHaveAttribute('data-disabled');
+    });
+
+    it('disables button when analysisLoading is true', () => {
+      const onAnalyze = vi.fn();
+      render(<AIMenuDropdown {...defaultProps} onAnalyze={onAnalyze} analysisLoading={true} />);
+
+      const button = screen.getByRole('button');
+      expect(button).toBeDisabled();
+    });
+  });
 });

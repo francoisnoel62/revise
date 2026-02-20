@@ -29,6 +29,16 @@ import { PublishDialog } from '@/components/publish/PublishDialog';
 import { CommandPalette } from '@/components/editor/CommandPalette';
 import { SearchReplaceBar } from '@/components/editor/SearchReplaceBar';
 import { ChapterGenerationTypeKey } from '@/domain';
+import { AnalysisConfigDialog, AnalysisConfig } from '@/components/analysis/AnalysisConfigDialog';
+import { ChapterAnalysisPanel } from '@/components/analysis/ChapterAnalysisPanel';
+import {
+  analyzeChapter,
+  applyCorrection,
+  applyBatchCorrections,
+  type AnalysisResultDTO,
+} from '@/app/actions/analysis-actions';
+import type { AnalysisIssueData } from '@/components/analysis/AnalysisIssueCard';
+import type { AnalysisSummaryStats } from '@/components/analysis/AnalysisSummaryCard';
 
 interface Proposal {
   content: string;
@@ -80,6 +90,14 @@ function EditorContent() {
 
   // Search/Replace state
   const [showSearchReplace, setShowSearchReplace] = useState(false);
+
+  // Chapter analysis state
+  const [showAnalysisConfig, setShowAnalysisConfig] = useState(false);
+  const [showAnalysisPanel, setShowAnalysisPanel] = useState(false);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResultDTO | null>(null);
+  const [applyingIssueId, setApplyingIssueId] = useState<string | null>(null);
+  const [isApplyingAll, setIsApplyingAll] = useState(false);
 
   // Keyboard shortcut for search (Ctrl+F / Cmd+F)
   useEffect(() => {
@@ -293,6 +311,148 @@ function EditorContent() {
     setShowProposals(false);
   };
 
+  // Chapter analysis handlers
+  const handleOpenAnalysisConfig = () => {
+    setShowAnalysisConfig(true);
+  };
+
+  const handleStartAnalysis = async (config: AnalysisConfig) => {
+    if (!project?.id || !project.activeChapterId) return;
+
+    setAnalysisLoading(true);
+    setShowAnalysisConfig(false);
+
+    try {
+      const result = await analyzeChapter(
+        project.id,
+        project.activeChapterId,
+        config.categories,
+        config.styleRigor
+      );
+
+      if (result.success && result.data) {
+        setAnalysisResult(result.data);
+        setShowAnalysisPanel(true);
+      } else if (!result.success) {
+        alert(result.error || 'Erreur lors de l\'analyse');
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Erreur inattendue');
+    } finally {
+      setAnalysisLoading(false);
+    }
+  };
+
+  const handleApplyCorrection = async (issueId: string) => {
+    if (!project?.id || !project.activeChapterId || !analysisResult) return;
+
+    const issue = analysisResult.issues.find((i) => i.id === issueId);
+    if (!issue) return;
+
+    setApplyingIssueId(issueId);
+    try {
+      const result = await applyCorrection(
+        project.id,
+        project.activeChapterId,
+        issue
+      );
+
+      if (result.success && result.data) {
+        // Update the editor content (parse JSON string to object for TipTap)
+        editor?.commands.setContent(JSON.parse(result.data.newContent));
+
+        // Mark issue as applied (no position adjustment needed with text-based matching)
+        setAnalysisResult((prev) =>
+          prev
+            ? {
+                ...prev,
+                issues: prev.issues.map((i) =>
+                  i.id === issueId ? { ...i, status: 'applied' as const } : i
+                ),
+              }
+            : null
+        );
+      } else if (!result.success) {
+        alert(result.error || 'Erreur lors de l\'application');
+      }
+    } finally {
+      setApplyingIssueId(null);
+    }
+  };
+
+  const handleIgnoreIssue = (issueId: string) => {
+    // Update analysis result to mark issue as ignored (local state only)
+    setAnalysisResult((prev) =>
+      prev
+        ? {
+            ...prev,
+            issues: prev.issues.map((i) =>
+              i.id === issueId ? { ...i, status: 'ignored' as const } : i
+            ),
+          }
+        : null
+    );
+  };
+
+  const handleApplyAllCorrections = async () => {
+    if (!project?.id || !project.activeChapterId || !analysisResult) return;
+
+    const pendingIssues = analysisResult.issues.filter((i) => i.status === 'pending');
+    if (pendingIssues.length === 0) return;
+
+    setIsApplyingAll(true);
+    try {
+      const result = await applyBatchCorrections(
+        project.id,
+        project.activeChapterId,
+        pendingIssues
+      );
+
+      if (result.success && result.data) {
+        // Parse JSON string to object for TipTap
+        editor?.commands.setContent(JSON.parse(result.data.newContent));
+
+        // Mark all pending issues as applied
+        setAnalysisResult((prev) =>
+          prev
+            ? {
+                ...prev,
+                issues: prev.issues.map((i) =>
+                  i.status === 'pending' ? { ...i, status: 'applied' as const } : i
+                ),
+              }
+            : null
+        );
+      } else if (!result.success) {
+        alert(result.error || 'Erreur lors de l\'application');
+      }
+    } finally {
+      setIsApplyingAll(false);
+    }
+  };
+
+  const handleCloseAnalysisPanel = () => {
+    setShowAnalysisPanel(false);
+  };
+
+  // Transform AnalysisResultDTO to component types
+  const analysisIssues: AnalysisIssueData[] = analysisResult?.issues ?? [];
+  const analysisStats: AnalysisSummaryStats = analysisResult
+    ? {
+        totalIssues: analysisResult.stats.totalIssues,
+        pendingIssues: analysisResult.issues.filter((i) => i.status === 'pending').length,
+        appliedIssues: analysisResult.issues.filter((i) => i.status === 'applied').length,
+        ignoredIssues: analysisResult.issues.filter((i) => i.status === 'ignored').length,
+        byCategory: analysisResult.stats.byCategory,
+      }
+    : {
+        totalIssues: 0,
+        pendingIssues: 0,
+        appliedIssues: 0,
+        ignoredIssues: 0,
+        byCategory: { spelling: 0, grammar: 0, punctuation: 0, repetition: 0, style: 0 },
+      };
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -361,7 +521,7 @@ function EditorContent() {
           <div className="flex-1 text-center min-w-0 px-2">
             <h1 className="text-base font-semibold truncate">{project.title}</h1>
             <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-              <span className="truncate max-w-[150px]">{project.chapters.find((c) => c.id === project.activeChapterId)?.title || 'Sans titre'}</span>
+              <span className="truncate max-w-37.5">{project.chapters.find((c) => c.id === project.activeChapterId)?.title || 'Sans titre'}</span>
               <span>·</span>
               <SaveStatus compact />
             </div>
@@ -405,8 +565,8 @@ function EditorContent() {
       </header>
 
       {/* Toolbar sticky - responsive positioning for 3 breakpoints */}
-      <div className="sticky top-[52px] lg:top-[73px] z-40 flex flex-col items-center py-1 lg:py-2 bg-slate-50 px-2 gap-2">
-        <div className="w-full max-w-[794px]">
+      <div className="sticky top-13 lg:top-18.25 z-40 flex flex-col items-center py-1 lg:py-2 bg-slate-50 px-2 gap-2">
+        <div className="w-full max-w-198.5">
           <div className="bg-white rounded-lg shadow border border-slate-200 px-1 md:px-2 py-1 overflow-x-auto">
             <FormattingToolbar
               editor={editor}
@@ -427,11 +587,13 @@ function EditorContent() {
               activeGenerationType={activeGenerationType}
               onOpenCommandPalette={() => setShowCommandPalette(true)}
               onSearchClick={() => setShowSearchReplace(true)}
+              onAnalyze={handleOpenAnalysisConfig}
+              analysisLoading={analysisLoading}
             />
           </div>
         </div>
         {/* Search/Replace bar */}
-        <div className="w-full max-w-[794px]">
+        <div className="w-full max-w-198.5">
           <SearchReplaceBar
             editor={editor}
             isOpen={showSearchReplace}
@@ -442,7 +604,7 @@ function EditorContent() {
 
       {/* Editor container - responsive width */}
       <div className="flex justify-center px-2 md:px-4 pb-8">
-        <div className="w-full max-w-[794px]">
+        <div className="w-full max-w-198.5">
           <div className="bg-white rounded-lg shadow-lg overflow-hidden relative">
             <TextEditor
               onSelectionChange={handleSelectionChange}
@@ -500,11 +662,38 @@ function EditorContent() {
           }}
           autocompleteEnabled={autocompleteEnabled}
           onAutocompleteChange={setAutocompleteEnabled}
+          onAnalyze={() => {
+            setShowCommandPalette(false);
+            handleOpenAnalysisConfig();
+          }}
+          analysisLoading={analysisLoading}
           providers={providers}
           selectedProviderId={selectedProviderId}
           onProviderChange={handleProviderChange}
         />
       )}
+
+      {/* Chapter analysis configuration dialog */}
+      <AnalysisConfigDialog
+        open={showAnalysisConfig}
+        onStart={handleStartAnalysis}
+        onCancel={() => setShowAnalysisConfig(false)}
+        isLoading={analysisLoading}
+      />
+
+      {/* Chapter analysis results panel */}
+      <ChapterAnalysisPanel
+        open={showAnalysisPanel}
+        issues={analysisIssues}
+        stats={analysisStats}
+        onApply={handleApplyCorrection}
+        onIgnore={handleIgnoreIssue}
+        onApplyAll={handleApplyAllCorrections}
+        onClose={handleCloseAnalysisPanel}
+        chapterTitle={project.chapters.find((c) => c.id === project.activeChapterId)?.title || 'Chapitre'}
+        applyingIssueId={applyingIssueId}
+        isApplyingAll={isApplyingAll}
+      />
     </main>
   );
 }
