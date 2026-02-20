@@ -2,6 +2,7 @@
 // ABOUTME: Generates 3 stylistically distinct proposals using carefully crafted prompt
 
 import Anthropic from '@anthropic-ai/sdk';
+import { MessageCreateParamsNonStreaming } from '@anthropic-ai/sdk/resources/messages/messages';
 import { LLMProvider, ConnectionTestResult } from '@/domain/interfaces/LLMProvider';
 import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
@@ -20,6 +21,23 @@ interface ProposalResponse {
     content: string;
     styleLabel?: string;
   }>;
+}
+
+interface ThinkingApiParams {
+  model: string;
+  max_tokens: number;
+  system: string;
+  messages: Array<{ role: string; content: string }>;
+  temperature?: number;
+  thinking?: { type: 'enabled'; budget_tokens: number };
+}
+
+interface BuildApiParamsInput {
+  system: string;
+  messages: Array<{ role: string; content: string }>;
+  baseMaxTokens: number;
+  temperature?: number;
+  thinkingBudget: number;
 }
 
 interface NarrativeAnalysisResponse {
@@ -79,27 +97,20 @@ export class AnthropicProvider implements LLMProvider {
     const userPrompt = this.buildUserPrompt(text, context);
 
     try {
-      const message = await this.client.messages.create({
-        model: this.model,
-        max_tokens: 4096,
-        temperature: 0.85, // Balanced creativity with coherence
-        // Note: Anthropic does not support top_p parameter with Claude 4.5 models
+      const params = this.buildApiParams({
         system: systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content: userPrompt,
-          },
-        ],
+        messages: [{ role: 'user', content: userPrompt }],
+        baseMaxTokens: 4096,
+        temperature: 0.85,
+        thinkingBudget: 4096,
       });
 
-      // Extract text content from response
-      const content = message.content[0];
-      if (content.type !== 'text') {
-        throw new Error('Unexpected response type from Anthropic');
-      }
+      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
 
-      return this.parseResponse(content.text);
+      this.checkRefusal(message);
+
+      const text = this.extractTextContent(message.content);
+      return this.parseResponse(text);
     } catch (error) {
       if (error instanceof Error) {
         throw error;
@@ -241,6 +252,77 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans aucun texte avant ou après.
   }
 
   /**
+   * Detect whether the current model supports extended thinking.
+   * Claude 4.5+ and 4.6 models support the thinking parameter.
+   */
+  private supportsThinking(): boolean {
+    const thinkingModels = [
+      'claude-opus-4-6',
+      'claude-opus-4-5',
+      'claude-sonnet-4-5',
+      'claude-haiku-4-5',
+    ];
+    return thinkingModels.some((prefix) => this.model.startsWith(prefix));
+  }
+
+  /**
+   * Extract the first text block from a response content array,
+   * skipping thinking and redacted_thinking blocks.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private extractTextContent(content: any[]): string {
+    const textBlock = content.find(
+      (block) => block.type === 'text'
+    );
+    if (!textBlock) {
+      throw new Error('No text content in Anthropic response');
+    }
+    return textBlock.text;
+  }
+
+  /**
+   * Build API call parameters, conditionally adding thinking configuration.
+   * When thinking is enabled, temperature must not be set (defaults to 1.0).
+   */
+  private buildApiParams(input: BuildApiParamsInput): ThinkingApiParams {
+    const { system, messages, baseMaxTokens, temperature, thinkingBudget } = input;
+    const useThinking = this.supportsThinking() && thinkingBudget > 0;
+
+    if (useThinking) {
+      return {
+        model: this.model,
+        max_tokens: baseMaxTokens + thinkingBudget,
+        system,
+        messages,
+        thinking: { type: 'enabled', budget_tokens: thinkingBudget },
+      };
+    }
+
+    const params: ThinkingApiParams = {
+      model: this.model,
+      max_tokens: baseMaxTokens,
+      system,
+      messages,
+    };
+    if (temperature !== undefined) {
+      params.temperature = temperature;
+    }
+    return params;
+  }
+
+  /**
+   * Check if the response indicates a refusal and throw a descriptive error.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private checkRefusal(message: any): void {
+    if (message.stop_reason === 'refusal') {
+      throw new Error(
+        'Claude refused to process this content. Please check the submitted text.'
+      );
+    }
+  }
+
+  /**
    * Generate narrative analysis for the given text.
    * Analyzes narrator type, focalization, temporality, chapter structure,
    * and distinctive narrative voice using Claude.
@@ -253,26 +335,20 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans aucun texte avant ou après.
     const systemPrompt = this.enhancePromptForAnthropic(basePrompt);
 
     try {
-      const message = await this.client.messages.create({
-        model: this.model,
-        max_tokens: 4096,
-        temperature: 0.3, // Lower for more consistent analysis
+      const params = this.buildApiParams({
         system: systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content: fullText,
-          },
-        ],
+        messages: [{ role: 'user', content: fullText }],
+        baseMaxTokens: 4096,
+        temperature: 0.3,
+        thinkingBudget: 8192,
       });
 
-      // Extract text content from response
-      const content = message.content[0];
-      if (content.type !== 'text') {
-        throw new Error('Unexpected response type from Anthropic');
-      }
+      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
 
-      return this.parseNarrativeAnalysisResponse(content.text);
+      this.checkRefusal(message);
+
+      const text = this.extractTextContent(message.content);
+      return this.parseNarrativeAnalysisResponse(text);
     } catch (error) {
       if (error instanceof Error) {
         throw error;
@@ -388,25 +464,20 @@ INSTRUCTIONS FINALES:
     const systemPrompt = this.enhanceStylisticDNAPromptForAnthropic(basePrompt);
 
     try {
-      const message = await this.client.messages.create({
-        model: this.model,
-        max_tokens: 4096,
-        temperature: 0.3,
+      const params = this.buildApiParams({
         system: systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content: fullText,
-          },
-        ],
+        messages: [{ role: 'user', content: fullText }],
+        baseMaxTokens: 4096,
+        temperature: 0.3,
+        thinkingBudget: 8192,
       });
 
-      const content = message.content[0];
-      if (content.type !== 'text') {
-        throw new Error('Unexpected response type from Anthropic');
-      }
+      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
 
-      return this.parseStylisticDNAResponse(content.text);
+      this.checkRefusal(message);
+
+      const text = this.extractTextContent(message.content);
+      return this.parseStylisticDNAResponse(text);
     } catch (error) {
       if (error instanceof Error) {
         throw error;
@@ -493,25 +564,20 @@ INSTRUCTIONS:
     const systemPrompt = this.enhanceCharactersPromptForAnthropic(basePrompt);
 
     try {
-      const message = await this.client.messages.create({
-        model: this.model,
-        max_tokens: 8192, // More tokens for detailed character profiles
-        temperature: 0.3,
+      const params = this.buildApiParams({
         system: systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content: fullText,
-          },
-        ],
+        messages: [{ role: 'user', content: fullText }],
+        baseMaxTokens: 8192,
+        temperature: 0.3,
+        thinkingBudget: 8192,
       });
 
-      const content = message.content[0];
-      if (content.type !== 'text') {
-        throw new Error('Unexpected response type from Anthropic');
-      }
+      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
 
-      return this.parseCharactersResponse(content.text);
+      this.checkRefusal(message);
+
+      const text = this.extractTextContent(message.content);
+      return this.parseCharactersResponse(text);
     } catch (error) {
       if (error instanceof Error) {
         throw error;
@@ -627,25 +693,20 @@ INSTRUCTIONS:
     const systemPrompt = this.enhancePlotPromptForAnthropic(basePrompt);
 
     try {
-      const message = await this.client.messages.create({
-        model: this.model,
-        max_tokens: 8192, // More tokens for scene breakdown
-        temperature: 0.3,
+      const params = this.buildApiParams({
         system: systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content: fullText,
-          },
-        ],
+        messages: [{ role: 'user', content: fullText }],
+        baseMaxTokens: 8192,
+        temperature: 0.3,
+        thinkingBudget: 8192,
       });
 
-      const content = message.content[0];
-      if (content.type !== 'text') {
-        throw new Error('Unexpected response type from Anthropic');
-      }
+      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
 
-      return this.parsePlotResponse(content.text);
+      this.checkRefusal(message);
+
+      const text = this.extractTextContent(message.content);
+      return this.parsePlotResponse(text);
     } catch (error) {
       if (error instanceof Error) {
         throw error;
@@ -788,25 +849,20 @@ INSTRUCTIONS:
     const systemPrompt = this.enhanceWorldbuildingPromptForAnthropic(basePrompt);
 
     try {
-      const message = await this.client.messages.create({
-        model: this.model,
-        max_tokens: 6144,
-        temperature: 0.3,
+      const params = this.buildApiParams({
         system: systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content: fullText,
-          },
-        ],
+        messages: [{ role: 'user', content: fullText }],
+        baseMaxTokens: 6144,
+        temperature: 0.3,
+        thinkingBudget: 8192,
       });
 
-      const content = message.content[0];
-      if (content.type !== 'text') {
-        throw new Error('Unexpected response type from Anthropic');
-      }
+      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
 
-      return this.parseWorldbuildingResponse(content.text);
+      this.checkRefusal(message);
+
+      const text = this.extractTextContent(message.content);
+      return this.parseWorldbuildingResponse(text);
     } catch (error) {
       if (error instanceof Error) {
         throw error;
@@ -951,25 +1007,20 @@ INSTRUCTIONS:
     const userPrompt = `TEXTE:\n\n${fullText}${contextInfo}`;
 
     try {
-      const message = await this.client.messages.create({
-        model: this.model,
-        max_tokens: 8192, // Large output for comprehensive synthesis
-        temperature: 0.3,
+      const params = this.buildApiParams({
         system: systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content: userPrompt,
-          },
-        ],
+        messages: [{ role: 'user', content: userPrompt }],
+        baseMaxTokens: 8192,
+        temperature: 0.3,
+        thinkingBudget: 10240,
       });
 
-      const content = message.content[0];
-      if (content.type !== 'text') {
-        throw new Error('Unexpected response type from Anthropic');
-      }
+      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
 
-      return this.parseSynthesisResponse(content.text);
+      this.checkRefusal(message);
+
+      const text = this.extractTextContent(message.content);
+      return this.parseSynthesisResponse(text);
     } catch (error) {
       if (error instanceof Error) {
         throw error;
@@ -1134,25 +1185,20 @@ INSTRUCTIONS:
     const systemPrompt = this.enhanceChapterSummariesPromptForAnthropic(basePrompt);
 
     try {
-      const message = await this.client.messages.create({
-        model: this.model,
-        max_tokens: 4096,
-        temperature: 0.3,
+      const params = this.buildApiParams({
         system: systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content: fullText,
-          },
-        ],
+        messages: [{ role: 'user', content: fullText }],
+        baseMaxTokens: 4096,
+        temperature: 0.3,
+        thinkingBudget: 4096,
       });
 
-      const content = message.content[0];
-      if (content.type !== 'text') {
-        throw new Error('Unexpected response type from Anthropic');
-      }
+      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
 
-      return this.parseChapterSummariesResponse(content.text);
+      this.checkRefusal(message);
+
+      const text = this.extractTextContent(message.content);
+      return this.parseChapterSummariesResponse(text);
     } catch (error) {
       if (error instanceof Error) {
         throw error;
@@ -1234,25 +1280,20 @@ INSTRUCTIONS SUPPLÉMENTAIRES:
     const tokenLimit = generationType === 'chapter-full' ? 4096 : 2048;
 
     try {
-      const message = await this.client.messages.create({
-        model: this.model,
-        max_tokens: tokenLimit,
-        temperature: 0.75, // Higher creativity for generation
+      const params = this.buildApiParams({
         system: systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content: fullText,
-          },
-        ],
+        messages: [{ role: 'user', content: fullText }],
+        baseMaxTokens: tokenLimit,
+        temperature: 0.75,
+        thinkingBudget: 6144,
       });
 
-      const content = message.content[0];
-      if (content.type !== 'text') {
-        throw new Error('Unexpected response type from Anthropic');
-      }
+      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
 
-      return this.parseChapterGenerationResponse(content.text, generationType);
+      this.checkRefusal(message);
+
+      const text = this.extractTextContent(message.content);
+      return this.parseChapterGenerationResponse(text, generationType);
     } catch (error) {
       if (error instanceof Error) {
         throw error;
@@ -1387,20 +1428,19 @@ INSTRUCTIONS FINALES:
     }
 
     try {
-      const response = await this.client.messages.create({
-        model: this.model,
-        max_tokens: 256, // Short completions
+      const params = this.buildApiParams({
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }],
+        baseMaxTokens: 256,
+        thinkingBudget: 0, // No thinking for autocompletion (latency critical)
       });
 
-      const content = response.content[0];
-      if (content.type !== 'text') {
-        throw new Error('Unexpected response type from Anthropic');
-      }
+      const response = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
 
-      // Clean up the response
-      return this.cleanCompletionResponse(content.text);
+      this.checkRefusal(response);
+
+      const text = this.extractTextContent(response.content);
+      return this.cleanCompletionResponse(text);
     } catch (error) {
       if (error instanceof Error) {
         throw error;
@@ -1495,6 +1535,7 @@ INSTRUCTIONS FINALES:
     let isFirstChunk = true;
 
     for await (const event of stream) {
+      // Only yield text deltas, skip thinking_delta blocks
       if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
         const content = event.delta.text;
         if (content) {

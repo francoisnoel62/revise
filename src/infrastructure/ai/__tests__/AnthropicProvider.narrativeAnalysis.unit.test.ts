@@ -298,7 +298,7 @@ ${JSON.stringify(validNarrativeAnalysisResponse, null, 2)}
       });
 
       await expect(provider.generateNarrativeAnalysis('Test text')).rejects.toThrow(
-        'Unexpected response type from Anthropic'
+        'No text content in Anthropic response'
       );
     });
 
@@ -382,24 +382,28 @@ ${JSON.stringify(validNarrativeAnalysisResponse, null, 2)}
       );
     });
 
-    it('should use max_tokens 4096', async () => {
+    it('should use max_tokens with thinking budget for thinking-capable models', async () => {
       await provider.generateNarrativeAnalysis('Test text');
 
+      // Sonnet 4.5 supports thinking: max_tokens = baseMaxTokens (4096) + thinkingBudget (8192)
       expect(mockClient.messages.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          max_tokens: 4096,
+          max_tokens: 12288,
         })
       );
     });
 
-    it('should use temperature 0.3', async () => {
+    it('should omit temperature and enable thinking for thinking-capable models', async () => {
       await provider.generateNarrativeAnalysis('Test text');
 
       expect(mockClient.messages.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          temperature: 0.3,
+          thinking: { type: 'enabled', budget_tokens: 8192 },
         })
       );
+      // Temperature must not be set when thinking is enabled
+      const callArgs = mockClient.messages.create.mock.calls[0][0];
+      expect(callArgs.temperature).toBeUndefined();
     });
 
     it('should send full text as user message', async () => {

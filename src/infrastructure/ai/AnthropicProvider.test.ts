@@ -25,6 +25,11 @@ const mockPromptRepository: PromptRepository = {
   getPlotPrompt: vi.fn().mockResolvedValue('mock plot prompt'),
   getWorldbuildingPrompt: vi.fn().mockResolvedValue('mock worldbuilding prompt'),
   getSynthesisPrompt: vi.fn().mockResolvedValue('mock synthesis prompt'),
+  getChapterSummariesPrompt: vi.fn().mockResolvedValue('mock chapter summaries prompt'),
+  getChapterBeginningPrompt: vi.fn().mockResolvedValue('mock chapter beginning prompt'),
+  getChapterFullPrompt: vi.fn().mockResolvedValue('mock chapter full prompt'),
+  getChapterOutlinePrompt: vi.fn().mockResolvedValue('mock chapter outline prompt'),
+  getCompletionPrompt: vi.fn().mockResolvedValue('mock completion prompt'),
 };
 
 describe('AnthropicProvider', () => {
@@ -295,7 +300,7 @@ describe('AnthropicProvider', () => {
 
     await expect(async () => {
       await provider.generateRewrites('text');
-    }).rejects.toThrow('Unexpected response type from Anthropic');
+    }).rejects.toThrow('No text content in Anthropic response');
   });
 
   describe('testConnection', () => {
@@ -363,6 +368,263 @@ describe('AnthropicProvider', () => {
 
     it('should return model name', () => {
       expect(provider.getModel()).toBe('claude-sonnet-4-5-20250929');
+    });
+  });
+
+  describe('extended thinking support', () => {
+    describe('supportsThinking', () => {
+      it('should return true for claude-opus-4-6', () => {
+        const opusProvider = new AnthropicProvider('fake-key', mockPromptRepository, 'claude-opus-4-6');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((opusProvider as any).supportsThinking()).toBe(true);
+      });
+
+      it('should return true for claude-sonnet-4-5-20250929', () => {
+        const sonnetProvider = new AnthropicProvider('fake-key', mockPromptRepository, 'claude-sonnet-4-5-20250929');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((sonnetProvider as any).supportsThinking()).toBe(true);
+      });
+
+      it('should return true for claude-haiku-4-5-20251001', () => {
+        const haikuProvider = new AnthropicProvider('fake-key', mockPromptRepository, 'claude-haiku-4-5-20251001');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((haikuProvider as any).supportsThinking()).toBe(true);
+      });
+
+      it('should return true for claude-opus-4-5-20251101', () => {
+        const opusOldProvider = new AnthropicProvider('fake-key', mockPromptRepository, 'claude-opus-4-5-20251101');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((opusOldProvider as any).supportsThinking()).toBe(true);
+      });
+
+      it('should return false for unknown models', () => {
+        const unknownProvider = new AnthropicProvider('fake-key', mockPromptRepository, 'claude-3-5-sonnet-20240620');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((unknownProvider as any).supportsThinking()).toBe(false);
+      });
+    });
+
+    describe('extractTextContent', () => {
+      it('should extract text from response without thinking blocks', () => {
+        const content = [{ type: 'text', text: 'Hello world' }];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((provider as any).extractTextContent(content)).toBe('Hello world');
+      });
+
+      it('should skip thinking blocks and extract text', () => {
+        const content = [
+          { type: 'thinking', thinking: 'Let me analyze this...' },
+          { type: 'text', text: 'The actual response' },
+        ];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((provider as any).extractTextContent(content)).toBe('The actual response');
+      });
+
+      it('should skip redacted_thinking blocks and extract text', () => {
+        const content = [
+          { type: 'redacted_thinking', data: 'redacted' },
+          { type: 'text', text: 'The actual response' },
+        ];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((provider as any).extractTextContent(content)).toBe('The actual response');
+      });
+
+      it('should skip multiple thinking blocks', () => {
+        const content = [
+          { type: 'thinking', thinking: 'Step 1...' },
+          { type: 'redacted_thinking', data: 'redacted' },
+          { type: 'thinking', thinking: 'Step 2...' },
+          { type: 'text', text: 'Final answer' },
+        ];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((provider as any).extractTextContent(content)).toBe('Final answer');
+      });
+
+      it('should throw if no text block found', () => {
+        const content = [{ type: 'thinking', thinking: 'Only thinking...' }];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect(() => (provider as any).extractTextContent(content)).toThrow(
+          'No text content in Anthropic response'
+        );
+      });
+
+      it('should throw for empty content array', () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect(() => (provider as any).extractTextContent([])).toThrow(
+          'No text content in Anthropic response'
+        );
+      });
+    });
+
+    describe('buildApiParams', () => {
+      it('should add thinking config for supported models', () => {
+        const opusProvider = new AnthropicProvider('fake-key', mockPromptRepository, 'claude-opus-4-6');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const params = (opusProvider as any).buildApiParams({
+          system: 'test system',
+          messages: [{ role: 'user', content: 'test' }],
+          baseMaxTokens: 4096,
+          temperature: 0.3,
+          thinkingBudget: 8192,
+        });
+
+        expect(params.thinking).toEqual({ type: 'enabled', budget_tokens: 8192 });
+        expect(params.max_tokens).toBe(12288); // baseMaxTokens + thinkingBudget
+        expect(params.temperature).toBeUndefined();
+        expect(params.model).toBe('claude-opus-4-6');
+      });
+
+      it('should not add thinking for unsupported models', () => {
+        const oldProvider = new AnthropicProvider('fake-key', mockPromptRepository, 'claude-3-5-sonnet-20240620');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const params = (oldProvider as any).buildApiParams({
+          system: 'test system',
+          messages: [{ role: 'user', content: 'test' }],
+          baseMaxTokens: 4096,
+          temperature: 0.3,
+          thinkingBudget: 8192,
+        });
+
+        expect(params.thinking).toBeUndefined();
+        expect(params.max_tokens).toBe(4096);
+        expect(params.temperature).toBe(0.3);
+      });
+
+      it('should not add thinking when thinkingBudget is 0', () => {
+        const opusProvider = new AnthropicProvider('fake-key', mockPromptRepository, 'claude-opus-4-6');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const params = (opusProvider as any).buildApiParams({
+          system: 'test system',
+          messages: [{ role: 'user', content: 'test' }],
+          baseMaxTokens: 256,
+          temperature: undefined,
+          thinkingBudget: 0,
+        });
+
+        expect(params.thinking).toBeUndefined();
+        expect(params.max_tokens).toBe(256);
+      });
+
+      it('should preserve system and messages in params', () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const params = (provider as any).buildApiParams({
+          system: 'my system prompt',
+          messages: [{ role: 'user', content: 'my message' }],
+          baseMaxTokens: 4096,
+          temperature: 0.3,
+          thinkingBudget: 8192,
+        });
+
+        expect(params.system).toBe('my system prompt');
+        expect(params.messages).toEqual([{ role: 'user', content: 'my message' }]);
+      });
+    });
+
+    describe('refusal handling', () => {
+      it('should throw descriptive error when Claude refuses', async () => {
+        mockCreate.mockResolvedValue({
+          stop_reason: 'refusal',
+          content: [{ type: 'text', text: 'I cannot process this content.' }],
+        });
+
+        await expect(provider.generateRewrites('some text')).rejects.toThrow(
+          'Claude refused to process this content. Please check the submitted text.'
+        );
+      });
+
+      it('should throw refusal error for analysis methods', async () => {
+        mockCreate.mockResolvedValue({
+          stop_reason: 'refusal',
+          content: [{ type: 'text', text: 'Refused' }],
+        });
+
+        await expect(provider.generateNarrativeAnalysis('some text')).rejects.toThrow(
+          'Claude refused to process this content. Please check the submitted text.'
+        );
+      });
+    });
+
+    describe('thinking with analysis methods', () => {
+      let opusProvider: AnthropicProvider;
+      let opusMockCreate: ReturnType<typeof vi.fn>;
+
+      beforeEach(() => {
+        opusProvider = new AnthropicProvider('fake-key', mockPromptRepository, 'claude-opus-4-6');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        opusMockCreate = (opusProvider as any).client.messages.create;
+        opusMockCreate.mockClear();
+      });
+
+      it('should send thinking config with narrative analysis for opus-4-6', async () => {
+        opusMockCreate.mockResolvedValue({
+          stop_reason: 'end_turn',
+          content: [
+            { type: 'thinking', thinking: 'Analyzing narrative structure...' },
+            {
+              type: 'text',
+              text: JSON.stringify({
+                narratorType: 'First person narrator',
+                focalization: 'Internal focalization',
+                temporality: 'Linear temporality',
+                chapterStructure: 'Classic three-act structure',
+                narrativeVoice: ['Point 1', 'Point 2', 'Point 3', 'Point 4', 'Point 5'],
+                summary: 'A compelling narrative analysis',
+              }),
+            },
+          ],
+        });
+
+        await opusProvider.generateNarrativeAnalysis('Some text');
+
+        expect(opusMockCreate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            thinking: { type: 'enabled', budget_tokens: expect.any(Number) },
+          })
+        );
+        // Temperature should NOT be set when thinking is enabled
+        const callArgs = opusMockCreate.mock.calls[0][0];
+        expect(callArgs.temperature).toBeUndefined();
+      });
+
+      it('should extract text from response with thinking blocks', async () => {
+        opusMockCreate.mockResolvedValue({
+          stop_reason: 'end_turn',
+          content: [
+            { type: 'thinking', thinking: 'Deep analysis in progress...' },
+            {
+              type: 'text',
+              text: JSON.stringify({
+                narratorType: 'Third person omniscient',
+                focalization: 'Zero focalization',
+                temporality: 'Non-linear',
+                chapterStructure: 'Episodic',
+                narrativeVoice: ['V1', 'V2', 'V3', 'V4', 'V5'],
+                summary: 'Summary text',
+              }),
+            },
+          ],
+        });
+
+        const result = await opusProvider.generateNarrativeAnalysis('Some text');
+        expect(result.narratorType).toBe('Third person omniscient');
+      });
+
+      it('should not send thinking config for sonnet model on completion', async () => {
+        const sonnetProvider = new AnthropicProvider('fake-key', mockPromptRepository, 'claude-sonnet-4-5-20250929');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const sonnetMock = (sonnetProvider as any).client.messages.create;
+
+        (mockPromptRepository.getCompletionPrompt as ReturnType<typeof vi.fn>).mockResolvedValue('completion prompt');
+        sonnetMock.mockResolvedValue({
+          stop_reason: 'end_turn',
+          content: [{ type: 'text', text: 'completed text' }],
+        });
+
+        await sonnetProvider.generateCompletion('text before');
+
+        const callArgs = sonnetMock.mock.calls[0][0];
+        expect(callArgs.thinking).toBeUndefined();
+      });
     });
   });
 });
