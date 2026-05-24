@@ -5,6 +5,14 @@ import { Project } from '../entities/Project';
 import { Chapter } from '../entities/Chapter';
 
 /**
+ * Visual rendering preset for DOCX export.
+ * - 'kdp': Amazon KDP print format (6"×9", Garamond 11pt, mirrored margins, ODD_PAGE chapter breaks)
+ * - 'neutral': Same structure as 'structured' but heading colors forced to black
+ * - 'structured': Native LibreOffice/Word styles (default theme colors applied by the reader)
+ */
+export type DocxStylePreset = 'kdp' | 'neutral' | 'structured';
+
+/**
  * Options for document export
  */
 export interface ExportOptions {
@@ -13,6 +21,10 @@ export interface ExportOptions {
    * If provided, a cover page will be added before the content
    */
   coverImageUrl?: string;
+  /**
+   * Visual rendering preset for DOCX export. Defaults to 'kdp'.
+   */
+  stylePreset?: DocxStylePreset;
 }
 
 export interface DocumentExporter {
