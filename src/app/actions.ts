@@ -13,6 +13,7 @@ import { TextSelection } from '@/domain/value-objects/TextSelection';
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
 import { RewriteTextUseCase } from '@/application/use-cases/RewriteTextUseCase';
 import { ExportProjectUseCase, ExportMode } from '@/application/use-cases/ExportProjectUseCase';
+import { DocxStylePreset } from '@/domain/interfaces/DocumentExporter';
 import { getPromptRepository } from '@/infrastructure/config/providers';
 import {
   type ActionResult,
@@ -129,7 +130,8 @@ export async function importFolder(
  */
 export async function exportProject(
   projectId: string,
-  chapterIds?: string[]
+  chapterIds?: string[],
+  stylePreset?: DocxStylePreset
 ): Promise<ActionResult<{ buffer: number[]; filename: string }>> {
   const auth = await getAuthenticatedUserId();
   if ('error' in auth) return auth.error;
@@ -152,7 +154,7 @@ export async function exportProject(
     const filename = `${project.getTitle()}.docx`;
 
     const mode: ExportMode = chapterIds && chapterIds.length > 0 ? 'selected' : 'all';
-    const buffer = await useCase.execute(project, filename, mode, chapterIds, { coverImageUrl });
+    const buffer = await useCase.execute(project, filename, mode, chapterIds, { coverImageUrl, stylePreset });
 
     return {
       buffer: Array.from(buffer),

@@ -1,5 +1,5 @@
-// ABOUTME: Enhanced DOCX exporter with rich text formatting and multi-chapter support
-// ABOUTME: Converts TipTap JSON to formatted DOCX with bold, italic, underline, highlight
+// ABOUTME: DOCX exporter with style presets: KDP (6×9 print), Neutral (black headings), Structured (native styles)
+// ABOUTME: Converts TipTap JSON to formatted DOCX with bold, italic, underline, highlight, font, size
 
 import {
   Document,
@@ -11,10 +11,23 @@ import {
   HeadingLevel,
   AlignmentType,
   ImageRun,
+  SectionType,
 } from 'docx';
-import { DocumentExporter, ExportOptions } from '@/domain/interfaces/DocumentExporter';
+import { DocumentExporter, ExportOptions, DocxStylePreset } from '@/domain/interfaces/DocumentExporter';
 import { Project } from '@/domain/entities/Project';
 import { Chapter } from '@/domain/entities/Chapter';
+
+// KDP 6"×9" layout constants (twips: 1 inch = 1440 twips, 1 cm ≈ 567 twips)
+const KDP_PAGE_WIDTH = 8640;    // 6"
+const KDP_PAGE_HEIGHT = 12960;  // 9"
+const KDP_MARGIN_INSIDE = 1134; // 2 cm — gutter (inner margin for facing pages)
+const KDP_MARGIN_OUTSIDE = 851; // 1.5 cm
+const KDP_MARGIN_TOP = 1021;    // 1.8 cm
+const KDP_MARGIN_BOTTOM = 1021; // 1.8 cm
+const KDP_FIRST_LINE_INDENT = 454; // 0.8 cm
+const KDP_LINE_SPACING = 276;   // 1.15× single line (240 = single, 480 = double)
+
+const KDP_BODY_FONT = 'Garamond'; // Georgia declared as altName in font table
 
 export class DocxExporter implements DocumentExporter {
   supports(filename: string): boolean {
@@ -27,7 +40,6 @@ export class DocxExporter implements DocumentExporter {
     }
 
     try {
-      // Split content into paragraphs (by double newline or single newline)
       const paragraphs = this.splitIntoParagraphs(content);
 
       const doc = new Document({
@@ -44,8 +56,7 @@ export class DocxExporter implements DocumentExporter {
         ],
       });
 
-      const buffer = await Packer.toBuffer(doc);
-      return buffer;
+      return await Packer.toBuffer(doc);
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Failed to export docx: ${error.message}`);
@@ -54,61 +65,15 @@ export class DocxExporter implements DocumentExporter {
     }
   }
 
-  /**
-   * Export entire project with all chapters (Phase 2)
-   * Chapters separated by page breaks
-   */
   async exportProject(project: Project, filename: string, options?: ExportOptions): Promise<Buffer> {
     if (!this.supports(filename)) {
       throw new Error(`Unsupported export format: ${filename}`);
     }
 
     try {
+      const preset = this.getPreset(options);
       const chapters = project.getChapters();
-      const sections: Paragraph[] = [];
-
-      // Add cover image if provided
-      const coverParagraph = await this.createCoverImageParagraph(options?.coverImageUrl);
-      if (coverParagraph) {
-        sections.push(coverParagraph);
-        sections.push(new Paragraph({ children: [new PageBreak()] }));
-      }
-
-      for (let i = 0; i < chapters.length; i++) {
-        const chapter = chapters[i];
-        const json = JSON.parse(chapter.getContent());
-
-        // Add chapter title as H1
-        sections.push(
-          new Paragraph({
-            text: chapter.getTitle(),
-            heading: HeadingLevel.HEADING_1,
-          })
-        );
-
-        // Convert TipTap JSON to DOCX paragraphs
-        const paragraphs = this.convertTipTapToDocx(json);
-        sections.push(...paragraphs);
-
-        // Add page break between chapters (except after last)
-        if (i < chapters.length - 1) {
-          sections.push(
-            new Paragraph({
-              children: [new PageBreak()],
-            })
-          );
-        }
-      }
-
-      const doc = new Document({
-        sections: [
-          {
-            children: sections,
-          },
-        ],
-      });
-
-      return await Packer.toBuffer(doc);
+      return await this.buildDocument(chapters, preset, options);
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Failed to export project: ${error.message}`);
@@ -117,45 +82,14 @@ export class DocxExporter implements DocumentExporter {
     }
   }
 
-  /**
-   * Export single chapter (Phase 2)
-   */
   async exportChapter(chapter: Chapter, filename: string, options?: ExportOptions): Promise<Buffer> {
     if (!this.supports(filename)) {
       throw new Error(`Unsupported export format: ${filename}`);
     }
 
     try {
-      const json = JSON.parse(chapter.getContent());
-      const paragraphs = this.convertTipTapToDocx(json);
-
-      // Add cover image if provided
-      const coverParagraph = await this.createCoverImageParagraph(options?.coverImageUrl);
-      const sections: Paragraph[] = [];
-
-      if (coverParagraph) {
-        sections.push(coverParagraph);
-        sections.push(new Paragraph({ children: [new PageBreak()] }));
-      }
-
-      // Add title as H1
-      sections.push(
-        new Paragraph({
-          text: chapter.getTitle(),
-          heading: HeadingLevel.HEADING_1,
-        })
-      );
-      sections.push(...paragraphs);
-
-      const doc = new Document({
-        sections: [
-          {
-            children: sections,
-          },
-        ],
-      });
-
-      return await Packer.toBuffer(doc);
+      const preset = this.getPreset(options);
+      return await this.buildDocument([chapter], preset, options);
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Failed to export chapter: ${error.message}`);
@@ -164,10 +98,6 @@ export class DocxExporter implements DocumentExporter {
     }
   }
 
-  /**
-   * Export selected chapters
-   * Chapters separated by page breaks
-   */
   async exportChapters(chapters: Chapter[], filename: string, options?: ExportOptions): Promise<Buffer> {
     if (!this.supports(filename)) {
       throw new Error(`Unsupported export format: ${filename}`);
@@ -178,50 +108,8 @@ export class DocxExporter implements DocumentExporter {
     }
 
     try {
-      const sections: Paragraph[] = [];
-
-      // Add cover image if provided
-      const coverParagraph = await this.createCoverImageParagraph(options?.coverImageUrl);
-      if (coverParagraph) {
-        sections.push(coverParagraph);
-        sections.push(new Paragraph({ children: [new PageBreak()] }));
-      }
-
-      for (let i = 0; i < chapters.length; i++) {
-        const chapter = chapters[i];
-        const json = JSON.parse(chapter.getContent());
-
-        // Add chapter title as H1
-        sections.push(
-          new Paragraph({
-            text: chapter.getTitle(),
-            heading: HeadingLevel.HEADING_1,
-          })
-        );
-
-        // Convert TipTap JSON to DOCX paragraphs
-        const paragraphs = this.convertTipTapToDocx(json);
-        sections.push(...paragraphs);
-
-        // Add page break between chapters (except after last)
-        if (i < chapters.length - 1) {
-          sections.push(
-            new Paragraph({
-              children: [new PageBreak()],
-            })
-          );
-        }
-      }
-
-      const doc = new Document({
-        sections: [
-          {
-            children: sections,
-          },
-        ],
-      });
-
-      return await Packer.toBuffer(doc);
+      const preset = this.getPreset(options);
+      return await this.buildDocument(chapters, preset, options);
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Failed to export chapters: ${error.message}`);
@@ -230,10 +118,196 @@ export class DocxExporter implements DocumentExporter {
     }
   }
 
+  private getPreset(options?: ExportOptions): DocxStylePreset {
+    return options?.stylePreset ?? 'kdp';
+  }
+
+  /**
+   * Builds the Document with the appropriate structure for the given preset.
+   * KDP: one ODD_PAGE section per chapter (chapters start on right-hand pages).
+   * Neutral/Structured: single section with PageBreak separators (current behaviour).
+   */
+  private async buildDocument(
+    chapters: Chapter[],
+    preset: DocxStylePreset,
+    options?: ExportOptions
+  ): Promise<Buffer> {
+    const coverParagraph = await this.createCoverImageParagraph(options?.coverImageUrl);
+
+    if (preset === 'kdp') {
+      return this.buildKdpDocument(chapters, preset, coverParagraph);
+    }
+
+    return this.buildSingleSectionDocument(chapters, preset, coverParagraph);
+  }
+
+  /**
+   * KDP layout: each chapter is its own ODD_PAGE section so it always starts
+   * on a right-hand (odd-numbered) page. LibreOffice inserts a blank page
+   * automatically when necessary — this is standard for printed books.
+   */
+  private async buildKdpDocument(
+    chapters: Chapter[],
+    preset: DocxStylePreset,
+    coverParagraph: Paragraph | null
+  ): Promise<Buffer> {
+    const kdpPageProps = {
+      size: { width: KDP_PAGE_WIDTH, height: KDP_PAGE_HEIGHT },
+      margin: {
+        top: KDP_MARGIN_TOP,
+        bottom: KDP_MARGIN_BOTTOM,
+        left: KDP_MARGIN_INSIDE,
+        right: KDP_MARGIN_OUTSIDE,
+      },
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const docSections: any[] = [];
+
+    if (coverParagraph) {
+      docSections.push({
+        properties: { page: kdpPageProps },
+        children: [coverParagraph],
+      });
+    }
+
+    for (const chapter of chapters) {
+      const json = JSON.parse(chapter.getContent());
+      const bodyParagraphs = this.convertTipTapToDocx(json, preset);
+
+      docSections.push({
+        properties: {
+          type: SectionType.ODD_PAGE,
+          page: kdpPageProps,
+        },
+        children: [
+          new Paragraph({
+            text: chapter.getTitle(),
+            heading: HeadingLevel.HEADING_1,
+          }),
+          ...bodyParagraphs,
+        ],
+      });
+    }
+
+    const doc = new Document({
+      styles: this.buildDocumentStyles(preset),
+      sections: docSections,
+    });
+
+    return Packer.toBuffer(doc);
+  }
+
+  /**
+   * Neutral/Structured: single section, PageBreak between chapters.
+   */
+  private async buildSingleSectionDocument(
+    chapters: Chapter[],
+    preset: DocxStylePreset,
+    coverParagraph: Paragraph | null
+  ): Promise<Buffer> {
+    const sections: Paragraph[] = [];
+
+    if (coverParagraph) {
+      sections.push(coverParagraph);
+      sections.push(new Paragraph({ children: [new PageBreak()] }));
+    }
+
+    for (let i = 0; i < chapters.length; i++) {
+      const chapter = chapters[i];
+      const json = JSON.parse(chapter.getContent());
+
+      sections.push(
+        new Paragraph({
+          text: chapter.getTitle(),
+          heading: HeadingLevel.HEADING_1,
+        })
+      );
+      sections.push(...this.convertTipTapToDocx(json, preset));
+
+      if (i < chapters.length - 1) {
+        sections.push(new Paragraph({ children: [new PageBreak()] }));
+      }
+    }
+
+    const doc = new Document({
+      styles: this.buildDocumentStyles(preset),
+      sections: [{ children: sections }],
+    });
+
+    return Packer.toBuffer(doc);
+  }
+
+  /**
+   * Returns style overrides for the Document.
+   * - 'structured': no override, LibreOffice/Word theme applies (default blue headings)
+   * - 'neutral': heading colors forced to black, everything else left to the reader app
+   * - 'kdp': Garamond 11pt body, 14pt centred black chapter titles, no indented headings
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private buildDocumentStyles(preset: DocxStylePreset): any {
+    if (preset === 'structured') return undefined;
+
+    if (preset === 'kdp') {
+      return {
+        default: {
+          heading1: {
+            run: {
+              font: KDP_BODY_FONT,
+              size: 28, // 14pt (half-points)
+              bold: true,
+              color: '000000',
+            },
+            paragraph: {
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 960, after: 480 }, // 48pt / 24pt (twentieths of a point)
+              indent: { firstLine: 0 },
+            },
+          },
+          heading2: {
+            run: {
+              font: KDP_BODY_FONT,
+              size: 24, // 12pt
+              bold: true,
+              italics: true,
+              color: '000000',
+            },
+            paragraph: {
+              spacing: { before: 480, after: 240 },
+              indent: { firstLine: 0 },
+            },
+          },
+          heading3: {
+            run: {
+              font: KDP_BODY_FONT,
+              size: 22, // 11pt
+              bold: true,
+              color: '000000',
+            },
+            paragraph: {
+              spacing: { before: 360, after: 120 },
+              indent: { firstLine: 0 },
+            },
+          },
+        },
+      };
+    }
+
+    // 'neutral': only override the colour of headings to black
+    return {
+      default: {
+        heading1: { run: { color: '000000' } },
+        heading2: { run: { color: '000000' } },
+        heading3: { run: { color: '000000' } },
+        heading4: { run: { color: '000000' } },
+        heading5: { run: { color: '000000' } },
+        heading6: { run: { color: '000000' } },
+      },
+    };
+  }
+
   /**
    * Create a paragraph with cover image if URL is provided
-   * @param coverImageUrl - URL of the cover image
-   * @returns Paragraph with centered image, or null if no URL or fetch failed
    */
   private async createCoverImageParagraph(coverImageUrl?: string): Promise<Paragraph | null> {
     if (!coverImageUrl) return null;
@@ -247,24 +321,19 @@ export class DocxExporter implements DocumentExporter {
 
       const imageBuffer = await response.arrayBuffer();
 
-      // A4 dimensions in EMUs (English Metric Units)
-      // 1 inch = 914400 EMUs, A4 is 210mm x 297mm (8.27" x 11.69")
+      // A4 dimensions: 8.27" × 11.69". Use 80% of page for the image.
       const pageWidthEmu = 8.27 * 914400;
       const pageHeightEmu = 11.69 * 914400;
-
-      // Use 80% of page width/height max for the image
       const maxWidth = pageWidthEmu * 0.8;
       const maxHeight = pageHeightEmu * 0.8;
 
-      // Create image run with reasonable dimensions
-      // The actual aspect ratio will be maintained by docx library
       const imageRun = new ImageRun({
         data: Buffer.from(imageBuffer),
         transformation: {
-          width: maxWidth / 914400 * 72, // Convert to points for transformation
-          height: maxHeight / 914400 * 72,
+          width: (maxWidth / 914400) * 72,
+          height: (maxHeight / 914400) * 72,
         },
-        type: 'png', // Will work for jpg too
+        type: 'png',
       });
 
       return new Paragraph({
@@ -278,18 +347,18 @@ export class DocxExporter implements DocumentExporter {
   }
 
   /**
-   * Convert TipTap JSON to DOCX paragraphs
-   * @param json - TipTap JSON document
-   * @returns Array of DOCX Paragraph objects
+   * Convert TipTap JSON document to an array of DOCX Paragraphs.
+   * Tracks whether the previous node was a heading so the first body paragraph
+   * after a chapter title has no first-line indent (typographic convention).
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private convertTipTapToDocx(json: any): Paragraph[] {
+  private convertTipTapToDocx(json: any, preset: DocxStylePreset): Paragraph[] {
     if (!json || !json.content) return [];
 
     const paragraphs: Paragraph[] = [];
 
     for (const node of json.content) {
-      const paragraph = this.convertNode(node);
+      const paragraph = this.convertNode(node, preset);
       if (paragraph) {
         paragraphs.push(paragraph);
       }
@@ -299,41 +368,47 @@ export class DocxExporter implements DocumentExporter {
   }
 
   /**
-   * Convert single TipTap node to DOCX paragraph
+   * Convert a single TipTap node to a DOCX Paragraph.
+   * @param isFirstAfterHeading - true when this paragraph immediately follows a heading
+   *   (used by KDP preset to suppress first-line indent on the opening sentence)
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private convertNode(node: any): Paragraph | null {
+  private convertNode(node: any, preset: DocxStylePreset): Paragraph | null {
     if (node.type === 'paragraph') {
-      const runs = this.convertTextNodes(node.content || []);
+      const runs = this.convertTextNodes(node.content || [], preset);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const paragraphOptions: any = { children: runs };
+      const opts: any = { children: runs };
 
-      // Handle text alignment
-      if (node.attrs?.textAlign) {
-        paragraphOptions.alignment = this.convertAlignment(node.attrs.textAlign);
+      if (preset === 'kdp') {
+        opts.alignment = AlignmentType.JUSTIFIED;
+        opts.spacing = { line: KDP_LINE_SPACING, lineRule: 'auto' };
+        opts.indent = { firstLine: KDP_FIRST_LINE_INDENT };
+        // Respect explicit alignment set in the editor (e.g. centred epigraph)
+        if (node.attrs?.textAlign && node.attrs.textAlign !== 'left') {
+          opts.alignment = this.convertAlignment(node.attrs.textAlign);
+        }
+      } else {
+        if (node.attrs?.textAlign) {
+          opts.alignment = this.convertAlignment(node.attrs.textAlign);
+        }
+        if (node.attrs?.indent) {
+          opts.indent = { firstLine: 720 }; // 0.5" legacy indent
+        }
       }
 
-      // Handle first-line indent
-      if (node.attrs?.indent) {
-        paragraphOptions.indent = {
-          firstLine: 720, // 720 twips = 0.5 inch = 1.27cm
-        };
-      }
-
-      return new Paragraph(paragraphOptions);
+      return new Paragraph(opts);
     }
 
     if (node.type === 'heading') {
-      const runs = this.convertTextNodes(node.content || []);
-      const level = this.getHeadingLevel(node.attrs?.level || 1);
+      const runs = this.convertTextNodes(node.content || [], preset);
       return new Paragraph({
         children: runs,
-        heading: level,
+        heading: this.getHeadingLevel(node.attrs?.level || 1),
       });
     }
 
     if (node.type === 'bulletList' || node.type === 'orderedList') {
-      // TODO: Implement list handling in future enhancement
+      // TODO: implement list handling
       return null;
     }
 
@@ -341,10 +416,12 @@ export class DocxExporter implements DocumentExporter {
   }
 
   /**
-   * Convert TipTap text nodes to DOCX TextRuns
+   * Convert TipTap text leaf nodes to DOCX TextRuns, applying marks (bold, italic, etc.).
+   * In KDP mode, Garamond 11pt is applied as the base font/size unless the author
+   * has explicitly set a different font or size via the textStyle mark.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private convertTextNodes(nodes: any[]): TextRun[] {
+  private convertTextNodes(nodes: any[], preset: DocxStylePreset): TextRun[] {
     if (!nodes || nodes.length === 0) {
       return [new TextRun('')];
     }
@@ -365,41 +442,37 @@ export class DocxExporter implements DocumentExporter {
       const textStyleMark = marks.find((m: any) => m.type === 'textStyle');
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const runOptions: any = {
-        text: node.text || '',
-      };
+      const runOptions: any = { text: node.text || '' };
 
       if (isBold) runOptions.bold = true;
       if (isItalic) runOptions.italics = true;
-      if (isUnderline) {
-        runOptions.underline = { type: UnderlineType.SINGLE };
-      }
+      if (isUnderline) runOptions.underline = { type: UnderlineType.SINGLE };
       if (highlightMark) {
-        // DOCX highlight colors are limited
         runOptions.highlight = this.getHighlightColor(highlightMark.attrs?.color);
       }
 
-      // Handle font family and font size from textStyle mark
       if (textStyleMark?.attrs) {
         if (textStyleMark.attrs.fontFamily) {
           runOptions.font = textStyleMark.attrs.fontFamily;
         }
         if (textStyleMark.attrs.fontSize) {
-          // Convert pt to half-points (docx library uses half-points)
           const ptValue = parseInt(textStyleMark.attrs.fontSize);
           if (!isNaN(ptValue)) {
-            runOptions.size = ptValue * 2; // e.g., 13pt → 26 half-points
+            runOptions.size = ptValue * 2; // pt → half-points
           }
         }
+      }
+
+      // KDP base font/size: apply only when the author has not set an explicit override
+      if (preset === 'kdp') {
+        if (!runOptions.font) runOptions.font = KDP_BODY_FONT;
+        if (!runOptions.size) runOptions.size = 22; // 11pt
       }
 
       return new TextRun(runOptions);
     });
   }
 
-  /**
-   * Map TipTap heading level to DOCX HeadingLevel
-   */
   private getHeadingLevel(level: number): typeof HeadingLevel[keyof typeof HeadingLevel] {
     const mapping: { [key: number]: typeof HeadingLevel[keyof typeof HeadingLevel] } = {
       1: HeadingLevel.HEADING_1,
@@ -412,16 +485,11 @@ export class DocxExporter implements DocumentExporter {
     return mapping[level] || HeadingLevel.HEADING_1;
   }
 
-  /**
-   * Map TipTap highlight color to DOCX highlight
-   * DOCX only supports limited colors
-   */
   private getHighlightColor(color?: string): string {
     if (!color) return 'yellow';
 
-    // Map common highlight colors to DOCX colors
     const colorMap: { [key: string]: string } = {
-      '#fbbf24': 'yellow', // Tailwind amber-400
+      '#fbbf24': 'yellow',
       '#fef08a': 'yellow',
       '#bef264': 'green',
       '#86efac': 'green',
@@ -433,9 +501,6 @@ export class DocxExporter implements DocumentExporter {
     return colorMap[color] || 'yellow';
   }
 
-  /**
-   * Convert TipTap text alignment to DOCX AlignmentType
-   */
   private convertAlignment(align: string): typeof AlignmentType[keyof typeof AlignmentType] {
     const mapping: { [key: string]: typeof AlignmentType[keyof typeof AlignmentType] } = {
       left: AlignmentType.LEFT,
@@ -446,21 +511,10 @@ export class DocxExporter implements DocumentExporter {
     return mapping[align] || AlignmentType.JUSTIFIED;
   }
 
-  /**
-   * Split plain text into paragraphs (legacy method)
-   */
   private splitIntoParagraphs(content: string): string[] {
-    if (content.length === 0) {
-      return [''];
-    }
-
-    // Split by double newline first (clear paragraph breaks)
+    if (content.length === 0) return [''];
     let paragraphs = content.split(/\n\n+/);
-
-    // Then split single newlines within those into separate paragraphs
     paragraphs = paragraphs.flatMap((p) => p.split('\n'));
-
-    // Filter out empty paragraphs but keep at least one
     const filtered = paragraphs.filter((p) => p.trim().length > 0);
     return filtered.length > 0 ? filtered : [''];
   }
