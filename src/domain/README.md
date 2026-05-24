@@ -2,7 +2,7 @@
 
 Pure business logic with zero framework dependencies.
 
-**Status**: ✅ Phase 6.1 Complete (see [README.md](../../README.md) for test statistics)
+**Status**: ✅ Phase 7.0 Complete (see [README.md](../../README.md) for test statistics)
 
 ## Rules:
 - No imports from Next.js, React, or any external frameworks
@@ -12,7 +12,7 @@ Pure business logic with zero framework dependencies.
 
 ## Contents:
 
-### Entities (✅ Phase 6 Enhanced)
+### Entities (✅ Phase 7 Enhanced)
 
 #### `CorrectionHistory` ⭐ NEW (Phase 3.7)
 **Purpose**: Represents an AI rewrite history entry with proposals
@@ -296,6 +296,43 @@ Pure business logic with zero framework dependencies.
 
 ---
 
+#### `ChapterAnalysis` ⭐ NEW (Phase 7)
+**Purpose**: Represents a complete chapter analysis result
+
+**Responsibilities**:
+- Manages analysis issues, repetitions, and statistics
+- Tracks content hash for cache invalidation
+- Supports filtering by category and severity
+- Immutable updates with new instances
+
+**Key Methods**:
+- `getId()`, `getChapterId()`, `getProjectId()`, `getOwnerId()`
+- `getIssues()`, `getRepetitions()`, `getCategories()`, `getStyleRigor()`
+- `getStatsByCategory()`, `getStatsBySeverity()`, `getPendingCount()`
+- `applyIssue(issueId)`, `ignoreIssue(issueId)` - Returns new instance
+- `hasChanges(currentHash)` - Check if content changed
+
+**Tests**: 30+ tests covering entity creation, filtering, and statistics
+
+---
+
+#### `AnalysisHistory` ⭐ NEW (Phase 7)
+**Purpose**: Represents an analysis history entry
+
+**Responsibilities**:
+- Tracks when analysis was performed
+- Records applied/ignored corrections
+- Stores original and final content hashes
+
+**Key Methods**:
+- `getId()`, `getChapterId()`, `getProjectId()`, `getOwnerId()`
+- `getAnalyzedAt()`, `getOriginalHash()`, `getFinalHash()`
+- `getAppliedCorrections()`, `getIgnoredCorrections()`
+
+**Tests**: 20+ tests covering entity creation and validation
+
+---
+
 #### `TextDocument` (Phase 1 - Legacy)
 **Purpose**: Represents a single document with content and metadata
 
@@ -310,7 +347,7 @@ Pure business logic with zero framework dependencies.
 
 ---
 
-### Value Objects (✅ Implemented)
+### Value Objects (✅ Phase 7 Enhanced)
 
 #### `TextSelection`
 **Purpose**: Immutable representation of selected text range
@@ -333,6 +370,86 @@ Pure business logic with zero framework dependencies.
 - Supports: narrative_analysis, characters, plot, stylistic_dna, worldbuilding, chapter_summaries, synthesis, **editorial** ⭐ NEW (Phase 6)
 
 **Tests**: 5+ tests for validation rules
+
+---
+
+#### `AnalysisCategory` ⭐ NEW (Phase 7)
+**Purpose**: Enum value object for chapter verification categories
+
+**Responsibilities**:
+- Type-safe category enumeration
+- Validation of category values
+- Supports: spelling, grammar, punctuation, style, repetition
+
+**Tests**: 5+ tests for validation rules
+
+---
+
+#### `AnalysisSeverity` ⭐ NEW (Phase 7)
+**Purpose**: Enum value object for issue severity levels
+
+**Responsibilities**:
+- Type-safe severity enumeration
+- Validation of severity values
+- Supports: error, warning, suggestion
+
+**Tests**: 5+ tests for validation rules
+
+---
+
+#### `AnalysisIssue` ⭐ NEW (Phase 7)
+**Purpose**: Value object for individual analysis issues
+
+**Responsibilities**:
+- Stores issue details (position, text, suggestion)
+- Tracks issue status (pending, applied, ignored)
+- Immutable by design
+
+**Properties**:
+- `id`, `category`, `severity`, `originalText`, `suggestion`
+- `startPosition`, `endPosition`, `context`
+- `status` - pending, applied, or ignored
+
+**Tests**: 15+ tests for validation and status changes
+
+---
+
+#### `RepetitionCluster` ⭐ NEW (Phase 7)
+**Purpose**: Value object for repeated word/phrase clusters
+
+**Responsibilities**:
+- Stores repeated word and all occurrences
+- Tracks distance between occurrences
+- Marks intentional repetitions (stylistic choice)
+
+**Properties**:
+- `word`, `occurrences` (array of positions), `isIntentional`
+
+**Tests**: 10+ tests for validation rules
+
+---
+
+#### `RepetitionExclusions` ⭐ NEW (Phase 7)
+**Purpose**: Value object for words excluded from repetition analysis
+
+**Responsibilities**:
+- Manages list of excluded words (character names, etc.)
+- Stores reason for exclusion
+- Immutable by design
+
+**Tests**: 10+ tests for validation rules
+
+---
+
+#### `StyleRigor` ⭐ NEW (Phase 7)
+**Purpose**: Enum value object for analysis strictness levels
+
+**Responsibilities**:
+- Type-safe rigor level enumeration
+- Validation of rigor values
+- Supports: strict, balanced, light
+
+**Tests**: 10+ tests for validation rules
 
 ---
 
@@ -433,7 +550,7 @@ Pure business logic with zero framework dependencies.
 
 ---
 
-### Interfaces (✅ Phase 6 Enhanced)
+### Interfaces (✅ Phase 7 Enhanced)
 
 #### `LLMProvider` ⭐ ENHANCED (Phase 3.6)
 **Contract**: AI text generation and analysis service
@@ -778,6 +895,35 @@ Pure business logic with zero framework dependencies.
 
 ---
 
+#### `AnalysisRepository` ⭐ NEW (Phase 7)
+**Contract**: Chapter analysis persistence with multi-tenant support
+
+**ChapterAnalysis Methods**:
+- `saveAnalysis(ownerId, analysis)` → `Promise<void>`
+- `findAnalysisByChapterId(ownerId, chapterId)` → `Promise<ChapterAnalysis | null>`
+- `findAnalysisByContentHash(ownerId, chapterId, hash)` → `Promise<ChapterAnalysis | null>`
+- `updateAnalysis(ownerId, analysis)` → `Promise<void>`
+- `deleteAnalysis(ownerId, analysisId)` → `Promise<void>`
+
+**AnalysisHistory Methods**:
+- `saveHistory(ownerId, history)` → `Promise<void>`
+- `findHistoryByChapterId(ownerId, chapterId)` → `Promise<AnalysisHistory[]>`
+- `findHistoryById(ownerId, historyId)` → `Promise<AnalysisHistory | null>`
+
+**Ignored Issues Methods**:
+- `saveIgnoredIssue(ownerId, issue)` → `Promise<void>`
+- `findIgnoredIssues(ownerId, chapterId)` → `Promise<IgnoredIssue[]>`
+- `deleteIgnoredIssue(ownerId, issueId)` → `Promise<void>`
+
+**Repetition Exclusions Methods**:
+- `saveRepetitionExclusion(ownerId, exclusion)` → `Promise<void>`
+- `findRepetitionExclusions(ownerId, projectId)` → `Promise<RepetitionExclusionRecord[]>`
+- `deleteRepetitionExclusion(ownerId, exclusionId)` → `Promise<void>`
+
+**Implementation**: `MongoDBAnalysisRepository`
+
+---
+
 ## Testing
 
 **Coverage**: See [README.md](../../README.md) for current statistics.
@@ -798,6 +944,12 @@ All domain logic has near-perfect test coverage with isolated unit tests:
 - TaskPriority, TaskStatus: 10+ tests (validation) ⭐ NEW (Phase 6)
 - Contributor, RelatedWork, NarrationSettings: 15+ tests (validation) ⭐ NEW (Phase 6)
 - AIOperationType: 5+ tests (validation) ⭐ NEW (Phase 6)
+- ChapterAnalysis: 30+ tests (entity, filtering, statistics) ⭐ NEW (Phase 7)
+- AnalysisHistory: 20+ tests (entity creation, validation) ⭐ NEW (Phase 7)
+- AnalysisCategory, AnalysisSeverity: 10+ tests (validation) ⭐ NEW (Phase 7)
+- AnalysisIssue: 15+ tests (status changes) ⭐ NEW (Phase 7)
+- RepetitionCluster, RepetitionExclusions: 20+ tests ⭐ NEW (Phase 7)
+- StyleRigor: 10+ tests (validation) ⭐ NEW (Phase 7)
 - TextDocument: 15 tests (legacy entity)
 - TextSelection: 9 tests (boundary cases)
 - RewriteProposal: 6 tests (validation)

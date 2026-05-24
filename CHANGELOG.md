@@ -6,6 +6,47 @@ For current features and roadmap, see [README.md](README.md).
 
 ---
 
+## Phase 7.0 - Chapter Verification (February 2026)
+
+### Domain Layer
+- **ChapterAnalysis entity** - Complete chapter analysis result with issues, repetitions, and statistics
+- **AnalysisCategory value object** - Enum for analysis types (spelling, grammar, punctuation, style, repetition)
+- **AnalysisSeverity value object** - Enum for issue severity (error, warning, suggestion)
+- **AnalysisIssue value object** - Individual analysis issue with position, suggestion, and status
+- **RepetitionCluster value object** - Cluster of repeated words/phrases with positions
+- **StyleRigor value object** - Analysis strictness level (strict, balanced, light)
+
+### Application Layer
+- **Analysis Strategies** - Strategy pattern implementation for each analysis type:
+  - `SpellingAnalysisStrategy` - Spelling error detection via AI
+  - `GrammarAnalysisStrategy` - Grammar issue detection via AI
+  - `PunctuationAnalysisStrategy` - Punctuation error detection via AI
+  - `StyleAnalysisStrategy` - Style improvement suggestions via AI
+  - `RepetitionAnalysisStrategy` - Repeated word/phrase detection
+- **AnalyzeChapterUseCase** - Orchestrates analysis strategies (in-memory results, no persistence)
+- **ApplyCorrectionUseCase** - Apply a single correction to chapter content
+- **ApplyBatchCorrectionsUseCase** - Apply multiple corrections in batch
+
+### Infrastructure Layer
+- **AnalysisLLMClient** - AI client for spelling, grammar, punctuation, and style analysis
+
+### Interface Layer
+- **ChapterAnalysisPanel** - Main panel for chapter verification UI
+- **AnalysisCategoryTabs** - Tab navigation for analysis categories
+- **AnalysisConfigDialog** - Configuration dialog for analysis options
+- **AnalysisIssueCard** - Card component for individual issues
+- **AnalysisSummaryCard** - Summary statistics for analysis results
+- **analysis-actions.ts** - Server actions for analysis operations
+
+### Simplification (February 2026)
+- Removed analysis persistence (no more MongoDB storage for analysis results)
+- Analysis results are now in-memory only (React state)
+- Removed history, diff, and export features
+- Removed repetition exclusions feature
+- User ignores issues locally (state update only)
+
+---
+
 ## Phase 6.1 - Cover Images, Writing Goals & Security (January 2026)
 
 ### Domain Layer

@@ -413,4 +413,44 @@ describe('FormattingToolbar', () => {
       expect(setFontSizeCalls).toContain('100pt');
     });
   });
+
+  describe('Analysis Props', () => {
+    it('should pass onAnalyze to AIMenuDropdown when showAIFeatures is true', () => {
+      const editor = createMockEditor();
+      const mockOnAnalyze = vi.fn();
+      const mockProps = {
+        onRewrite: vi.fn(),
+        onProviderChange: vi.fn(),
+        onHistoryClick: vi.fn(),
+        onAutocompleteChange: vi.fn(),
+        showAIFeatures: true,
+        onAnalyze: mockOnAnalyze,
+      };
+
+      render(<FormattingToolbar editor={editor} {...mockProps} />);
+
+      // The AIMenuDropdown should be rendered - find it by text content "IA"
+      expect(screen.getByText('IA')).toBeInTheDocument();
+    });
+
+    it('should pass analysisLoading to AIMenuDropdown', () => {
+      const editor = createMockEditor();
+      const mockProps = {
+        onRewrite: vi.fn(),
+        onProviderChange: vi.fn(),
+        onHistoryClick: vi.fn(),
+        onAutocompleteChange: vi.fn(),
+        showAIFeatures: true,
+        onAnalyze: vi.fn(),
+        analysisLoading: true,
+      };
+
+      render(<FormattingToolbar editor={editor} {...mockProps} />);
+
+      // When analysisLoading is true, the AI menu button should be disabled
+      // Find the button containing "IA" text
+      const aiButton = screen.getByText('IA').closest('button');
+      expect(aiButton).toBeDisabled();
+    });
+  });
 });

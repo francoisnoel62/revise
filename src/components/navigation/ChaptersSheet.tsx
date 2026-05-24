@@ -189,7 +189,7 @@ export function ChaptersSheet() {
           <span className="text-xs ml-1">({project.chapters.length})</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[350px] sm:w-[400px]">
+      <SheetContent side="left" className="w-87.5 sm:w-100">
         <SheetHeader>
           <SheetTitle>Chapitres</SheetTitle>
         </SheetHeader>

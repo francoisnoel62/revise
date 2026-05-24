@@ -2,7 +2,7 @@
 
 Implements domain interfaces with concrete external services.
 
-**Status**: ✅ Phase 6.1 Complete (see [README.md](../../README.md) for test statistics)
+**Status**: ✅ Phase 7.0 Complete (see [README.md](../../README.md) for test statistics)
 
 ## Rules:
 - Implements interfaces defined in Domain layer
@@ -11,7 +11,7 @@ Implements domain interfaces with concrete external services.
 
 ## Contents:
 
-### AI Provider (✅ Phase 6 Enhanced)
+### AI Provider (✅ Phase 7 Enhanced)
 
 #### `OpenAIProvider` ⭐ ENHANCED (Phase 4.1)
 **Implements**: `LLMProvider` interface
@@ -87,6 +87,28 @@ Implements domain interfaces with concrete external services.
 5. Returns original response
 
 **Tests**: 15+ tests covering tracking for all operation types
+
+---
+
+#### `AnalysisLLMClient` ⭐ NEW (Phase 7)
+**Purpose**: AI client for chapter verification analysis
+
+**Features**:
+- Spelling error detection with suggestions
+- Grammar issue identification
+- Punctuation error detection
+- Style improvement suggestions
+- Supports multiple LLM providers (OpenAI, Anthropic)
+- Configurable style rigor (strict, balanced, light)
+- Returns structured AnalysisIssue arrays
+
+**Methods**:
+- `analyzeSpelling(text, exclusions)` → `AnalysisIssue[]`
+- `analyzeGrammar(text)` → `AnalysisIssue[]`
+- `analyzePunctuation(text)` → `AnalysisIssue[]`
+- `analyzeStyle(text, rigor)` → `AnalysisIssue[]`
+
+**Tests**: 30+ tests covering all analysis types
 
 ---
 
@@ -395,7 +417,7 @@ Implements domain interfaces with concrete external services.
 
 ---
 
-### Persistence ⭐ ENHANCED (Phase 6)
+### Persistence ⭐ ENHANCED (Phase 7)
 
 #### `MongoDBProjectRepository` ⭐ NEW (Phase 3)
 **Implements**: `ProjectRepository` interface
@@ -669,6 +691,72 @@ Implements domain interfaces with concrete external services.
 
 ---
 
+#### `MongoDBAnalysisRepository` ⭐ NEW (Phase 7)
+**Implements**: `AnalysisRepository` interface
+**Technology**: MongoDB Atlas with official Node.js driver
+
+**Purpose**: Chapter analysis results, history, and exclusions storage
+
+**ChapterAnalysis Methods**:
+- `saveAnalysis(ownerId, analysis)` - Creates analysis document
+- `findAnalysisByChapterId(ownerId, chapterId)` - Loads latest analysis
+- `findAnalysisByContentHash(ownerId, chapterId, hash)` - Cache lookup
+- `updateAnalysis(ownerId, analysis)` - Updates analysis
+- `deleteAnalysis(ownerId, analysisId)` - Deletes analysis
+
+**AnalysisHistory Methods**:
+- `saveHistory(ownerId, history)` - Creates history entry
+- `findHistoryByChapterId(ownerId, chapterId)` - Lists history
+- `findHistoryById(ownerId, historyId)` - Loads history entry
+
+**Ignored Issues Methods**:
+- `saveIgnoredIssue(ownerId, issue)` - Saves ignored issue
+- `findIgnoredIssues(ownerId, chapterId)` - Lists ignored issues
+- `deleteIgnoredIssue(ownerId, issueId)` - Deletes ignored issue
+
+**Repetition Exclusions Methods**:
+- `saveRepetitionExclusion(ownerId, exclusion)` - Saves exclusion
+- `findRepetitionExclusions(ownerId, projectId)` - Lists exclusions
+- `deleteRepetitionExclusion(ownerId, exclusionId)` - Deletes exclusion
+
+**Multi-Tenant Security**:
+- All queries filter by `ownerId`
+- Enforced at database query level
+
+**Indexing**:
+- Indexes on (ownerId, chapterId, contentHash) for efficient cache lookup
+- Indexes on (ownerId, chapterId) for history queries
+
+**Tests**: 25+ tests covering all CRUD operations and multi-tenant isolation
+
+---
+
+#### `chapter-analysis-serializer` ⭐ NEW (Phase 7)
+**Purpose**: Convert between ChapterAnalysis entities and MongoDB documents
+
+**Functions**:
+- `serializeChapterAnalysis(analysis)` - ChapterAnalysis entity → MongoDB document
+- `deserializeChapterAnalysis(document)` - MongoDB document → ChapterAnalysis entity
+
+**Features**:
+- Handles nested AnalysisIssue and RepetitionCluster arrays
+- Preserves content hash and timestamps
+
+**Tests**: Integrated with MongoDBAnalysisRepository tests
+
+---
+
+#### `analysis-history-serializer` ⭐ NEW (Phase 7)
+**Purpose**: Convert between AnalysisHistory entities and MongoDB documents
+
+**Functions**:
+- `serializeAnalysisHistory(history)` - AnalysisHistory entity → MongoDB document
+- `deserializeAnalysisHistory(document)` - MongoDB document → AnalysisHistory entity
+
+**Tests**: Integrated with MongoDBAnalysisRepository tests
+
+---
+
 #### `InMemoryProjectRepository` (Phase 2 - Testing)
 **Implements**: `ProjectRepository` interface
 **Purpose**: Ephemeral storage for testing
@@ -886,7 +974,7 @@ docs/prompt/metadata/
 
 ---
 
-### Utils ⭐ ENHANCED (Phase 6)
+### Utils ⭐ ENHANCED (Phase 7)
 
 #### `UUIDGenerator`
 **Implements**: `IdGenerator` interface
@@ -942,7 +1030,22 @@ const hash3 = hashText("Chapter 1 UPDATED..."); // Different
 
 ---
 
-### Configuration ⭐ ENHANCED (Phase 6)
+#### `ContentHashService` ⭐ NEW (Phase 7)
+**Purpose**: SHA-256 hashing for analysis cache invalidation
+
+**Features**:
+- Computes hash of chapter content
+- Used to detect content changes
+- Enables intelligent analysis caching
+
+**Functions**:
+- `hash(content: string)` → `string` - Returns hex-encoded SHA-256 hash
+
+**Tests**: Integrated with AnalyzeChapterUseCase tests
+
+---
+
+### Configuration ⭐ ENHANCED (Phase 7)
 
 #### `env.ts`
 **Purpose**: Environment variable validation and access
