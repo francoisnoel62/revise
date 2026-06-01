@@ -115,3 +115,6 @@ belong in Revise.
   `/simple_research_codebase_generic` → `/simple_create_plan_generic` →
   `/simple_implement_plan` → `/validate_plan` → `/simple_review_CTO` → `/commit`,
   plus `/verify`, `/arch-check`, `/docs-update`, `/describe_pr`, `/debug`.
+- **Hooks** (`.claude/hooks/`): require **Git Bash + `jq`** in PATH (Windows: install
+  jq via WinGet). If `jq` is missing the hooks print a visible warning and no-op rather
+  than enforcing silently.
