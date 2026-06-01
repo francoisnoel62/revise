@@ -107,7 +107,7 @@ belong in Revise.
 
 ## Skills & commands
 
-- **Skills** (`.claude/skills/`): repeatable procedures — `tdd-cycle`, `systematic-debugging`.
+- **Skills** (`.claude/skills/`): repeatable procedures — `tdd-cycle`, `systematic-debugging`, `journal`.
 - **Subagents** (`.claude/agents/`): read-only research helpers used by the planning/research
   commands — `codebase-locator`, `codebase-analyzer`, `codebase-pattern-finder`,
   `docs-locator`, `docs-analyzer`.
