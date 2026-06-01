@@ -2,8 +2,10 @@
 // ABOUTME: Tests document creation, paragraph handling, format validation, and style presets
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import mammoth from 'mammoth';
 import { DocxExporter } from './DocxExporter';
 import { Chapter } from '@/domain/entities/Chapter';
+import { FrontMatterData } from '@/domain/interfaces/DocumentExporter';
 
 const VALID_DOCX_MAGIC = [0x50, 0x4b]; // PK — ZIP file signature
 
@@ -146,6 +148,28 @@ describe('DocxExporter', () => {
     });
   });
 
+  describe('KDP — table of contents (bookmark + hyperlink)', () => {
+    const nodes = [{ type: 'paragraph', content: [{ type: 'text', text: 'Body text.' }] }];
+
+    it('each chapter title appears twice in KDP export (TOC entry + chapter heading)', async () => {
+      const chapters = [
+        makeChapter('Chapter One', nodes, 'ch-1'),
+        makeChapter('Chapter Two', nodes, 'ch-2'),
+      ];
+      const buffer = await exporter.exportChapters(chapters, 'book.docx', { stylePreset: 'kdp' });
+      const { value: html } = await mammoth.convertToHtml({ buffer });
+      expect((html.match(/Chapter One/g) ?? []).length).toBe(2);
+      expect((html.match(/Chapter Two/g) ?? []).length).toBe(2);
+    });
+
+    it('neutral preset does not add a TOC (each title appears once)', async () => {
+      const chapters = [makeChapter('Chapter One', nodes, 'ch-1')];
+      const buffer = await exporter.exportChapters(chapters, 'book.docx', { stylePreset: 'neutral' });
+      const { value: html } = await mammoth.convertToHtml({ buffer });
+      expect((html.match(/Chapter One/g) ?? []).length).toBe(1);
+    });
+  });
+
   describe('TipTap formatting — KDP preset', () => {
     it('should handle bold, italic, underline marks', async () => {
       const nodes = [
@@ -200,6 +224,109 @@ describe('DocxExporter', () => {
       ];
       const chapter = makeChapter('Lists', nodes);
       const buffer = await exporter.exportChapter(chapter, 'lists.docx', { stylePreset: 'kdp' });
+      expect(buffer).toBeInstanceOf(Buffer);
+    });
+  });
+
+  describe('KDP — front matter pages', () => {
+    const bodyNodes = [{ type: 'paragraph', content: [{ type: 'text', text: 'Body text.' }] }];
+
+    const dedicationTipTap = JSON.stringify({
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'À ma mère.' }] }],
+    });
+
+    const epigraphTipTap = JSON.stringify({
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: '"La vie est un roman."' }] },
+      ],
+    });
+
+    const copyrightTipTap = JSON.stringify({
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: '© 2025 Jane Doe.' }] }],
+    });
+
+    it('generates valid buffer with complete frontMatter', async () => {
+      const frontMatter: FrontMatterData = {
+        title: 'Mon Roman',
+        subtitle: 'Un sous-titre',
+        authorName: 'Jane Doe',
+        isbn: '978-0-000000-00-0',
+        dedicationContent: dedicationTipTap,
+        copyrightContent: copyrightTipTap,
+        epigraphContent: epigraphTipTap,
+        copyrightYear: 2025,
+      };
+      const chapter = makeChapter('Chapitre 1', bodyNodes);
+      const buffer = await exporter.exportChapters([chapter], 'book.docx', {
+        stylePreset: 'kdp',
+        frontMatter,
+      });
+      expect(buffer).toBeInstanceOf(Buffer);
+      expect(buffer[0]).toBe(VALID_DOCX_MAGIC[0]);
+      expect(buffer[1]).toBe(VALID_DOCX_MAGIC[1]);
+    });
+
+    it('title and author appear in the generated document', async () => {
+      const frontMatter: FrontMatterData = {
+        title: 'Mon Roman',
+        authorName: 'Jane Doe',
+      };
+      const chapter = makeChapter('Chapitre 1', bodyNodes);
+      const buffer = await exporter.exportChapters([chapter], 'book.docx', {
+        stylePreset: 'kdp',
+        frontMatter,
+      });
+      const { value: html } = await mammoth.convertToHtml({ buffer });
+      expect(html).toContain('Mon Roman');
+      expect(html).toContain('Jane Doe');
+    });
+
+    it('without dedicationContent no crash and title still present', async () => {
+      const frontMatter: FrontMatterData = { title: 'Mon Roman' };
+      const chapter = makeChapter('Chapitre 1', bodyNodes);
+      const buffer = await exporter.exportChapters([chapter], 'book.docx', {
+        stylePreset: 'kdp',
+        frontMatter,
+      });
+      const { value: html } = await mammoth.convertToHtml({ buffer });
+      expect(html).toContain('Mon Roman');
+    });
+
+    it('generates copyright placeholder when copyrightContent is absent', async () => {
+      const frontMatter: FrontMatterData = {
+        title: 'Mon Roman',
+        authorName: 'Jane Doe',
+        copyrightYear: 2025,
+      };
+      const chapter = makeChapter('Chapitre 1', bodyNodes);
+      const buffer = await exporter.exportChapters([chapter], 'book.docx', {
+        stylePreset: 'kdp',
+        frontMatter,
+      });
+      const { value: html } = await mammoth.convertToHtml({ buffer });
+      expect(html).toContain('© 2025 Jane Doe');
+    });
+
+    it('without frontMatter the export behaves as before (no crash)', async () => {
+      const chapter = makeChapter('Chapitre 1', bodyNodes);
+      const buffer = await exporter.exportChapters([chapter], 'book.docx', {
+        stylePreset: 'kdp',
+      });
+      expect(buffer).toBeInstanceOf(Buffer);
+      const { value: html } = await mammoth.convertToHtml({ buffer });
+      expect(html).toContain('Chapitre 1');
+    });
+
+    it('frontMatter is ignored for neutral preset', async () => {
+      const frontMatter: FrontMatterData = { title: 'Mon Roman', authorName: 'Jane Doe' };
+      const chapter = makeChapter('Chapitre 1', bodyNodes);
+      const buffer = await exporter.exportChapters([chapter], 'book.docx', {
+        stylePreset: 'neutral',
+        frontMatter,
+      });
       expect(buffer).toBeInstanceOf(Buffer);
     });
   });

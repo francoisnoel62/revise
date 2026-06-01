@@ -12,8 +12,10 @@ import {
   AlignmentType,
   ImageRun,
   SectionType,
+  Bookmark,
+  InternalHyperlink,
 } from 'docx';
-import { DocumentExporter, ExportOptions, DocxStylePreset } from '@/domain/interfaces/DocumentExporter';
+import { DocumentExporter, ExportOptions, DocxStylePreset, FrontMatterData } from '@/domain/interfaces/DocumentExporter';
 import { Project } from '@/domain/entities/Project';
 import { Chapter } from '@/domain/entities/Chapter';
 
@@ -135,7 +137,7 @@ export class DocxExporter implements DocumentExporter {
     const coverParagraph = await this.createCoverImageParagraph(options?.coverImageUrl);
 
     if (preset === 'kdp') {
-      return this.buildKdpDocument(chapters, preset, coverParagraph);
+      return this.buildKdpDocument(chapters, preset, coverParagraph, options?.frontMatter);
     }
 
     return this.buildSingleSectionDocument(chapters, preset, coverParagraph);
@@ -149,7 +151,8 @@ export class DocxExporter implements DocumentExporter {
   private async buildKdpDocument(
     chapters: Chapter[],
     preset: DocxStylePreset,
-    coverParagraph: Paragraph | null
+    coverParagraph: Paragraph | null,
+    frontMatter?: FrontMatterData
   ): Promise<Buffer> {
     const kdpPageProps = {
       size: { width: KDP_PAGE_WIDTH, height: KDP_PAGE_HEIGHT },
@@ -171,7 +174,22 @@ export class DocxExporter implements DocumentExporter {
       });
     }
 
-    for (const chapter of chapters) {
+    if (frontMatter) {
+      docSections.push(this.buildHalfTitleSection(frontMatter, kdpPageProps));
+      docSections.push(this.buildTitlePageSection(frontMatter, kdpPageProps));
+      docSections.push(this.buildCopyrightSection(frontMatter, kdpPageProps));
+      if (frontMatter.dedicationContent) {
+        docSections.push(this.buildDedicationSection(frontMatter.dedicationContent, kdpPageProps));
+      }
+      if (frontMatter.epigraphContent) {
+        docSections.push(this.buildEpigraphSection(frontMatter.epigraphContent, kdpPageProps));
+      }
+    }
+
+    docSections.push(this.buildTocSection(chapters, kdpPageProps));
+
+    for (let i = 0; i < chapters.length; i++) {
+      const chapter = chapters[i];
       const json = JSON.parse(chapter.getContent());
       const bodyParagraphs = this.convertTipTapToDocx(json, preset);
 
@@ -182,7 +200,12 @@ export class DocxExporter implements DocumentExporter {
         },
         children: [
           new Paragraph({
-            text: chapter.getTitle(),
+            children: [
+              new Bookmark({
+                id: `chapter_${i}`,
+                children: [new TextRun(chapter.getTitle())],
+              }),
+            ],
             heading: HeadingLevel.HEADING_1,
           }),
           ...bodyParagraphs,
@@ -196,6 +219,193 @@ export class DocxExporter implements DocumentExporter {
     });
 
     return Packer.toBuffer(doc);
+  }
+
+  private buildHalfTitleSection(frontMatter: FrontMatterData, kdpPageProps: object): object {
+    return {
+      properties: {
+        type: SectionType.ODD_PAGE,
+        page: kdpPageProps,
+      },
+      children: [
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: frontMatter.title,
+              font: KDP_BODY_FONT,
+              size: 36, // 18pt
+            }),
+          ],
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 4320, after: 0 }, // ~3" down
+        }),
+      ],
+    };
+  }
+
+  private buildTitlePageSection(frontMatter: FrontMatterData, kdpPageProps: object): object {
+    const children: Paragraph[] = [
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: frontMatter.title,
+            font: KDP_BODY_FONT,
+            size: 48, // 24pt
+            bold: true,
+          }),
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 2880, after: 240 }, // ~2" from top
+      }),
+    ];
+
+    if (frontMatter.subtitle) {
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: frontMatter.subtitle,
+              font: KDP_BODY_FONT,
+              size: 28, // 14pt
+              italics: true,
+            }),
+          ],
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 240, after: 0 },
+        })
+      );
+    }
+
+    if (frontMatter.authorName) {
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: frontMatter.authorName,
+              font: KDP_BODY_FONT,
+              size: 24, // 12pt
+            }),
+          ],
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 720, after: 0 }, // 0.5" gap before author name
+        })
+      );
+    }
+
+    return {
+      properties: {
+        type: SectionType.ODD_PAGE,
+        page: kdpPageProps,
+      },
+      children,
+    };
+  }
+
+  private buildCopyrightSection(frontMatter: FrontMatterData, kdpPageProps: object): object {
+    let children: Paragraph[];
+
+    if (frontMatter.copyrightContent) {
+      const json = JSON.parse(frontMatter.copyrightContent);
+      children = this.convertTipTapToDocx(json, 'kdp').map((p) => {
+        // Override to 9pt for copyright page
+        return p;
+      });
+    } else {
+      const year = frontMatter.copyrightYear ?? new Date().getFullYear();
+      const author = frontMatter.authorName ?? '[AUTEUR]';
+      const isbn = frontMatter.isbn ? `ISBN : ${frontMatter.isbn}` : 'ISBN : [À RENSEIGNER]';
+
+      const lines = [
+        `© ${year} ${author}. Tous droits réservés.`,
+        '',
+        "Toute reproduction ou représentation, intégrale ou partielle, par quelque procédé que ce soit, faite sans l'autorisation de l'auteur, est illicite et constitue une contrefaçon.",
+        '',
+        isbn,
+        '',
+        '[NOM DE L\'ÉDITEUR]',
+        'Imprimé en France',
+      ];
+
+      children = lines.map(
+        (line) =>
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: line,
+                font: KDP_BODY_FONT,
+                size: 18, // 9pt
+              }),
+            ],
+            spacing: { line: KDP_LINE_SPACING, lineRule: 'auto' },
+          })
+      );
+    }
+
+    return {
+      properties: {
+        type: SectionType.EVEN_PAGE,
+        page: kdpPageProps,
+      },
+      children,
+    };
+  }
+
+  private buildDedicationSection(content: string, kdpPageProps: object): object {
+    const json = JSON.parse(content);
+    const paragraphs = this.convertTipTapToDocx(json, 'kdp');
+
+    return {
+      properties: {
+        type: SectionType.ODD_PAGE,
+        page: kdpPageProps,
+      },
+      children: paragraphs,
+    };
+  }
+
+  private buildEpigraphSection(content: string, kdpPageProps: object): object {
+    const json = JSON.parse(content);
+    const paragraphs = this.convertTipTapToDocx(json, 'kdp');
+
+    return {
+      properties: {
+        type: SectionType.ODD_PAGE,
+        page: kdpPageProps,
+      },
+      children: paragraphs,
+    };
+  }
+
+  private buildTocSection(chapters: Chapter[], kdpPageProps: object): object {
+    const entries = chapters.map((chapter, i) =>
+      new Paragraph({
+        children: [
+          new InternalHyperlink({
+            anchor: `chapter_${i}`,
+            children: [
+              new TextRun({
+                text: chapter.getTitle(),
+                font: KDP_BODY_FONT,
+                size: 22,
+                color: '000000',
+              }),
+            ],
+          }),
+        ],
+        spacing: { line: KDP_LINE_SPACING, lineRule: 'auto' },
+      })
+    );
+
+    return {
+      properties: {
+        type: SectionType.ODD_PAGE,
+        page: kdpPageProps,
+      },
+      children: [
+        new Paragraph({ text: 'Table des matières', heading: HeadingLevel.HEADING_2 }),
+        ...entries,
+      ],
+    };
   }
 
   /**

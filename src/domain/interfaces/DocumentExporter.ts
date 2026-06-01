@@ -13,6 +13,22 @@ import { Chapter } from '../entities/Chapter';
 export type DocxStylePreset = 'kdp' | 'neutral' | 'structured';
 
 /**
+ * Front matter pages data for KDP export (half-title, title page, copyright, dedication, epigraph).
+ * All fields are optional — missing content skips that page, except copyrightContent which
+ * falls back to a generated placeholder.
+ */
+export interface FrontMatterData {
+  title: string;
+  subtitle?: string;
+  authorName?: string;
+  dedicationContent?: string;
+  copyrightContent?: string;
+  epigraphContent?: string;
+  isbn?: string;
+  copyrightYear?: number;
+}
+
+/**
  * Options for document export
  */
 export interface ExportOptions {
@@ -25,6 +41,11 @@ export interface ExportOptions {
    * Visual rendering preset for DOCX export. Defaults to 'kdp'.
    */
   stylePreset?: DocxStylePreset;
+  /**
+   * Front matter pages (half-title, title, copyright, dedication, epigraph).
+   * KDP preset only. Ignored for neutral/structured presets.
+   */
+  frontMatter?: FrontMatterData;
 }
 
 export interface DocumentExporter {

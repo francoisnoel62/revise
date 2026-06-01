@@ -9,6 +9,7 @@ vi.mock('./utils', () => ({
   getRepository: vi.fn(),
   getDocumentExporter: vi.fn(),
   getProjectSettingsRepo: vi.fn(),
+  getMetadataRepo: vi.fn(),
   withErrorHandling: vi.fn(async (fn) => {
     try {
       const data = await fn();
@@ -19,7 +20,7 @@ vi.mock('./utils', () => ({
   }),
 }));
 
-import { getAuthenticatedUserId, getRepository, getDocumentExporter, getProjectSettingsRepo } from './utils';
+import { getAuthenticatedUserId, getRepository, getDocumentExporter, getProjectSettingsRepo, getMetadataRepo } from './utils';
 import { Project } from '@/domain/entities/Project';
 import { Chapter } from '@/domain/entities/Chapter';
 import { DocumentExporter } from '@/domain/interfaces/DocumentExporter';
@@ -33,6 +34,9 @@ describe('export-actions', () => {
   };
   let mockSettingsRepository: {
     findByProjectId: ReturnType<typeof vi.fn>;
+  };
+  let mockMetadataRepository: {
+    findByProjectAndType: ReturnType<typeof vi.fn>;
   };
   let mockExporter: DocumentExporter;
 
@@ -50,6 +54,12 @@ describe('export-actions', () => {
       findByProjectId: vi.fn().mockResolvedValue(null),
     };
     vi.mocked(getProjectSettingsRepo).mockResolvedValue(mockSettingsRepository as never);
+
+    // Mock metadata repository — returns null for all editorial annexes
+    mockMetadataRepository = {
+      findByProjectAndType: vi.fn().mockResolvedValue(null),
+    };
+    vi.mocked(getMetadataRepo).mockResolvedValue(mockMetadataRepository as never);
 
     // Mock exporter - implements DocumentExporter interface
     mockExporter = {
@@ -89,7 +99,11 @@ describe('export-actions', () => {
 
       // Verify the exporter was called via use case
       expect(getDocumentExporter).toHaveBeenCalled();
-      expect(mockExporter.exportProject).toHaveBeenCalledWith(project, 'My Novel.docx', { coverImageUrl: undefined });
+      expect(mockExporter.exportProject).toHaveBeenCalledWith(
+        project,
+        'My Novel.docx',
+        expect.objectContaining({ coverImageUrl: undefined })
+      );
     });
 
     it('returns error for unauthenticated user', async () => {

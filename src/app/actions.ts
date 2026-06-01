@@ -13,7 +13,7 @@ import { TextSelection } from '@/domain/value-objects/TextSelection';
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
 import { RewriteTextUseCase } from '@/application/use-cases/RewriteTextUseCase';
 import { ExportProjectUseCase, ExportMode } from '@/application/use-cases/ExportProjectUseCase';
-import { DocxStylePreset } from '@/domain/interfaces/DocumentExporter';
+import { DocxStylePreset, FrontMatterData } from '@/domain/interfaces/DocumentExporter';
 import { getPromptRepository } from '@/infrastructure/config/providers';
 import {
   type ActionResult,
@@ -23,6 +23,7 @@ import {
   getFolderParser,
   getDocumentExporter,
   getProjectSettingsRepo,
+  getMetadataRepo,
   withErrorHandling,
 } from './actions/utils';
 import { type SerializedProject } from './actions/project-actions';
@@ -144,17 +145,40 @@ export async function exportProject(
       throw new Error('Project not found');
     }
 
-    // Get project settings for cover image
+    // Get project settings for cover image and book metadata
     const settingsRepo = await getProjectSettingsRepo();
     const settings = await settingsRepo.findByProjectId(auth.userId, projectId);
     const coverImageUrl = settings?.getCoverImageUrl();
+
+    // Build front matter data for KDP export
+    const metadataRepo = await getMetadataRepo();
+    const authorContributor = settings?.getContributors().find((c) => c.role === 'author');
+    const [dedicationMeta, copyrightMeta, epigraphMeta] = await Promise.all([
+      metadataRepo.findByProjectAndType(auth.userId, projectId, 'dedication'),
+      metadataRepo.findByProjectAndType(auth.userId, projectId, 'copyright'),
+      metadataRepo.findByProjectAndType(auth.userId, projectId, 'epigraph'),
+    ]);
+
+    const frontMatter: FrontMatterData = {
+      title: settings?.getTitle() ?? project.getTitle(),
+      subtitle: settings?.getSubtitle(),
+      authorName: authorContributor?.name,
+      isbn: settings?.getIsbn(),
+      dedicationContent: dedicationMeta?.getContent() || undefined,
+      copyrightContent: copyrightMeta?.getContent() || undefined,
+      epigraphContent: epigraphMeta?.getContent() || undefined,
+    };
 
     const exporter = await getDocumentExporter('docx');
     const useCase = new ExportProjectUseCase(exporter);
     const filename = `${project.getTitle()}.docx`;
 
     const mode: ExportMode = chapterIds && chapterIds.length > 0 ? 'selected' : 'all';
-    const buffer = await useCase.execute(project, filename, mode, chapterIds, { coverImageUrl, stylePreset });
+    const buffer = await useCase.execute(project, filename, mode, chapterIds, {
+      coverImageUrl,
+      stylePreset,
+      frontMatter,
+    });
 
     return {
       buffer: Array.from(buffer),
