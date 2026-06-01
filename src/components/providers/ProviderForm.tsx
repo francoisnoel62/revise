@@ -19,15 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Combobox } from '@/components/ui/combobox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, CheckCircle, XCircle, ExternalLink } from 'lucide-react';
-import {
-  getModelsForProvider,
-  getDefaultModel,
-  PROVIDER_NAMES,
-  PROVIDER_DOCS,
-} from '@/infrastructure/config/ai-models';
+import { PROVIDER_NAMES, PROVIDER_DOCS } from '@/infrastructure/config/ai-models';
 
 export interface ProviderFormProps {
   provider?: SafeProvider;
@@ -58,20 +52,6 @@ export function ProviderForm({ provider, onSuccess, onCancel }: ProviderFormProp
     message: string;
   } | null>(null);
   const [error, setError] = React.useState<string | null>(null);
-
-  // Get models for selected provider type
-  const availableModels = React.useMemo(
-    () => getModelsForProvider(providerType),
-    [providerType]
-  );
-
-  // Auto-select default model when provider type changes
-  React.useEffect(() => {
-    if (!isEditing) {
-      const defaultModel = getDefaultModel(providerType);
-      setModel(defaultModel);
-    }
-  }, [providerType, isEditing]);
 
   // Handle provider type change
   const handleProviderTypeChange = (newType: ProviderType) => {
@@ -229,27 +209,19 @@ export function ProviderForm({ provider, onSuccess, onCancel }: ProviderFormProp
         </div>
       )}
 
-      {/* Model Selection */}
+      {/* Model */}
       <div className="space-y-2">
         <Label htmlFor="model">
           Modèle
           <span className="text-destructive ml-1">*</span>
         </Label>
-        <Combobox
-          options={availableModels.map((m) => ({
-            value: m.id,
-            label: `${m.name}${m.recommended ? ' (Recommandé)' : ''}`,
-          }))}
+        <Input
+          id="model"
+          placeholder="ex : gpt-4o, claude-opus-4-6, gemini-2.0-flash"
           value={model}
-          onValueChange={setModel}
-          placeholder="Sélectionner un modèle..."
-          searchPlaceholder="Rechercher des modèles..."
+          onChange={(e) => setModel(e.target.value)}
+          required
         />
-        {model && (
-          <p className="text-xs text-muted-foreground">
-            {availableModels.find((m) => m.id === model)?.description}
-          </p>
-        )}
       </div>
 
       {/* API Key */}
