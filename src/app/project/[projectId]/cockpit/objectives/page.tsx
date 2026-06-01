@@ -1,5 +1,5 @@
-// ABOUTME: Objectives page for managing writing goals
-// ABOUTME: Allows creating, viewing, editing, and deleting goals
+// ABOUTME: Objectives page for managing the project milestone and writing quotas
+// ABOUTME: Milestone = total target + deadline; quotas = recurring daily/weekly rates
 
 'use client';
 
@@ -12,8 +12,15 @@ import {
   deleteWritingGoalAction,
   SerializedWritingGoal,
 } from '@/app/actions/writing-goal-actions';
+import {
+  listWritingQuotasAction,
+  createWritingQuotaAction,
+  updateWritingQuotaAction,
+  deleteWritingQuotaAction,
+  SerializedWritingQuota,
+} from '@/app/actions/writing-quota-actions';
 import { getProjectStatsAction } from '@/app/actions/cockpit-actions';
-import { GoalForm, GoalCard } from '@/components/cockpit';
+import { GoalForm, GoalCard, QuotaForm, QuotaCard } from '@/components/cockpit';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
@@ -31,34 +38,39 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { GoalType } from '@/domain/entities/WritingGoal';
+import { QuotaPeriod } from '@/domain/entities/WritingQuota';
+
+type PendingDelete =
+  | { kind: 'goal'; id: string }
+  | { kind: 'quota'; id: string }
+  | null;
 
 export default function ObjectivesPage() {
   const params = useParams();
   const projectId = params.projectId as string;
 
   const [goals, setGoals] = useState<SerializedWritingGoal[]>([]);
+  const [quotas, setQuotas] = useState<SerializedWritingQuota[]>([]);
   const [wordCount, setWordCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [isCreating, setIsCreating] = useState(false);
+  const [isCreatingGoal, setIsCreatingGoal] = useState(false);
+  const [isCreatingQuota, setIsCreatingQuota] = useState(false);
   const [editingGoal, setEditingGoal] = useState<SerializedWritingGoal | null>(null);
-  const [deletingGoalId, setDeletingGoalId] = useState<string | null>(null);
+  const [editingQuota, setEditingQuota] = useState<SerializedWritingQuota | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete>(null);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [goalsResult, statsResult] = await Promise.all([
+      const [goalsResult, quotasResult, statsResult] = await Promise.all([
         listWritingGoalsAction(projectId),
+        listWritingQuotasAction(projectId),
         getProjectStatsAction(projectId),
       ]);
 
-      if (goalsResult.success) {
-        setGoals(goalsResult.goals);
-      }
-
-      if (statsResult.success) {
-        setWordCount(statsResult.stats.wordCount);
-      }
+      if (goalsResult.success) setGoals(goalsResult.goals);
+      if (quotasResult.success) setQuotas(quotasResult.quotas);
+      if (statsResult.success) setWordCount(statsResult.stats.wordCount);
     } finally {
       setIsLoading(false);
     }
@@ -68,63 +80,82 @@ export default function ObjectivesPage() {
     loadData();
   }, [loadData]);
 
-  const handleCreate = async (data: {
-    type: GoalType;
-    targetWords: number;
-    deadline?: string;
-  }) => {
-    setIsCreating(true);
+  const handleCreateGoal = async (data: { targetWords: number; deadline?: string }) => {
+    setIsCreatingGoal(true);
     try {
-      const result = await createWritingGoalAction(
-        projectId,
-        data.type,
-        data.targetWords,
-        data.deadline
-      );
-
+      const result = await createWritingGoalAction(projectId, data.targetWords, data.deadline);
       if (result.success) {
         setGoals((prev) => [result.goal, ...prev]);
       } else {
         throw new Error(result.error);
       }
     } finally {
-      setIsCreating(false);
+      setIsCreatingGoal(false);
     }
   };
 
-  const handleEdit = async (data: {
-    type: GoalType;
-    targetWords: number;
-    deadline?: string;
-  }) => {
+  const handleEditGoal = async (data: { targetWords: number; deadline?: string }) => {
     if (!editingGoal) return;
 
     const result = await updateWritingGoalAction(editingGoal.id, {
-      type: data.type,
       targetWords: data.targetWords,
       deadline: data.deadline ?? null,
     });
 
     if (result.success) {
-      setGoals((prev) =>
-        prev.map((g) => (g.id === editingGoal.id ? result.goal : g))
-      );
+      setGoals((prev) => prev.map((g) => (g.id === editingGoal.id ? result.goal : g)));
       setEditingGoal(null);
     } else {
       throw new Error(result.error);
     }
   };
 
-  const handleDelete = async () => {
-    if (!deletingGoalId) return;
+  const handleCreateQuota = async (data: { period: QuotaPeriod; targetWords: number }) => {
+    setIsCreatingQuota(true);
+    try {
+      const result = await createWritingQuotaAction(projectId, data.period, data.targetWords);
+      if (result.success) {
+        setQuotas((prev) => [result.quota, ...prev]);
+      } else {
+        throw new Error(result.error);
+      }
+    } finally {
+      setIsCreatingQuota(false);
+    }
+  };
 
-    const result = await deleteWritingGoalAction(deletingGoalId);
+  const handleEditQuota = async (data: { period: QuotaPeriod; targetWords: number }) => {
+    if (!editingQuota) return;
+
+    const result = await updateWritingQuotaAction(editingQuota.id, {
+      period: data.period,
+      targetWords: data.targetWords,
+    });
 
     if (result.success) {
-      setGoals((prev) => prev.filter((g) => g.id !== deletingGoalId));
+      setQuotas((prev) => prev.map((q) => (q.id === editingQuota.id ? result.quota : q)));
+      setEditingQuota(null);
+    } else {
+      throw new Error(result.error);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!pendingDelete) return;
+
+    if (pendingDelete.kind === 'goal') {
+      const result = await deleteWritingGoalAction(pendingDelete.id);
+      if (result.success) {
+        setGoals((prev) => prev.filter((g) => g.id !== pendingDelete.id));
+      }
+    } else {
+      const result = await deleteWritingQuotaAction(pendingDelete.id);
+      if (result.success) {
+        setQuotas((prev) => prev.filter((q) => q.id !== pendingDelete.id));
+      }
     }
 
-    setDeletingGoalId(null);
+    setPendingDelete(null);
   };
 
   if (isLoading) {
@@ -132,9 +163,7 @@ export default function ObjectivesPage() {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Objectifs</h1>
-          <p className="text-muted-foreground">
-            Définissez vos objectifs d&apos;écriture
-          </p>
+          <p className="text-muted-foreground">Définissez vos objectifs d&apos;écriture</p>
         </div>
         <div className="grid gap-6 md:grid-cols-2">
           <Skeleton className="h-64" />
@@ -145,50 +174,73 @@ export default function ObjectivesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Objectifs</h1>
         <p className="text-muted-foreground">
-          Définissez vos objectifs d&apos;écriture et suivez votre progression
+          Définissez votre objectif global et votre rythme d&apos;écriture, puis suivez votre progression
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Goal Form */}
-        <GoalForm onSubmit={handleCreate} isLoading={isCreating} />
-
-        {/* Goals List */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold">Vos objectifs</h2>
-          {goals.length === 0 ? (
-            <p className="text-muted-foreground">
-              Aucun objectif défini. Créez votre premier objectif !
-            </p>
-          ) : (
-            goals.map((goal) => (
-              <GoalCard
-                key={goal.id}
-                goal={goal}
-                currentWordCount={wordCount}
-                onEdit={setEditingGoal}
-                onDelete={setDeletingGoalId}
-              />
-            ))
-          )}
+      {/* Milestone section */}
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold">Objectif global</h2>
+        <div className="grid gap-6 md:grid-cols-2">
+          <GoalForm onSubmit={handleCreateGoal} isLoading={isCreatingGoal} />
+          <div className="space-y-4">
+            {goals.length === 0 ? (
+              <p className="text-muted-foreground">
+                Aucun objectif global défini. Fixez un total de mots à atteindre, avec une échéance.
+              </p>
+            ) : (
+              goals.map((goal) => (
+                <GoalCard
+                  key={goal.id}
+                  goal={goal}
+                  currentWordCount={wordCount}
+                  onEdit={setEditingGoal}
+                  onDelete={(id) => setPendingDelete({ kind: 'goal', id })}
+                />
+              ))
+            )}
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* Edit Dialog */}
+      {/* Quotas section */}
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold">Rythme (quotas)</h2>
+        <div className="grid gap-6 md:grid-cols-2">
+          <QuotaForm onSubmit={handleCreateQuota} isLoading={isCreatingQuota} />
+          <div className="space-y-4">
+            {quotas.length === 0 ? (
+              <p className="text-muted-foreground">
+                Aucun quota défini. Fixez un rythme quotidien ou hebdomadaire à tenir.
+              </p>
+            ) : (
+              quotas.map((quota) => (
+                <QuotaCard
+                  key={quota.id}
+                  quota={quota}
+                  onEdit={setEditingQuota}
+                  onDelete={(id) => setPendingDelete({ kind: 'quota', id })}
+                />
+              ))
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Edit milestone dialog */}
       <Dialog open={!!editingGoal} onOpenChange={() => setEditingGoal(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Modifier l&apos;objectif</DialogTitle>
+            <DialogTitle>Modifier l&apos;objectif global</DialogTitle>
           </DialogHeader>
           {editingGoal && (
             <GoalForm
-              onSubmit={handleEdit}
+              onSubmit={handleEditGoal}
               initialValues={{
-                type: editingGoal.type,
                 targetWords: editingGoal.targetWords,
                 deadline: editingGoal.deadline?.split('T')[0],
               }}
@@ -198,23 +250,37 @@ export default function ObjectivesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
-      <AlertDialog
-        open={!!deletingGoalId}
-        onOpenChange={() => setDeletingGoalId(null)}
-      >
+      {/* Edit quota dialog */}
+      <Dialog open={!!editingQuota} onOpenChange={() => setEditingQuota(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Modifier le quota</DialogTitle>
+          </DialogHeader>
+          {editingQuota && (
+            <QuotaForm
+              onSubmit={handleEditQuota}
+              initialValues={{
+                period: editingQuota.period,
+                targetWords: editingQuota.targetWords,
+              }}
+              submitLabel="Enregistrer"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!pendingDelete} onOpenChange={() => setPendingDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer l&apos;objectif ?</AlertDialogTitle>
+            <AlertDialogTitle>Supprimer cet élément ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Cette action est irréversible. L&apos;objectif sera définitivement supprimé.
+              Cette action est irréversible. L&apos;élément sera définitivement supprimé.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>
-              Supprimer
-            </AlertDialogAction>
+            <AlertDialogAction onClick={handleConfirmDelete}>Supprimer</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

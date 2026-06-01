@@ -9,12 +9,11 @@ import { ListWritingGoalsUseCase } from '@/application/use-cases/ListWritingGoal
 import { UpdateWritingGoalUseCase } from '@/application/use-cases/UpdateWritingGoalUseCase';
 import { DeleteWritingGoalUseCase } from '@/application/use-cases/DeleteWritingGoalUseCase';
 import { GetActiveWritingGoalUseCase } from '@/application/use-cases/GetActiveWritingGoalUseCase';
-import { GoalType, WritingGoal } from '@/domain/entities/WritingGoal';
+import { WritingGoal } from '@/domain/entities/WritingGoal';
 
 export interface SerializedWritingGoal {
   id: string;
   projectId: string;
-  type: GoalType;
   targetWords: number;
   deadline: string | null;
   createdAt: string;
@@ -25,7 +24,6 @@ function serializeGoal(goal: WritingGoal): SerializedWritingGoal {
   return {
     id: goal.getId(),
     projectId: goal.getProjectId(),
-    type: goal.getType(),
     targetWords: goal.getTargetWords(),
     deadline: goal.getDeadline()?.toISOString() ?? null,
     createdAt: goal.getCreatedAt().toISOString(),
@@ -35,7 +33,6 @@ function serializeGoal(goal: WritingGoal): SerializedWritingGoal {
 
 export async function createWritingGoalAction(
   projectId: string,
-  type: GoalType,
   targetWords: number,
   deadline?: string
 ): Promise<{ success: true; goal: SerializedWritingGoal } | { success: false; error: string }> {
@@ -53,7 +50,6 @@ export async function createWritingGoalAction(
     const goal = await useCase.execute({
       userId: authResult.userId,
       projectId,
-      type,
       targetWords,
       deadline: deadline ? new Date(deadline) : undefined,
     });
@@ -96,7 +92,6 @@ export async function updateWritingGoalAction(
   updates: {
     targetWords?: number;
     deadline?: string | null;
-    type?: GoalType;
   }
 ): Promise<{ success: true; goal: SerializedWritingGoal } | { success: false; error: string }> {
   try {
@@ -112,7 +107,6 @@ export async function updateWritingGoalAction(
       goalId,
       targetWords: updates.targetWords,
       deadline: updates.deadline === null ? null : updates.deadline ? new Date(updates.deadline) : undefined,
-      type: updates.type,
     });
 
     return { success: true, goal: serializeGoal(goal) };

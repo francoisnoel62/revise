@@ -6,6 +6,8 @@ export { StatCard } from './StatCard';
 export { ProgressCard } from './ProgressCard';
 export { GoalForm } from './GoalForm';
 export { GoalCard } from './GoalCard';
+export { QuotaForm } from './QuotaForm';
+export { QuotaCard } from './QuotaCard';
 export { UsageStatsCard } from './UsageStatsCard';
 export { UsageByOperationChart } from './UsageByOperationChart';
 export { DailyUsageChart } from './DailyUsageChart';

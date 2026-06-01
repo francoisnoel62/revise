@@ -7,12 +7,20 @@ import { WordCountSnapshot } from '@/domain/entities/WordCountSnapshot';
 
 describe('RecordWordCountSnapshotUseCase', () => {
   let useCase: RecordWordCountSnapshotUseCase;
-  let mockRepository: { upsertForDay: ReturnType<typeof vi.fn> };
+  let mockRepository: {
+    upsertForDay: ReturnType<typeof vi.fn>;
+    findByProjectId: ReturnType<typeof vi.fn>;
+    findLatestBefore: ReturnType<typeof vi.fn>;
+    deleteAllByOwner: ReturnType<typeof vi.fn>;
+  };
   let mockIdGenerator: { generate: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     mockRepository = {
       upsertForDay: vi.fn((_userId, snapshot) => Promise.resolve(snapshot)),
+      findByProjectId: vi.fn().mockResolvedValue([]),
+      findLatestBefore: vi.fn().mockResolvedValue(null),
+      deleteAllByOwner: vi.fn().mockResolvedValue(undefined),
     };
     mockIdGenerator = {
       generate: vi.fn(() => '507f1f77bcf86cd799439011'),

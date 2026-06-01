@@ -9,6 +9,7 @@ import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
 import { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
 import { WritingGoalRepository } from '@/domain/interfaces/WritingGoalRepository';
 import { WordCountSnapshotRepository } from '@/domain/interfaces/WordCountSnapshotRepository';
+import { WritingQuotaRepository } from '@/domain/interfaces/WritingQuotaRepository';
 import { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
 import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository';
 import { ContactMessageRepository } from '@/domain/interfaces/ContactMessageRepository';
@@ -31,6 +32,7 @@ import { MongoDBMetadataRepository } from '@/infrastructure/persistence/MongoDBM
 import { MongoDBCorrectionHistoryRepository } from '@/infrastructure/persistence/MongoDBCorrectionHistoryRepository';
 import { MongoDBWritingGoalRepository } from '@/infrastructure/persistence/MongoDBWritingGoalRepository';
 import { MongoDBWordCountSnapshotRepository } from '@/infrastructure/persistence/MongoDBWordCountSnapshotRepository';
+import { MongoDBWritingQuotaRepository } from '@/infrastructure/persistence/MongoDBWritingQuotaRepository';
 import { MongoDBUsageRepository } from '@/infrastructure/persistence/MongoDBUsageRepository';
 import { MongoDBBlogArticleRepository } from '@/infrastructure/persistence/MongoDBBlogArticleRepository';
 import { MongoDBContactMessageRepository } from '@/infrastructure/persistence/MongoDBContactMessageRepository';
@@ -193,6 +195,14 @@ export async function getWordCountSnapshotRepository(): Promise<WordCountSnapsho
     await wordCountSnapshotRepoInstance.ensureIndexes();
   }
   return wordCountSnapshotRepoInstance;
+}
+
+/**
+ * Get the writing quota repository.
+ */
+export async function getWritingQuotaRepository(): Promise<WritingQuotaRepository> {
+  const db = await getDatabase();
+  return new MongoDBWritingQuotaRepository(db);
 }
 
 /**

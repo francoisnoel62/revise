@@ -18,7 +18,6 @@ export interface ProjectStats {
   title: string;
   activeGoal: {
     targetWords: number;
-    type: string;
     deadline: string | null;
   } | null;
 }
@@ -68,7 +67,6 @@ export async function getProjectStatsAction(
         activeGoal: activeGoal
           ? {
               targetWords: activeGoal.getTargetWords(),
-              type: activeGoal.getType(),
               deadline: activeGoal.getDeadline()?.toISOString() ?? null,
             }
           : null,

@@ -21,12 +21,16 @@ describe('GetWritingActivityUseCase', () => {
   let mockRepository: {
     findByProjectId: ReturnType<typeof vi.fn>;
     findLatestBefore: ReturnType<typeof vi.fn>;
+    upsertForDay: ReturnType<typeof vi.fn>;
+    deleteAllByOwner: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
     mockRepository = {
       findByProjectId: vi.fn().mockResolvedValue([]),
       findLatestBefore: vi.fn().mockResolvedValue(null),
+      upsertForDay: vi.fn((_userId, snapshot) => Promise.resolve(snapshot)),
+      deleteAllByOwner: vi.fn().mockResolvedValue(undefined),
     };
     useCase = new GetWritingActivityUseCase(mockRepository);
   });

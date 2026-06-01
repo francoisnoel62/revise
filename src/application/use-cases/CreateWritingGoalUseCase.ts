@@ -1,14 +1,13 @@
 // ABOUTME: Use case for creating a new writing goal
 // ABOUTME: Validates input and delegates to repository
 
-import { WritingGoal, GoalType } from '@/domain/entities/WritingGoal';
+import { WritingGoal } from '@/domain/entities/WritingGoal';
 import { WritingGoalRepository } from '@/domain/interfaces/WritingGoalRepository';
 import { IdGenerator } from '@/domain/interfaces/IdGenerator';
 
 export interface CreateWritingGoalInput {
   userId: string;
   projectId: string;
-  type: GoalType;
   targetWords: number;
   deadline?: Date;
 }
@@ -24,7 +23,6 @@ export class CreateWritingGoalUseCase {
       this.idGenerator.generate(),
       input.projectId,
       input.userId,
-      input.type,
       input.targetWords,
       input.deadline
     );

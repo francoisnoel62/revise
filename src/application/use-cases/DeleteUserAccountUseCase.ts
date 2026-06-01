@@ -8,6 +8,7 @@ import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
 import { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
 import { ProjectSettingsRepository } from '@/domain/interfaces/ProjectSettingsRepository';
 import { WordCountSnapshotRepository } from '@/domain/interfaces/WordCountSnapshotRepository';
+import { WritingQuotaRepository } from '@/domain/interfaces/WritingQuotaRepository';
 
 export interface DeleteUserAccountInput {
   userId: string;
@@ -44,7 +45,8 @@ export class DeleteUserAccountUseCase {
     private metadataRepository: MetadataRepository,
     private correctionHistoryRepository: CorrectionHistoryRepository,
     private projectSettingsRepository: ProjectSettingsRepository,
-    private wordCountSnapshotRepository?: WordCountSnapshotRepository
+    private wordCountSnapshotRepository?: WordCountSnapshotRepository,
+    private writingQuotaRepository?: WritingQuotaRepository
   ) {}
 
   async execute(input: DeleteUserAccountInput): Promise<DeleteUserAccountResult> {
@@ -72,6 +74,9 @@ export class DeleteUserAccountUseCase {
 
     // Delete word count snapshots (depends on projects)
     await this.wordCountSnapshotRepository?.deleteAllByOwner(input.userId);
+
+    // Delete recurring writing quotas (depends on projects)
+    await this.writingQuotaRepository?.deleteAllByOwner(input.userId);
 
     // Delete projects
     const projectsDeleted = await this.projectRepository.deleteAllByOwner(input.userId);
