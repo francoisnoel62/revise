@@ -282,7 +282,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const result = await updateChapterContentAction(
       projectId,
       project.activeChapterId,
-      activeContent
+      activeContent,
+      Intl.DateTimeFormat().resolvedOptions().timeZone
     );
 
     if (!result.success) {
