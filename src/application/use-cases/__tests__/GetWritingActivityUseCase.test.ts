@@ -32,7 +32,7 @@ describe('GetWritingActivityUseCase', () => {
       upsertForDay: vi.fn((_userId, snapshot) => Promise.resolve(snapshot)),
       deleteAllByOwner: vi.fn().mockResolvedValue(undefined),
     };
-    useCase = new GetWritingActivityUseCase(mockRepository);
+    useCase = new GetWritingActivityUseCase(mockRepository as never);
   });
 
   it('reports the first point with no predecessor as written = null', async () => {

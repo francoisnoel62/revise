@@ -19,8 +19,16 @@ import {
   deleteWritingQuotaAction,
   SerializedWritingQuota,
 } from '@/app/actions/writing-quota-actions';
-import { getProjectStatsAction } from '@/app/actions/cockpit-actions';
-import { GoalForm, GoalCard, QuotaForm, QuotaCard } from '@/components/cockpit';
+import { getProjectStatsAction, getWorkflowMetricsAction } from '@/app/actions/cockpit-actions';
+import type { WorkflowMetrics } from '@/application/use-cases/GetWorkflowMetricsUseCase';
+import {
+  GoalForm,
+  GoalCard,
+  QuotaForm,
+  QuotaCard,
+  MilestoneMetricsCard,
+  ActivityChart,
+} from '@/components/cockpit';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
@@ -51,6 +59,7 @@ export default function ObjectivesPage() {
 
   const [goals, setGoals] = useState<SerializedWritingGoal[]>([]);
   const [quotas, setQuotas] = useState<SerializedWritingQuota[]>([]);
+  const [metrics, setMetrics] = useState<WorkflowMetrics | null>(null);
   const [wordCount, setWordCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreatingGoal, setIsCreatingGoal] = useState(false);
@@ -59,22 +68,32 @@ export default function ObjectivesPage() {
   const [editingQuota, setEditingQuota] = useState<SerializedWritingQuota | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete>(null);
 
+  const timeZone =
+    typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC';
+
+  const refreshMetrics = useCallback(async () => {
+    const metricsResult = await getWorkflowMetricsAction(projectId, timeZone);
+    if (metricsResult.success) setMetrics(metricsResult.metrics);
+  }, [projectId, timeZone]);
+
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [goalsResult, quotasResult, statsResult] = await Promise.all([
+      const [goalsResult, quotasResult, statsResult, metricsResult] = await Promise.all([
         listWritingGoalsAction(projectId),
         listWritingQuotasAction(projectId),
         getProjectStatsAction(projectId),
+        getWorkflowMetricsAction(projectId, timeZone),
       ]);
 
       if (goalsResult.success) setGoals(goalsResult.goals);
       if (quotasResult.success) setQuotas(quotasResult.quotas);
       if (statsResult.success) setWordCount(statsResult.stats.wordCount);
+      if (metricsResult.success) setMetrics(metricsResult.metrics);
     } finally {
       setIsLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, timeZone]);
 
   useEffect(() => {
     loadData();
@@ -86,6 +105,7 @@ export default function ObjectivesPage() {
       const result = await createWritingGoalAction(projectId, data.targetWords, data.deadline);
       if (result.success) {
         setGoals((prev) => [result.goal, ...prev]);
+        void refreshMetrics();
       } else {
         throw new Error(result.error);
       }
@@ -105,6 +125,7 @@ export default function ObjectivesPage() {
     if (result.success) {
       setGoals((prev) => prev.map((g) => (g.id === editingGoal.id ? result.goal : g)));
       setEditingGoal(null);
+      void refreshMetrics();
     } else {
       throw new Error(result.error);
     }
@@ -116,6 +137,7 @@ export default function ObjectivesPage() {
       const result = await createWritingQuotaAction(projectId, data.period, data.targetWords);
       if (result.success) {
         setQuotas((prev) => [result.quota, ...prev]);
+        void refreshMetrics();
       } else {
         throw new Error(result.error);
       }
@@ -135,6 +157,7 @@ export default function ObjectivesPage() {
     if (result.success) {
       setQuotas((prev) => prev.map((q) => (q.id === editingQuota.id ? result.quota : q)));
       setEditingQuota(null);
+      void refreshMetrics();
     } else {
       throw new Error(result.error);
     }
@@ -156,6 +179,7 @@ export default function ObjectivesPage() {
     }
 
     setPendingDelete(null);
+    void refreshMetrics();
   };
 
   if (isLoading) {
@@ -205,6 +229,12 @@ export default function ObjectivesPage() {
             )}
           </div>
         </div>
+        <MilestoneMetricsCard
+          milestone={metrics?.milestone ?? null}
+          averagePerDay={metrics?.averagePerDay ?? 0}
+          dailyStreak={metrics?.dailyStreak ?? 0}
+          dailyStreakTarget={metrics?.dailyStreakTarget ?? 1}
+        />
       </section>
 
       {/* Quotas section */}
@@ -218,17 +248,35 @@ export default function ObjectivesPage() {
                 Aucun quota défini. Fixez un rythme quotidien ou hebdomadaire à tenir.
               </p>
             ) : (
-              quotas.map((quota) => (
-                <QuotaCard
-                  key={quota.id}
-                  quota={quota}
-                  onEdit={setEditingQuota}
-                  onDelete={(id) => setPendingDelete({ kind: 'quota', id })}
-                />
-              ))
+              quotas.map((quota) => {
+                const quotaMetrics = metrics?.quotas.find((q) => q.id === quota.id);
+                return (
+                  <QuotaCard
+                    key={quota.id}
+                    quota={quota}
+                    metrics={
+                      quotaMetrics
+                        ? {
+                            writtenInPeriod: quotaMetrics.writtenInPeriod,
+                            progress: quotaMetrics.progress,
+                            isMet: quotaMetrics.isMet,
+                          }
+                        : undefined
+                    }
+                    onEdit={setEditingQuota}
+                    onDelete={(id) => setPendingDelete({ kind: 'quota', id })}
+                  />
+                );
+              })
             )}
           </div>
         </div>
+      </section>
+
+      {/* Activity section */}
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold">Activité</h2>
+        <ActivityChart activity={metrics?.activity ?? []} />
       </section>
 
       {/* Edit milestone dialog */}
