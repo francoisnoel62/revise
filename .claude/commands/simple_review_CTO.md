@@ -1,7 +1,9 @@
 **Rôle :** CTO + QA Lead + Senior Engineer.
 Mission : **Auditer une PR ou une série de commits**. Identifier faiblesses, impacts, et qualité globale avant merge.
 
-**Stack :** Next.js (App Router, Turbopack) + Prisma + PostgreSQL + Tailwind v4 + shadcn/ui + Vitest
+**Stack :** Next.js 16 (App Router) + MongoDB (driver natif) + Auth.js (next-auth v5) + TipTap + Tailwind v4 + shadcn/ui + Anthropic & Google GenAI SDKs + Vitest/Playwright
+
+**Architecture :** Clean Architecture (Domain → Application → Infrastructure/Interface). Voir `CLAUDE.md` et `docs/architecture.md`.
 
 ---
 
@@ -18,21 +20,22 @@ Mission : **Auditer une PR ou une série de commits**. Identifier faiblesses, im
 #### 1. Contexte & portée
 
 - Lire titre, description et commits → déterminer **objectif fonctionnel**.
-- Lister **modules affectés** : routes, actions server, Prisma models, API.
-- Évaluer **impact global** : auth, cache, cohérence DB/UI.
+- Lister **modules affectés** : routes, server actions, repositories MongoDB, API.
+- Évaluer **impact global** : auth, isolation multi-tenant (`ownerId`), cohérence DB/UI.
 
 #### 2. Architecture & patterns Next.js
 
 - Vérifier **conformité App Router** (server/client split, layout, route groups).
 - Confirmer usage correct des **server components/actions**.
 - Identifier **anti-patterns** : data fetching client, import cyclique, mauvais async/await.
-- Contrôler compatibilité **Turbopack / build / lazy-loading**.
+- Contrôler compatibilité **build (`next build`) / lazy-loading**.
 
-#### 3. Données & ORM (Prisma + PostgreSQL)
+#### 3. Données & persistance (MongoDB)
 
-- Vérifier **migrations**, **relations**, **indexes**, et **types générés**.
+- Vérifier **schémas de documents**, **indexes**, et **typage** des repositories.
 - Détecter **requêtes inefficaces** ou **fuites de connexions**.
-- Vérifier **alignement modèle ↔ logique métier**.
+- **CRITIQUE** : confirmer que **chaque repository filtre par `ownerId`** (isolation multi-tenant).
+- Vérifier **alignement modèle ↔ logique métier** et le respect des frontières Clean Architecture.
 
 #### 4. Sécurité & Auth
 
@@ -40,12 +43,13 @@ Mission : **Auditer une PR ou une série de commits**. Identifier faiblesses, im
 - Vérifier **contrôles d’accès server actions**.
 - Inspecter **validation des entrées et protections XSS/CSRF**.
 
-#### 5. Frontend & React Query v5
+#### 5. Frontend & état (React + TipTap)
 
-- Vérifier **gestion du cache** (keys, invalidation, staleTime).
-- Analyser **interaction entre React Query et server actions**.
+- Analyser **l'interaction entre server actions et composants client**.
+- Vérifier la **gestion de l'état de l'éditeur TipTap** (extensions, sérialisation, undo/redo).
 - Contrôler **suspense / streaming / transitions**.
-- Évaluer **cohérence UI/UX et typage des composants**.
+- **Principe produit** : l'IA *suggère*, l'auteur *décide* — vérifier que l'UI offre toujours des choix, n'impose jamais.
+- Évaluer **cohérence UI/UX et typage des composants** (rappel : composants UI = zéro logique métier).
 
 #### 6. Design System & Styling
 
@@ -55,15 +59,15 @@ Mission : **Auditer une PR ou une série de commits**. Identifier faiblesses, im
 
 #### 7. Cache & Performance
 
-- Auditer **Redis (Upstash)** : clés, TTL, invalidations.
-- Vérifier **revalidation / ISR / cache côté server**.
-- Identifier **double fetching** entre cache et React Query.
+- Vérifier **revalidation / ISR / cache côté server** (Next.js `revalidatePath`/`revalidateTag`, `fetch` cache).
+- Auditer les **appels aux LLM** (Anthropic / Google GenAI) : coûts, latence, gestion d'erreurs, pas d'entraînement sur le texte de l'auteur.
+- Identifier **double fetching** ou requêtes redondantes.
 
 #### 8. Tests & Qualité (Vitest + RTL)
 
 - Contrôler **présence et couverture** des tests :
   - Unitaires : hooks, utils, composants.
-  - Intégration : API routes, server actions, Prisma, auth.
+  - Intégration : API routes, server actions, repositories MongoDB, auth.
   - E2E : flux critiques et permissions.
 
 - Vérifier **qualité des mocks/fixtures/assertions**.

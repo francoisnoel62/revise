@@ -124,8 +124,9 @@ Then wait for the user's research query.
 
      [Relevant insights from docs/ directory with references]
 
-     - `docs\development\journal\index.md` - Index of the journals documentation files
-     - `docs\development\journal\XXX.md` - Past implementation of XXX
+     - `docs/architecture.md` - Technical architecture and design decisions
+     - `docs/README.md` - Documentation index
+     - `docs/<area>.md` - Past implementation notes relevant to the topic
 
      ## Open Questions
 

@@ -36,8 +36,8 @@ Please provide:
 
 I'll analyze this information and work with you to create a comprehensive plan.
 
-Tip: You can also invoke this command with a ticket file directly: `/create_plan thoughts/fanfan/tickets/eng_1234.md`
-For deeper analysis, try: `/create_plan think deeply about thoughts/fanfan/tickets/eng_1234.md`
+Tip: You can also invoke this command with a research document directly: `/create_plan thoughts/shared/research/2026-06-01_topic.md`
+For deeper analysis, try: `/create_plan think deeply about thoughts/shared/research/2026-06-01_topic.md`
 ```
 
 Then wait for the user's input.
@@ -53,13 +53,15 @@ Then wait for the user's input.
    - **IMPORTANT**: Use the Read tool WITHOUT limit/offset parameters to read entire files
    - **CRITICAL**: DO NOT spawn sub-tasks before reading these files yourself in the main context
    - **NEVER** read files partially - if a file is mentioned, read it completely
+   - If a research document is mentioned, use the **docs-analyzer** agent to extract its key insights
 
 2. **Spawn initial research tasks to gather context**:
-   Before asking the user any questions, use specialized agents to research in parallel:
-   - Use the **codebase-locator** agent to find all files related to the ticket/task (C:\Users\François\Desktop\hotelix\.claude\agents\codebase-locator.md)
-   - Use the **codebase-analyzer** agent to understand how the current implementation works (C:\Users\François\Desktop\hotelix\.claude\agents\thoughts-analyzer.md)
-   - Use the **thoughts-locator** agent ONLY IF RELEVANT to find any existing thoughts documents about this feature (C:\Users\François\Desktop\hotelix\.claude\agents\thoughts-locator.md)
-   - Use the **web-search-researcher** agent to make research on the web based on your questions or documentation
+   Before asking the user any questions, use specialized agents to research in parallel
+   (defined in `.claude/agents/`):
+   - Use the **codebase-locator** agent to find all files related to the task
+   - Use the **codebase-analyzer** agent to understand how the current implementation works
+   - Use the **docs-locator** agent ONLY IF RELEVANT to find existing docs/research about this feature
+   - Use the **web-search-researcher** agent to research the web based on your questions or documentation
 
    These agents will:
    - Find relevant source files, configs, and tests
@@ -118,10 +120,10 @@ After getting initial clarifications:
    - **codebase-pattern-finder** - To find similar features we can model after
 
    **For historical context:**
-   - **thoughts-locator** - To find any research, plans, or decisions about this area
-   - **thoughts-analyzer** - To extract key insights from the most relevant documents
+   - **docs-locator** - To find any research, plans, or decisions about this area
+   - **docs-analyzer** - To extract key insights from the most relevant documents
 
-   See in C:\Users\François\Desktop\hotelix\.claude\agents folder.
+   These agents are defined in the `.claude/agents/` folder.
 
 4. **Wait for ALL sub-tasks to complete** before proceeding
 
@@ -443,50 +445,19 @@ tasks = [
 ```
 
 9. **Roadmap – Next Steps**:
-   Once the current implementation is complete and stable, the following areas should be proposed to the user for future development and backlog prioritization.
+   Once the current implementation is complete and stable, optionally propose a short,
+   forward-looking list of next steps for the backlog. Keep it grounded in Revise's
+   product reality (an AI writing assistant for fiction authors), for example:
 
-   Ask the user if he want to get detailed well-documented ideas and concrete examples for each of the following:
-   - Optimizations & Continuous Improvement
-     - Performance: Benchmark queries, implement caching strategies, optimize memory/CPU usage, reduce network overhead.
-     - Scalability: Ensure the solution can handle multi-hotel, multi-region, or multi-tenant deployments.
-     - Resilience: Add retries, fallbacks, and graceful degradation patterns.
+   - **Author experience**: refine the suggestion UX, keep the author always in control of choices.
+   - **AI quality**: improve stylistic variations, language preservation, prompt iteration.
+   - **Robustness**: tests/coverage, error handling, performance of the editor and exports.
+   - **Architecture**: keep Clean Architecture boundaries, swappable LLM providers and parsers/exporters.
+   - **Data ownership**: reinforce multi-tenant isolation (`ownerId`) and the never-train-on-user-text guarantee.
 
-   - Feature Extensions
-     - New User Journeys: Expand the current feature to support additional roles (admin, partner, customer).
-     - Additional Formats: Extend export/import (CSV → Excel → JSON → API endpoints).
-     - Cross-platform Support: Adapt feature for mobile, tablet, and other environments.
-     - Accessibility: Apply WCAG guidelines for inclusive usage.
-
-   - Integrations & Ecosystem
-     - Internal APIs: Expose endpoints for other microservices or internal dashboards.
-     - External APIs/Partners: Provide controlled access to third-party integrations.
-     - Analytics & Monitoring: Integrate with observability tools (Grafana, Datadog, OpenTelemetry) to track adoption and errors.
-     - Notifications: Add push/email/Slack alerts when relevant events occur.
-
-   - Technical Debt & Maintenance
-     - Testing: Increase unit, integration, and end-to-end coverage; automate edge case validations.
-     - Refactoring: Simplify complex modules, improve separation of concerns, align with project patterns¨
-     - Documentation: Enrich README, developer onboarding, and user guides; add architecture diagrams.
-     - Automation: Expand CI/CD pipelines for builds, migrations, and deployments.
-     - Security & Compliance
-     - Permissions: Refine role-based access control (RBAC).
-     - Data Protection: Validate inputs, sanitize outputs, encrypt sensitive fields.
-     - Compliance: Ensure GDPR / PCI / SOC2 alignment where applicable.
-     - Auditability: Add logging and traceability for regulatory requirements.
-
-   - Organizational Impact
-     - Team Enablement: Train other developers on patterns introduced by this feature.
-     - Cross-team Dependencies: Identify what other teams might leverage or be impacted.
-     - Change Management: Communicate feature rollout, provide playbooks for support staff.
-
-   - Strategic Opportunities
-     - Predictive Features: Use captured data for machine learning, forecasting, or anomaly detection.
-     - Product Differentiation: Extend functionality to create unique value in the market.
-     - Commercialization: Package feature as an add-on or premium capability.
-     - Future Roadmap: Identify long-term evolutions (next quarter, next release cycle).
-
-**Important** : These items should not included in the current scope. They serve as a forward-looking roadmap of potential evolutions to inspire backlog creation, prioritize next sprints, and align with product strategy.
-Please confirm with user he you would like to include any of these specific ideas or considerations in this report, and if yes, create a new report :
+**Important**: These items are NOT part of the current scope. They serve only as a
+forward-looking roadmap to inspire backlog creation. Confirm with the user before
+including any of them, and if yes, create a separate report:
 
 - `thoughts/shared/plans/{subfolder_name}?/{descriptive_name}_whatsnexts.md`
 

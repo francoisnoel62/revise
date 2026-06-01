@@ -1,18 +1,28 @@
 # CLAUDE.md
 
-Governance rules for Claude Code. See [README.md](README.md) for features, [docs/architecture.md](docs/architecture.md) for technical details.
+Governance rules for Claude Code — things that are **always true** in this repo.
+For the product "why" see [.claude/philosophie.md](.claude/philosophie.md);
+for features see [README.md](README.md); for technical detail see [docs/architecture.md](docs/architecture.md).
+Repeatable procedures live in skills/commands, not here (see "Skills & commands" below).
 
 ## Project Context
 
-**Revise** is an AI-powered writing assistant for fiction authors.
+**Revise** is an AI-powered writing assistant for fiction authors. Its mission is to
+augment the author's creative process **without ever replacing their voice**.
+The founding principles (AI suggests / author decides, always offer choices, preserve
+the text's singularity, the author owns their writing) are defined in
+[.claude/philosophie.md](.claude/philosophie.md) and are binding on every feature.
 
-**Mission**: Augment the author's creative process without ever replacing their voice.
+## Tech Stack
 
-**Founding principles**:
-- AI suggests, author decides
-- Always offer choices, never impose
-- Preserve and enrich the text's singularity
-- Writings belong to the author, never used for training
+- **Framework**: Next.js 16 (App Router) + React, TypeScript (strict)
+- **Persistence**: MongoDB (native `mongodb` driver) — no ORM
+- **Auth**: Auth.js (`next-auth` v5)
+- **Editor**: TipTap
+- **UI**: Tailwind CSS v4 + shadcn/ui (Radix primitives), dnd-kit
+- **AI providers**: Anthropic SDK + Google GenAI SDK, behind the `LLMProvider` abstraction
+- **Tests**: Vitest (unit/integration), Playwright (E2E)
+- **Local DB**: Docker Compose (`npm run db:start`)
 
 ## Architecture Constraints
 
@@ -31,13 +41,9 @@ This project follows Clean Architecture:
 
 ### Test-Driven Development (MANDATORY)
 
-1. Write failing test first
-2. Confirm it fails
-3. Write minimal code to pass
-4. Confirm success
-5. Refactor while green
+Write the failing test first; never ship behavior without a test. The full red-green-refactor
+loop is in the **`tdd-cycle`** skill. Non-negotiable principles:
 
-**Principles**:
 - ALL test failures are YOUR responsibility
 - NEVER delete a test because it's failing
 - NEVER write tests that only test mocked behavior
@@ -45,7 +51,8 @@ This project follows Clean Architecture:
 
 ### ABOUTME Comments (MANDATORY)
 
-ALL code files MUST start with:
+ALL code files MUST start with (enforced by the `check-edit` hook):
+
 ```typescript
 // ABOUTME: [What this file does]
 // ABOUTME: [Additional context]
@@ -68,22 +75,12 @@ Names tell WHAT code does, NOT HOW or its HISTORY.
 
 - Commit frequently
 - NEVER skip pre-commit hooks
-- NEVER use `git add -A` without `git status` first
+- NEVER use `git add -A` without `git status` first (enforced by the `guard-bash` hook)
 
-### Systematic Debugging
+### Debugging
 
-**ALWAYS find root cause. NEVER fix symptoms.**
-
-1. Reproduce consistently
-2. Read error messages carefully
-3. Check recent changes (git diff)
-4. Find working examples in the same codebase
-5. Compare against reference implementations
-6. Form single hypothesis
-7. Test minimally
-8. If fix fails, STOP and re-analyze
-
-**NEVER add multiple fixes at once.**
+ALWAYS find the root cause; NEVER fix symptoms. Use the **`systematic-debugging`** skill
+(or the `/debug` command) for the full runbook — one hypothesis at a time, no piling on fixes.
 
 ### Code Quality
 
@@ -93,29 +90,28 @@ Names tell WHAT code does, NOT HOW or its HISTORY.
 - Fix broken things immediately
 - Make SMALLEST reasonable changes
 
-## AI Behavior
-
-Current defaults (may evolve based on user needs):
-
-- 3 stylistic variations: épuré, lyrique, amplifié
-- Language-preserving (FR→FR, EN→EN)
-
 ## Product Principles
 
-Every feature must respect these principles:
-
-- **Author's voice first** - AI suggests, author decides. Never impose.
-- **Always offer choices** - Multiple alternatives, never a single answer.
-- **Transparency** - Users know what AI does and can control it.
-- **Ownership** - Writings belong to the author, never used for training.
-
-What does NOT belong in Revise:
-- Features that write "instead of" the author without their control
-- Automations that erase the text's singularity
-- Functionalities that standardize the voice
+Every feature must respect the principles in [.claude/philosophie.md](.claude/philosophie.md):
+author's voice first (AI suggests, author decides), always offer choices, transparency,
+and ownership (writings belong to the author, never used for training). Anything that writes
+"instead of" the author, erases the text's singularity, or standardizes the voice does NOT
+belong in Revise.
 
 ## Testing
 
-- ALL tests must pass before committing
+- ALL tests must pass before committing (a pre-commit test run warns via the `guard-bash` hook)
 - New features REQUIRE new tests
-- `npm test` | `npm run test:coverage` | `npm run test:integration`
+- `npm test` | `npm run test:coverage` | `npm run test:integration` | `npm run test:e2e`
+- `npm run verify` runs lint → tests → build (see the `/verify` command)
+
+## Skills & commands
+
+- **Skills** (`.claude/skills/`): repeatable procedures — `tdd-cycle`, `systematic-debugging`, `journal`.
+- **Subagents** (`.claude/agents/`): read-only research helpers used by the planning/research
+  commands — `codebase-locator`, `codebase-analyzer`, `codebase-pattern-finder`,
+  `docs-locator`, `docs-analyzer`.
+- **Commands** (`.claude/commands/`): the workflow chain —
+  `/simple_research_codebase_generic` → `/simple_create_plan_generic` →
+  `/simple_implement_plan` → `/validate_plan` → `/simple_review_CTO` → `/commit`,
+  plus `/verify`, `/arch-check`, `/docs-update`, `/describe_pr`, `/debug`.
