@@ -195,6 +195,10 @@ export async function updateChapterContentAction(
       throw new Error('Project not found');
     }
 
+    // Capture the total before the edit so a first-ever snapshot can seed a
+    // baseline (pre-existing words must not count as written today/this week).
+    const previousTotalWords = project.getTotalWordCount();
+
     // Delegate to Use Case
     const useCase = new UpdateChapterContentUseCase();
     useCase.execute(project, chapterId, content);
@@ -208,7 +212,8 @@ export async function updateChapterContentAction(
       auth.userId,
       projectId,
       project.getTotalWordCount(),
-      timeZone
+      timeZone,
+      previousTotalWords
     );
 
     return {

@@ -14,7 +14,8 @@ export async function recordWordCountSnapshot(
   userId: string,
   projectId: string,
   totalWords: number,
-  timeZone: string
+  timeZone: string,
+  previousTotalWords?: number
 ): Promise<void> {
   try {
     const useCase = new RecordWordCountSnapshotUseCase(
@@ -27,6 +28,7 @@ export async function recordWordCountSnapshot(
       projectId,
       localDate: resolveLocalDate(new Date(), timeZone),
       totalWords,
+      previousTotalWords,
     });
   } catch (error) {
     console.error('Failed to record word count snapshot:', error);

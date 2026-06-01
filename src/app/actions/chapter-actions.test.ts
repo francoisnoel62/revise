@@ -12,7 +12,10 @@ import {
 vi.mock('./utils', () => ({
   getAuthenticatedUserId: vi.fn(),
   getRepository: vi.fn(),
-  getWordCountSnapshotRepo: vi.fn(async () => ({ upsertForDay: vi.fn(async (_u, s) => s) })),
+  getWordCountSnapshotRepo: vi.fn(async () => ({
+    upsertForDay: vi.fn(async (_u, s) => s),
+    findLatestBefore: vi.fn(async () => null),
+  })),
   getIdGenerator: vi.fn(async () => ({ generate: () => '507f1f77bcf86cd799439011' })),
   withErrorHandling: vi.fn(async (fn) => {
     try {

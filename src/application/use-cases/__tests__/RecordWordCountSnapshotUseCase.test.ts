@@ -48,6 +48,67 @@ describe('RecordWordCountSnapshotUseCase', () => {
     expect(result.getTotalWords()).toBe(62400);
   });
 
+  it('seeds a baseline before the week start when there is no prior history', async () => {
+    mockRepository.findLatestBefore.mockResolvedValue(null);
+
+    await useCase.execute({
+      userId: 'user-1',
+      projectId: 'project-1',
+      localDate: '2026-05-31', // Sunday
+      totalWords: 62400,
+      previousTotalWords: 20000,
+    });
+
+    expect(mockRepository.upsertForDay).toHaveBeenCalledTimes(2);
+    const snapshots = mockRepository.upsertForDay.mock.calls.map((c) => c[1]);
+
+    const seed = snapshots.find((s) => s.getLocalDate() !== '2026-05-31')!;
+    // Baseline is dated to the day before the current week's Monday (Sunday 2026-05-24)
+    expect(seed.getLocalDate()).toBe('2026-05-24');
+    expect(seed.getTotalWords()).toBe(20000);
+
+    const today = snapshots.find((s) => s.getLocalDate() === '2026-05-31')!;
+    expect(today.getTotalWords()).toBe(62400);
+  });
+
+  it('does not seed a baseline when prior history already exists', async () => {
+    mockRepository.findLatestBefore.mockResolvedValue(
+      WordCountSnapshot.reconstruct({
+        id: '507f1f77bcf86cd799439012',
+        projectId: 'project-1',
+        ownerId: 'user-1',
+        localDate: '2026-05-30',
+        totalWords: 60000,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+    );
+
+    await useCase.execute({
+      userId: 'user-1',
+      projectId: 'project-1',
+      localDate: '2026-05-31',
+      totalWords: 62400,
+      previousTotalWords: 20000,
+    });
+
+    expect(mockRepository.upsertForDay).toHaveBeenCalledTimes(1);
+    expect(mockRepository.upsertForDay.mock.calls[0][1].getLocalDate()).toBe('2026-05-31');
+  });
+
+  it('does not seed when previousTotalWords is not provided', async () => {
+    mockRepository.findLatestBefore.mockResolvedValue(null);
+
+    await useCase.execute({
+      userId: 'user-1',
+      projectId: 'project-1',
+      localDate: '2026-05-31',
+      totalWords: 62400,
+    });
+
+    expect(mockRepository.upsertForDay).toHaveBeenCalledTimes(1);
+  });
+
   it('propagates validation errors from the entity', async () => {
     await expect(
       useCase.execute({
