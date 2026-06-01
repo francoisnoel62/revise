@@ -32,6 +32,30 @@ describe('TextSelection', () => {
       expect(selection.end).toBe(5);
       expect(selection.isEmpty()).toBe(true);
     });
+
+    it('should throw error if start is not an integer', () => {
+      expect(() => {
+        new TextSelection(1.5, 10);
+      }).toThrow('Selection positions must be integers');
+    });
+
+    it('should throw error if end is not an integer', () => {
+      expect(() => {
+        new TextSelection(0, 9.9);
+      }).toThrow('Selection positions must be integers');
+    });
+
+    it('should throw error if start is NaN', () => {
+      expect(() => {
+        new TextSelection(NaN, 10);
+      }).toThrow('Selection positions must be integers');
+    });
+
+    it('should throw error if end is Infinity', () => {
+      expect(() => {
+        new TextSelection(0, Infinity);
+      }).toThrow('Selection positions must be integers');
+    });
   });
 
   describe('getLength', () => {

@@ -6,6 +6,10 @@ export class TextSelection {
   readonly end: number;
 
   constructor(start: number, end: number) {
+    if (!Number.isInteger(start) || !Number.isInteger(end)) {
+      throw new Error('Selection positions must be integers');
+    }
+
     if (start < 0) {
       throw new Error('Selection start must be non-negative');
     }
