@@ -79,9 +79,16 @@ Desktop.ini
 /uploads/
 /temp/
 
-# Claude Code (keep commands/ for shared skills)
+# Claude Code: share team config, keep personal/local settings out
 .claude/*
 !.claude/commands/
+!.claude/agents/
+!.claude/skills/
+!.claude/hooks/
+!.claude/philosophie.md
+!.claude/settings.json
+# Personal, machine-local overrides stay ignored:
+# .claude/settings.local.json
 
 # Research files
 /thoughts/*
