@@ -10,6 +10,7 @@ export { QuotaForm } from './QuotaForm';
 export { QuotaCard } from './QuotaCard';
 export { MilestoneMetricsCard } from './MilestoneMetricsCard';
 export { ActivityChart } from './ActivityChart';
+export { TodayPaceCard } from './TodayPaceCard';
 export { UsageStatsCard } from './UsageStatsCard';
 export { UsageByOperationChart } from './UsageByOperationChart';
 export { DailyUsageChart } from './DailyUsageChart';
