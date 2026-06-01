@@ -45,7 +45,6 @@ describe('MongoDBWritingGoalRepository', () => {
         new ObjectId().toHexString(),
         'project-1',
         'user-1',
-        'total',
         50000
       );
 
@@ -62,7 +61,6 @@ describe('MongoDBWritingGoalRepository', () => {
         new ObjectId().toHexString(),
         'project-1',
         'user-1',
-        'total',
         50000
       );
 

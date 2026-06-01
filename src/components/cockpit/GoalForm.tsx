@@ -1,5 +1,5 @@
-// ABOUTME: Form component for creating/editing writing goals
-// ABOUTME: Provides inputs for target words, type, and deadline
+// ABOUTME: Form component for creating/editing the project word count milestone
+// ABOUTME: Provides inputs for target words and an optional deadline
 
 'use client';
 
@@ -7,24 +7,11 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { GoalType } from '@/domain/entities/WritingGoal';
 
 interface GoalFormProps {
-  onSubmit: (data: {
-    type: GoalType;
-    targetWords: number;
-    deadline?: string;
-  }) => Promise<void>;
+  onSubmit: (data: { targetWords: number; deadline?: string }) => Promise<void>;
   initialValues?: {
-    type: GoalType;
     targetWords: number;
     deadline?: string;
   };
@@ -32,19 +19,12 @@ interface GoalFormProps {
   submitLabel?: string;
 }
 
-const goalTypeLabels: Record<GoalType, string> = {
-  daily: 'Quotidien',
-  weekly: 'Hebdomadaire',
-  total: 'Projet total',
-};
-
 export function GoalForm({
   onSubmit,
   initialValues,
   isLoading = false,
-  submitLabel = "Créer l'objectif",
+  submitLabel = "Définir l'objectif global",
 }: GoalFormProps) {
-  const [type, setType] = useState<GoalType>(initialValues?.type ?? 'total');
   const [targetWords, setTargetWords] = useState(
     initialValues?.targetWords?.toString() ?? ''
   );
@@ -63,7 +43,6 @@ export function GoalForm({
 
     try {
       await onSubmit({
-        type,
         targetWords: words,
         deadline: deadline || undefined,
       });
@@ -75,26 +54,10 @@ export function GoalForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Nouvel objectif</CardTitle>
+        <CardTitle>Objectif global</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="type">Type d&apos;objectif</Label>
-            <Select value={type} onValueChange={(v) => setType(v as GoalType)}>
-              <SelectTrigger id="type">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(goalTypeLabels).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           <div className="space-y-2">
             <Label htmlFor="targetWords">Objectif de mots</Label>
             <Input
@@ -103,7 +66,7 @@ export function GoalForm({
               min="1"
               value={targetWords}
               onChange={(e) => setTargetWords(e.target.value)}
-              placeholder="ex: 50000"
+              placeholder="ex: 80000"
             />
           </div>
 
@@ -120,7 +83,7 @@ export function GoalForm({
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <Button type="submit" disabled={isLoading} className="w-full">
-            {isLoading ? 'Création...' : submitLabel}
+            {isLoading ? 'Enregistrement...' : submitLabel}
           </Button>
         </form>
       </CardContent>

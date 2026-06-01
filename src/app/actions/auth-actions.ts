@@ -22,6 +22,12 @@ import {
   getMetadataRepo,
   getCorrectionHistoryRepo,
   getProjectSettingsRepo,
+  getWordCountSnapshotRepo,
+  getWritingQuotaRepo,
+  getWritingGoalRepo,
+  getCharacterRepo,
+  getProjectTaskRepo,
+  getAIUsageRepo,
 } from './utils';
 import { getRateLimiter } from '@/infrastructure/security/InMemoryRateLimiter';
 import { getHCaptchaVerifier } from '@/infrastructure/security/HCaptchaVerifier';
@@ -175,6 +181,12 @@ export async function deleteAccountAction(
     const metadataRepo = await getMetadataRepo();
     const correctionHistoryRepo = await getCorrectionHistoryRepo();
     const projectSettingsRepo = await getProjectSettingsRepo();
+    const wordCountSnapshotRepo = await getWordCountSnapshotRepo();
+    const writingQuotaRepo = await getWritingQuotaRepo();
+    const writingGoalRepo = await getWritingGoalRepo();
+    const characterRepo = await getCharacterRepo();
+    const projectTaskRepo = await getProjectTaskRepo();
+    const aiUsageRepo = await getAIUsageRepo();
 
     // Execute deletion
     const useCase = new DeleteUserAccountUseCase(
@@ -183,7 +195,13 @@ export async function deleteAccountAction(
       providerRepo,
       metadataRepo,
       correctionHistoryRepo,
-      projectSettingsRepo
+      projectSettingsRepo,
+      wordCountSnapshotRepo,
+      writingQuotaRepo,
+      writingGoalRepo,
+      characterRepo,
+      projectTaskRepo,
+      aiUsageRepo
     );
 
     const result = await useCase.execute({

@@ -3,9 +3,10 @@
 
 'use server';
 
-import { getRepository, getWritingGoalRepo, getCharacterRepo, getProjectTaskRepo, getAuthenticatedUserId } from './utils';
+import { getRepository, getWritingGoalRepo, getWritingQuotaRepo, getWordCountSnapshotRepo, getCharacterRepo, getProjectTaskRepo, getAuthenticatedUserId } from './utils';
 import { formatReadingTime } from '@/lib/utils';
 import { GetActiveWritingGoalUseCase } from '@/application/use-cases/GetActiveWritingGoalUseCase';
+import { GetWorkflowMetricsUseCase, WorkflowMetrics } from '@/application/use-cases/GetWorkflowMetricsUseCase';
 
 export interface ProjectStats {
   wordCount: number;
@@ -18,7 +19,6 @@ export interface ProjectStats {
   title: string;
   activeGoal: {
     targetWords: number;
-    type: string;
     deadline: string | null;
   } | null;
 }
@@ -68,7 +68,6 @@ export async function getProjectStatsAction(
         activeGoal: activeGoal
           ? {
               targetWords: activeGoal.getTargetWords(),
-              type: activeGoal.getType(),
               deadline: activeGoal.getDeadline()?.toISOString() ?? null,
             }
           : null,
@@ -77,6 +76,45 @@ export async function getProjectStatsAction(
   } catch (error) {
     console.error('Error loading project stats:', error);
     return { success: false, error: 'Erreur lors du chargement des statistiques' };
+  }
+}
+
+export async function getWorkflowMetricsAction(
+  projectId: string,
+  timeZone: string = 'UTC'
+): Promise<
+  { success: true; metrics: WorkflowMetrics } | { success: false; error: string }
+> {
+  try {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
+      return { success: false, error: 'Non authentifié' };
+    }
+
+    const repository = await getRepository();
+    const project = await repository.loadProject(authResult.userId, projectId);
+
+    if (!project) {
+      return { success: false, error: 'Projet non trouvé' };
+    }
+
+    const useCase = new GetWorkflowMetricsUseCase(
+      await getWordCountSnapshotRepo(),
+      await getWritingGoalRepo(),
+      await getWritingQuotaRepo()
+    );
+
+    const metrics = await useCase.execute({
+      userId: authResult.userId,
+      projectId,
+      currentWordCount: project.getTotalWordCount(),
+      timeZone,
+    });
+
+    return { success: true, metrics };
+  } catch (error) {
+    console.error('Error loading workflow metrics:', error);
+    return { success: false, error: 'Erreur lors du chargement des métriques' };
   }
 }
 

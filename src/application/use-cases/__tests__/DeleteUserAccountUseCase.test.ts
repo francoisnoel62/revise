@@ -18,6 +18,12 @@ describe('DeleteUserAccountUseCase', () => {
   let mockMetadataRepository: { deleteAllByOwner: ReturnType<typeof vi.fn> };
   let mockCorrectionHistoryRepository: { deleteAllByOwner: ReturnType<typeof vi.fn> };
   let mockProjectSettingsRepository: { deleteAllByOwner: ReturnType<typeof vi.fn> };
+  let mockWordCountSnapshotRepository: { deleteAllByOwner: ReturnType<typeof vi.fn> };
+  let mockWritingQuotaRepository: { deleteAllByOwner: ReturnType<typeof vi.fn> };
+  let mockWritingGoalRepository: { deleteAllByOwner: ReturnType<typeof vi.fn> };
+  let mockCharacterRepository: { deleteAllByOwner: ReturnType<typeof vi.fn> };
+  let mockProjectTaskRepository: { deleteAllByOwner: ReturnType<typeof vi.fn> };
+  let mockAIUsageRepository: { deleteAllByOwner: ReturnType<typeof vi.fn> };
 
   const mockUser = {
     id: 'user-1',
@@ -50,6 +56,66 @@ describe('DeleteUserAccountUseCase', () => {
     mockProjectSettingsRepository = {
       deleteAllByOwner: vi.fn().mockResolvedValue(undefined),
     };
+
+    mockWordCountSnapshotRepository = {
+      deleteAllByOwner: vi.fn().mockResolvedValue(undefined),
+    };
+    mockWritingQuotaRepository = {
+      deleteAllByOwner: vi.fn().mockResolvedValue(undefined),
+    };
+    mockWritingGoalRepository = {
+      deleteAllByOwner: vi.fn().mockResolvedValue(undefined),
+    };
+    mockCharacterRepository = {
+      deleteAllByOwner: vi.fn().mockResolvedValue(undefined),
+    };
+    mockProjectTaskRepository = {
+      deleteAllByOwner: vi.fn().mockResolvedValue(undefined),
+    };
+    mockAIUsageRepository = {
+      deleteAllByOwner: vi.fn().mockResolvedValue(undefined),
+    };
+  });
+
+  it('should delete word count snapshots when the repository is provided', async () => {
+    const useCase = new DeleteUserAccountUseCase(
+      mockUserRepository,
+      mockProjectRepository,
+      mockProviderRepository,
+      mockMetadataRepository,
+      mockCorrectionHistoryRepository,
+      mockProjectSettingsRepository,
+      mockWordCountSnapshotRepository
+    );
+
+    await useCase.execute({ userId: 'user-1', confirmEmail: 'test@example.com' });
+
+    expect(mockWordCountSnapshotRepository.deleteAllByOwner).toHaveBeenCalledWith('user-1');
+  });
+
+  it('should delete all owned data across every provided repository (RGPD)', async () => {
+    const useCase = new DeleteUserAccountUseCase(
+      mockUserRepository,
+      mockProjectRepository,
+      mockProviderRepository,
+      mockMetadataRepository,
+      mockCorrectionHistoryRepository,
+      mockProjectSettingsRepository,
+      mockWordCountSnapshotRepository,
+      mockWritingQuotaRepository,
+      mockWritingGoalRepository,
+      mockCharacterRepository,
+      mockProjectTaskRepository,
+      mockAIUsageRepository
+    );
+
+    await useCase.execute({ userId: 'user-1', confirmEmail: 'test@example.com' });
+
+    expect(mockWritingQuotaRepository.deleteAllByOwner).toHaveBeenCalledWith('user-1');
+    expect(mockWritingGoalRepository.deleteAllByOwner).toHaveBeenCalledWith('user-1');
+    expect(mockCharacterRepository.deleteAllByOwner).toHaveBeenCalledWith('user-1');
+    expect(mockProjectTaskRepository.deleteAllByOwner).toHaveBeenCalledWith('user-1');
+    expect(mockAIUsageRepository.deleteAllByOwner).toHaveBeenCalledWith('user-1');
   });
 
   it('should throw UserNotFoundError when user does not exist', async () => {

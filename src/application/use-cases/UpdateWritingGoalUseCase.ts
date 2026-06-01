@@ -1,7 +1,7 @@
 // ABOUTME: Use case for updating a writing goal
 // ABOUTME: Supports updating target, deadline, and type
 
-import { WritingGoal, GoalType } from '@/domain/entities/WritingGoal';
+import { WritingGoal } from '@/domain/entities/WritingGoal';
 import { WritingGoalRepository } from '@/domain/interfaces/WritingGoalRepository';
 
 export interface UpdateWritingGoalInput {
@@ -9,7 +9,6 @@ export interface UpdateWritingGoalInput {
   goalId: string;
   targetWords?: number;
   deadline?: Date | null;
-  type?: GoalType;
 }
 
 export class UpdateWritingGoalUseCase {
@@ -30,10 +29,6 @@ export class UpdateWritingGoalUseCase {
 
     if (input.deadline !== undefined) {
       updated = updated.updateDeadline(input.deadline);
-    }
-
-    if (input.type !== undefined) {
-      updated = updated.updateType(input.type);
     }
 
     return this.repository.update(input.userId, updated);

@@ -9,7 +9,6 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Pencil, Trash2, Target, Calendar, AlertCircle } from 'lucide-react';
 import { SerializedWritingGoal } from '@/app/actions/writing-goal-actions';
-import { GoalType } from '@/domain/entities/WritingGoal';
 
 interface GoalCardProps {
   goal: SerializedWritingGoal;
@@ -17,12 +16,6 @@ interface GoalCardProps {
   onEdit: (goal: SerializedWritingGoal) => void;
   onDelete: (goalId: string) => void;
 }
-
-const goalTypeLabels: Record<GoalType, string> = {
-  daily: 'Quotidien',
-  weekly: 'Hebdomadaire',
-  total: 'Projet total',
-};
 
 export function GoalCard({
   goal,
@@ -51,7 +44,7 @@ export function GoalCard({
         <div className="space-y-1">
           <CardTitle className="text-base font-medium flex items-center gap-2">
             <Target className="h-4 w-4" />
-            {goalTypeLabels[goal.type]}
+            Objectif global
           </CardTitle>
           <div className="flex items-center gap-2">
             {isCompleted && (

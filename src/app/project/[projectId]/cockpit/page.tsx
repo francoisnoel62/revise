@@ -11,7 +11,7 @@ import {
 } from '@/app/actions/cockpit-actions';
 import { getTaskSummaryAction } from '@/app/actions/task-actions';
 import { getEditorialAnnexCountAction } from '@/app/actions/editorial-actions';
-import { StatCard, ProgressCard, UsageStatsCard, TaskSummaryCard, QuickActionsCard } from '@/components/cockpit';
+import { StatCard, ProgressCard, UsageStatsCard, TaskSummaryCard, QuickActionsCard, TodayPaceCard } from '@/components/cockpit';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, Type, Clock, BookOpen, Users, BookMarked } from 'lucide-react';
 
@@ -85,8 +85,8 @@ async function StatsGrid({ projectId }: { projectId: string }) {
         />
       </div>
 
-      {/* Progress Card or "Create Goal" prompt and Usage Stats */}
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* Progress Card or "Create Goal" prompt, rhythm, and Usage Stats */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {hasGoal ? (
           <ProgressCard
             title="Progression vers l'objectif"
@@ -112,6 +112,7 @@ async function StatsGrid({ projectId }: { projectId: string }) {
             </CardContent>
           </Card>
         )}
+        <TodayPaceCard projectId={projectId} />
         <UsageStatsCard projectId={projectId} />
       </div>
 

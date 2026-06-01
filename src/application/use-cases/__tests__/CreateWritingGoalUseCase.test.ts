@@ -25,13 +25,11 @@ describe('CreateWritingGoalUseCase', () => {
     const result = await useCase.execute({
       userId: 'user-1',
       projectId: 'project-1',
-      type: 'total',
       targetWords: 50000,
     });
 
     expect(result.getId()).toBe('generated-id');
     expect(result.getTargetWords()).toBe(50000);
-    expect(result.getType()).toBe('total');
     expect(mockRepository.create).toHaveBeenCalled();
   });
 
@@ -41,7 +39,6 @@ describe('CreateWritingGoalUseCase', () => {
     const result = await useCase.execute({
       userId: 'user-1',
       projectId: 'project-1',
-      type: 'weekly',
       targetWords: 5000,
       deadline,
     });
@@ -54,7 +51,6 @@ describe('CreateWritingGoalUseCase', () => {
       useCase.execute({
         userId: 'user-1',
         projectId: 'project-1',
-        type: 'daily',
         targetWords: 0,
       })
     ).rejects.toThrow();

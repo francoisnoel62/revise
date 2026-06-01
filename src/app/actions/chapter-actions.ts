@@ -18,6 +18,7 @@ import {
   withErrorHandling,
 } from './utils';
 import { SerializedProject, SerializedChapter } from './project-actions';
+import { recordWordCountSnapshot } from './word-count-tracking';
 
 // Re-use serialization from project-actions
 function serializeProject(project: Project): SerializedProject {
@@ -180,7 +181,8 @@ export async function updateChapterTitleAction(
 export async function updateChapterContentAction(
   projectId: string,
   chapterId: string,
-  content: string
+  content: string,
+  timeZone: string = 'UTC'
 ): Promise<ActionResult<{ saved: true; updatedAt: string }>> {
   const auth = await getAuthenticatedUserId();
   if ('error' in auth) return auth.error;
@@ -193,12 +195,26 @@ export async function updateChapterContentAction(
       throw new Error('Project not found');
     }
 
+    // Capture the total before the edit so a first-ever snapshot can seed a
+    // baseline (pre-existing words must not count as written today/this week).
+    const previousTotalWords = project.getTotalWordCount();
+
     // Delegate to Use Case
     const useCase = new UpdateChapterContentUseCase();
     useCase.execute(project, chapterId, content);
 
     const chapter = project.getChapter(chapterId)!;
     await repository.updateChapter(auth.userId, projectId, chapter);
+
+    // Record the project's total word count for today's writing activity journal.
+    // Best-effort: never lets snapshot recording fail the save.
+    await recordWordCountSnapshot(
+      auth.userId,
+      projectId,
+      project.getTotalWordCount(),
+      timeZone,
+      previousTotalWords
+    );
 
     return {
       saved: true,

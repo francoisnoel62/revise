@@ -7,6 +7,12 @@ import { ProviderRepository } from '@/domain/interfaces/ProviderRepository';
 import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
 import { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
 import { ProjectSettingsRepository } from '@/domain/interfaces/ProjectSettingsRepository';
+import { WordCountSnapshotRepository } from '@/domain/interfaces/WordCountSnapshotRepository';
+import { WritingQuotaRepository } from '@/domain/interfaces/WritingQuotaRepository';
+import { WritingGoalRepository } from '@/domain/interfaces/WritingGoalRepository';
+import { CharacterRepository } from '@/domain/interfaces/CharacterRepository';
+import { ProjectTaskRepository } from '@/domain/interfaces/ProjectTaskRepository';
+import { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
 
 export interface DeleteUserAccountInput {
   userId: string;
@@ -42,7 +48,13 @@ export class DeleteUserAccountUseCase {
     private providerRepository: ProviderRepository,
     private metadataRepository: MetadataRepository,
     private correctionHistoryRepository: CorrectionHistoryRepository,
-    private projectSettingsRepository: ProjectSettingsRepository
+    private projectSettingsRepository: ProjectSettingsRepository,
+    private wordCountSnapshotRepository?: WordCountSnapshotRepository,
+    private writingQuotaRepository?: WritingQuotaRepository,
+    private writingGoalRepository?: WritingGoalRepository,
+    private characterRepository?: CharacterRepository,
+    private projectTaskRepository?: ProjectTaskRepository,
+    private aiUsageRepository?: AIUsageRepository
   ) {}
 
   async execute(input: DeleteUserAccountInput): Promise<DeleteUserAccountResult> {
@@ -67,6 +79,18 @@ export class DeleteUserAccountUseCase {
     // Delete project settings (depends on projects)
     await this.projectSettingsRepository.deleteAllByOwner(input.userId);
     const settingsDeleted = 0; // deleteAllByOwner returns void, count not available
+
+    // Delete word count snapshots (depends on projects)
+    await this.wordCountSnapshotRepository?.deleteAllByOwner(input.userId);
+
+    // Delete recurring writing quotas (depends on projects)
+    await this.writingQuotaRepository?.deleteAllByOwner(input.userId);
+
+    // Delete writing goals, characters, tasks, and AI usage (all depend on projects)
+    await this.writingGoalRepository?.deleteAllByOwner(input.userId);
+    await this.characterRepository?.deleteAllByOwner(input.userId);
+    await this.projectTaskRepository?.deleteAllByOwner(input.userId);
+    await this.aiUsageRepository?.deleteAllByOwner(input.userId);
 
     // Delete projects
     const projectsDeleted = await this.projectRepository.deleteAllByOwner(input.userId);

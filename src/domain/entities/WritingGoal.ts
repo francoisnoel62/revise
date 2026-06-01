@@ -1,13 +1,10 @@
-// ABOUTME: WritingGoal entity representing a word count objective for a project
-// ABOUTME: Supports daily, weekly, and total project goal types with deadline tracking
-
-export type GoalType = 'daily' | 'weekly' | 'total';
+// ABOUTME: WritingGoal entity representing a project's overall word count milestone
+// ABOUTME: A target total to reach, with an optional deadline; one active milestone per project
 
 export interface WritingGoalProperties {
   id: string;
   projectId: string;
   ownerId: string;
-  type: GoalType;
   targetWords: number;
   deadline?: Date;
   createdAt: Date;
@@ -18,7 +15,6 @@ export class WritingGoal {
   private readonly id: string;
   private readonly projectId: string;
   private readonly ownerId: string;
-  private type: GoalType;
   private targetWords: number;
   private deadline: Date | null;
   private readonly createdAt: Date;
@@ -30,7 +26,6 @@ export class WritingGoal {
     this.id = props.id;
     this.projectId = props.projectId;
     this.ownerId = props.ownerId;
-    this.type = props.type;
     this.targetWords = props.targetWords;
     this.deadline = props.deadline ?? null;
     this.createdAt = props.createdAt;
@@ -50,7 +45,6 @@ export class WritingGoal {
     id: string,
     projectId: string,
     ownerId: string,
-    type: GoalType,
     targetWords: number,
     deadline?: Date
   ): WritingGoal {
@@ -59,7 +53,6 @@ export class WritingGoal {
       id,
       projectId,
       ownerId,
-      type,
       targetWords,
       deadline,
       createdAt: now,
@@ -82,10 +75,6 @@ export class WritingGoal {
 
   getOwnerId(): string {
     return this.ownerId;
-  }
-
-  getType(): GoalType {
-    return this.type;
   }
 
   getTargetWords(): number {
@@ -134,40 +123,29 @@ export class WritingGoal {
   updateTarget(newTargetWords: number): WritingGoal {
     this.validateTargetWords(newTargetWords);
     return new WritingGoal({
-      id: this.id,
-      projectId: this.projectId,
-      ownerId: this.ownerId,
-      type: this.type,
+      ...this.toProperties(),
       targetWords: newTargetWords,
-      deadline: this.deadline ?? undefined,
-      createdAt: this.createdAt,
       updatedAt: new Date(),
     });
   }
 
   updateDeadline(newDeadline: Date | null): WritingGoal {
     return new WritingGoal({
-      id: this.id,
-      projectId: this.projectId,
-      ownerId: this.ownerId,
-      type: this.type,
-      targetWords: this.targetWords,
+      ...this.toProperties(),
       deadline: newDeadline ?? undefined,
-      createdAt: this.createdAt,
       updatedAt: new Date(),
     });
   }
 
-  updateType(newType: GoalType): WritingGoal {
-    return new WritingGoal({
+  private toProperties(): WritingGoalProperties {
+    return {
       id: this.id,
       projectId: this.projectId,
       ownerId: this.ownerId,
-      type: newType,
       targetWords: this.targetWords,
       deadline: this.deadline ?? undefined,
       createdAt: this.createdAt,
-      updatedAt: new Date(),
-    });
+      updatedAt: this.updatedAt,
+    };
   }
 }

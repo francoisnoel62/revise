@@ -65,12 +65,11 @@ export class MongoDBWritingGoalRepository implements WritingGoalRepository {
   ): Promise<WritingGoal | null> {
     const collection = this.db.collection<WritingGoalDocument>(COLLECTION_NAME);
 
-    // Return the most recent 'total' type goal for the project
+    // Return the most recent milestone goal for the project
     const doc = await collection.findOne(
       {
         projectId,
         ownerId: userId,
-        type: 'total',
       },
       { sort: { createdAt: -1 } }
     );
