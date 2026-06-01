@@ -3,6 +3,12 @@
 # ABOUTME: Blocks (exit 2) so Claude fixes deterministic issues immediately before moving on.
 set -uo pipefail
 
+if ! command -v jq >/dev/null 2>&1; then
+  echo "[check-edit hook] 'jq' introuvable dans le PATH — le hook ne peut pas valider ce fichier." >&2
+  echo "Installez jq (https://jqlang.github.io/jq/) ; nécessite aussi Git Bash sous Windows." >&2
+  exit 0
+fi
+
 input=$(cat)
 file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty')
 [ -z "$file" ] && exit 0
