@@ -56,14 +56,20 @@ If you encounter a mismatch:
 
 ## Verification Approach
 
+Work autonomously **within** a phase, and pause **between** phases for the user's go-ahead.
+
 After implementing a phase:
 
-- Ask the user if you can run the success criteria checks and ask for its answer
-- Fix any issues before proceeding
-- Update your progress in both the plan and your todos
-- Check off completed items in the plan file itself using Edit
+- Run the phase's **automated** success criteria yourself (lint, tests, type-check, build) —
+  do NOT ask permission for these; they are deterministic gates (and some are enforced by hooks).
+- Fix any issues before proceeding.
+- Update your progress in both the plan and your todos.
+- Check off completed items in the plan file itself using Edit.
+- Then **STOP at the phase boundary**: summarize what was done, list the **manual** success
+  criteria the user should verify, and wait for their go-ahead before starting the next phase.
 
-Don't let verification interrupt your flow - batch it at natural stopping points.
+Don't let automated verification interrupt your flow - batch it at natural stopping points
+inside the phase; the explicit checkpoint is the phase boundary.
 
 ## If You Get Stuck
 
