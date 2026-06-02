@@ -88,7 +88,7 @@ Desktop.ini
 !.claude/philosophie.md
 !.claude/settings.json
 # Personal, machine-local overrides stay ignored:
-# .claude/settings.local.json
+.claude/settings.local.json
 
 # Research files
 /thoughts/*
