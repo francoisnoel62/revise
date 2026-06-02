@@ -55,6 +55,7 @@ export type { RegisterUserInput } from './use-cases/RegisterUserUseCase';
 export { EmailAlreadyExistsError, ValidationError } from './use-cases/RegisterUserUseCase';
 
 // Application Services
+export { AIContextBuilder } from './services/AIContextBuilder';
 export { MetadataContextBuilder } from './services/MetadataContextBuilder';
 export type {
   RewriteContext,
