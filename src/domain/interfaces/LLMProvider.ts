@@ -186,6 +186,7 @@ export interface LLMProvider {
       stylisticDNA?: StylisticDNA;
       characters?: Characters;
       plot?: Plot;
+      worldbuilding?: Worldbuilding;
     }
   ): Promise<string>;
 
@@ -207,6 +208,7 @@ export interface LLMProvider {
       stylisticDNA?: StylisticDNA;
       characters?: Characters;
       plot?: Plot;
+      worldbuilding?: Worldbuilding;
     }
   ): AsyncIterableIterator<string>;
 }

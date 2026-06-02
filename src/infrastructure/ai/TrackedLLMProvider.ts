@@ -178,6 +178,7 @@ export class TrackedLLMProvider implements LLMProvider {
       stylisticDNA?: StylisticDNA;
       characters?: Characters;
       plot?: Plot;
+      worldbuilding?: Worldbuilding;
     }
   ): Promise<string> {
     return this.trackUsage('completion', () =>
@@ -193,6 +194,7 @@ export class TrackedLLMProvider implements LLMProvider {
       stylisticDNA?: StylisticDNA;
       characters?: Characters;
       plot?: Plot;
+      worldbuilding?: Worldbuilding;
     }
   ): AsyncIterableIterator<string> {
     const startTime = Date.now();

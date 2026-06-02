@@ -1527,6 +1527,7 @@ INSTRUCTIONS FINALES:
       stylisticDNA?: StylisticDNA;
       characters?: Characters;
       plot?: Plot;
+      worldbuilding?: Worldbuilding;
     }
   ): Promise<string> {
     const basePrompt = await this.promptRepository.getCompletionPrompt();
@@ -1572,6 +1573,7 @@ INSTRUCTIONS FINALES:
       stylisticDNA?: StylisticDNA;
       characters?: Characters;
       plot?: Plot;
+      worldbuilding?: Worldbuilding;
     }
   ): string {
     let contextInfo = '';
@@ -1596,6 +1598,14 @@ INSTRUCTIONS FINALES:
       if (metadata.plot) {
         contextInfo += '\n\n[MÉTADONNÉES - INTRIGUE]\n';
         contextInfo += `État actuel: ${metadata.plot.plotState}\n`;
+      }
+      if (metadata.worldbuilding) {
+        const { worldRules, atmosphere } = metadata.worldbuilding;
+        if (worldRules || atmosphere) {
+          contextInfo += '\n\n[MÉTADONNÉES - UNIVERS]\n';
+          if (worldRules) contextInfo += `Règles du monde: ${worldRules}\n`;
+          if (atmosphere) contextInfo += `Atmosphère: ${atmosphere}\n`;
+        }
       }
     }
 
@@ -1630,6 +1640,7 @@ INSTRUCTIONS FINALES:
       stylisticDNA?: StylisticDNA;
       characters?: Characters;
       plot?: Plot;
+      worldbuilding?: Worldbuilding;
     }
   ): AsyncIterableIterator<string> {
     const basePrompt = await this.promptRepository.getCompletionPrompt();
