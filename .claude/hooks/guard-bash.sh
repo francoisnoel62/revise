@@ -14,7 +14,9 @@ cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty')
 [ -z "$cmd" ] && exit 0
 
 # Block bulk git add — CLAUDE.md: never `git add -A` without `git status` first.
-if printf '%s' "$cmd" | grep -Eq 'git[[:space:]]+add[[:space:]]+(-A|--all|\.)([[:space:]]|$)'; then
+# Strip quoted strings first so that commit messages mentioning "git add -A" don't false-positive.
+cmd_unquoted=$(printf '%s' "$cmd" | sed 's/"[^"]*"//g' | sed "s/'[^']*'//g")
+if printf '%s' "$cmd_unquoted" | grep -Eq 'git[[:space:]]+add[[:space:]]+(-A|--all|\.)([[:space:]]|$)'; then
   {
     echo "Avoid 'git add -A', 'git add --all', or 'git add .'."
     echo "Run 'git status' first, then stage specific files (CLAUDE.md rule)."
