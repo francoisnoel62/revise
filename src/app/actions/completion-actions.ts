@@ -4,7 +4,7 @@
 'use server';
 
 import { GenerateCompletionUseCase } from '@/application/use-cases/GenerateCompletionUseCase';
-import { MetadataContextBuilder } from '@/application/services/MetadataContextBuilder';
+import { AIContextBuilder } from '@/application/services/AIContextBuilder';
 import {
   ActionResult,
   getAuthenticatedUserId,
@@ -57,7 +57,7 @@ export async function generateCompletionAction(
 
     // 5. Execute use case with injected dependencies via composition root
     const useCase = new GenerateCompletionUseCase(
-      new MetadataContextBuilder(await getMetadataRepo()),
+      new AIContextBuilder(await getMetadataRepo()),
       llmProvider
     );
 

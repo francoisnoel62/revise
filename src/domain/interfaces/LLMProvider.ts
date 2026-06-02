@@ -31,10 +31,7 @@ export interface LLMProvider {
   generateRewrites(
     text: string,
     context?: string,
-    metadata?: {
-      stylisticDNA?: StylisticDNA;
-      narrative?: NarrativeAnalysis;
-    }
+    authorProfile?: string
   ): Promise<RewriteProposal[]>;
 
   /**
@@ -158,14 +155,7 @@ export interface LLMProvider {
   generateChapter(
     fullText: string,
     generationType: ChapterGenerationTypeKey,
-    metadata?: {
-      narrative?: NarrativeAnalysis;
-      stylisticDNA?: StylisticDNA;
-      characters?: Characters;
-      plot?: Plot;
-      worldbuilding?: Worldbuilding;
-      chapterSummaries?: ChapterSummaries;
-    }
+    projectContext?: string
   ): Promise<ChapterGeneration>;
 
   /**
@@ -181,13 +171,7 @@ export interface LLMProvider {
   generateCompletion(
     textBeforeCursor: string,
     textAfterCursor?: string,
-    metadata?: {
-      narrative?: NarrativeAnalysis;
-      stylisticDNA?: StylisticDNA;
-      characters?: Characters;
-      plot?: Plot;
-      worldbuilding?: Worldbuilding;
-    }
+    projectContext?: string
   ): Promise<string>;
 
   /**
@@ -203,12 +187,6 @@ export interface LLMProvider {
   generateCompletionStream(
     textBeforeCursor: string,
     textAfterCursor?: string,
-    metadata?: {
-      narrative?: NarrativeAnalysis;
-      stylisticDNA?: StylisticDNA;
-      characters?: Characters;
-      plot?: Plot;
-      worldbuilding?: Worldbuilding;
-    }
+    projectContext?: string
   ): AsyncIterableIterator<string>;
 }

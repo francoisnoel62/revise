@@ -11,7 +11,7 @@ import {
   ContentConverter,
 } from '../../../domain';
 import { ChapterGeneration } from '../../../domain/value-objects/ChapterGeneration';
-import { MetadataContextBuilder } from '../../services/MetadataContextBuilder';
+import { AIContextBuilder } from '../../services/AIContextBuilder';
 
 // Mock implementations
 const createMockProject = (chapters: Chapter[]): Project => {
@@ -38,7 +38,7 @@ const createMockGeneration = (
 
 describe('GenerateChapterUseCase', () => {
   let mockProjectRepo: ProjectRepository;
-  let mockBuilder: MetadataContextBuilder;
+  let mockBuilder: AIContextBuilder;
   let mockLLMProvider: LLMProvider;
   let mockContentConverter: ContentConverter;
 
@@ -52,11 +52,10 @@ describe('GenerateChapterUseCase', () => {
     } as unknown as ProjectRepository;
 
     mockBuilder = {
-      buildForChapterGeneration: vi.fn().mockResolvedValue({}),
-      buildForCompletion: vi.fn(),
-      buildForRewrite: vi.fn(),
-      buildForSynthesis: vi.fn(),
-    } as unknown as MetadataContextBuilder;
+      buildChapterContext: vi.fn().mockResolvedValue(''),
+      buildCompletionContext: vi.fn(),
+      buildRewriteContext: vi.fn(),
+    } as unknown as AIContextBuilder;
 
     mockLLMProvider = {
       generateChapter: vi.fn(),
@@ -190,7 +189,7 @@ describe('GenerateChapterUseCase', () => {
     ).rejects.toThrow('Project ID is required');
   });
 
-  it('should call buildForChapterGeneration with correct owner and project', async () => {
+  it('should call buildChapterContext with correct owner and project', async () => {
     const tiptapContent = JSON.stringify({
       type: 'doc',
       content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Story content' }] }],
@@ -206,10 +205,10 @@ describe('GenerateChapterUseCase', () => {
     const useCase = new GenerateChapterUseCase(mockProjectRepo, mockBuilder, mockLLMProvider, mockContentConverter);
     await useCase.execute({ ownerId: 'test-user', projectId: 'proj-1', generationType: 'chapter-beginning' });
 
-    expect(mockBuilder.buildForChapterGeneration).toHaveBeenCalledWith('test-user', 'proj-1');
+    expect(mockBuilder.buildChapterContext).toHaveBeenCalledWith('test-user', 'proj-1');
   });
 
-  it('should pass builder context to LLM', async () => {
+  it('should pass the built context block to LLM', async () => {
     const tiptapContent = JSON.stringify({
       type: 'doc',
       content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Story content' }] }],
@@ -217,19 +216,10 @@ describe('GenerateChapterUseCase', () => {
     const chapter = createMockChapter('ch-1', 'Chapter 1', tiptapContent);
     const project = createMockProject([chapter]);
 
-    const richContext = {
-      characters: {
-        characterProfiles: [
-          { name: 'Emma', identity: 'Protagoniste', psychology: 'Déterminée', appearance: '', voiceAndLanguage: '', backstory: '', relationships: '', narrativeFunction: '', openQuestions: '' },
-        ],
-        relationalMap: '',
-        narrativeHierarchy: '',
-        summary: '',
-      },
-    };
+    const contextBlock = '\n\n--- PERSONNAGES ---\n- Emma: Protagoniste. Déterminée\n';
 
     vi.mocked(mockProjectRepo.loadProject).mockResolvedValue(project);
-    vi.mocked(mockBuilder.buildForChapterGeneration).mockResolvedValue(richContext as never);
+    vi.mocked(mockBuilder.buildChapterContext).mockResolvedValue(contextBlock);
     vi.mocked(mockLLMProvider.generateChapter).mockResolvedValue(
       createMockGeneration('chapter-beginning', 'Generated with characters.')
     );
@@ -240,13 +230,7 @@ describe('GenerateChapterUseCase', () => {
     expect(mockLLMProvider.generateChapter).toHaveBeenCalledWith(
       expect.any(String),
       'chapter-beginning',
-      expect.objectContaining({
-        characters: expect.objectContaining({
-          characterProfiles: expect.arrayContaining([
-            expect.objectContaining({ name: 'Emma' }),
-          ]),
-        }),
-      })
+      expect.stringContaining('Emma')
     );
   });
 });

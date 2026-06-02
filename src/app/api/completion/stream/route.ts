@@ -11,7 +11,7 @@ import {
 } from '@/infrastructure/config/providers';
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
 import { metadataCache } from '@/infrastructure/cache/MetadataCache';
-import { MetadataContextBuilder } from '@/application/services/MetadataContextBuilder';
+import { AIContextBuilder } from '@/application/services/AIContextBuilder';
 
 export const runtime = 'nodejs';
 
@@ -81,14 +81,14 @@ export async function POST(request: NextRequest) {
     return new Response('No AI provider configured', { status: 400 });
   }
 
-  // 4. Load metadata for context (with caching)
-  let metadata = metadataCache.get(userId, projectId);
+  // 4. Build completion context block (with caching)
+  let projectContext = metadataCache.get(userId, projectId);
 
-  if (!metadata) {
+  if (projectContext === null) {
     const metadataRepo = await getMetadataRepository();
-    const builder = new MetadataContextBuilder(metadataRepo);
-    metadata = await builder.buildForCompletion(userId, projectId);
-    metadataCache.set(userId, projectId, metadata);
+    const builder = new AIContextBuilder(metadataRepo);
+    projectContext = await builder.buildCompletionContext(userId, projectId);
+    metadataCache.set(userId, projectId, projectContext);
   }
 
   // 5. Create streaming response
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
         const generator = llmProvider.generateCompletionStream(
           textBeforeCursor,
           textAfterCursor,
-          metadata
+          projectContext
         );
 
         let chunkCount = 0;

@@ -127,22 +127,12 @@ describe('TrackedLLMProvider', () => {
       expect(result[0]).toBeInstanceOf(RewriteProposal);
     });
 
-    it('passes metadata to wrapped provider', async () => {
-      const metadata = {
-        stylisticDNA: {
-          registerAndLexicon: 'Literary',
-          syntax: 'Complex',
-          figuresOfStyle: '',
-          ticsAndSignatures: '',
-          rhythmAndBreathing: 'Slow',
-          writingRules: ['Rule 1'],
-          summary: '',
-        },
-      };
+    it('passes the authorProfile block to wrapped provider', async () => {
+      const authorProfile = "--- PROFIL STYLISTIQUE DE L'AUTEUR ---\nREGISTRE ET LEXIQUE: Literary";
 
-      await trackedProvider.generateRewrites('text', 'context', metadata);
+      await trackedProvider.generateRewrites('text', 'context', authorProfile);
 
-      expect(mockProvider.generateRewrites).toHaveBeenCalledWith('text', 'context', metadata);
+      expect(mockProvider.generateRewrites).toHaveBeenCalledWith('text', 'context', authorProfile);
     });
 
     it('records usage after successful call', async () => {

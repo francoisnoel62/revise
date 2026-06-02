@@ -82,10 +82,10 @@ export class TrackedLLMProvider implements LLMProvider {
   async generateRewrites(
     text: string,
     context?: string,
-    metadata?: { stylisticDNA?: StylisticDNA; narrative?: NarrativeAnalysis }
+    authorProfile?: string
   ): Promise<RewriteProposal[]> {
     return this.trackUsage('rewrite', () =>
-      this.wrapped.generateRewrites(text, context, metadata)
+      this.wrapped.generateRewrites(text, context, authorProfile)
     );
   }
 
@@ -156,46 +156,27 @@ export class TrackedLLMProvider implements LLMProvider {
   async generateChapter(
     fullText: string,
     generationType: ChapterGenerationTypeKey,
-    metadata?: {
-      narrative?: NarrativeAnalysis;
-      stylisticDNA?: StylisticDNA;
-      characters?: Characters;
-      plot?: Plot;
-      worldbuilding?: Worldbuilding;
-      chapterSummaries?: ChapterSummaries;
-    }
+    projectContext?: string
   ): Promise<ChapterGeneration> {
     return this.trackUsage('chapter_generation', () =>
-      this.wrapped.generateChapter(fullText, generationType, metadata)
+      this.wrapped.generateChapter(fullText, generationType, projectContext)
     );
   }
 
   async generateCompletion(
     textBeforeCursor: string,
     textAfterCursor?: string,
-    metadata?: {
-      narrative?: NarrativeAnalysis;
-      stylisticDNA?: StylisticDNA;
-      characters?: Characters;
-      plot?: Plot;
-      worldbuilding?: Worldbuilding;
-    }
+    projectContext?: string
   ): Promise<string> {
     return this.trackUsage('completion', () =>
-      this.wrapped.generateCompletion(textBeforeCursor, textAfterCursor, metadata)
+      this.wrapped.generateCompletion(textBeforeCursor, textAfterCursor, projectContext)
     );
   }
 
   async *generateCompletionStream(
     textBeforeCursor: string,
     textAfterCursor?: string,
-    metadata?: {
-      narrative?: NarrativeAnalysis;
-      stylisticDNA?: StylisticDNA;
-      characters?: Characters;
-      plot?: Plot;
-      worldbuilding?: Worldbuilding;
-    }
+    projectContext?: string
   ): AsyncIterableIterator<string> {
     const startTime = Date.now();
 
@@ -203,7 +184,7 @@ export class TrackedLLMProvider implements LLMProvider {
       const iterator = this.wrapped.generateCompletionStream(
         textBeforeCursor,
         textAfterCursor,
-        metadata
+        projectContext
       );
 
       for await (const chunk of iterator) {

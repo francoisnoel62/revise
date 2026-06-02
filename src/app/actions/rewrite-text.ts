@@ -5,7 +5,7 @@
 'use server';
 
 import { RewriteTextUseCase } from '@/application';
-import { MetadataContextBuilder } from '@/application/services/MetadataContextBuilder';
+import { AIContextBuilder } from '@/application/services/AIContextBuilder';
 import { SaveCorrectionHistoryUseCase } from '@/application/use-cases/SaveCorrectionHistoryUseCase';
 import {
   getProjectRepository,
@@ -74,14 +74,14 @@ export async function rewriteText(
     // 3. Get LLM provider with usage tracking
     const llmProvider = await getTrackedLLMProviderForProject(userId, projectId);
 
-    // 4. Load rewrite metadata (non-blocking if unavailable)
-    let rewriteMetadata = {};
+    // 4. Build author profile context block (non-blocking if unavailable)
+    let authorProfile = '';
     try {
       const metadataRepo = await getMetadataRepo();
-      const contextBuilder = new MetadataContextBuilder(metadataRepo);
-      rewriteMetadata = await contextBuilder.buildForRewrite(userId, projectId);
+      const contextBuilder = new AIContextBuilder(metadataRepo);
+      authorProfile = await contextBuilder.buildRewriteContext(userId, projectId);
     } catch {
-      // Continue without metadata if loading fails
+      // Continue without context if loading fails
     }
 
     // 5. Load project for history saving
@@ -104,7 +104,7 @@ export async function rewriteText(
 
     // 7. Execute rewrite use case with extracted text (avoids JSON/position mismatch)
     const useCase = new RewriteTextUseCase(llmProvider);
-    const proposals = await useCase.executeWithText(selectedText, plainTextContext, rewriteMetadata);
+    const proposals = await useCase.executeWithText(selectedText, plainTextContext, authorProfile);
 
     const duration = performance.now() - startTime;
 

@@ -1,24 +1,8 @@
-// ABOUTME: In-memory cache for project metadata to reduce database queries
+// ABOUTME: In-memory cache for the project completion context block to reduce database queries
 // ABOUTME: Uses TTL-based expiration and provides cache invalidation methods
 
-import {
-  NarrativeAnalysis,
-  StylisticDNA,
-  Characters,
-  Plot,
-  Worldbuilding,
-} from '@/domain';
-
-export interface CachedMetadata {
-  narrative?: NarrativeAnalysis;
-  stylisticDNA?: StylisticDNA;
-  characters?: Characters;
-  plot?: Plot;
-  worldbuilding?: Worldbuilding;
-}
-
 interface CacheEntry {
-  data: CachedMetadata;
+  data: string;
   timestamp: number;
 }
 
@@ -42,7 +26,7 @@ export class MetadataCache {
   /**
    * Get cached metadata if available and not expired.
    */
-  get(userId: string, projectId: string): CachedMetadata | null {
+  get(userId: string, projectId: string): string | null {
     const key = this.getKey(userId, projectId);
     const entry = this.cache.get(key);
 
@@ -62,7 +46,7 @@ export class MetadataCache {
   /**
    * Store metadata in cache.
    */
-  set(userId: string, projectId: string, data: CachedMetadata): void {
+  set(userId: string, projectId: string, data: string): void {
     const key = this.getKey(userId, projectId);
     this.cache.set(key, {
       data,

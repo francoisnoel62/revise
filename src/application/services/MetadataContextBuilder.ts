@@ -1,4 +1,4 @@
-// ABOUTME: Application service centralizing metadata loading for AI features
+// ABOUTME: Application service centralizing metadata loading for the synthesis feature
 // ABOUTME: Reads structuredData field to build typed context objects without regex parsing
 
 import { MetadataRepository } from '../../domain/interfaces/MetadataRepository';
@@ -8,30 +8,7 @@ import type {
   Characters,
   Plot,
   Worldbuilding,
-  ChapterSummaries,
 } from '../../domain';
-
-export interface RewriteContext {
-  stylisticDNA?: StylisticDNA;
-  narrative?: NarrativeAnalysis;
-}
-
-export interface CompletionContext {
-  narrative?: NarrativeAnalysis;
-  stylisticDNA?: StylisticDNA;
-  characters?: Characters;
-  plot?: Plot;
-  worldbuilding?: Worldbuilding;
-}
-
-export interface ChapterGenerationContext {
-  narrative?: NarrativeAnalysis;
-  stylisticDNA?: StylisticDNA;
-  characters?: Characters;
-  plot?: Plot;
-  worldbuilding?: Worldbuilding;
-  chapterSummaries?: ChapterSummaries;
-}
 
 export interface SynthesisContext {
   narrative?: NarrativeAnalysis;
@@ -43,31 +20,6 @@ export interface SynthesisContext {
 
 export class MetadataContextBuilder {
   constructor(private readonly metadataRepository: MetadataRepository) {}
-
-  async buildForRewrite(ownerId: string, projectId: string): Promise<RewriteContext> {
-    return this.load(ownerId, projectId, ['stylistic-dna', 'narrative-analysis']) as Promise<RewriteContext>;
-  }
-
-  async buildForCompletion(ownerId: string, projectId: string): Promise<CompletionContext> {
-    return this.load(ownerId, projectId, [
-      'narrative-analysis',
-      'stylistic-dna',
-      'characters',
-      'plot',
-      'worldbuilding',
-    ]) as Promise<CompletionContext>;
-  }
-
-  async buildForChapterGeneration(ownerId: string, projectId: string): Promise<ChapterGenerationContext> {
-    return this.load(ownerId, projectId, [
-      'narrative-analysis',
-      'stylistic-dna',
-      'characters',
-      'plot',
-      'worldbuilding',
-      'chapter-summaries',
-    ]) as Promise<ChapterGenerationContext>;
-  }
 
   async buildForSynthesis(ownerId: string, projectId: string): Promise<SynthesisContext> {
     return this.load(ownerId, projectId, [
@@ -104,14 +56,13 @@ export class MetadataContextBuilder {
             case 'characters':        result.characters = parsed; break;
             case 'plot':              result.plot = parsed; break;
             case 'worldbuilding':     result.worldbuilding = parsed; break;
-            case 'chapter-summaries': result.chapterSummaries = parsed; break;
           }
         } catch {
           // Skip metadata with corrupt structuredData
         }
       }
     } catch {
-      // Fail gracefully — AI features work without context
+      // Fail gracefully — synthesis works without context
     }
 
     return result;

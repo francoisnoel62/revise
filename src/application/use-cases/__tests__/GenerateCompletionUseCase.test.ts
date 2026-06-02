@@ -1,22 +1,21 @@
 // ABOUTME: Unit tests for GenerateCompletionUseCase
-// ABOUTME: Tests completion generation with mocked MetadataContextBuilder and LLM provider
+// ABOUTME: Tests completion generation with mocked AIContextBuilder and LLM provider
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GenerateCompletionUseCase } from '../GenerateCompletionUseCase';
 import { LLMProvider } from '../../../domain';
-import { MetadataContextBuilder } from '../../services/MetadataContextBuilder';
+import { AIContextBuilder } from '../../services/AIContextBuilder';
 
 describe('GenerateCompletionUseCase', () => {
-  let mockBuilder: MetadataContextBuilder;
+  let mockBuilder: AIContextBuilder;
   let mockLLMProvider: LLMProvider;
 
   beforeEach(() => {
     mockBuilder = {
-      buildForCompletion: vi.fn().mockResolvedValue({}),
-      buildForChapterGeneration: vi.fn(),
-      buildForRewrite: vi.fn(),
-      buildForSynthesis: vi.fn(),
-    } as unknown as MetadataContextBuilder;
+      buildCompletionContext: vi.fn().mockResolvedValue(''),
+      buildChapterContext: vi.fn(),
+      buildRewriteContext: vi.fn(),
+    } as unknown as AIContextBuilder;
 
     mockLLMProvider = {
       generateCompletion: vi.fn().mockResolvedValue('suggested completion'),
@@ -27,7 +26,7 @@ describe('GenerateCompletionUseCase', () => {
     } as unknown as LLMProvider;
   });
 
-  it('should generate completion with metadata context', async () => {
+  it('should generate completion with project context', async () => {
     const useCase = new GenerateCompletionUseCase(mockBuilder, mockLLMProvider);
     const result = await useCase.execute({
       ownerId: 'user-1',
@@ -36,11 +35,11 @@ describe('GenerateCompletionUseCase', () => {
     });
 
     expect(result.completion).toBe('suggested completion');
-    expect(mockBuilder.buildForCompletion).toHaveBeenCalledWith('user-1', 'proj-1');
+    expect(mockBuilder.buildCompletionContext).toHaveBeenCalledWith('user-1', 'proj-1');
     expect(mockLLMProvider.generateCompletion).toHaveBeenCalledWith(
       'Emma walked into the',
       undefined,
-      {}
+      ''
     );
   });
 
@@ -56,13 +55,14 @@ describe('GenerateCompletionUseCase', () => {
     expect(mockLLMProvider.generateCompletion).toHaveBeenCalledWith(
       'Emma walked into the',
       ', clutching her coat.',
-      {}
+      ''
     );
   });
 
-  it('should pass metadata context to LLM', async () => {
-    const ctx = { narrative: { narratorType: 'Third person' } };
-    vi.mocked(mockBuilder.buildForCompletion).mockResolvedValue(ctx as never);
+  it('should pass the built project context block to LLM', async () => {
+    vi.mocked(mockBuilder.buildCompletionContext).mockResolvedValue(
+      '\n\n[MÉTADONNÉES - NARRATION]\nPoint de vue: Third person\n'
+    );
 
     const useCase = new GenerateCompletionUseCase(mockBuilder, mockLLMProvider);
     await useCase.execute({
@@ -74,7 +74,7 @@ describe('GenerateCompletionUseCase', () => {
     expect(mockLLMProvider.generateCompletion).toHaveBeenCalledWith(
       'Emma walked',
       undefined,
-      expect.objectContaining({ narrative: expect.any(Object) })
+      expect.stringContaining('Third person')
     );
   });
 

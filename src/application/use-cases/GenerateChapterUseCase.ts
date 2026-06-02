@@ -8,7 +8,7 @@ import {
 } from '../../domain';
 import { ChapterGeneration } from '../../domain/value-objects/ChapterGeneration';
 import { ChapterGenerationTypeKey } from '../../domain/value-objects/ChapterGenerationType';
-import { MetadataContextBuilder } from '../services/MetadataContextBuilder';
+import { AIContextBuilder } from '../services/AIContextBuilder';
 
 export interface GenerateChapterInput {
   ownerId: string;
@@ -24,7 +24,7 @@ export interface GenerateChapterResult {
 export class GenerateChapterUseCase {
   constructor(
     private readonly projectRepository: ProjectRepository,
-    private readonly metadataContextBuilder: MetadataContextBuilder,
+    private readonly aiContextBuilder: AIContextBuilder,
     private readonly llmProvider: LLMProvider,
     private readonly contentConverter: ContentConverter
   ) {}
@@ -61,8 +61,8 @@ export class GenerateChapterUseCase {
       throw new Error('Project has no existing content to use as context');
     }
 
-    // 4. Load all available metadata for enhanced context
-    const metadata = await this.metadataContextBuilder.buildForChapterGeneration(
+    // 4. Build project context block for enhanced context
+    const projectContext = await this.aiContextBuilder.buildChapterContext(
       input.ownerId,
       input.projectId
     );
@@ -71,7 +71,7 @@ export class GenerateChapterUseCase {
     const generation = await this.llmProvider.generateChapter(
       fullText,
       input.generationType,
-      metadata
+      projectContext
     );
 
     // 6. Convert generated content to editor format

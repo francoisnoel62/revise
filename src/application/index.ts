@@ -58,9 +58,6 @@ export { EmailAlreadyExistsError, ValidationError } from './use-cases/RegisterUs
 export { AIContextBuilder } from './services/AIContextBuilder';
 export { MetadataContextBuilder } from './services/MetadataContextBuilder';
 export type {
-  RewriteContext,
-  CompletionContext,
-  ChapterGenerationContext,
   SynthesisContext,
 } from './services/MetadataContextBuilder';
 

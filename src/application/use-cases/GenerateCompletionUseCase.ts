@@ -2,7 +2,7 @@
 // ABOUTME: Loads project metadata via MetadataContextBuilder for context-aware autocompletion
 
 import { LLMProvider } from '../../domain';
-import { MetadataContextBuilder } from '../services/MetadataContextBuilder';
+import { AIContextBuilder } from '../services/AIContextBuilder';
 
 export interface GenerateCompletionInput {
   ownerId: string;
@@ -17,7 +17,7 @@ export interface GenerateCompletionResult {
 
 export class GenerateCompletionUseCase {
   constructor(
-    private readonly metadataContextBuilder: MetadataContextBuilder,
+    private readonly aiContextBuilder: AIContextBuilder,
     private readonly llmProvider: LLMProvider
   ) {}
 
@@ -35,8 +35,8 @@ export class GenerateCompletionUseCase {
       throw new Error('Text before cursor is required');
     }
 
-    // 2. Load project metadata for context (optional - don't fail if unavailable)
-    const metadata = await this.metadataContextBuilder.buildForCompletion(
+    // 2. Build project context block (optional - don't fail if unavailable)
+    const projectContext = await this.aiContextBuilder.buildCompletionContext(
       input.ownerId,
       input.projectId
     );
@@ -45,7 +45,7 @@ export class GenerateCompletionUseCase {
     const completion = await this.llmProvider.generateCompletion(
       input.textBeforeCursor,
       input.textAfterCursor,
-      metadata
+      projectContext
     );
 
     return {

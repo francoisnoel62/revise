@@ -1,12 +1,10 @@
-// ABOUTME: Unit tests for AnthropicProvider.generateRewrites with metadata injection
-// ABOUTME: Verifies buildAuthorProfileSection inserts correct content into system prompt
+// ABOUTME: Unit tests for AnthropicProvider.generateRewrites authorProfile injection
+// ABOUTME: Verifies the provided authorProfile block is inserted between INTERDITS and FORMAT DE SORTIE
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AnthropicProvider } from '../AnthropicProvider';
 import type { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import Anthropic from '@anthropic-ai/sdk';
-import { StylisticDNA } from '@/domain/value-objects/StylisticDNA';
-import { NarrativeAnalysis } from '@/domain/value-objects/NarrativeAnalysis';
 
 vi.mock('@anthropic-ai/sdk', () => {
   return { default: vi.fn() };
@@ -20,26 +18,15 @@ const validProposalsResponse = JSON.stringify({
   ],
 });
 
-const stylisticDNA: StylisticDNA = {
-  registerAndLexicon: 'Registre littéraire soutenu',
-  syntax: 'Phrases complexes',
-  figuresOfStyle: 'Métaphores filées',
-  ticsAndSignatures: 'Points de suspension',
-  rhythmAndBreathing: 'Rythme lent et contemplatif',
-  writingRules: ['FAIRE: phrases longues', 'ÉVITER: adverbes', 'FAIRE: images concrètes', 'ÉVITER: clichés', 'FAIRE: verbes forts', 'ÉVITER: passif (rule 6 — should be truncated)'],
-  summary: 'Style introspectif',
-};
+const authorProfile = [
+  "--- PROFIL STYLISTIQUE DE L'AUTEUR ---",
+  '(Issu de l\'analyse IA du roman complet — calibre la VOIX AMPLIFIÉE)',
+  '',
+  'REGISTRE ET LEXIQUE: Registre littéraire soutenu',
+  'RYTHME: Rythme lent et contemplatif',
+].join('\n');
 
-const narrative: NarrativeAnalysis = {
-  narratorType: 'Narrateur à la troisième personne omniscient',
-  focalization: 'Focalisation interne',
-  temporality: 'Passé',
-  chapterStructure: 'Scènes courtes',
-  narrativeVoice: ['Mélancolique'],
-  summary: '',
-};
-
-describe('AnthropicProvider.generateRewrites — metadata injection', () => {
+describe('AnthropicProvider.generateRewrites — authorProfile injection', () => {
   let mockClient: { messages: { create: ReturnType<typeof vi.fn> } };
   let mockPromptRepo: PromptRepository;
   let provider: AnthropicProvider;
@@ -63,18 +50,13 @@ describe('AnthropicProvider.generateRewrites — metadata injection', () => {
   const getSystemPrompt = (): string =>
     mockClient.messages.create.mock.calls[0][0].system as string;
 
-  describe('without metadata', () => {
-    it('should not include PROFIL STYLISTIQUE when metadata is undefined', async () => {
+  describe('without authorProfile', () => {
+    it('should not include PROFIL STYLISTIQUE', async () => {
       await provider.generateRewrites('text', 'context');
       expect(getSystemPrompt()).not.toContain('PROFIL STYLISTIQUE');
     });
 
-    it('should not include PROFIL STYLISTIQUE when metadata is empty object', async () => {
-      await provider.generateRewrites('text', 'context', {});
-      expect(getSystemPrompt()).not.toContain('PROFIL STYLISTIQUE');
-    });
-
-    it('should still contain INTERDITS ABSOLUS and FORMAT DE SORTIE in correct order', async () => {
+    it('should keep INTERDITS ABSOLUS before FORMAT DE SORTIE', async () => {
       await provider.generateRewrites('text');
       const prompt = getSystemPrompt();
       const interditsPos = prompt.indexOf('INTERDITS ABSOLUS');
@@ -84,90 +66,23 @@ describe('AnthropicProvider.generateRewrites — metadata injection', () => {
     });
   });
 
-  describe('with stylisticDNA', () => {
-    it('should include PROFIL STYLISTIQUE section', async () => {
-      await provider.generateRewrites('text', undefined, { stylisticDNA });
-      expect(getSystemPrompt()).toContain('PROFIL STYLISTIQUE');
-    });
-
-    it('should include registerAndLexicon', async () => {
-      await provider.generateRewrites('text', undefined, { stylisticDNA });
-      expect(getSystemPrompt()).toContain('Registre littéraire soutenu');
-    });
-
-    it('should include rhythmAndBreathing', async () => {
-      await provider.generateRewrites('text', undefined, { stylisticDNA });
-      expect(getSystemPrompt()).toContain('Rythme lent et contemplatif');
-    });
-
-    it('should truncate writingRules to 5 maximum', async () => {
-      await provider.generateRewrites('text', undefined, { stylisticDNA });
+  describe('with authorProfile', () => {
+    it('should include the provided authorProfile block verbatim', async () => {
+      await provider.generateRewrites('text', undefined, authorProfile);
       const prompt = getSystemPrompt();
-      // The 6th rule "ÉVITER: passif (rule 6...)" should NOT be in the prompt
-      expect(prompt).not.toContain('rule 6 — should be truncated');
+      expect(prompt).toContain("PROFIL STYLISTIQUE DE L'AUTEUR");
+      expect(prompt).toContain('REGISTRE ET LEXIQUE: Registre littéraire soutenu');
+      expect(prompt).toContain('RYTHME: Rythme lent et contemplatif');
     });
 
-    it('should include first 5 writing rules', async () => {
-      await provider.generateRewrites('text', undefined, { stylisticDNA });
-      const prompt = getSystemPrompt();
-      expect(prompt).toContain('FAIRE: phrases longues');
-      expect(prompt).toContain('ÉVITER: adverbes');
-      expect(prompt).toContain('FAIRE: images concrètes');
-      expect(prompt).toContain('ÉVITER: clichés');
-      expect(prompt).toContain('FAIRE: verbes forts');
-    });
-
-    it('should be inserted between INTERDITS ABSOLUS and FORMAT DE SORTIE', async () => {
-      await provider.generateRewrites('text', undefined, { stylisticDNA });
+    it('should insert the authorProfile between INTERDITS ABSOLUS and FORMAT DE SORTIE', async () => {
+      await provider.generateRewrites('text', undefined, authorProfile);
       const prompt = getSystemPrompt();
       const interditsPos = prompt.indexOf('INTERDITS ABSOLUS');
       const profilPos = prompt.indexOf('PROFIL STYLISTIQUE');
       const formatPos = prompt.indexOf('FORMAT DE SORTIE');
       expect(interditsPos).toBeLessThan(profilPos);
       expect(profilPos).toBeLessThan(formatPos);
-    });
-  });
-
-  describe('with narrative', () => {
-    it('should include narratorType in system prompt', async () => {
-      await provider.generateRewrites('text', undefined, { narrative });
-      expect(getSystemPrompt()).toContain('Narrateur à la troisième personne omniscient');
-    });
-
-    it('should include focalization in system prompt', async () => {
-      await provider.generateRewrites('text', undefined, { narrative });
-      expect(getSystemPrompt()).toContain('Focalisation interne');
-    });
-  });
-
-  describe('with both stylisticDNA and narrative', () => {
-    it('should include all fields', async () => {
-      await provider.generateRewrites('text', undefined, { stylisticDNA, narrative });
-      const prompt = getSystemPrompt();
-      expect(prompt).toContain('PROFIL STYLISTIQUE');
-      expect(prompt).toContain('Registre littéraire soutenu');
-      expect(prompt).toContain('Narrateur à la troisième personne omniscient');
-    });
-
-    it('should mention VOIX AMPLIFIÉE calibration', async () => {
-      await provider.generateRewrites('text', undefined, { stylisticDNA });
-      expect(getSystemPrompt()).toContain('VOIX AMPLIFIÉE');
-    });
-  });
-
-  describe('writingRules edge cases', () => {
-    it('should not include rules section when writingRules is empty', async () => {
-      const dnaNoRules: StylisticDNA = { ...stylisticDNA, writingRules: [] };
-      await provider.generateRewrites('text', undefined, { stylisticDNA: dnaNoRules });
-      expect(getSystemPrompt()).not.toContain("RÈGLES D'ÉCRITURE");
-    });
-
-    it('should show all rules when fewer than 5', async () => {
-      const dnaFewRules: StylisticDNA = { ...stylisticDNA, writingRules: ['Rule A', 'Rule B'] };
-      await provider.generateRewrites('text', undefined, { stylisticDNA: dnaFewRules });
-      const prompt = getSystemPrompt();
-      expect(prompt).toContain('Rule A');
-      expect(prompt).toContain('Rule B');
     });
   });
 });
