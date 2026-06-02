@@ -20,7 +20,7 @@ When invoked:
    git diff HEAD~N..HEAD  # Where N covers implementation commits
 
    # Run comprehensive checks
-   cd $(git rev-parse --show-toplevel) && make check test
+   npm run verify   # lint → tests → build
    ```
 
 ## Validation Process
@@ -88,9 +88,9 @@ Create comprehensive validation summary:
 ⚠️ Phase 3: [Name] - Partially implemented (see issues)
 
 ### Automated Verification Results
-✓ Build passes: `make build`
-✓ Tests pass: `make test`
-✗ Linting issues: `make lint` (3 warnings)
+✓ Build passes: `npm run build`
+✓ Tests pass: `npm test`
+✗ Linting issues: `npm run lint` (3 warnings)
 
 ### Code Review Findings
 

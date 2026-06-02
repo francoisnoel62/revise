@@ -61,7 +61,7 @@ Then wait for the user's input.
    - Use the **codebase-locator** agent to find all files related to the task
    - Use the **codebase-analyzer** agent to understand how the current implementation works
    - Use the **docs-locator** agent ONLY IF RELEVANT to find existing docs/research about this feature
-   - Use the **web-search-researcher** agent to research the web based on your questions or documentation
+   - Use the built-in `WebSearch` tool to research the web based on your questions or documentation
 
    These agents will:
    - Find relevant source files, configs, and tests
@@ -358,7 +358,7 @@ Please review it and let me know:
 **Always separate success criteria into two categories:**
 
 1. **Automated Verification** (can be run by execution agents):
-- Commands that can be run: `make test`, `npm run lint`, etc.
+- Commands that can be run: `npm run verify`, `npm test`, `npm run lint`, etc.
 - Specific files that should exist
 - Code compilation/type checking
 - Automated test suites

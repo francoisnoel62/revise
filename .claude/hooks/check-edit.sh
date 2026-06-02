@@ -13,9 +13,9 @@ input=$(cat)
 file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty')
 [ -z "$file" ] && exit 0
 
-# Only act on source files under src/
+# Only act on source files under src/ or scripts/
 case "$file" in
-  *src/*) ;;
+  *src/*|*scripts/*) ;;
   *) exit 0 ;;
 esac
 case "$file" in

@@ -20,7 +20,7 @@ the text's singularity, the author owns their writing) are defined in
 - **Auth**: Auth.js (`next-auth` v5)
 - **Editor**: TipTap
 - **UI**: Tailwind CSS v4 + shadcn/ui (Radix primitives), dnd-kit
-- **AI providers**: Anthropic SDK + Google GenAI SDK, behind the `LLMProvider` abstraction
+- **AI providers**: Anthropic Claude, Google Gemini, OpenAI — all behind the `LLMProvider` abstraction
 - **Tests**: Vitest (unit/integration), Playwright (E2E)
 - **Local DB**: Docker Compose (`npm run db:start`)
 
@@ -75,7 +75,7 @@ Names tell WHAT code does, NOT HOW or its HISTORY.
 
 - Commit frequently
 - NEVER skip pre-commit hooks
-- NEVER use `git add -A` without `git status` first (enforced by the `guard-bash` hook)
+- NEVER use `git add -A` or `git add .` — the `guard-bash` hook blocks it. Stage specific files by name after `git status`.
 
 ### Debugging
 
@@ -102,19 +102,9 @@ belong in Revise.
 
 - ALL tests must pass before committing (a pre-commit test run warns via the `guard-bash` hook)
 - New features REQUIRE new tests
-- `npm test` | `npm run test:coverage` | `npm run test:integration` | `npm run test:e2e`
-- `npm run verify` runs lint → tests → build (see the `/verify` command)
+- Run `npm test` before committing; use `/verify` for the full lint → tests → build loop.
 
 ## Skills & commands
 
-- **Skills** (`.claude/skills/`): repeatable procedures — `tdd-cycle`, `systematic-debugging`, `journal`.
-- **Subagents** (`.claude/agents/`): read-only research helpers used by the planning/research
-  commands — `codebase-locator`, `codebase-analyzer`, `codebase-pattern-finder`,
-  `docs-locator`, `docs-analyzer`.
-- **Commands** (`.claude/commands/`): the workflow chain —
-  `/simple_research_codebase_generic` → `/simple_create_plan_generic` →
-  `/simple_implement_plan` → `/validate_plan` → `/simple_review_CTO` → `/commit`,
-  plus `/verify`, `/arch-check`, `/docs-update`, `/describe_pr`, `/debug`.
-- **Hooks** (`.claude/hooks/`): require **Git Bash + `jq`** in PATH (Windows: install
-  jq via WinGet). If `jq` is missing the hooks print a visible warning and no-op rather
-  than enforcing silently.
+Repeatable procedures live in `.claude/skills/` (tdd-cycle, systematic-debugging, journal) and `.claude/commands/`.
+Hooks in `.claude/hooks/` require **Git Bash + `jq`** in PATH (Windows: install jq via WinGet). If `jq` is missing the hooks print a warning and no-op.
