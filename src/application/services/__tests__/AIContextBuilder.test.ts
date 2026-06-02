@@ -3,6 +3,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { AIContextBuilder } from '../AIContextBuilder';
+import { ResearchDocument, ResearchDocumentType } from '../../../domain/entities/ResearchDocument';
 
 const makeMetadata = (
   typeKey: string,
@@ -146,6 +147,98 @@ describe('AIContextBuilder', () => {
       ]);
       const builder = new AIContextBuilder(repo as never);
       const ctx = await builder.buildRewriteContext('u1', 'p1');
+
+      expect(ctx).toBe('');
+    });
+  });
+
+  describe('research documents', () => {
+    const emptyMetaRepo = () => mockRepo([]);
+
+    const mockResearchRepo = (docs: ResearchDocument[]) => ({
+      findByProjectId: vi.fn().mockResolvedValue(docs),
+      create: vi.fn(),
+      findById: vi.fn(),
+      countByProjectId: vi.fn(),
+      getAllTags: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      deleteAllByProject: vi.fn(),
+      deleteAllByOwner: vi.fn(),
+    });
+
+    const researchDoc = (
+      title: string,
+      opts: { type?: ResearchDocumentType; body?: string; url?: string; linkedChapterIds?: string[] } = {}
+    ) =>
+      ResearchDocument.create('id-' + title, 'p1', 'u1', opts.type ?? 'note', title, {
+        content: opts.body ? { text: opts.body } : undefined,
+        url: opts.url,
+        linkedChapterIds: opts.linkedChapterIds,
+      });
+
+    it('completion includes global docs and the current chapter docs, not other chapters', async () => {
+      const docs = [
+        researchDoc('Scénario global', { body: 'Le héros cherche la vérité' }),
+        researchDoc('Note ch A', { body: 'Détail du chapitre A', linkedChapterIds: ['chA'] }),
+        researchDoc('Note ch B', { body: 'Détail du chapitre B', linkedChapterIds: ['chB'] }),
+      ];
+      const builder = new AIContextBuilder(emptyMetaRepo() as never, mockResearchRepo(docs) as never);
+      const ctx = await builder.buildCompletionContext('u1', 'p1', 'chA');
+
+      expect(ctx).toContain('Le héros cherche la vérité');
+      expect(ctx).toContain('Détail du chapitre A');
+      expect(ctx).not.toContain('Détail du chapitre B');
+    });
+
+    it('completion without chapterId includes only global docs', async () => {
+      const docs = [
+        researchDoc('Scénario global', { body: 'intention globale' }),
+        researchDoc('Note ch A', { body: 'détail A', linkedChapterIds: ['chA'] }),
+      ];
+      const builder = new AIContextBuilder(emptyMetaRepo() as never, mockResearchRepo(docs) as never);
+      const ctx = await builder.buildCompletionContext('u1', 'p1');
+
+      expect(ctx).toContain('intention globale');
+      expect(ctx).not.toContain('détail A');
+    });
+
+    it('chapter generation includes all docs (global + every linked one)', async () => {
+      const docs = [
+        researchDoc('Scénario global', { body: 'intention globale' }),
+        researchDoc('Note ch A', { body: 'détail A', linkedChapterIds: ['chA'] }),
+        researchDoc('Note ch B', { body: 'détail B', linkedChapterIds: ['chB'] }),
+      ];
+      const builder = new AIContextBuilder(emptyMetaRepo() as never, mockResearchRepo(docs) as never);
+      const ctx = await builder.buildChapterContext('u1', 'p1');
+
+      expect(ctx).toContain('intention globale');
+      expect(ctx).toContain('détail A');
+      expect(ctx).toContain('détail B');
+    });
+
+    it('projects link docs with title (and url) without crashing', async () => {
+      const docs = [researchDoc('Mon lien', { type: 'link', url: 'https://ex.com' })];
+      const builder = new AIContextBuilder(emptyMetaRepo() as never, mockResearchRepo(docs) as never);
+      const ctx = await builder.buildChapterContext('u1', 'p1');
+
+      expect(ctx).toContain('Mon lien');
+    });
+
+    it('omits the research section entirely when no research repository is provided', async () => {
+      const builder = new AIContextBuilder(
+        mockRepo([makeMetadata('stylistic-dna', { structuredData: JSON.stringify(stylisticDNA) })]) as never
+      );
+      const ctx = await builder.buildCompletionContext('u1', 'p1', 'chA');
+
+      expect(ctx).toContain('[MÉTADONNÉES - STYLE]');
+      expect(ctx).not.toContain('RECHERCHE');
+    });
+
+    it('does not throw when the research repository rejects', async () => {
+      const repo = { findByProjectId: vi.fn().mockRejectedValue(new Error('DB down')) };
+      const builder = new AIContextBuilder(emptyMetaRepo() as never, repo as never);
+      const ctx = await builder.buildCompletionContext('u1', 'p1', 'chA');
 
       expect(ctx).toBe('');
     });

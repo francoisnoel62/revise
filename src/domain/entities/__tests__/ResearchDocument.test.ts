@@ -526,4 +526,32 @@ describe('ResearchDocument', () => {
       expect(doc.getTags()).toEqual(['writing', 'craft']);
     });
   });
+
+  describe('getContentText', () => {
+    const note = (content: Record<string, unknown> | undefined) =>
+      ResearchDocument.create('doc-1', 'project-1', 'user-1', 'note', 'Titre', { content });
+
+    it('returns the plain body stored as { text }', () => {
+      expect(note({ text: 'mon scénario détaillé' }).getContentText()).toBe('mon scénario détaillé');
+    });
+
+    it('returns empty string when content is null', () => {
+      expect(note(undefined).getContentText()).toBe('');
+    });
+
+    it('extracts text from a TipTap-shaped content, ignoring node types', () => {
+      const tiptap = {
+        type: 'doc',
+        content: [
+          { type: 'paragraph', content: [{ type: 'text', text: 'Première phrase.' }] },
+          { type: 'paragraph', content: [{ type: 'text', text: 'Seconde phrase.' }] },
+        ],
+      };
+      const text = note(tiptap).getContentText();
+      expect(text).toContain('Première phrase.');
+      expect(text).toContain('Seconde phrase.');
+      expect(text).not.toContain('doc');
+      expect(text).not.toContain('paragraph');
+    });
+  });
 });

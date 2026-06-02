@@ -2,6 +2,8 @@
 // ABOUTME: Applies the "author edit wins" rule — trusts structuredData only if not edited since generation
 
 import { MetadataRepository } from '../../domain/interfaces/MetadataRepository';
+import { ResearchDocumentRepository } from '../../domain/interfaces/ResearchDocumentRepository';
+import { ResearchDocument } from '../../domain/entities/ResearchDocument';
 import type {
   NarrativeAnalysis,
   StylisticDNA,
@@ -19,6 +21,18 @@ const COMPLETION_RAWTEXT_CAP = 400;
 const CHAPTER_RAWTEXT_CAP = 800;
 const REWRITE_RAWTEXT_CAP = 600;
 
+// Research docs are the author's intentional context — leaner for latency-critical completion.
+const COMPLETION_RESEARCH_CAP = 600;
+const CHAPTER_RESEARCH_CAP = 1500;
+
+const RESEARCH_TYPE_LABELS: Record<string, string> = {
+  note: 'NOTE',
+  link: 'LIEN',
+  quote: 'CITATION',
+  reference: 'RÉFÉRENCE',
+  image: 'IMAGE',
+};
+
 const LABELS: Record<string, string> = {
   'narrative-analysis': 'NARRATION',
   'stylistic-dna': 'STYLE',
@@ -34,9 +48,12 @@ function truncate(text: string, cap: number): string {
 }
 
 export class AIContextBuilder {
-  constructor(private readonly metadataRepository: MetadataRepository) {}
+  constructor(
+    private readonly metadataRepository: MetadataRepository,
+    private readonly researchDocumentRepository?: ResearchDocumentRepository
+  ) {}
 
-  async buildCompletionContext(ownerId: string, projectId: string): Promise<string> {
+  async buildCompletionContext(ownerId: string, projectId: string, chapterId?: string): Promise<string> {
     const resolved = await this.resolve(ownerId, projectId, [
       'stylistic-dna', 'narrative-analysis', 'characters', 'plot', 'worldbuilding',
     ]);
@@ -73,6 +90,8 @@ export class AIContextBuilder {
         return s;
       },
       this.bracketFallback);
+
+    out += await this.projectResearch(ownerId, projectId, { kind: 'completion', chapterId });
 
     return out;
   }
@@ -117,6 +136,8 @@ export class AIContextBuilder {
       },
       this.dashFallback);
 
+    out += await this.projectResearch(ownerId, projectId, { kind: 'chapter' });
+
     return out;
   }
 
@@ -160,6 +181,60 @@ export class AIContextBuilder {
     lines.push('- Toutes les propositions : maintiens le point de vue narratif établi');
 
     return lines.join('\n');
+  }
+
+  private async projectResearch(
+    ownerId: string,
+    projectId: string,
+    scope: { kind: 'completion'; chapterId?: string } | { kind: 'chapter' }
+  ): Promise<string> {
+    if (!this.researchDocumentRepository) return '';
+
+    let docs: ResearchDocument[];
+    try {
+      docs = await this.researchDocumentRepository.findByProjectId(ownerId, projectId);
+    } catch {
+      return ''; // fail gracefully — completion/generation work without research context
+    }
+
+    const isGlobal = (d: ResearchDocument) => d.getLinkedChapterIds().length === 0;
+
+    const selected =
+      scope.kind === 'chapter'
+        ? docs // globals + every linked doc
+        : docs.filter((d) => isGlobal(d) || (scope.chapterId ? d.isLinkedToChapter(scope.chapterId) : false));
+
+    if (selected.length === 0) return '';
+
+    // Author's overall intent (global docs) first, then chapter-specific.
+    selected.sort((a, b) => Number(isGlobal(b)) - Number(isGlobal(a)));
+
+    const cap = scope.kind === 'chapter' ? CHAPTER_RESEARCH_CAP : COMPLETION_RESEARCH_CAP;
+    const header =
+      scope.kind === 'chapter'
+        ? '\n\n--- DOCUMENTS DE RECHERCHE ---\n'
+        : "\n\n[INTENTION DE L'AUTEUR — RECHERCHE]\n";
+
+    let body = '';
+    for (const d of selected) {
+      let entry = `- [${RESEARCH_TYPE_LABELS[d.getType()] ?? d.getType().toUpperCase()}] ${d.getTitle()}\n`;
+      const source = [d.getSourceAuthor(), d.getSourceTitle()].filter(Boolean).join(', ');
+      if (source) entry += `  Source: ${source}\n`;
+      if (d.getUrl()) entry += `  URL: ${d.getUrl()}\n`;
+      const text = d.getContentText();
+      if (text) entry += `  ${text}\n`;
+      const tags = d.getTags();
+      if (tags.length > 0) entry += `  Tags: ${tags.join(', ')}\n`;
+
+      if (body.length + entry.length > cap) {
+        const remaining = cap - body.length;
+        if (remaining > 0) body += entry.slice(0, remaining).trimEnd() + '…\n';
+        break;
+      }
+      body += entry;
+    }
+
+    return body ? header + body : '';
   }
 
   private readonly bracketFallback = (label: string, text: string): string =>
