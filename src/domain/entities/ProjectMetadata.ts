@@ -10,6 +10,7 @@ export interface ProjectMetadataProperties {
   generatedAt: Date | null;
   isGenerated: boolean;
   contentHash: string | null; // SHA-256 hash of source text when generated
+  structuredData?: string | null; // JSON-serialized AI output object, preserved alongside TipTap content
 }
 
 export class ProjectMetadata {
@@ -18,6 +19,7 @@ export class ProjectMetadata {
   private readonly typeKey: string;
   private title: string;
   private content: string; // TipTap JSON stringified
+  private structuredData: string | null; // JSON-serialized AI output, null for manual metadata
   private properties: ProjectMetadataProperties;
 
   constructor(
@@ -59,6 +61,7 @@ export class ProjectMetadata {
     this.typeKey = typeKey;
     this.title = title.trim();
     this.content = content;
+    this.structuredData = properties?.structuredData ?? null;
     this.properties = {
       wordCount: properties?.wordCount ?? 0,
       characterCount: properties?.characterCount ?? 0,
@@ -91,6 +94,10 @@ export class ProjectMetadata {
 
   getContent(): string {
     return this.content;
+  }
+
+  getStructuredData(): string | null {
+    return this.structuredData;
   }
 
   getProperties(): ProjectMetadataProperties {
@@ -126,6 +133,10 @@ export class ProjectMetadata {
     this.properties.generatedAt = new Date();
     this.properties.isGenerated = true;
     this.properties.lastEdited = new Date();
+  }
+
+  updateStructuredData(data: string | null): void {
+    this.structuredData = data;
   }
 
   /**
@@ -175,12 +186,14 @@ export class ProjectMetadata {
     typeKey: string,
     title: string,
     content: string,
-    contentHash: string
+    contentHash: string,
+    structuredData?: string | null
   ): ProjectMetadata {
     const metadata = new ProjectMetadata(id, projectId, typeKey, title, content, {
       contentHash,
       isGenerated: true,
       generatedAt: new Date(),
+      structuredData: structuredData ?? null,
     });
 
     return metadata;

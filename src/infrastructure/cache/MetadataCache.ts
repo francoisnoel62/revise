@@ -6,6 +6,7 @@ import {
   StylisticDNA,
   Characters,
   Plot,
+  Worldbuilding,
 } from '@/domain';
 
 export interface CachedMetadata {
@@ -13,6 +14,7 @@ export interface CachedMetadata {
   stylisticDNA?: StylisticDNA;
   characters?: Characters;
   plot?: Plot;
+  worldbuilding?: Worldbuilding;
 }
 
 interface CacheEntry {

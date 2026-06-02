@@ -28,7 +28,14 @@ export interface LLMProvider {
    * @returns Promise resolving to array of exactly 3 RewriteProposal objects
    * @throws Error if generation fails or API is unavailable
    */
-  generateRewrites(text: string, context?: string): Promise<RewriteProposal[]>;
+  generateRewrites(
+    text: string,
+    context?: string,
+    metadata?: {
+      stylisticDNA?: StylisticDNA;
+      narrative?: NarrativeAnalysis;
+    }
+  ): Promise<RewriteProposal[]>;
 
   /**
    * Tests the connection to the provider's API.

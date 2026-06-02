@@ -187,9 +187,13 @@ export class OpenAIProvider implements LLMProvider {
 
   async generateRewrites(
     text: string,
-    context?: string
+    context?: string,
+    metadata?: {
+      stylisticDNA?: StylisticDNA;
+      narrative?: NarrativeAnalysis;
+    }
   ): Promise<RewriteProposal[]> {
-    const systemPrompt = this.buildSystemPrompt();
+    const systemPrompt = this.buildSystemPrompt(metadata);
     const userPrompt = this.buildUserPrompt(text, context);
 
     try {
@@ -226,7 +230,10 @@ export class OpenAIProvider implements LLMProvider {
     }
   }
 
-  private buildSystemPrompt(): string {
+  private buildSystemPrompt(
+    metadata?: { stylisticDNA?: StylisticDNA; narrative?: NarrativeAnalysis }
+  ): string {
+    const authorProfile = this.buildAuthorProfileSection(metadata);
     return `Tu es un assistant d'écriture littéraire expert. Ton rôle est de proposer des reformulations qui ÉLÈVENT la qualité littéraire du texte tout en préservant absolument le sens et la voix de l'auteur.
 
 MÉTHODE D'ANALYSE PRÉLIMINAIRE:
@@ -277,7 +284,7 @@ INTERDITS ABSOLUS:
 - Ne JAMAIS changer le sens
 - Ne JAMAIS ajouter d'information absente de l'original
 - Ne JAMAIS remplacer un style authentique par des clichés
-- Ne JAMAIS "corriger" un choix stylistique intentionnel de l'auteur
+- Ne JAMAIS "corriger" un choix stylistique intentionnel de l'auteur${authorProfile ? '\n\n' + authorProfile : ''}
 
 FORMAT DE SORTIE (JSON):
 {
@@ -299,6 +306,41 @@ FORMAT DE SORTIE (JSON):
     prompt += `\n\n---\n\nGénère maintenant 3 propositions littérairement distinctes dans la MÊME LANGUE que le texte source. Retourne uniquement le JSON.`;
 
     return prompt;
+  }
+
+  private buildAuthorProfileSection(
+    metadata?: { stylisticDNA?: StylisticDNA; narrative?: NarrativeAnalysis }
+  ): string {
+    if (!metadata?.stylisticDNA && !metadata?.narrative) return '';
+
+    const lines: string[] = [
+      "--- PROFIL STYLISTIQUE DE L'AUTEUR ---",
+      "(Issu de l'analyse IA du roman complet — calibre la VOIX AMPLIFIÉE)",
+      '',
+    ];
+
+    if (metadata.stylisticDNA) {
+      lines.push(`REGISTRE ET LEXIQUE: ${metadata.stylisticDNA.registerAndLexicon}`);
+      lines.push(`RYTHME: ${metadata.stylisticDNA.rhythmAndBreathing}`);
+      const rules = metadata.stylisticDNA.writingRules?.slice(0, 5) ?? [];
+      if (rules.length > 0) {
+        lines.push("RÈGLES D'ÉCRITURE À RESPECTER:");
+        rules.forEach((r) => lines.push(`- ${r}`));
+      }
+    }
+
+    if (metadata.narrative) {
+      lines.push(`POINT DE VUE: ${metadata.narrative.narratorType}`);
+      lines.push(`FOCALISATION: ${metadata.narrative.focalization}`);
+    }
+
+    lines.push('');
+    lines.push('Applique ce profil pour :');
+    lines.push("- Proposition 3 (VOIX AMPLIFIÉE) : intensifie spécifiquement CE style d'auteur");
+    lines.push('- Toutes les propositions : respecte les règles d\'écriture listées ci-dessus');
+    lines.push('- Toutes les propositions : maintiens le point de vue narratif établi');
+
+    return lines.join('\n');
   }
 
   /**

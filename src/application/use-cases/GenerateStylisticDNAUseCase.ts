@@ -99,6 +99,7 @@ export class GenerateStylisticDNAUseCase {
     if (metadata) {
       metadata.updateContent(contentJson, contentHash);
       metadata.markAsGenerated();
+      metadata.updateStructuredData(JSON.stringify(analysis));
       await this.metadataRepository.update(input.ownerId, metadata);
     } else {
       metadata = ProjectMetadata.createGenerated(
@@ -107,7 +108,8 @@ export class GenerateStylisticDNAUseCase {
         GenerateStylisticDNAUseCase.TYPE_KEY,
         GenerateStylisticDNAUseCase.TITLE,
         contentJson,
-        contentHash
+        contentHash,
+        JSON.stringify(analysis)
       );
       await this.metadataRepository.create(input.ownerId, metadata);
     }

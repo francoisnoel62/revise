@@ -79,9 +79,13 @@ export class TrackedLLMProvider implements LLMProvider {
     this.lastOutputTokens = outputTokens;
   }
 
-  async generateRewrites(text: string, context?: string): Promise<RewriteProposal[]> {
+  async generateRewrites(
+    text: string,
+    context?: string,
+    metadata?: { stylisticDNA?: StylisticDNA; narrative?: NarrativeAnalysis }
+  ): Promise<RewriteProposal[]> {
     return this.trackUsage('rewrite', () =>
-      this.wrapped.generateRewrites(text, context)
+      this.wrapped.generateRewrites(text, context, metadata)
     );
   }
 

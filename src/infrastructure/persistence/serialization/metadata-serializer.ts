@@ -13,6 +13,7 @@ export interface MetadataDocument {
   typeKey: string;
   title: string;
   content: string; // TipTap JSON stringified
+  structuredData: string | null; // JSON-serialized AI output object, null for manual metadata
   properties: {
     wordCount: number;
     characterCount: number;
@@ -41,6 +42,7 @@ export function serializeMetadata(
     typeKey: metadata.getTypeKey(),
     title: metadata.getTitle(),
     content: metadata.getContent(),
+    structuredData: metadata.getStructuredData(),
     properties: {
       wordCount: props.wordCount,
       characterCount: props.characterCount,
@@ -75,6 +77,9 @@ export function deserializeMetadata(doc: MetadataDocument): ProjectMetadata {
     doc.typeKey,
     doc.title,
     doc.content,
-    properties
+    {
+      ...properties,
+      structuredData: doc.structuredData ?? null, // Handle legacy documents without this field
+    }
   );
 }

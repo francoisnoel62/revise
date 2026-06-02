@@ -5,6 +5,8 @@ import { TextDocument } from '@/domain/entities/TextDocument';
 import { TextSelection } from '@/domain/value-objects/TextSelection';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
 import { LLMProvider } from '@/domain/interfaces/LLMProvider';
+import { StylisticDNA } from '@/domain/value-objects/StylisticDNA';
+import { NarrativeAnalysis } from '@/domain/value-objects/NarrativeAnalysis';
 
 export class RewriteTextUseCase {
   constructor(private readonly llmProvider: LLMProvider) {}
@@ -34,7 +36,11 @@ export class RewriteTextUseCase {
    */
   async executeWithText(
     selectedText: string,
-    fullContext: string
+    fullContext: string,
+    metadata?: {
+      stylisticDNA?: StylisticDNA;
+      narrative?: NarrativeAnalysis;
+    }
   ): Promise<RewriteProposal[]> {
     if (!selectedText || selectedText.trim().length === 0) {
       throw new Error('Cannot rewrite empty selection');
@@ -42,7 +48,8 @@ export class RewriteTextUseCase {
 
     const proposals = await this.llmProvider.generateRewrites(
       selectedText,
-      fullContext
+      fullContext,
+      metadata
     );
 
     return proposals;

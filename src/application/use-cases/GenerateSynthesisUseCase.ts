@@ -113,6 +113,7 @@ export class GenerateSynthesisUseCase {
     if (metadata) {
       metadata.updateContent(contentJson, contentHash);
       metadata.markAsGenerated();
+      metadata.updateStructuredData(JSON.stringify(analysis));
       await this.metadataRepository.update(input.ownerId, metadata);
     } else {
       metadata = ProjectMetadata.createGenerated(
@@ -121,7 +122,8 @@ export class GenerateSynthesisUseCase {
         GenerateSynthesisUseCase.TYPE_KEY,
         GenerateSynthesisUseCase.TITLE,
         contentJson,
-        contentHash
+        contentHash,
+        JSON.stringify(analysis)
       );
       await this.metadataRepository.create(input.ownerId, metadata);
     }
@@ -171,6 +173,7 @@ export class GenerateSynthesisUseCase {
 
   /**
    * Parse existing metadata into value objects for aggregation.
+   * Uses structuredData field for full-fidelity reconstruction.
    */
   private parsePreviousAnalyses(metadata: ProjectMetadata[]): {
     narrative?: NarrativeAnalysis;
@@ -188,26 +191,20 @@ export class GenerateSynthesisUseCase {
     } = {};
 
     for (const meta of metadata) {
-      const typeKey = meta.getTypeKey();
+      const raw = meta.getStructuredData();
+      if (!raw) continue;
 
       try {
-        // For now, we just include basic info
-        // In the future, we could parse TipTap JSON back to value objects
-        // For synthesis, the LLM will receive text summaries
-        if (typeKey === 'narrative-analysis') {
-          // Simplified - just mark as present
-          result.narrative = {} as NarrativeAnalysis;
-        } else if (typeKey === 'stylistic-dna') {
-          result.stylisticDNA = {} as StylisticDNA;
-        } else if (typeKey === 'characters') {
-          result.characters = {} as Characters;
-        } else if (typeKey === 'plot') {
-          result.plot = {} as Plot;
-        } else if (typeKey === 'worldbuilding') {
-          result.worldbuilding = {} as Worldbuilding;
+        const parsed = JSON.parse(raw);
+        switch (meta.getTypeKey()) {
+          case 'narrative-analysis': result.narrative = parsed; break;
+          case 'stylistic-dna': result.stylisticDNA = parsed; break;
+          case 'characters': result.characters = parsed; break;
+          case 'plot': result.plot = parsed; break;
+          case 'worldbuilding': result.worldbuilding = parsed; break;
         }
       } catch {
-        // Skip invalid metadata
+        // Skip metadata with invalid structuredData
       }
     }
 

@@ -246,7 +246,66 @@ describe('ProjectMetadata', () => {
     });
   });
 
+  describe('getStructuredData / updateStructuredData', () => {
+    it('should return null by default', () => {
+      const metadata = new ProjectMetadata('meta-1', 'project-1', 'narrative-analysis', 'Title', validContent);
+      expect(metadata.getStructuredData()).toBeNull();
+    });
+
+    it('should return structuredData when provided in properties', () => {
+      const data = JSON.stringify({ narratorType: 'Première personne' });
+      const metadata = new ProjectMetadata('meta-1', 'project-1', 'narrative-analysis', 'Title', validContent, {
+        structuredData: data,
+      });
+      expect(metadata.getStructuredData()).toBe(data);
+    });
+
+    it('should update structuredData via updateStructuredData', () => {
+      const metadata = new ProjectMetadata('meta-1', 'project-1', 'narrative-analysis', 'Title', validContent);
+      const data = JSON.stringify({ narratorType: 'Troisième personne' });
+      metadata.updateStructuredData(data);
+      expect(metadata.getStructuredData()).toBe(data);
+    });
+
+    it('should allow setting structuredData to null', () => {
+      const metadata = new ProjectMetadata('meta-1', 'project-1', 'narrative-analysis', 'Title', validContent, {
+        structuredData: '{}',
+      });
+      metadata.updateStructuredData(null);
+      expect(metadata.getStructuredData()).toBeNull();
+    });
+  });
+
+  describe('createGenerated with structuredData', () => {
+    it('should store structuredData when provided', () => {
+      const data = JSON.stringify({ narratorType: 'Première personne', narrativeVoice: ['Ironie', 'Distance'] });
+      const metadata = ProjectMetadata.createGenerated(
+        'meta-1', 'project-1', 'narrative-analysis', 'Analyse Narrative', validContent, 'hash-1', data
+      );
+      expect(metadata.getStructuredData()).toBe(data);
+    });
+
+    it('should have null structuredData when not provided', () => {
+      const metadata = ProjectMetadata.createGenerated(
+        'meta-1', 'project-1', 'narrative-analysis', 'Analyse Narrative', validContent, 'hash-1'
+      );
+      expect(metadata.getStructuredData()).toBeNull();
+    });
+
+    it('should have null structuredData when explicitly passed null', () => {
+      const metadata = ProjectMetadata.createGenerated(
+        'meta-1', 'project-1', 'narrative-analysis', 'Analyse Narrative', validContent, 'hash-1', null
+      );
+      expect(metadata.getStructuredData()).toBeNull();
+    });
+  });
+
   describe('createEmpty', () => {
+    it('should have null structuredData', () => {
+      const metadata = ProjectMetadata.createEmpty('meta-1', 'project-1', 'narrative-analysis', 'Empty');
+      expect(metadata.getStructuredData()).toBeNull();
+    });
+
     it('should create metadata with empty TipTap document', () => {
       const metadata = ProjectMetadata.createEmpty(
         'meta-1',

@@ -7,19 +7,11 @@ import {
   getProviderRepository,
   getMetadataRepository,
   getPromptRepository,
-  getContentConverter,
   createLLMProvider,
 } from '@/infrastructure/config/providers';
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
-import { metadataCache, CachedMetadata } from '@/infrastructure/cache/MetadataCache';
-import {
-  NarrativeAnalysis,
-  StylisticDNA,
-  Characters,
-  Plot,
-} from '@/domain';
-import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
-import { ContentConverter } from '@/domain/interfaces/ContentConverter';
+import { metadataCache } from '@/infrastructure/cache/MetadataCache';
+import { MetadataContextBuilder } from '@/application/services/MetadataContextBuilder';
 
 export const runtime = 'nodejs';
 
@@ -94,13 +86,8 @@ export async function POST(request: NextRequest) {
 
   if (!metadata) {
     const metadataRepo = await getMetadataRepository();
-    const contentConverter = getContentConverter();
-    metadata = await loadProjectMetadata(
-      metadataRepo,
-      contentConverter,
-      userId,
-      projectId
-    );
+    const builder = new MetadataContextBuilder(metadataRepo);
+    metadata = await builder.buildForCompletion(userId, projectId);
     metadataCache.set(userId, projectId, metadata);
   }
 
@@ -148,104 +135,4 @@ export async function POST(request: NextRequest) {
       Connection: 'keep-alive',
     },
   });
-}
-
-/**
- * Load relevant project metadata for completion context.
- */
-async function loadProjectMetadata(
-  metadataRepo: MetadataRepository,
-  contentConverter: ContentConverter,
-  ownerId: string,
-  projectId: string
-): Promise<CachedMetadata> {
-  const result: CachedMetadata = {};
-
-  try {
-    const metadataList = await metadataRepo.findByProjectId(ownerId, projectId);
-
-    for (const metadata of metadataList) {
-      const typeKey = metadata.getTypeKey();
-      const content = metadata.getContent();
-
-      try {
-        const text = contentConverter.extractText(content);
-
-        switch (typeKey) {
-          case 'narrative-analysis':
-            result.narrative = parseNarrativeFromText(text);
-            break;
-          case 'stylistic-dna':
-            result.stylisticDNA = parseStylisticDNAFromText(text);
-            break;
-          case 'characters':
-            result.characters = parseCharactersFromText(text);
-            break;
-          case 'plot':
-            result.plot = parsePlotFromText(text);
-            break;
-        }
-      } catch {
-        // Skip metadata with invalid content
-      }
-    }
-  } catch {
-    // If metadata loading fails, continue without it
-  }
-
-  return result;
-}
-
-function extractSection(text: string, keyword: string): string {
-  const regex = new RegExp(`${keyword}[:\\s]*([^\\n]+)`, 'i');
-  const match = text.match(regex);
-  return match ? match[1].trim() : '';
-}
-
-function parseNarrativeFromText(text: string): NarrativeAnalysis {
-  return {
-    narratorType: extractSection(text, 'Narrateur') || text.substring(0, 100),
-    focalization: extractSection(text, 'Focalisation') || '',
-    temporality: extractSection(text, 'Temporalité') || '',
-    chapterStructure: '',
-    narrativeVoice: [],
-    summary: '',
-  };
-}
-
-function parseStylisticDNAFromText(text: string): StylisticDNA {
-  return {
-    registerAndLexicon: extractSection(text, 'Registre') || text.substring(0, 100),
-    syntax: '',
-    figuresOfStyle: '',
-    ticsAndSignatures: '',
-    rhythmAndBreathing: extractSection(text, 'Rythme') || '',
-    writingRules: [],
-    summary: '',
-  };
-}
-
-function parseCharactersFromText(text: string): Characters {
-  return {
-    characterProfiles: [],
-    relationalMap: text.substring(0, 200),
-    narrativeHierarchy: '',
-    summary: '',
-  };
-}
-
-function parsePlotFromText(text: string): Plot {
-  return {
-    initialSituation: '',
-    incitingIncident: '',
-    stakes: '',
-    dramaticQuestions: '',
-    conflicts: '',
-    narrativeThreads: '',
-    detectedStructure: '',
-    sceneBreakdown: [],
-    plotState: extractSection(text, 'État') || text.substring(0, 100),
-    possibleDirections: '',
-    summary: '',
-  };
 }

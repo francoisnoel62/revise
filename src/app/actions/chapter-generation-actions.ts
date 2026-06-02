@@ -4,6 +4,7 @@
 'use server';
 
 import { GenerateChapterUseCase } from '@/application/use-cases/GenerateChapterUseCase';
+import { MetadataContextBuilder } from '@/application/services/MetadataContextBuilder';
 import { ChapterGenerationTypeKey, isValidChapterGenerationType } from '@/domain';
 import { TipTapContentService } from '@/infrastructure/document/utils/TipTapContentService';
 import {
@@ -74,7 +75,7 @@ export async function generateChapterAction(
     const contentConverter = new TipTapContentService();
     const useCase = new GenerateChapterUseCase(
       await getRepository(),
-      await getMetadataRepo(),
+      new MetadataContextBuilder(await getMetadataRepo()),
       llmProvider,
       contentConverter
     );

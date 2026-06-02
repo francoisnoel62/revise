@@ -121,10 +121,28 @@ describe('TrackedLLMProvider', () => {
     it('delegates to wrapped provider and returns result', async () => {
       const result = await trackedProvider.generateRewrites('test text', 'context');
 
-      expect(mockProvider.generateRewrites).toHaveBeenCalledWith('test text', 'context');
+      expect(mockProvider.generateRewrites).toHaveBeenCalledWith('test text', 'context', undefined);
       expect(result).toHaveLength(3);
       // RewriteProposal instances have getContent method
       expect(result[0]).toBeInstanceOf(RewriteProposal);
+    });
+
+    it('passes metadata to wrapped provider', async () => {
+      const metadata = {
+        stylisticDNA: {
+          registerAndLexicon: 'Literary',
+          syntax: 'Complex',
+          figuresOfStyle: '',
+          ticsAndSignatures: '',
+          rhythmAndBreathing: 'Slow',
+          writingRules: ['Rule 1'],
+          summary: '',
+        },
+      };
+
+      await trackedProvider.generateRewrites('text', 'context', metadata);
+
+      expect(mockProvider.generateRewrites).toHaveBeenCalledWith('text', 'context', metadata);
     });
 
     it('records usage after successful call', async () => {

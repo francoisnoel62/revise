@@ -5,12 +5,13 @@
 'use server';
 
 import { RewriteTextUseCase } from '@/application';
+import { MetadataContextBuilder } from '@/application/services/MetadataContextBuilder';
 import { SaveCorrectionHistoryUseCase } from '@/application/use-cases/SaveCorrectionHistoryUseCase';
 import {
   getProjectRepository,
   getCorrectionHistoryRepository,
 } from '@/infrastructure/config/providers';
-import { getTrackedLLMProviderForProject } from './utils';
+import { getTrackedLLMProviderForProject, getMetadataRepo } from './utils';
 import { uuidGenerator } from '@/infrastructure/utils/UUIDGenerator';
 import { extractTextFromTipTapJSON } from '@/infrastructure/document/utils/tiptap-conversion';
 import {
@@ -73,7 +74,17 @@ export async function rewriteText(
     // 3. Get LLM provider with usage tracking
     const llmProvider = await getTrackedLLMProviderForProject(userId, projectId);
 
-    // 4. Load project for history saving
+    // 4. Load rewrite metadata (non-blocking if unavailable)
+    let rewriteMetadata = {};
+    try {
+      const metadataRepo = await getMetadataRepo();
+      const contextBuilder = new MetadataContextBuilder(metadataRepo);
+      rewriteMetadata = await contextBuilder.buildForRewrite(userId, projectId);
+    } catch {
+      // Continue without metadata if loading fails
+    }
+
+    // 5. Load project for history saving
     const projectRepo = await getProjectRepository();
     const project = await projectRepo.loadProject(userId, projectId);
 
@@ -81,7 +92,7 @@ export async function rewriteText(
       throw new Error('Project not found');
     }
 
-    // 5. Extract plain text context from TipTap JSON for AI
+    // 6. Extract plain text context from TipTap JSON for AI
     let plainTextContext = '';
     try {
       const tiptapJson = JSON.parse(fullContent);
@@ -91,9 +102,9 @@ export async function rewriteText(
       plainTextContext = fullContent;
     }
 
-    // 6. Execute rewrite use case with extracted text (avoids JSON/position mismatch)
+    // 7. Execute rewrite use case with extracted text (avoids JSON/position mismatch)
     const useCase = new RewriteTextUseCase(llmProvider);
-    const proposals = await useCase.executeWithText(selectedText, plainTextContext);
+    const proposals = await useCase.executeWithText(selectedText, plainTextContext, rewriteMetadata);
 
     const duration = performance.now() - startTime;
 
@@ -101,7 +112,7 @@ export async function rewriteText(
       console.log(`[Rewrite] Completed in ${duration.toFixed(2)}ms`);
     }
 
-    // 7. Save to correction history (non-blocking, don't fail if this fails)
+    // 8. Save to correction history (non-blocking, don't fail if this fails)
     try {
       const historyRepo = await getCorrectionHistoryRepository();
       const saveHistoryUseCase = new SaveCorrectionHistoryUseCase(
@@ -126,7 +137,7 @@ export async function rewriteText(
       console.error('[Rewrite] Failed to save history:', historyError);
     }
 
-    // 8. Convert to DTOs
+    // 9. Convert to DTOs
     return proposals.map((p) => ({
       content: p.content,
       styleLabel: p.styleLabel,

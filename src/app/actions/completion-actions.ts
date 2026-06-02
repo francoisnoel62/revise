@@ -4,7 +4,7 @@
 'use server';
 
 import { GenerateCompletionUseCase } from '@/application/use-cases/GenerateCompletionUseCase';
-import { getContentConverter } from '@/infrastructure/config/providers';
+import { MetadataContextBuilder } from '@/application/services/MetadataContextBuilder';
 import {
   ActionResult,
   getAuthenticatedUserId,
@@ -56,11 +56,9 @@ export async function generateCompletionAction(
     const llmProvider = await getTrackedLLMProviderForProject(auth.userId, projectId);
 
     // 5. Execute use case with injected dependencies via composition root
-    const contentConverter = getContentConverter();
     const useCase = new GenerateCompletionUseCase(
-      await getMetadataRepo(),
-      llmProvider,
-      contentConverter
+      new MetadataContextBuilder(await getMetadataRepo()),
+      llmProvider
     );
 
     const result = await useCase.execute({

@@ -101,6 +101,7 @@ export class GenerateNarrativeAnalysisUseCase {
       // Update existing metadata with new content and hash
       metadata.updateContent(contentJson, contentHash);
       metadata.markAsGenerated();
+      metadata.updateStructuredData(JSON.stringify(analysis));
       await this.metadataRepository.update(input.ownerId, metadata);
     } else {
       // Create new metadata with hash
@@ -110,7 +111,8 @@ export class GenerateNarrativeAnalysisUseCase {
         GenerateNarrativeAnalysisUseCase.TYPE_KEY,
         GenerateNarrativeAnalysisUseCase.TITLE,
         contentJson,
-        contentHash
+        contentHash,
+        JSON.stringify(analysis)
       );
       await this.metadataRepository.create(input.ownerId, metadata);
     }
