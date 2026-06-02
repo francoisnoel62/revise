@@ -35,7 +35,7 @@ describe('GenerateCompletionUseCase', () => {
     });
 
     expect(result.completion).toBe('suggested completion');
-    expect(mockBuilder.buildCompletionContext).toHaveBeenCalledWith('user-1', 'proj-1');
+    expect(mockBuilder.buildCompletionContext).toHaveBeenCalledWith('user-1', 'proj-1', undefined);
     expect(mockLLMProvider.generateCompletion).toHaveBeenCalledWith(
       'Emma walked into the',
       undefined,
@@ -57,6 +57,18 @@ describe('GenerateCompletionUseCase', () => {
       ', clutching her coat.',
       ''
     );
+  });
+
+  it('should pass the chapterId to the context builder for locality', async () => {
+    const useCase = new GenerateCompletionUseCase(mockBuilder, mockLLMProvider);
+    await useCase.execute({
+      ownerId: 'user-1',
+      projectId: 'proj-1',
+      textBeforeCursor: 'Emma walked',
+      chapterId: 'chapter-7',
+    });
+
+    expect(mockBuilder.buildCompletionContext).toHaveBeenCalledWith('user-1', 'proj-1', 'chapter-7');
   });
 
   it('should pass the built project context block to LLM', async () => {

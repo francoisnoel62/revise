@@ -9,6 +9,7 @@ export interface GenerateCompletionInput {
   projectId: string;
   textBeforeCursor: string;
   textAfterCursor?: string;
+  chapterId?: string;
 }
 
 export interface GenerateCompletionResult {
@@ -38,7 +39,8 @@ export class GenerateCompletionUseCase {
     // 2. Build project context block (optional - don't fail if unavailable)
     const projectContext = await this.aiContextBuilder.buildCompletionContext(
       input.ownerId,
-      input.projectId
+      input.projectId,
+      input.chapterId
     );
 
     // 3. Generate completion using LLM

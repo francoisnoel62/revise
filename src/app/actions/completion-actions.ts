@@ -9,6 +9,7 @@ import {
   ActionResult,
   getAuthenticatedUserId,
   getMetadataRepo,
+  getResearchDocumentRepo,
   getTrackedLLMProviderForProject,
   withErrorHandling,
 } from './utils';
@@ -33,7 +34,8 @@ export interface CompletionResult {
 export async function generateCompletionAction(
   projectId: string,
   textBeforeCursor: string,
-  textAfterCursor?: string
+  textAfterCursor?: string,
+  chapterId?: string
 ): Promise<ActionResult<CompletionResult>> {
   // 1. Authenticate
   const auth = await getAuthenticatedUserId();
@@ -57,7 +59,7 @@ export async function generateCompletionAction(
 
     // 5. Execute use case with injected dependencies via composition root
     const useCase = new GenerateCompletionUseCase(
-      new AIContextBuilder(await getMetadataRepo()),
+      new AIContextBuilder(await getMetadataRepo(), await getResearchDocumentRepo()),
       llmProvider
     );
 
@@ -66,6 +68,7 @@ export async function generateCompletionAction(
       projectId,
       textBeforeCursor,
       textAfterCursor,
+      chapterId,
     });
 
     // 6. Return result

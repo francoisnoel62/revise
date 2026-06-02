@@ -12,6 +12,7 @@ import {
   getAuthenticatedUserId,
   getRepository,
   getMetadataRepo,
+  getResearchDocumentRepo,
   getTrackedLLMProviderForProject,
   getTrackedLLMProviderById,
   withErrorHandling,
@@ -75,7 +76,7 @@ export async function generateChapterAction(
     const contentConverter = new TipTapContentService();
     const useCase = new GenerateChapterUseCase(
       await getRepository(),
-      new AIContextBuilder(await getMetadataRepo()),
+      new AIContextBuilder(await getMetadataRepo(), await getResearchDocumentRepo()),
       llmProvider,
       contentConverter
     );

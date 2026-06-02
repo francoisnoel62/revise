@@ -18,6 +18,10 @@ export interface AutocompleteOptions {
    */
   projectId?: string;
   /**
+   * Current chapter ID — used to inject chapter-linked research docs as context
+   */
+  chapterId?: string;
+  /**
    * Whether to use streaming mode
    */
   useStreaming: boolean;
@@ -32,6 +36,7 @@ export interface AutocompleteStorage {
   isLoading: boolean;
   abortController: AbortController | null;
   enabled: boolean;
+  chapterId?: string;
 }
 
 declare module '@tiptap/core' {
@@ -41,6 +46,10 @@ declare module '@tiptap/core' {
        * Set whether autocompletion is enabled
        */
       setAutocompleteEnabled: (enabled: boolean) => ReturnType;
+      /**
+       * Set the current chapter ID (for chapter-linked research context)
+       */
+      setAutocompleteChapterId: (chapterId?: string) => ReturnType;
     };
   }
 }
@@ -133,6 +142,7 @@ async function streamCompletion(
         projectId: options.projectId,
         textBeforeCursor: textBefore,
         textAfterCursor: textAfter,
+        chapterId: storage.chapterId,
       }),
       signal: abortController.signal,
     });
@@ -214,6 +224,7 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
     return {
       onComplete: async () => null,
       projectId: undefined,
+      chapterId: undefined,
       useStreaming: true,
       enabled: true,
     };
@@ -225,6 +236,7 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
       isLoading: false,
       abortController: null,
       enabled: this.options.enabled,
+      chapterId: this.options.chapterId,
     };
   },
 
@@ -234,6 +246,12 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
         (enabled: boolean) =>
         () => {
           this.storage.enabled = enabled;
+          return true;
+        },
+      setAutocompleteChapterId:
+        (chapterId?: string) =>
+        () => {
+          this.storage.chapterId = chapterId;
           return true;
         },
     };

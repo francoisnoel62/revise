@@ -38,6 +38,14 @@ describe('MetadataCache', () => {
       expect(cache.get('user1', 'absent')).toBeNull();
     });
 
+    it('should key entries by chapter', () => {
+      cache.set('user1', 'project1', 'ctxA', 'chA');
+      cache.set('user1', 'project1', 'ctxB', 'chB');
+
+      expect(cache.get('user1', 'project1', 'chA')).toBe('ctxA');
+      expect(cache.get('user1', 'project1', 'chB')).toBe('ctxB');
+    });
+
     it('should return null for expired entry', () => {
       cache.set('user1', 'project1', 'some context');
 
@@ -60,14 +68,16 @@ describe('MetadataCache', () => {
   });
 
   describe('invalidate', () => {
-    it('should invalidate specific project cache', () => {
-      cache.set('user1', 'project1', 'ctx');
-      cache.set('user1', 'project2', 'ctx');
+    it('should invalidate all chapter entries of a project, keeping other projects', () => {
+      cache.set('user1', 'project1', 'a', 'chA');
+      cache.set('user1', 'project1', 'b', 'chB');
+      cache.set('user1', 'project2', 'c', 'chA');
 
       cache.invalidate('user1', 'project1');
 
-      expect(cache.get('user1', 'project1')).toBeNull();
-      expect(cache.get('user1', 'project2')).toBe('ctx');
+      expect(cache.get('user1', 'project1', 'chA')).toBeNull();
+      expect(cache.get('user1', 'project1', 'chB')).toBeNull();
+      expect(cache.get('user1', 'project2', 'chA')).toBe('c');
     });
   });
 

@@ -6,6 +6,7 @@ import { auth } from '@/infrastructure/auth/auth-config';
 import {
   getProviderRepository,
   getMetadataRepository,
+  getResearchDocumentRepository,
   getPromptRepository,
   createLLMProvider,
 } from '@/infrastructure/config/providers';
@@ -19,6 +20,7 @@ interface CompletionRequest {
   projectId: string;
   textBeforeCursor: string;
   textAfterCursor?: string;
+  chapterId?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -38,7 +40,7 @@ export async function POST(request: NextRequest) {
     return new Response('Invalid request body', { status: 400 });
   }
 
-  const { projectId, textBeforeCursor, textAfterCursor } = body;
+  const { projectId, textBeforeCursor, textAfterCursor, chapterId } = body;
 
   if (!projectId || !textBeforeCursor) {
     return new Response('Missing required fields', { status: 400 });
@@ -81,14 +83,15 @@ export async function POST(request: NextRequest) {
     return new Response('No AI provider configured', { status: 400 });
   }
 
-  // 4. Build completion context block (with caching)
-  let projectContext = metadataCache.get(userId, projectId);
+  // 4. Build completion context block (with caching, keyed by chapter)
+  let projectContext = metadataCache.get(userId, projectId, chapterId);
 
   if (projectContext === null) {
     const metadataRepo = await getMetadataRepository();
-    const builder = new AIContextBuilder(metadataRepo);
-    projectContext = await builder.buildCompletionContext(userId, projectId);
-    metadataCache.set(userId, projectId, projectContext);
+    const researchRepo = await getResearchDocumentRepository();
+    const builder = new AIContextBuilder(metadataRepo, researchRepo);
+    projectContext = await builder.buildCompletionContext(userId, projectId, chapterId);
+    metadataCache.set(userId, projectId, projectContext, chapterId);
   }
 
   // 5. Create streaming response
