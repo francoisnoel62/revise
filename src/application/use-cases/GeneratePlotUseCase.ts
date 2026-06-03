@@ -10,7 +10,7 @@ import {
   IdGenerator,
   Plot,
 } from '../../domain';
-import { hashText } from '../../infrastructure/utils/text-hash';
+import { hashText } from '../utils/text-hash';
 
 export interface GeneratePlotInput {
   ownerId: string;

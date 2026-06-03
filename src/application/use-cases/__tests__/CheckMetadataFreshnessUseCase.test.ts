@@ -5,7 +5,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { CheckMetadataFreshnessUseCase } from '../CheckMetadataFreshnessUseCase';
 import { ProjectMetadata } from '../../../domain/entities/ProjectMetadata';
 import { extractProjectFullText } from '../../services/project-text';
-import { hashText } from '../../../infrastructure/utils/text-hash';
+import { hashText } from '../../utils/text-hash';
 
 const chapterJson = (text: string) =>
   JSON.stringify({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] });
@@ -69,6 +69,28 @@ describe('CheckMetadataFreshnessUseCase', () => {
   it('never marks a non-generated (manual / editorial) metadata stale', async () => {
     const manual = ProjectMetadata.createEmpty('m-manual', 'p1', 'dedication', 'Dédicace');
     const useCase = new CheckMetadataFreshnessUseCase(metadataRepo([manual]) as never, projectRepo(project) as never);
+
+    const result = await useCase.execute({ ownerId: 'u1', projectId: 'p1' });
+
+    expect(result[0].isStale).toBe(false);
+  });
+
+  it('never marks stale a generated fiche that was manually edited by the author', async () => {
+    // Generate from old manuscript, then author edits the content → their version wins.
+    const editedAfterGeneration = new ProjectMetadata(
+      'm-edited', 'p1', 'narrative-analysis', 'Analyse', metaContent,
+      {
+        isGenerated: true,
+        generatedAt: new Date('2025-01-01T10:00:00Z'),
+        lastEdited: new Date('2025-06-01T12:00:00Z'), // edited well after generation
+        contentHash: 'old-hash', // manuscript has since changed
+        structuredData: '{}',
+      }
+    );
+    const useCase = new CheckMetadataFreshnessUseCase(
+      metadataRepo([editedAfterGeneration]) as never,
+      projectRepo(project) as never
+    );
 
     const result = await useCase.execute({ ownerId: 'u1', projectId: 'p1' });
 

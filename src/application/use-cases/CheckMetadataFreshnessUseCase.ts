@@ -3,7 +3,7 @@
 
 import { MetadataRepository, ProjectRepository } from '../../domain';
 import { extractProjectFullText } from '../services/project-text';
-import { hashText } from '../../infrastructure/utils/text-hash';
+import { hashText } from '../utils/text-hash';
 
 export interface MetadataFreshness {
   id: string;
@@ -37,8 +37,13 @@ export class CheckMetadataFreshnessUseCase {
     return metadataList.map((metadata) => ({
       id: metadata.getId(),
       typeKey: metadata.getTypeKey(),
-      // Only AI-generated analyses can be "stale"; manual/editorial metadata never is.
-      isStale: currentHash !== null && metadata.isGenerated() && metadata.needsRegeneration(currentHash),
+      // Only AI-generated analyses that the author hasn't manually overridden can be "stale".
+      // wasEditedSinceGeneration() means the author already updated the fiche — their version wins.
+      isStale:
+        currentHash !== null &&
+        metadata.isGenerated() &&
+        !metadata.wasEditedSinceGeneration() &&
+        metadata.needsRegeneration(currentHash),
     }));
   }
 }

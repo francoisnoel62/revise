@@ -4,9 +4,14 @@
 import { describe, it, expect, vi } from 'vitest';
 import { MetadataContextBuilder } from '../MetadataContextBuilder';
 
-const makeMetadata = (typeKey: string, structuredData: string | null) => ({
+const makeMetadata = (
+  typeKey: string,
+  structuredData: string | null,
+  opts: { editedSinceGeneration?: boolean } = {}
+) => ({
   getTypeKey: () => typeKey,
   getStructuredData: () => structuredData,
+  wasEditedSinceGeneration: () => opts.editedSinceGeneration ?? false,
 });
 
 const mockRepo = (items: ReturnType<typeof makeMetadata>[]) => ({
@@ -53,6 +58,20 @@ describe('MetadataContextBuilder', () => {
       expect(ctx.narrative).toEqual(narrative);
       expect(ctx.stylisticDNA).toBeUndefined();
       expect(ctx.worldbuilding).toBeUndefined();
+    });
+  });
+
+  describe('author edit wins', () => {
+    it('should exclude a fiche that was edited after AI generation from synthesis context', async () => {
+      const repo = mockRepo([
+        makeMetadata('narrative-analysis', JSON.stringify(narrative), { editedSinceGeneration: true }),
+        makeMetadata('stylistic-dna', JSON.stringify(stylisticDNA)),
+      ]);
+      const builder = new MetadataContextBuilder(repo as never);
+      const ctx = await builder.buildForSynthesis('u1', 'p1');
+
+      expect(ctx.narrative).toBeUndefined();
+      expect(ctx.stylisticDNA).toEqual(stylisticDNA);
     });
   });
 

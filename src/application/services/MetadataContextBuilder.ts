@@ -45,6 +45,7 @@ export class MetadataContextBuilder {
         const typeKey = metadata.getTypeKey();
         if (!typeKeys.includes(typeKey)) continue;
 
+        if (metadata.wasEditedSinceGeneration()) continue;
         const raw = metadata.getStructuredData();
         if (!raw) continue;
 

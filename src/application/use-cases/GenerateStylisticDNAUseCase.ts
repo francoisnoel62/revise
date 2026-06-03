@@ -10,7 +10,7 @@ import {
   IdGenerator,
   StylisticDNA,
 } from '../../domain';
-import { hashText } from '../../infrastructure/utils/text-hash';
+import { hashText } from '../utils/text-hash';
 
 export interface GenerateStylisticDNAInput {
   ownerId: string;

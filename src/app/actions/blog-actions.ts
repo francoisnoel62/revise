@@ -14,7 +14,7 @@ import {
 } from './utils';
 import { LoadPublishedBlogArticlesUseCase } from '@/application/use-cases/LoadPublishedBlogArticlesUseCase';
 import { RecordArticleViewUseCase } from '@/application/use-cases/RecordArticleViewUseCase';
-import { hashText } from '@/infrastructure/utils/text-hash';
+import { hashText } from '@/application/utils/text-hash';
 import { LoadPublishedBlogArticlesPaginatedUseCase } from '@/application/use-cases/LoadPublishedBlogArticlesPaginatedUseCase';
 import { LoadBlogArticleBySlugUseCase } from '@/application/use-cases/LoadBlogArticleBySlugUseCase';
 import { CreateBlogArticleUseCase } from '@/application/use-cases/CreateBlogArticleUseCase';
