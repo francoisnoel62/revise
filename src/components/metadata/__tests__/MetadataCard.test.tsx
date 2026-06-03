@@ -204,4 +204,16 @@ describe('MetadataCard', () => {
       expect(mockHandlers.onRegenerate).toHaveBeenCalledWith('narrative-analysis', 'provider-1');
     });
   });
+
+  describe('stale indicator', () => {
+    it('shows the "version antérieure" notice when isStale is true', () => {
+      render(<MetadataCard metadata={mockMetadata} {...mockHandlers} isStale />);
+      expect(screen.getByText(/version antérieure/i)).toBeInTheDocument();
+    });
+
+    it('does not show the notice when isStale is false', () => {
+      render(<MetadataCard metadata={mockMetadata} {...mockHandlers} isStale={false} />);
+      expect(screen.queryByText(/version antérieure/i)).not.toBeInTheDocument();
+    });
+  });
 });
