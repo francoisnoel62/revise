@@ -99,6 +99,7 @@ export class GenerateWorldbuildingUseCase {
     if (metadata) {
       metadata.updateContent(contentJson, contentHash);
       metadata.markAsGenerated();
+      metadata.updateStructuredData(JSON.stringify(analysis));
       await this.metadataRepository.update(input.ownerId, metadata);
     } else {
       metadata = ProjectMetadata.createGenerated(
@@ -107,7 +108,8 @@ export class GenerateWorldbuildingUseCase {
         GenerateWorldbuildingUseCase.TYPE_KEY,
         GenerateWorldbuildingUseCase.TITLE,
         contentJson,
-        contentHash
+        contentHash,
+        JSON.stringify(analysis)
       );
       await this.metadataRepository.create(input.ownerId, metadata);
     }

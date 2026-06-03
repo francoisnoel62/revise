@@ -91,9 +91,10 @@ export class AnthropicProvider implements LLMProvider {
 
   async generateRewrites(
     text: string,
-    context?: string
+    context?: string,
+    authorProfile?: string
   ): Promise<RewriteProposal[]> {
-    const systemPrompt = this.buildSystemPrompt();
+    const systemPrompt = this.buildSystemPrompt(authorProfile);
     const userPrompt = this.buildUserPrompt(text, context);
 
     try {
@@ -119,7 +120,7 @@ export class AnthropicProvider implements LLMProvider {
     }
   }
 
-  private buildSystemPrompt(): string {
+  private buildSystemPrompt(authorProfile?: string): string {
     return `Tu es un assistant d'écriture littéraire expert. Ton rôle est de proposer des reformulations qui ÉLÈVENT la qualité littéraire du texte tout en préservant absolument le sens et la voix de l'auteur.
 
 MÉTHODE D'ANALYSE PRÉLIMINAIRE:
@@ -170,7 +171,7 @@ INTERDITS ABSOLUS:
 - Ne JAMAIS changer le sens
 - Ne JAMAIS ajouter d'information absente de l'original
 - Ne JAMAIS remplacer un style authentique par des clichés
-- Ne JAMAIS "corriger" un choix stylistique intentionnel de l'auteur
+- Ne JAMAIS "corriger" un choix stylistique intentionnel de l'auteur${authorProfile ? '\n\n' + authorProfile : ''}
 
 FORMAT DE SORTIE (JSON):
 Réponds UNIQUEMENT avec un objet JSON valide, sans aucun texte avant ou après.
@@ -1263,18 +1264,11 @@ INSTRUCTIONS SUPPLÉMENTAIRES:
   async generateChapter(
     fullText: string,
     generationType: ChapterGenerationTypeKey,
-    metadata?: {
-      narrative?: NarrativeAnalysis;
-      stylisticDNA?: StylisticDNA;
-      characters?: Characters;
-      plot?: Plot;
-      worldbuilding?: Worldbuilding;
-      chapterSummaries?: ChapterSummaries;
-    }
+    projectContext?: string
   ): Promise<ChapterGeneration> {
     // Load the appropriate prompt based on generation type
     const basePrompt = await this.loadChapterGenerationPrompt(generationType);
-    const systemPrompt = this.enhanceChapterGenerationPromptForAnthropic(basePrompt, metadata);
+    const systemPrompt = this.enhanceChapterGenerationPromptForAnthropic(basePrompt, projectContext);
 
     // Determine token limit based on generation type
     const tokenLimit = generationType === 'chapter-full' ? 4096 : 2048;
@@ -1319,55 +1313,9 @@ INSTRUCTIONS SUPPLÉMENTAIRES:
 
   private enhanceChapterGenerationPromptForAnthropic(
     basePrompt: string,
-    metadata?: {
-      narrative?: NarrativeAnalysis;
-      stylisticDNA?: StylisticDNA;
-      characters?: Characters;
-      plot?: Plot;
-      worldbuilding?: Worldbuilding;
-      chapterSummaries?: ChapterSummaries;
-    }
+    projectContext?: string
   ): string {
-    let contextInfo = '';
-
-    if (metadata) {
-      if (metadata.narrative) {
-        contextInfo += '\n\n--- ANALYSE NARRATIVE ---\n';
-        contextInfo += `Narrateur: ${metadata.narrative.narratorType}\n`;
-        contextInfo += `Focalisation: ${metadata.narrative.focalization}\n`;
-        contextInfo += `Temporalité: ${metadata.narrative.temporality}\n`;
-      }
-      if (metadata.stylisticDNA) {
-        contextInfo += '\n\n--- ADN STYLISTIQUE ---\n';
-        contextInfo += `Registre: ${metadata.stylisticDNA.registerAndLexicon}\n`;
-        contextInfo += `Rythme: ${metadata.stylisticDNA.rhythmAndBreathing}\n`;
-        contextInfo += `Règles: ${metadata.stylisticDNA.writingRules.slice(0, 5).join(', ')}\n`;
-      }
-      if (metadata.characters) {
-        contextInfo += '\n\n--- PERSONNAGES ---\n';
-        for (const char of metadata.characters.characterProfiles.slice(0, 5)) {
-          contextInfo += `- ${char.name}: ${char.identity}. ${char.psychology}\n`;
-        }
-      }
-      if (metadata.plot) {
-        contextInfo += '\n\n--- INTRIGUE ---\n';
-        contextInfo += `Enjeux: ${metadata.plot.stakes}\n`;
-        contextInfo += `État actuel: ${metadata.plot.plotState}\n`;
-        contextInfo += `Conflits: ${metadata.plot.conflicts}\n`;
-      }
-      if (metadata.worldbuilding) {
-        contextInfo += '\n\n--- UNIVERS ---\n';
-        contextInfo += `Atmosphère: ${metadata.worldbuilding.atmosphere}\n`;
-        contextInfo += `Thèmes: ${metadata.worldbuilding.explicitThemes}\n`;
-      }
-      if (metadata.chapterSummaries) {
-        contextInfo += '\n\n--- RÉSUMÉS DES CHAPITRES PRÉCÉDENTS ---\n';
-        for (const chap of metadata.chapterSummaries.chapters) {
-          contextInfo += `Chapitre ${chap.chapterNumber} (${chap.chapterTitle}): ${chap.summary}\n`;
-        }
-        contextInfo += `\nArc narratif global: ${metadata.chapterSummaries.overallArc}\n`;
-      }
-    }
+    const contextInfo = projectContext ?? '';
 
     return `${basePrompt}${contextInfo ? '\n\n---\n\nCONTEXTE DU PROJET:' + contextInfo : ''}
 
@@ -1411,15 +1359,10 @@ INSTRUCTIONS FINALES:
   async generateCompletion(
     textBeforeCursor: string,
     textAfterCursor?: string,
-    metadata?: {
-      narrative?: NarrativeAnalysis;
-      stylisticDNA?: StylisticDNA;
-      characters?: Characters;
-      plot?: Plot;
-    }
+    projectContext?: string
   ): Promise<string> {
     const basePrompt = await this.promptRepository.getCompletionPrompt();
-    const systemPrompt = this.enhanceCompletionPrompt(basePrompt, metadata);
+    const systemPrompt = projectContext ? `${basePrompt}${projectContext}` : basePrompt;
 
     // Build user prompt with context
     let userPrompt = `[AVANT]\n${textBeforeCursor}`;
@@ -1449,43 +1392,6 @@ INSTRUCTIONS FINALES:
     }
   }
 
-  private enhanceCompletionPrompt(
-    basePrompt: string,
-    metadata?: {
-      narrative?: NarrativeAnalysis;
-      stylisticDNA?: StylisticDNA;
-      characters?: Characters;
-      plot?: Plot;
-    }
-  ): string {
-    let contextInfo = '';
-
-    if (metadata) {
-      if (metadata.stylisticDNA) {
-        contextInfo += '\n\n[MÉTADONNÉES - STYLE]\n';
-        contextInfo += `Registre: ${metadata.stylisticDNA.registerAndLexicon}\n`;
-        contextInfo += `Rythme: ${metadata.stylisticDNA.rhythmAndBreathing}\n`;
-      }
-      if (metadata.narrative) {
-        contextInfo += '\n\n[MÉTADONNÉES - NARRATION]\n';
-        contextInfo += `Point de vue: ${metadata.narrative.narratorType}\n`;
-        contextInfo += `Focalisation: ${metadata.narrative.focalization}\n`;
-      }
-      if (metadata.characters) {
-        contextInfo += '\n\n[MÉTADONNÉES - PERSONNAGES]\n';
-        for (const char of metadata.characters.characterProfiles.slice(0, 3)) {
-          contextInfo += `- ${char.name}: ${char.identity}\n`;
-        }
-      }
-      if (metadata.plot) {
-        contextInfo += '\n\n[MÉTADONNÉES - INTRIGUE]\n';
-        contextInfo += `État actuel: ${metadata.plot.plotState}\n`;
-      }
-    }
-
-    return `${basePrompt}${contextInfo}`;
-  }
-
   private cleanCompletionResponse(content: string): string {
     let text = content.trim();
 
@@ -1509,15 +1415,10 @@ INSTRUCTIONS FINALES:
   async *generateCompletionStream(
     textBeforeCursor: string,
     textAfterCursor?: string,
-    metadata?: {
-      narrative?: NarrativeAnalysis;
-      stylisticDNA?: StylisticDNA;
-      characters?: Characters;
-      plot?: Plot;
-    }
+    projectContext?: string
   ): AsyncIterableIterator<string> {
     const basePrompt = await this.promptRepository.getCompletionPrompt();
-    const systemPrompt = this.enhanceCompletionPrompt(basePrompt, metadata);
+    const systemPrompt = projectContext ? `${basePrompt}${projectContext}` : basePrompt;
 
     // Build user prompt with context
     let userPrompt = `[AVANT]\n${textBeforeCursor}`;

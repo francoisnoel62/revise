@@ -15,6 +15,7 @@ import { ListResearchDocumentsUseCase } from '@/application/use-cases/ListResear
 import { UpdateResearchDocumentUseCase } from '@/application/use-cases/UpdateResearchDocumentUseCase';
 import { DeleteResearchDocumentUseCase } from '@/application/use-cases/DeleteResearchDocumentUseCase';
 import { ResearchDocument, ResearchDocumentType } from '@/domain/entities/ResearchDocument';
+import { metadataCache } from '@/infrastructure/cache/MetadataCache';
 
 export interface SerializedResearchDocument {
   id: string;
@@ -78,6 +79,9 @@ export async function createResearchDocumentAction(
       ...options,
     });
 
+    // Research docs feed the AI completion/generation context — drop the cached blocks.
+    metadataCache.invalidateUser(auth.userId);
+
     return serializeDocument(document);
   });
 }
@@ -132,6 +136,8 @@ export async function updateResearchDocumentAction(
       ...updates,
     });
 
+    metadataCache.invalidateUser(auth.userId);
+
     return serializeDocument(document);
   });
 }
@@ -149,6 +155,8 @@ export async function deleteResearchDocumentAction(
       userId: auth.userId,
       documentId,
     });
+
+    metadataCache.invalidateUser(auth.userId);
   });
 }
 

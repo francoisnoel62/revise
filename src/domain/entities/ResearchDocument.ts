@@ -136,6 +136,26 @@ export class ResearchDocument {
     return this.content ? { ...this.content } : null;
   }
 
+  /** Plain text of the content (handles a plain { text } body and TipTap shapes), '' if none. */
+  getContentText(): string {
+    return ResearchDocument.extractText(this.content).trim();
+  }
+
+  private static extractText(value: unknown): string {
+    if (typeof value === 'string') return value;
+    if (Array.isArray(value)) {
+      return value.map((v) => ResearchDocument.extractText(v)).join(' ');
+    }
+    if (value && typeof value === 'object') {
+      const node = value as Record<string, unknown>;
+      const parts: string[] = [];
+      if (typeof node.text === 'string') parts.push(node.text);
+      if (Array.isArray(node.content)) parts.push(ResearchDocument.extractText(node.content));
+      return parts.join(' ');
+    }
+    return '';
+  }
+
   getUrl(): string | null {
     return this.url;
   }

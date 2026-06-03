@@ -121,10 +121,18 @@ describe('TrackedLLMProvider', () => {
     it('delegates to wrapped provider and returns result', async () => {
       const result = await trackedProvider.generateRewrites('test text', 'context');
 
-      expect(mockProvider.generateRewrites).toHaveBeenCalledWith('test text', 'context');
+      expect(mockProvider.generateRewrites).toHaveBeenCalledWith('test text', 'context', undefined);
       expect(result).toHaveLength(3);
       // RewriteProposal instances have getContent method
       expect(result[0]).toBeInstanceOf(RewriteProposal);
+    });
+
+    it('passes the authorProfile block to wrapped provider', async () => {
+      const authorProfile = "--- PROFIL STYLISTIQUE DE L'AUTEUR ---\nREGISTRE ET LEXIQUE: Literary";
+
+      await trackedProvider.generateRewrites('text', 'context', authorProfile);
+
+      expect(mockProvider.generateRewrites).toHaveBeenCalledWith('text', 'context', authorProfile);
     });
 
     it('records usage after successful call', async () => {

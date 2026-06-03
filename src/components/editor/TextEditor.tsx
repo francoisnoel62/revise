@@ -59,7 +59,12 @@ export function TextEditor({
       if (!id) return null;
 
       try {
-        const result = await generateCompletionAction(id, textBeforeCursor, textAfterCursor);
+        const result = await generateCompletionAction(
+          id,
+          textBeforeCursor,
+          textAfterCursor,
+          project?.activeChapterId ?? undefined
+        );
         if (result.success && result.data) {
           return result.data.completion;
         }
@@ -68,7 +73,7 @@ export function TextEditor({
         return null;
       }
     },
-    [projectId, project?.id]
+    [projectId, project?.id, project?.activeChapterId]
   );
 
   // Enable autosave
@@ -105,6 +110,7 @@ export function TextEditor({
         enabled: autocompleteEnabled,
         onComplete: handleAutocomplete,
         projectId: projectId || project?.id,
+        chapterId: project?.activeChapterId ?? undefined,
         useStreaming: true,
       }),
     ],
@@ -153,6 +159,12 @@ export function TextEditor({
     // Use the command to update autocomplete enabled state
     editor.commands.setAutocompleteEnabled(autocompleteEnabled);
   }, [editor, autocompleteEnabled]);
+
+  // Keep autocomplete aware of the current chapter (for chapter-linked research context)
+  useEffect(() => {
+    if (!editor) return;
+    editor.commands.setAutocompleteChapterId(project?.activeChapterId ?? undefined);
+  }, [editor, project?.activeChapterId]);
 
   if (!editor) return null;
 

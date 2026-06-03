@@ -107,6 +107,7 @@ describe('GenerateChapterSummariesUseCase', () => {
       getId: () => 'existing-id',
       updateContent: vi.fn(),
       markAsGenerated: vi.fn(),
+      updateStructuredData: vi.fn(),
       isGenerated: () => true,
       needsRegeneration: vi.fn().mockReturnValue(true),
     };
@@ -153,6 +154,7 @@ describe('GenerateChapterSummariesUseCase', () => {
       getId: () => 'cached-id',
       updateContent: vi.fn(),
       markAsGenerated: vi.fn(),
+      updateStructuredData: vi.fn(),
       needsRegeneration: vi.fn().mockReturnValue(false),
       isGenerated: () => true,
     };

@@ -4,11 +4,12 @@
 'use server';
 
 import { GenerateCompletionUseCase } from '@/application/use-cases/GenerateCompletionUseCase';
-import { getContentConverter } from '@/infrastructure/config/providers';
+import { AIContextBuilder } from '@/application/services/AIContextBuilder';
 import {
   ActionResult,
   getAuthenticatedUserId,
   getMetadataRepo,
+  getResearchDocumentRepo,
   getTrackedLLMProviderForProject,
   withErrorHandling,
 } from './utils';
@@ -33,7 +34,8 @@ export interface CompletionResult {
 export async function generateCompletionAction(
   projectId: string,
   textBeforeCursor: string,
-  textAfterCursor?: string
+  textAfterCursor?: string,
+  chapterId?: string
 ): Promise<ActionResult<CompletionResult>> {
   // 1. Authenticate
   const auth = await getAuthenticatedUserId();
@@ -56,11 +58,9 @@ export async function generateCompletionAction(
     const llmProvider = await getTrackedLLMProviderForProject(auth.userId, projectId);
 
     // 5. Execute use case with injected dependencies via composition root
-    const contentConverter = getContentConverter();
     const useCase = new GenerateCompletionUseCase(
-      await getMetadataRepo(),
-      llmProvider,
-      contentConverter
+      new AIContextBuilder(await getMetadataRepo(), await getResearchDocumentRepo()),
+      llmProvider
     );
 
     const result = await useCase.execute({
@@ -68,6 +68,7 @@ export async function generateCompletionAction(
       projectId,
       textBeforeCursor,
       textAfterCursor,
+      chapterId,
     });
 
     // 6. Return result

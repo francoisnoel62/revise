@@ -103,6 +103,12 @@ export function ResearchDocumentCard({
           </p>
         )}
 
+        {typeof document.content?.text === 'string' && document.content.text.trim() && (
+          <p className="text-sm text-muted-foreground line-clamp-3 whitespace-pre-wrap">
+            {document.content.text}
+          </p>
+        )}
+
         {document.tags.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {document.tags.slice(0, 4).map((tag) => (

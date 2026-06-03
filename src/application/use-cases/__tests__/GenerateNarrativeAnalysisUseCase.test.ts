@@ -90,11 +90,49 @@ describe('GenerateNarrativeAnalysisUseCase', () => {
     );
   });
 
+  it('should store structuredData on create path', async () => {
+    mockProjectRepository.loadProject.mockResolvedValue(mockProject);
+    mockLLMProvider.generateNarrativeAnalysis.mockResolvedValue(mockAnalysis);
+    mockMetadataRepository.findByProjectAndType.mockResolvedValue(null);
+    mockMetadataRepository.create.mockImplementation((_, m) => Promise.resolve(m));
+
+    const result = await useCase.execute({ ownerId: 'user-1', projectId: 'project-1' });
+
+    const raw = result.metadata.getStructuredData();
+    expect(raw).not.toBeNull();
+    const parsed = JSON.parse(raw!);
+    expect(parsed.narratorType).toBe(mockAnalysis.narratorType);
+    expect(parsed.narrativeVoice).toEqual(mockAnalysis.narrativeVoice);
+  });
+
+  it('should store structuredData on update path', async () => {
+    const existingMetadata = {
+      getId: () => 'existing-id',
+      updateContent: vi.fn(),
+      markAsGenerated: vi.fn(),
+      updateStructuredData: vi.fn(),
+      isGenerated: () => true,
+      needsRegeneration: vi.fn().mockReturnValue(true),
+    };
+
+    mockProjectRepository.loadProject.mockResolvedValue(mockProject);
+    mockLLMProvider.generateNarrativeAnalysis.mockResolvedValue(mockAnalysis);
+    mockMetadataRepository.findByProjectAndType.mockResolvedValue(existingMetadata);
+    mockMetadataRepository.update.mockResolvedValue(existingMetadata);
+
+    await useCase.execute({ ownerId: 'user-1', projectId: 'project-1' });
+
+    expect(existingMetadata.updateStructuredData).toHaveBeenCalledWith(
+      JSON.stringify(mockAnalysis)
+    );
+  });
+
   it('should update existing metadata when regenerating', async () => {
     const existingMetadata = {
       getId: () => 'existing-id',
       updateContent: vi.fn(),
       markAsGenerated: vi.fn(),
+      updateStructuredData: vi.fn(),
       isGenerated: () => true,
       needsRegeneration: vi.fn().mockReturnValue(true),
     };

@@ -8,6 +8,10 @@ import { TextSelection } from '@/domain/value-objects/TextSelection';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
 import { LLMProvider } from '@/domain/interfaces/LLMProvider';
 
+import { vi } from 'vitest';
+import { StylisticDNA } from '@/domain/value-objects/StylisticDNA';
+import { NarrativeAnalysis } from '@/domain/value-objects/NarrativeAnalysis';
+
 // Test double for LLMProvider
 class MockLLMProvider implements LLMProvider {
   private mockProposals: RewriteProposal[] = [];
@@ -16,7 +20,7 @@ class MockLLMProvider implements LLMProvider {
     this.mockProposals = proposals;
   }
 
-  async generateRewrites(_text: string, _context?: string): Promise<RewriteProposal[]> {
+  async generateRewrites(_text: string, _context?: string, _metadata?: unknown): Promise<RewriteProposal[]> {
     return this.mockProposals;
   }
 
@@ -265,6 +269,79 @@ describe('RewriteTextUseCase', () => {
       const brokenText = tiptapJson.substring(brokenSelection.start, brokenSelection.end);
       expect(brokenText).toBe('{"typ'); // This proves the bug - positions don't align!
       expect(brokenText).not.toBe('Hello');
+    });
+
+    it('should pass metadata to llmProvider.generateRewrites', async () => {
+      const mockGenerate = vi.fn().mockResolvedValue([new RewriteProposal('result', 'style')]);
+      const providerWithMetadata = {
+        generateRewrites: mockGenerate,
+        testConnection: vi.fn().mockResolvedValue({ valid: true }),
+        getProviderName: vi.fn().mockReturnValue('Mock'),
+        getModel: vi.fn().mockReturnValue('mock'),
+      } as unknown as LLMProvider;
+
+      const stylisticDNA: StylisticDNA = {
+        registerAndLexicon: 'Literary',
+        syntax: 'Complex',
+        figuresOfStyle: '',
+        ticsAndSignatures: '',
+        rhythmAndBreathing: 'Slow',
+        writingRules: ['Rule 1', 'Rule 2'],
+        summary: '',
+      };
+
+      const caseWithMeta = new RewriteTextUseCase(providerWithMetadata);
+      await caseWithMeta.executeWithText('text', 'context', { stylisticDNA });
+
+      expect(mockGenerate).toHaveBeenCalledWith('text', 'context', { stylisticDNA });
+    });
+
+    it('should work without metadata (undefined) — unchanged behavior', async () => {
+      const mockGenerate = vi.fn().mockResolvedValue([new RewriteProposal('result', 'style')]);
+      const provider = {
+        generateRewrites: mockGenerate,
+        testConnection: vi.fn().mockResolvedValue({ valid: true }),
+        getProviderName: vi.fn().mockReturnValue('Mock'),
+        getModel: vi.fn().mockReturnValue('mock'),
+      } as unknown as LLMProvider;
+
+      const caseNoMeta = new RewriteTextUseCase(provider);
+      await caseNoMeta.executeWithText('text', 'context');
+
+      expect(mockGenerate).toHaveBeenCalledWith('text', 'context', undefined);
+    });
+
+    it('should pass both stylisticDNA and narrative when both provided', async () => {
+      const mockGenerate = vi.fn().mockResolvedValue([new RewriteProposal('result', 'style')]);
+      const provider = {
+        generateRewrites: mockGenerate,
+        testConnection: vi.fn().mockResolvedValue({ valid: true }),
+        getProviderName: vi.fn().mockReturnValue('Mock'),
+        getModel: vi.fn().mockReturnValue('mock'),
+      } as unknown as LLMProvider;
+
+      const narrative: NarrativeAnalysis = {
+        narratorType: 'Third person',
+        focalization: 'External',
+        temporality: 'Past',
+        chapterStructure: 'Short',
+        narrativeVoice: ['Detached'],
+        summary: '',
+      };
+      const stylisticDNA: StylisticDNA = {
+        registerAndLexicon: 'Informal',
+        syntax: 'Simple',
+        figuresOfStyle: '',
+        ticsAndSignatures: '',
+        rhythmAndBreathing: 'Fast',
+        writingRules: [],
+        summary: '',
+      };
+
+      const caseWithBoth = new RewriteTextUseCase(provider);
+      await caseWithBoth.executeWithText('text', 'context', { narrative, stylisticDNA });
+
+      expect(mockGenerate).toHaveBeenCalledWith('text', 'context', { narrative, stylisticDNA });
     });
   });
 });

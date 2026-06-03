@@ -4,7 +4,7 @@
 'use client';
 
 import { useState } from 'react';
-import { MoreVertical, Pencil, Trash2, Sparkles, RefreshCw } from 'lucide-react';
+import { MoreVertical, Pencil, Trash2, Sparkles, RefreshCw, History } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -59,6 +59,7 @@ interface MetadataCardProps {
   defaultProviderId?: string;
   onRegenerate?: (typeKey: string, providerId: string) => void;
   isRegenerating?: boolean;
+  isStale?: boolean;
 }
 
 export function MetadataCard({
@@ -70,6 +71,7 @@ export function MetadataCard({
   defaultProviderId,
   onRegenerate,
   isRegenerating = false,
+  isStale = false,
 }: MetadataCardProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showRenameDialog, setShowRenameDialog] = useState(false);
@@ -210,7 +212,13 @@ export function MetadataCard({
             </DropdownMenuContent>
           </DropdownMenu>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-2">
+          {isStale && (
+            <div className="flex items-center gap-1.5 text-xs text-amber-600">
+              <History className="h-3.5 w-3.5 shrink-0" />
+              <span>Basé sur une version antérieure du manuscrit — régénérer</span>
+            </div>
+          )}
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>{formatWordCount(metadata.wordCount)}</span>
             <span>{formatDate(metadata.lastEdited)}</span>

@@ -1,22 +1,8 @@
-// ABOUTME: In-memory cache for project metadata to reduce database queries
+// ABOUTME: In-memory cache for the project completion context block to reduce database queries
 // ABOUTME: Uses TTL-based expiration and provides cache invalidation methods
 
-import {
-  NarrativeAnalysis,
-  StylisticDNA,
-  Characters,
-  Plot,
-} from '@/domain';
-
-export interface CachedMetadata {
-  narrative?: NarrativeAnalysis;
-  stylisticDNA?: StylisticDNA;
-  characters?: Characters;
-  plot?: Plot;
-}
-
 interface CacheEntry {
-  data: CachedMetadata;
+  data: string;
   timestamp: number;
 }
 
@@ -31,17 +17,18 @@ export class MetadataCache {
   }
 
   /**
-   * Generate cache key from user and project IDs.
+   * Generate cache key from user, project and (optional) chapter IDs.
+   * The completion context depends on the current chapter, so the chapter is part of the key.
    */
-  private getKey(userId: string, projectId: string): string {
-    return `${userId}:${projectId}`;
+  private getKey(userId: string, projectId: string, chapterId?: string): string {
+    return `${userId}:${projectId}:${chapterId ?? '_'}`;
   }
 
   /**
-   * Get cached metadata if available and not expired.
+   * Get cached context if available and not expired.
    */
-  get(userId: string, projectId: string): CachedMetadata | null {
-    const key = this.getKey(userId, projectId);
+  get(userId: string, projectId: string, chapterId?: string): string | null {
+    const key = this.getKey(userId, projectId, chapterId);
     const entry = this.cache.get(key);
 
     if (!entry) {
@@ -58,10 +45,10 @@ export class MetadataCache {
   }
 
   /**
-   * Store metadata in cache.
+   * Store context in cache.
    */
-  set(userId: string, projectId: string, data: CachedMetadata): void {
-    const key = this.getKey(userId, projectId);
+  set(userId: string, projectId: string, data: string, chapterId?: string): void {
+    const key = this.getKey(userId, projectId, chapterId);
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
@@ -69,12 +56,16 @@ export class MetadataCache {
   }
 
   /**
-   * Invalidate cache for a specific project.
-   * Call this when metadata is updated.
+   * Invalidate every chapter entry of a project.
+   * Call this when metadata or research documents change.
    */
   invalidate(userId: string, projectId: string): void {
-    const key = this.getKey(userId, projectId);
-    this.cache.delete(key);
+    const prefix = `${userId}:${projectId}:`;
+    for (const key of this.cache.keys()) {
+      if (key.startsWith(prefix)) {
+        this.cache.delete(key);
+      }
+    }
   }
 
   /**

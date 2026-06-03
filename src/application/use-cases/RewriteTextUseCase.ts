@@ -34,7 +34,8 @@ export class RewriteTextUseCase {
    */
   async executeWithText(
     selectedText: string,
-    fullContext: string
+    fullContext: string,
+    authorProfile?: string
   ): Promise<RewriteProposal[]> {
     if (!selectedText || selectedText.trim().length === 0) {
       throw new Error('Cannot rewrite empty selection');
@@ -42,7 +43,8 @@ export class RewriteTextUseCase {
 
     const proposals = await this.llmProvider.generateRewrites(
       selectedText,
-      fullContext
+      fullContext,
+      authorProfile
     );
 
     return proposals;

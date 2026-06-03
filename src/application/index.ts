@@ -54,6 +54,13 @@ export { RegisterUserUseCase } from './use-cases/RegisterUserUseCase';
 export type { RegisterUserInput } from './use-cases/RegisterUserUseCase';
 export { EmailAlreadyExistsError, ValidationError } from './use-cases/RegisterUserUseCase';
 
+// Application Services
+export { AIContextBuilder } from './services/AIContextBuilder';
+export { MetadataContextBuilder } from './services/MetadataContextBuilder';
+export type {
+  SynthesisContext,
+} from './services/MetadataContextBuilder';
+
 // Metadata Use Cases (Phase 3.6 - Project Metadata Feature)
 export {
   CreateMetadataUseCase,

@@ -10,6 +10,7 @@ export interface ProjectMetadataProperties {
   generatedAt: Date | null;
   isGenerated: boolean;
   contentHash: string | null; // SHA-256 hash of source text when generated
+  structuredData?: string | null; // JSON-serialized AI output object, preserved alongside TipTap content
 }
 
 export class ProjectMetadata {
@@ -18,6 +19,7 @@ export class ProjectMetadata {
   private readonly typeKey: string;
   private title: string;
   private content: string; // TipTap JSON stringified
+  private structuredData: string | null; // JSON-serialized AI output, null for manual metadata
   private properties: ProjectMetadataProperties;
 
   constructor(
@@ -59,6 +61,7 @@ export class ProjectMetadata {
     this.typeKey = typeKey;
     this.title = title.trim();
     this.content = content;
+    this.structuredData = properties?.structuredData ?? null;
     this.properties = {
       wordCount: properties?.wordCount ?? 0,
       characterCount: properties?.characterCount ?? 0,
@@ -93,6 +96,19 @@ export class ProjectMetadata {
     return this.content;
   }
 
+  /** Plain text of the TipTap content, for context injection in fallback. */
+  getContentText(): string {
+    try {
+      return this.extractTextFromTipTapJSON(JSON.parse(this.content)).trim();
+    } catch {
+      return '';
+    }
+  }
+
+  getStructuredData(): string | null {
+    return this.structuredData;
+  }
+
   getProperties(): ProjectMetadataProperties {
     return { ...this.properties };
   }
@@ -123,9 +139,25 @@ export class ProjectMetadata {
   }
 
   markAsGenerated(): void {
-    this.properties.generatedAt = new Date();
+    const now = new Date();
+    this.properties.generatedAt = now;
     this.properties.isGenerated = true;
-    this.properties.lastEdited = new Date();
+    this.properties.lastEdited = now;
+  }
+
+  /**
+   * True if the author edited the content after it was AI-generated.
+   * Used to decide whether structuredData can still be trusted as context.
+   */
+  wasEditedSinceGeneration(): boolean {
+    if (!this.properties.isGenerated || this.properties.generatedAt === null) {
+      return false; // never generated (manual metadata) — no structuredData to distrust
+    }
+    return this.properties.lastEdited.getTime() > this.properties.generatedAt.getTime();
+  }
+
+  updateStructuredData(data: string | null): void {
+    this.structuredData = data;
   }
 
   /**
@@ -175,12 +207,16 @@ export class ProjectMetadata {
     typeKey: string,
     title: string,
     content: string,
-    contentHash: string
+    contentHash: string,
+    structuredData?: string | null
   ): ProjectMetadata {
+    const now = new Date();
     const metadata = new ProjectMetadata(id, projectId, typeKey, title, content, {
       contentHash,
       isGenerated: true,
-      generatedAt: new Date(),
+      generatedAt: now,
+      lastEdited: now,
+      structuredData: structuredData ?? null,
     });
 
     return metadata;

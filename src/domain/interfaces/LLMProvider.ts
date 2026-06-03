@@ -28,7 +28,11 @@ export interface LLMProvider {
    * @returns Promise resolving to array of exactly 3 RewriteProposal objects
    * @throws Error if generation fails or API is unavailable
    */
-  generateRewrites(text: string, context?: string): Promise<RewriteProposal[]>;
+  generateRewrites(
+    text: string,
+    context?: string,
+    authorProfile?: string
+  ): Promise<RewriteProposal[]>;
 
   /**
    * Tests the connection to the provider's API.
@@ -151,14 +155,7 @@ export interface LLMProvider {
   generateChapter(
     fullText: string,
     generationType: ChapterGenerationTypeKey,
-    metadata?: {
-      narrative?: NarrativeAnalysis;
-      stylisticDNA?: StylisticDNA;
-      characters?: Characters;
-      plot?: Plot;
-      worldbuilding?: Worldbuilding;
-      chapterSummaries?: ChapterSummaries;
-    }
+    projectContext?: string
   ): Promise<ChapterGeneration>;
 
   /**
@@ -174,12 +171,7 @@ export interface LLMProvider {
   generateCompletion(
     textBeforeCursor: string,
     textAfterCursor?: string,
-    metadata?: {
-      narrative?: NarrativeAnalysis;
-      stylisticDNA?: StylisticDNA;
-      characters?: Characters;
-      plot?: Plot;
-    }
+    projectContext?: string
   ): Promise<string>;
 
   /**
@@ -195,11 +187,6 @@ export interface LLMProvider {
   generateCompletionStream(
     textBeforeCursor: string,
     textAfterCursor?: string,
-    metadata?: {
-      narrative?: NarrativeAnalysis;
-      stylisticDNA?: StylisticDNA;
-      characters?: Characters;
-      plot?: Plot;
-    }
+    projectContext?: string
   ): AsyncIterableIterator<string>;
 }

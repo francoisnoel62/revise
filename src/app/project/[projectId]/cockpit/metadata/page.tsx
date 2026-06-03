@@ -20,6 +20,7 @@ import {
   generateWorldbuildingAction,
   generateSynthesisAction,
   generateChapterSummariesAction,
+  checkMetadataFreshnessAction,
 } from '@/app/actions/metadata-actions';
 import { loadProjectAction } from '@/app/actions/project-actions';
 import { listProvidersAction, SafeProvider } from '@/app/actions/provider-actions';
@@ -37,6 +38,7 @@ export default function CockpitMetadataListPage() {
   const [generatingType, setGeneratingType] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [staleById, setStaleById] = useState<Record<string, boolean>>({});
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -67,6 +69,16 @@ export default function CockpitMetadataListPage() {
       const providersResult = await listProvidersAction();
       if (providersResult.success) {
         setProviders(providersResult.data);
+      }
+
+      // Freshness check (non-blocking: leave cards unmarked if it fails)
+      const freshnessResult = await checkMetadataFreshnessAction(projectId);
+      if (freshnessResult.success) {
+        const map: Record<string, boolean> = {};
+        for (const item of freshnessResult.data) {
+          map[item.id] = item.isStale;
+        }
+        setStaleById(map);
       }
     } catch {
       setLoadError('Erreur lors du chargement');
@@ -307,6 +319,7 @@ export default function CockpitMetadataListPage() {
             defaultProviderId={projectProviderId}
             onRegenerate={handleRegenerate}
             isRegenerating={generatingType === m.typeKey}
+            isStale={staleById[m.id] ?? false}
           />
         ))}
 

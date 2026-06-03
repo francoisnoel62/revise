@@ -105,6 +105,7 @@ export default function ResearchPage() {
     url: string;
     sourceTitle: string;
     sourceAuthor: string;
+    body: string;
     tags: string[];
   }) => {
     setIsCreating(true);
@@ -113,6 +114,7 @@ export default function ResearchPage() {
         url: data.url || undefined,
         sourceTitle: data.sourceTitle || undefined,
         sourceAuthor: data.sourceAuthor || undefined,
+        content: data.body.trim() ? { text: data.body } : undefined,
         tags: data.tags,
       });
 
@@ -138,6 +140,7 @@ export default function ResearchPage() {
     url: string;
     sourceTitle: string;
     sourceAuthor: string;
+    body: string;
     tags: string[];
   }) => {
     if (!editingDocument) return;
@@ -147,6 +150,7 @@ export default function ResearchPage() {
       url: data.url || null,
       sourceTitle: data.sourceTitle || null,
       sourceAuthor: data.sourceAuthor || null,
+      content: data.body.trim() ? { text: data.body } : null,
       tags: data.tags,
     });
 

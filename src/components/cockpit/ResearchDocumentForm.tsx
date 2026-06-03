@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -26,6 +27,7 @@ interface ResearchDocumentFormData {
   url: string;
   sourceTitle: string;
   sourceAuthor: string;
+  body: string;
   tags: string[];
 }
 
@@ -58,6 +60,7 @@ export function ResearchDocumentForm({
     url: initialValues?.url ?? '',
     sourceTitle: initialValues?.sourceTitle ?? '',
     sourceAuthor: initialValues?.sourceAuthor ?? '',
+    body: typeof initialValues?.content?.text === 'string' ? initialValues.content.text : '',
     tags: initialValues?.tags ?? [],
   });
   const [newTag, setNewTag] = useState('');
@@ -73,6 +76,7 @@ export function ResearchDocumentForm({
         url: '',
         sourceTitle: '',
         sourceAuthor: '',
+        body: '',
         tags: [],
       });
     }
@@ -109,6 +113,7 @@ export function ResearchDocumentForm({
 
   const isLinkType = formData.type === 'link';
   const showSourceFields = ['quote', 'reference'].includes(formData.type);
+  const showBody = ['note', 'quote', 'reference'].includes(formData.type);
   const isValid = formData.title.trim() && (!isLinkType || formData.url.trim());
 
   return (
@@ -205,6 +210,20 @@ export function ResearchDocumentForm({
                 />
               </div>
             </>
+          )}
+
+          {showBody && (
+            <div className="space-y-2">
+              <Label htmlFor="body">Corps (optionnel)</Label>
+              <Textarea
+                id="body"
+                value={formData.body}
+                onChange={(e) => handleChange('body', e.target.value)}
+                placeholder="Scénario, plan détaillé, explication d'intrigue, notes..."
+                rows={6}
+                disabled={isLoading}
+              />
+            </div>
           )}
 
           <div className="space-y-2">
