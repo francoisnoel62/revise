@@ -80,7 +80,7 @@ export async function createResearchDocumentAction(
     });
 
     // Research docs feed the AI completion/generation context — drop the cached blocks.
-    metadataCache.invalidateUser(auth.userId);
+    metadataCache.invalidate(auth.userId, projectId);
 
     return serializeDocument(document);
   });

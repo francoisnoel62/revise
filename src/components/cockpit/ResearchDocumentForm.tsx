@@ -113,7 +113,7 @@ export function ResearchDocumentForm({
 
   const isLinkType = formData.type === 'link';
   const showSourceFields = ['quote', 'reference'].includes(formData.type);
-  const showBody = ['note', 'quote', 'reference'].includes(formData.type);
+  const showBody = ['note', 'quote', 'reference', 'image'].includes(formData.type);
   const isValid = formData.title.trim() && (!isLinkType || formData.url.trim());
 
   return (
@@ -219,7 +219,11 @@ export function ResearchDocumentForm({
                 id="body"
                 value={formData.body}
                 onChange={(e) => handleChange('body', e.target.value)}
-                placeholder="Scénario, plan détaillé, explication d'intrigue, notes..."
+                placeholder={
+                  formData.type === 'image'
+                    ? "Légende, description de l'image, contexte pour l'IA..."
+                    : "Scénario, plan détaillé, explication d'intrigue, notes..."
+                }
                 rows={6}
                 disabled={isLoading}
               />

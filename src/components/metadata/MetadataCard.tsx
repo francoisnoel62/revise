@@ -34,10 +34,10 @@ import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -254,6 +254,7 @@ export function MetadataCard({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Renommer la métadonnée</DialogTitle>
+            <DialogDescription>Modifiez le titre affiché pour cette analyse.</DialogDescription>
           </DialogHeader>
           <Input
             value={newTitle}

@@ -11,6 +11,7 @@ import {
   Characters,
 } from '../../domain';
 import { hashText } from '../utils/text-hash';
+import { extractProjectFullText } from '../services/project-text';
 
 export interface GenerateCharactersInput {
   ownerId: string;
@@ -62,7 +63,7 @@ export class GenerateCharactersUseCase {
       throw new Error('Project has no chapters to analyze');
     }
 
-    const fullText = this.extractFullText(chapters);
+    const fullText = extractProjectFullText(chapters);
 
     if (fullText.trim().length === 0) {
       throw new Error('Project chapters have no content to analyze');
@@ -115,46 +116,6 @@ export class GenerateCharactersUseCase {
     }
 
     return { metadata, analysis, wasUpdated, wasCached: false };
-  }
-
-  private extractFullText(chapters: { getContent(): string; getTitle(): string }[]): string {
-    const parts: string[] = [];
-
-    for (const chapter of chapters) {
-      const title = chapter.getTitle();
-      const content = chapter.getContent();
-
-      try {
-        const json = JSON.parse(content);
-        const text = this.extractTextFromTipTapJSON(json);
-
-        if (text.trim()) {
-          parts.push(`# ${title}\n\n${text}`);
-        }
-      } catch {
-        // Skip chapters with invalid JSON
-      }
-    }
-
-    return parts.join('\n\n---\n\n');
-  }
-
-  private extractTextFromTipTapJSON(json: unknown): string {
-    if (!json || typeof json !== 'object') return '';
-
-    const node = json as Record<string, unknown>;
-
-    if (node.type === 'text' && typeof node.text === 'string') {
-      return node.text;
-    }
-
-    if (Array.isArray(node.content)) {
-      return node.content
-        .map((child) => this.extractTextFromTipTapJSON(child))
-        .join(node.type === 'paragraph' ? '\n' : ' ');
-    }
-
-    return '';
   }
 
   private formatAnalysisAsTipTapJSON(analysis: Characters): string {

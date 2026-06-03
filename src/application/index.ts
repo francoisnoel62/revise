@@ -56,10 +56,6 @@ export { EmailAlreadyExistsError, ValidationError } from './use-cases/RegisterUs
 
 // Application Services
 export { AIContextBuilder } from './services/AIContextBuilder';
-export { MetadataContextBuilder } from './services/MetadataContextBuilder';
-export type {
-  SynthesisContext,
-} from './services/MetadataContextBuilder';
 
 // Metadata Use Cases (Phase 3.6 - Project Metadata Feature)
 export {

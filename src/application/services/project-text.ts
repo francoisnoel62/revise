@@ -9,8 +9,7 @@ interface ChapterLike {
 /**
  * Extract the canonical full text of a project: each chapter rendered as
  * "# title\n\n<text>", chapters joined by "\n\n---\n\n". Chapters with no
- * extractable text are skipped. Must stay in sync with the generation use cases
- * so that hashes computed here match the stored contentHash.
+ * extractable text are skipped.
  */
 export function extractProjectFullText(chapters: ChapterLike[]): string {
   const parts: string[] = [];
