@@ -17,6 +17,7 @@ import { GeneratePlotUseCase } from '@/application/use-cases/GeneratePlotUseCase
 import { GenerateWorldbuildingUseCase } from '@/application/use-cases/GenerateWorldbuildingUseCase';
 import { GenerateSynthesisUseCase } from '@/application/use-cases/GenerateSynthesisUseCase';
 import { GenerateChapterSummariesUseCase } from '@/application/use-cases/GenerateChapterSummariesUseCase';
+import { CheckMetadataFreshnessUseCase, MetadataFreshness } from '@/application/use-cases/CheckMetadataFreshnessUseCase';
 import {
   ActionResult,
   getAuthenticatedUserId,
@@ -637,5 +638,25 @@ export async function generateChapterSummariesAction(
       wasUpdated: result.wasUpdated,
       wasCached: result.wasCached,
     };
+  });
+}
+
+/**
+ * Check, per metadata, whether a generated analysis lags behind the current manuscript.
+ * Read-only: never regenerates. Returns isStale flags for the metadata cockpit to surface.
+ */
+export async function checkMetadataFreshnessAction(
+  projectId: string
+): Promise<ActionResult<MetadataFreshness[]>> {
+  const auth = await getAuthenticatedUserId();
+  if ('error' in auth) return auth.error;
+
+  return withErrorHandling(async () => {
+    const useCase = new CheckMetadataFreshnessUseCase(
+      await getMetadataRepo(),
+      await getRepository()
+    );
+
+    return useCase.execute({ ownerId: auth.userId, projectId });
   });
 }
