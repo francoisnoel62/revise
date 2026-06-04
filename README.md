@@ -372,6 +372,7 @@ npm run test:e2e          # Tests end-to-end (Playwright)
 - [x] Phase 6.0 : Project Cockpit (tableau de bord projet, gestion personnages, tâches, objectifs, recherche, statistiques IA)
 - [x] Phase 6.1 : Images de couverture, objectifs d'écriture, sélection des chapitres, rate limiting, hCaptcha
 - [x] Phase 7.0 : Vérification de chapitre (orthographe, grammaire, ponctuation, style, répétitions)
+- [x] Phase 8.0 : Stratégie de contexte IA — l'IA écrit à partir des métadonnées et documents de recherche de l'auteur, avec la règle « l'édition de l'auteur l'emporte » et un indicateur de péremption des analyses
 
 ### 🔜 Phase 7.1
 

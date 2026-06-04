@@ -13,7 +13,7 @@ Pure business logic with no framework dependencies.
 **Entities**:
 - `Chapter` - Single chapter with rich text content (TipTap JSON)
 - `Project` - Aggregate managing chapter collection with owner tracking, publishing support (shareToken, isPublished, publishedAt), cover image (coverImageUrl)
-- `ProjectMetadata` - Metadata document with TipTap JSON content and content hash (Phase 3.6)
+- `ProjectMetadata` - Metadata document with TipTap JSON content and content hash (Phase 3.6); carries `structuredData` (JSON AI output) and generation provenance (`generatedAt`, `isGenerated`) for the "author edit wins" rule (Phase 8.0)
 - `Provider` - AI provider configuration with encrypted credentials (Phase 3.5)
 - `User` - User entity with email, hashed password, approval status, and consent timestamps (Phase 3.8, 3.11)
 - `CorrectionHistory` - AI rewrite history entry with proposals (Phase 3.7)
@@ -23,7 +23,7 @@ Pure business logic with no framework dependencies.
 - `Character` - Fictional character with name, aliases, description, traits, goals, relationships (Phase 6)
 - `ProjectSettings` - Project settings with genre, themes, narration settings, contributors, related works (Phase 6)
 - `ProjectTask` - Task with title, description, priority, status, due date, contributors (Phase 6)
-- `ResearchDocument` - Research document with title, content, tags (Phase 6)
+- `ResearchDocument` - Research document with title, body, tags, and chapter locality (`linkedChapterIds`); read by the AI as the author's intentional context (Phase 6, 8.0)
 - `WritingGoal` - Writing goal with target word count, deadline, progress (Phase 6)
 - `AIUsageRecord` - AI usage tracking with operation type, tokens, cost (Phase 6)
 - `ChapterAnalysis` - Complete chapter analysis result with issues, repetitions, statistics (Phase 7)
@@ -49,7 +49,7 @@ Pure business logic with no framework dependencies.
 **Interfaces**:
 - `DocumentParser` - Parse documents to entities
 - `DocumentExporter` - Export entities to documents
-- `LLMProvider` - AI rewriting + 7 metadata analysis methods + chapter generation + completion (Phase 3.6, 4.1)
+- `LLMProvider` - AI rewriting + 7 metadata analysis methods + chapter generation + completion (Phase 3.6, 4.1); generation/rewrite/completion methods receive ready-to-inject context strings (`projectContext` / `authorProfile`) rather than typed metadata (Phase 8.0)
 - `ProjectRepository` - Persistence abstraction with multi-tenant support
 - `ProviderRepository` - Provider storage with encryption (Phase 3.5)
 - `MetadataRepository` - Metadata storage with multi-tenant isolation (Phase 3.6)
@@ -126,6 +126,13 @@ Use cases orchestrating domain logic.
 - `GenerateChapterUseCase` - Generate chapter content from metadata context
 - `GenerateCompletionUseCase` - Generate autocompletion suggestions
 
+**AI Context Strategy** (Phase 8.0):
+- `AIContextBuilder` (service) - Centralized metadata → prompt projection; produces ready-to-inject
+  context blocks (completion / chapter / rewrite), applies "author edit wins", projects research docs by locality
+- `CheckMetadataFreshnessUseCase` - Read-only staleness check (manuscript hash vs stored metadata hash); never regenerates
+- `extractProjectFullText` (`services/project-text.ts`) - Canonical project text extraction shared by generation and freshness check
+- `text-hash` (`utils/text-hash.ts`) - SHA-256 content hashing (moved from Infrastructure to respect layer boundaries)
+
 **Chapter Verification Use Cases** (Phase 7):
 - `AnalyzeChapterUseCase` - Orchestrates analysis strategies (in-memory results, no persistence)
 - `ApplyCorrectionUseCase` - Apply a single correction to chapter content
@@ -163,16 +170,18 @@ External service implementations.
 - TipTap conversion utilities (HTML ↔ JSON)
 
 **AI**:
-- `OpenAIProvider` - GPT-4o-mini/GPT-5 + 7 analysis types + generation + completion (Phase 3.6, 4.1)
-- `AnthropicProvider` - Claude + 7 analysis types + generation (Phase 3.6, 4.1)
+- `OpenAIProvider` - GPT-4o-mini/GPT-5 + 7 analysis types + generation + completion; consumes context strings, per-provider field projection removed (Phase 3.6, 4.1, 8.0)
+- `AnthropicProvider` - Claude + 7 analysis types + generation; consumes context strings (Phase 3.6, 4.1, 8.0)
+- `GoogleProvider` - Gemini + analysis + generation; rewrites inject the author profile (Phase 8.0)
 - `LLMProviderFactoryImpl` - Factory for creating LLM providers (Phase 3.5)
-- `TrackedLLMProvider` - LLM provider wrapper that tracks AI usage (Phase 6)
+- `TrackedLLMProvider` - LLM provider wrapper that tracks AI usage; passes context strings through (Phase 6, 8.0)
 - `AnalysisLLMClient` - AI client for spelling, grammar, punctuation, and style analysis (Phase 7)
 
 **Utils**:
 - `UUIDGenerator` - IdGenerator implementation using crypto.randomUUID() (Phase 3.5)
-- `text-hash` - SHA-256 content hashing for cache invalidation (Phase 3.6)
-- `MetadataCache` - TTL-based caching for metadata (Phase 4.1)
+- `MetadataCache` - TTL-based caching for metadata; also stores the built completion context string, keyed by project/chapter (Phase 4.1, 8.0)
+
+> Note: `text-hash` (SHA-256 content hashing) moved to the **Application** layer (`src/application/utils/text-hash.ts`) in Phase 8.0 — the Application layer must not depend on Infrastructure.
 - `formatReadingTime` - Calculate and format estimated reading time (Phase 4.1+)
 - `ObjectIdGenerator` - MongoDB ObjectId generation for frontend (Phase 6)
 

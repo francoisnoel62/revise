@@ -6,6 +6,95 @@ For current features and roadmap, see [README.md](README.md).
 
 ---
 
+## Phase 8.0 - AI Contextual Strategy (Actes 1-3) (June 2026)
+
+The AI now writes *from the author's own material* — their generated metadata **and**
+their research documents — instead of generic knowledge, while never silently
+overriding what the author has edited. See [docs/strategie-ia-contexte.md](docs/strategie-ia-contexte.md)
+for the vision, diagnostic, and 3-act roadmap.
+
+### Domain Layer
+- **ProjectMetadata enhanced** - `structuredData` field (JSON-serialized AI output preserved
+  alongside the TipTap `content`), generation provenance (`generatedAt`, `isGenerated`, `lastEdited`)
+  - `markAsGenerated()` / `createGenerated()` - single timestamp at generation so
+    `lastEdited === generatedAt` (removes the double-`new Date()` false positive)
+  - `wasEditedSinceGeneration()` - true once the author edits a generated fiche; lets context
+    decide whether `structuredData` can still be trusted ("author edit wins")
+  - `getContentText()` - plain text of the TipTap content (fallback context source)
+  - `getTypeKey()`, `isGenerated()`, `getStructuredData()`
+- **ResearchDocument enhanced** - `getContentText()` (handles plain `{ text }` body and TipTap
+  shapes), used to inject the author's intentional context; locality via `getLinkedChapterIds()`
+  and `isLinkedToChapter(chapterId)`
+- **LLMProvider interface changed** - `generateRewrites`, `generateChapter`, `generateCompletion`,
+  and `generateCompletionStream` now receive ready-to-inject context strings (`projectContext` /
+  `authorProfile`) instead of typed metadata objects; field-selection projection no longer lives
+  in the provider contract
+
+### Application Layer
+- **AIContextBuilder** (`services/AIContextBuilder.ts`) - centralized metadata → prompt projection.
+  Produces ready-to-inject context blocks per feature (`buildCompletionContext`,
+  `buildChapterContext`, `buildRewriteContext`). Applies the "author edit wins" fallback (injects
+  edited `content` text instead of stale `structuredData`) and projects research documents by
+  locality (global docs always; chapter-linked docs only when writing in that chapter). Distinct
+  latency budgets: lean for completion, generous for chapter generation. Fails gracefully when a
+  repository is absent or rejects.
+- **CheckMetadataFreshnessUseCase** (`use-cases/CheckMetadataFreshnessUseCase.ts`) - read-only
+  staleness check. Compares the current manuscript full-text hash to each metadata's stored hash
+  via `needsRegeneration`. Only AI-generated, author-untouched analyses can be stale. Never regenerates.
+- **extractProjectFullText** (`services/project-text.ts`) - canonical project text extraction,
+  shared by the generation use cases and the freshness check (single source of truth).
+- **text-hash** (`utils/text-hash.ts`) - SHA-256 content hashing **moved from Infrastructure to
+  Application** (Application must not depend on Infrastructure). Consumed by all 7 Generate* use
+  cases, CheckMetadataFreshnessUseCase, and blog-actions.
+
+### Infrastructure Layer
+- **AnthropicProvider / OpenAIProvider / GoogleProvider** - consume context strings; per-provider
+  field-selection projection (`enhanceCompletionPrompt`, `buildAuthorProfileSection`, etc.) removed.
+  GoogleProvider rewrites now also inject the author profile. Completion injects worldbuilding
+  (`worldRules` / `atmosphere`) when available.
+- **TrackedLLMProvider** - passes the new context strings through as a decorator.
+- **MetadataCache** - keyed by project (and chapter for completion); stores the built completion
+  context string; invalidated by project prefix.
+- **metadata-serializer** - persists/restores `structuredData` and generation provenance
+  (backward compatible: legacy documents deserialize with `null`).
+
+### Interface Layer
+- **Research documents feed the AI** - completion sees global + current-chapter research docs;
+  chapter generation sees all. The active `chapterId` is threaded from the editor (store →
+  Autocomplete extension via `setAutocompleteChapterId`, and the non-stream action) down to
+  `AIContextBuilder.buildCompletionContext`.
+- **ResearchDocumentForm** - adds a "Corps" body (note/quote/reference/image) stored as
+  `content: { text }`, giving the author a place to write the scenario/plan the AI reads as
+  intentional context.
+- **Stale-analysis notice** - `MetadataCard` shows a discreet "basé sur une version antérieure —
+  régénérer" notice; the metadata list page calls `checkMetadataFreshnessAction` after loading.
+  The author is informed and decides — no automatic regeneration.
+- **research-document-actions / completion-actions / chapter-generation-actions / rewrite-text** -
+  wired to load context via `AIContextBuilder`; research-doc create/update/delete invalidate the
+  cached context so edits take effect.
+
+### Changed (Audit)
+- `hashText` relocated from `infrastructure/utils` to `application/utils` (Clean Architecture
+  violation fix; old file removed, no residual imports).
+- Consolidated `extractFullText`: removed 7 duplicate private method pairs from the Generate* use
+  cases; each now imports `extractProjectFullText` (removes the "must stay in sync" divergence risk).
+- `research-document-actions` create now uses `metadataCache.invalidate(userId, projectId)` instead
+  of `invalidateUser` — avoids evicting other projects' caches.
+
+### Fixed (Audit)
+- **Synthesis "author edit wins"** - `GenerateSynthesisUseCase` no longer injects AI data the author
+  already overrode (guards `parsePreviousAnalyses` with `wasEditedSinceGeneration()`).
+- **Stale false positive** - freshness check excludes manually-edited fiches, so authors who updated
+  a fiche after generation no longer see a misleading "basé sur une version antérieure" notice.
+- **a11y** - `MetadataCard` rename dialog gains a `DialogDescription` for screen readers.
+
+### Removed
+- **MetadataContextBuilder** - dead class (never called in production; `GenerateSynthesisUseCase`
+  had its own `parsePreviousAnalyses` all along). Its responsibilities now live in `AIContextBuilder`
+  (context projection) and directly on the synthesis code path (author-edit-wins guard).
+
+---
+
 ## Phase 7.0 - Chapter Verification (February 2026)
 
 ### Domain Layer

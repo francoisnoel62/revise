@@ -2,7 +2,7 @@
 
 Pure business logic with zero framework dependencies.
 
-**Status**: ✅ Phase 7.0 Complete (see [README.md](../../README.md) for test statistics)
+**Status**: ✅ Phase 8.0 Complete (see [README.md](../../README.md) for test statistics)
 
 ## Rules:
 - No imports from Next.js, React, or any external frameworks
@@ -43,16 +43,21 @@ Pure business logic with zero framework dependencies.
 - Stores content hash for cache invalidation
 - Validates metadata type
 - Provides cache validation via `needsRegeneration(newHash)`
-- Immutable updates with new instances
+- **Carries `structuredData`** (JSON-serialized AI output) alongside the TipTap content ⭐ Phase 8.0
+- **Tracks generation provenance** (`generatedAt`, `isGenerated`, `lastEdited`) so context can decide
+  whether `structuredData` is still trustworthy ("author edit wins") ⭐ Phase 8.0
+- Immutable content/title updates with new instances
 
 **Key Methods**:
-- `getId()`, `getProjectId()`, `getType()`, `getTitle()`, `getContent()`, `getContentHash()`
+- `getId()`, `getProjectId()`, `getType()`, `getTypeKey()`, `getTitle()`, `getContent()`, `getContentHash()`
 - `needsRegeneration(contentHash)` - Check if content changed
-- `updateContent(content, contentHash)` - Returns new instance
-- `updateTitle(title)` - Returns new instance
-- `static create(id, projectId, type, title, content, contentHash)` - Factory method
+- `getStructuredData()`, `getContentText()` - Structured AI output / plain-text fallback ⭐ Phase 8.0
+- `isGenerated()`, `wasEditedSinceGeneration()` - True once the author edits a generated fiche ⭐ Phase 8.0
+- `markAsGenerated()` - Single timestamp at generation (`lastEdited === generatedAt`) ⭐ Phase 8.0
+- `updateContent(content, contentHash)` / `updateTitle(title)` - Returns new instance
+- `static create(...)` / `static createGenerated(...)` - Factory methods (manual vs AI-generated) ⭐ Phase 8.0
 
-**Tests**: 10+ tests covering validation, caching logic, updates
+**Tests**: 10+ tests covering validation, caching logic, updates, and author-edit-wins provenance
 
 ---
 
@@ -241,17 +246,21 @@ Pure business logic with zero framework dependencies.
 
 **Responsibilities**:
 - Manages document identity (unique ID, project association)
-- Stores document content (title, content as TipTap JSON)
-- Tracks tags for categorization
+- Stores document type (note/link/quote/reference/image), title, body, and source metadata
+- Tracks tags for categorization and chapter locality (`linkedChapterIds`)
+- **Read by the AI as the author's intentional context** ⭐ Phase 8.0
 - Timestamps for created/updated dates
 
 **Key Methods**:
-- `getId()`, `getProjectId()`, `getTitle()`, `getContent()`, `getTags()`
+- `getId()`, `getProjectId()`, `getType()`, `getTitle()`, `getContent()`, `getTags()`
+- `getContentText()` - Plain text of the body (handles `{ text }` and TipTap shapes) ⭐ Phase 8.0
+- `getLinkedChapterIds()`, `isLinkedToChapter(chapterId)` - Locality for context selection ⭐ Phase 8.0
+- `getUrl()`, `getSourceTitle()`, `getSourceAuthor()`
 - `getCreatedAt()`, `getUpdatedAt()`
 - `update(updates)` - Returns new instance with updates
 - `static create(id, projectId, title, ...)` - Factory method
 
-**Tests**: 15+ tests covering entity creation and updates
+**Tests**: 15+ tests covering entity creation, updates, and context-text extraction
 
 ---
 
@@ -556,7 +565,8 @@ Pure business logic with zero framework dependencies.
 **Contract**: AI text generation and analysis service
 
 **Methods**:
-- `generateRewrites(selectedText, contextBefore, contextAfter)` - Returns 3 `RewriteProposal` objects
+- `generateRewrites(selectedText, contextBefore, contextAfter, authorProfile?)` - Returns 3 `RewriteProposal` objects
+- `generateChapter(..., projectContext?)`, `generateCompletion(..., projectContext?)`, `generateCompletionStream(..., projectContext?)` - Receive ready-to-inject context strings (Phase 8.0)
 - `generateNarrativeAnalysis(chapters)` → `NarrativeAnalysis` ⭐ NEW
 - `generateCharacters(chapters)` → `Characters` ⭐ NEW
 - `generatePlot(chapters)` → `Plot` ⭐ NEW
