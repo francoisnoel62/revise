@@ -2,7 +2,7 @@
 
 Implements domain interfaces with concrete external services.
 
-**Status**: ✅ Phase 7.0 Complete (see [README.md](../../README.md) for test statistics)
+**Status**: ✅ Phase 8.0 Complete (see [README.md](../../README.md) for test statistics)
 
 ## Rules:
 - Implements interfaces defined in Domain layer
@@ -16,6 +16,12 @@ Implements domain interfaces with concrete external services.
 #### `OpenAIProvider` ⭐ ENHANCED (Phase 4.1)
 **Implements**: `LLMProvider` interface
 **Technology**: OpenAI SDK with GPT-4o-mini/GPT-5-nano + o-series reasoning models
+
+**Phase 8.0 Enhancements**:
+- ✅ **Consumes context strings** - chapter/completion/rewrite receive ready-to-inject `projectContext` /
+  `authorProfile` blocks; per-provider field-selection projection (`enhanceCompletionPrompt`,
+  `buildAuthorProfileSection`) removed — projection now lives in `AIContextBuilder`
+- ✅ **Worldbuilding in completion** - injects `worldRules` / `atmosphere` when available
 
 **Phase 4.1 Enhancements**:
 - ✅ **Chapter generation** - Generate chapter beginnings from metadata context
@@ -47,8 +53,12 @@ Implements domain interfaces with concrete external services.
 - ✅ All 7 metadata analysis types (same as OpenAI)
 - ✅ JSON-structured responses
 - ✅ Error handling and retry logic
+- ✅ **Consumes context strings** for generation/completion/rewrite (Phase 8.0)
 
 **Tests**: 20+ tests (unit + integration) for all analysis types
+
+> `GoogleProvider` (Gemini) implements the same `LLMProvider` contract; in Phase 8.0 its rewrites
+> also inject the author profile (`authorProfile` context string).
 
 ---
 
@@ -359,10 +369,10 @@ Implements domain interfaces with concrete external services.
 - In-memory storage (Map)
 - Thread-safe access
 
-**Methods**:
-- `get(projectId)` - Get cached metadata array
-- `set(projectId, metadata)` - Cache metadata with TTL
-- `invalidate(projectId)` - Clear cache for project
+**Phase 8.0 Enhancements**:
+- ✅ Stores the **built completion context string** (from `AIContextBuilder`), keyed by project/chapter
+- ✅ `invalidate(userId, projectId)` clears a single project; `invalidateUser(userId)` clears all
+- ✅ Research-doc create/update/delete invalidate the cached context so author edits take effect
 
 **Tests**: 5+ tests covering caching behavior
 
@@ -992,26 +1002,12 @@ docs/prompt/metadata/
 
 ---
 
-#### `text-hasher` ⭐ NEW (Phase 3.6)
+#### `text-hasher` (Phase 3.6) — ⭐ MOVED to Application (Phase 8.0)
 **Purpose**: SHA-256 content hashing for cache invalidation
 
-**Features**:
-- Calculates SHA-256 hash of text content
-- Used to detect project content changes
-- Enables intelligent metadata caching
-- Deterministic hashing (same content → same hash)
-
-**Functions**:
-- `hashText(text: string)` → `string` - Returns hex-encoded SHA-256 hash
-
-**Usage**:
-```typescript
-const hash1 = hashText("Chapter 1 content...");
-const hash2 = hashText("Chapter 1 content..."); // Same
-const hash3 = hashText("Chapter 1 UPDATED..."); // Different
-```
-
-**Tests**: Integrated with generation use case tests
+`hashText` now lives in `src/application/utils/text-hash.ts`. It moved out of Infrastructure in
+Phase 8.0 because the Application layer (the Generate* use cases and `CheckMetadataFreshnessUseCase`)
+consumes it directly and must not depend on Infrastructure. The old infrastructure file was removed.
 
 ---
 

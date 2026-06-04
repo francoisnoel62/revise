@@ -2,7 +2,7 @@
 
 Orchestrates domain logic through use cases.
 
-**Status**: ✅ Phase 7.0 Complete (see [README.md](../../README.md) for test statistics)
+**Status**: ✅ Phase 8.0 Complete (see [README.md](../../README.md) for test statistics)
 
 ## Rules:
 - Depends only on Domain layer
@@ -389,6 +389,67 @@ Orchestrates domain logic through use cases.
 4. Return completion text
 
 **Tests**: 6+ tests covering completion and caching
+
+---
+
+### AI Context Strategy ⭐ NEW (Phase 8.0)
+
+The AI builds its context from the author's own material — generated metadata **and** research
+documents — while never silently overriding what the author has edited. See
+[docs/strategie-ia-contexte.md](../../docs/strategie-ia-contexte.md) for the vision and roadmap.
+
+---
+
+#### `AIContextBuilder` (service)
+**Purpose**: Centralized metadata → prompt projection; produces ready-to-inject context blocks per AI feature
+
+**Dependencies**: `MetadataRepository`, `ResearchDocumentRepository` (optional) interfaces
+**Methods**:
+- `buildCompletionContext(ownerId, projectId, chapterId?)` → context string (lean budget)
+- `buildChapterContext(ownerId, projectId)` → context string (generous budget)
+- `buildRewriteContext(ownerId, projectId)` → author-profile string (style + narration)
+
+**Key behaviors**:
+- **Author edit wins**: trusts `structuredData` only if `!wasEditedSinceGeneration()`; otherwise
+  injects the edited `content` text instead of stale AI output
+- **Research-doc locality**: global docs (no `linkedChapterIds`) always injected; chapter-linked
+  docs injected only when writing in that chapter; chapter generation sees all docs
+- **Budgets / truncation**: per-field caps, distinct completion vs chapter budgets, type-ordered
+- **Graceful degradation**: AI features still work if a repository is absent or rejects
+
+**Tests**: 20+ tests covering projection, author-edit-wins, locality, and truncation
+
+---
+
+#### `CheckMetadataFreshnessUseCase`
+**Purpose**: Read-only staleness check — is a generated analysis based on an older manuscript?
+
+**Dependencies**: `MetadataRepository`, `ProjectRepository` interfaces
+**Input**: `{ ownerId, projectId }`
+**Output**: `MetadataFreshness[]` (`{ id, typeKey, isStale }`)
+
+**Workflow**:
+1. Load project, compute current full-text hash via `extractProjectFullText` + `hashText`
+2. For each metadata, mark `isStale` only if it is AI-generated, author-untouched, and its stored
+   hash differs (`needsRegeneration`)
+3. Never regenerates — the author is informed and decides
+
+**Tests**: 10+ tests covering staleness, manual-edit exclusion, and no-text/missing-project cases
+
+---
+
+#### `extractProjectFullText` (`services/project-text.ts`)
+**Purpose**: Canonical project full-text extraction (each chapter as `# title\n\n<text>`, joined by
+`---`), the single source of truth shared by the Generate* use cases and the freshness check
+
+**Tests**: covered in `project-text.test.ts`
+
+---
+
+#### `hashText` (`utils/text-hash.ts`)
+**Purpose**: SHA-256 content hashing for cache invalidation — **moved here from Infrastructure**
+(Phase 8.0) so the Application layer no longer depends on Infrastructure. Consumed by all 7
+Generate* use cases, `CheckMetadataFreshnessUseCase`, and `blog-actions`.
 
 ---
 
@@ -1360,6 +1421,8 @@ Analysis strategies implement the Strategy pattern for different analysis types:
 - Validates selection boundaries
 - Returns exactly 3 distinct proposals (épuré, lyrique, amplifié)
 - **Automatically saves correction history** ⭐ NEW (Phase 3.7)
+- **Accepts an author-profile context string** (from `AIContextBuilder.buildRewriteContext`) to
+  calibrate the amplified voice proposal ⭐ NEW (Phase 8.0)
 - Performance tracking in development mode
 - Works with both plain text and TipTap JSON
 
