@@ -37,12 +37,11 @@ export class CheckMetadataFreshnessUseCase {
     return metadataList.map((metadata) => ({
       id: metadata.getId(),
       typeKey: metadata.getTypeKey(),
-      // Only AI-generated analyses that the author hasn't manually overridden can be "stale".
-      // wasEditedSinceGeneration() means the author already updated the fiche — their version wins.
+      // Staleness is determined purely by hash comparison — manual author edits
+      // to the fiche do not exempt it from being marked stale when the manuscript changes.
       isStale:
         currentHash !== null &&
         metadata.isGenerated() &&
-        !metadata.wasEditedSinceGeneration() &&
         metadata.needsRegeneration(currentHash),
     }));
   }

@@ -18,7 +18,7 @@ Le manuscrit dit explicitement que Marguerite a les **yeux bleus**. On va l'édi
    puis **Tab**.
    - 🎯 **Attendu** : la complétion tend vers **violets / mauve** (la valeur **éditée**), pas vers « bleus ».
    - 🔁 Probabiliste : relancer 2-3 fois.
-5. [ ] **(cœur — Acte 3)** Retourner dans le manuscrit, **ajouter un paragraphe** quelconque (ex. « Le facteur passa sans s'arrêter. »). Sauvegarder. Revenir à cockpit → **Métadonnées**.
+5. [x] **(cœur — Acte 3)** Retourner dans le manuscrit, **ajouter un paragraphe** quelconque (ex. « Le facteur passa sans s'arrêter. »). Sauvegarder. Revenir à cockpit → **Métadonnées**.
    - 🎯 **Attendu** : la carte **Personnages** affiche le repère **« basé sur une version antérieure — régénérer »**.
 6. [x] Cliquer **⋮ → Régénérer** sur la carte Personnages → choisir le provider → confirmer.
    - 🎯 **Attendu** : après régénération, **le repère disparaît**. (Et la fiche repart du manuscrit : Marguerite redevient « yeux bleus » — c'est normal, la régénération écrase l'édition manuelle, l'auteur a été prévenu par le dialogue.)

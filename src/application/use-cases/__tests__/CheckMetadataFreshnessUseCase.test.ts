@@ -75,8 +75,8 @@ describe('CheckMetadataFreshnessUseCase', () => {
     expect(result[0].isStale).toBe(false);
   });
 
-  it('never marks stale a generated fiche that was manually edited by the author', async () => {
-    // Generate from old manuscript, then author edits the content → their version wins.
+  it('marks stale a manually-edited fiche when the manuscript has changed after the edit', async () => {
+    // Author edits the fiche (step 3), then modifies the manuscript (step 5) → still stale.
     const editedAfterGeneration = new ProjectMetadata(
       'm-edited', 'p1', 'narrative-analysis', 'Analyse', metaContent,
       {
@@ -89,6 +89,28 @@ describe('CheckMetadataFreshnessUseCase', () => {
     );
     const useCase = new CheckMetadataFreshnessUseCase(
       metadataRepo([editedAfterGeneration]) as never,
+      projectRepo(project) as never
+    );
+
+    const result = await useCase.execute({ ownerId: 'u1', projectId: 'p1' });
+
+    expect(result[0].isStale).toBe(true);
+  });
+
+  it('does NOT mark stale a manually-edited fiche when the manuscript hash matches', async () => {
+    // Author edits the fiche, but the manuscript hasn't changed → hash still matches → not stale.
+    const editedButHashOk = new ProjectMetadata(
+      'm-edited-ok', 'p1', 'narrative-analysis', 'Analyse', metaContent,
+      {
+        isGenerated: true,
+        generatedAt: new Date('2025-01-01T10:00:00Z'),
+        lastEdited: new Date('2025-06-01T12:00:00Z'),
+        contentHash: currentHash,
+        structuredData: '{}',
+      }
+    );
+    const useCase = new CheckMetadataFreshnessUseCase(
+      metadataRepo([editedButHashOk]) as never,
       projectRepo(project) as never
     );
 
