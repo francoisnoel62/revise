@@ -14,7 +14,7 @@ const _TAG_LENGTH = 16; // 128 bits (reserved for future use)
  * Uses PBKDF2 to ensure consistent 32-byte key.
  */
 function getEncryptionKey(): Buffer {
-  const secret = config.encryption.key;
+  const secret = process.env.ENCRYPTION_KEY || config.encryption.key;
 
   if (!secret || secret.length < 32) {
     throw new Error('ENCRYPTION_KEY must be at least 32 characters');
