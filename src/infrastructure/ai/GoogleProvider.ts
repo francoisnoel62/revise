@@ -1180,7 +1180,7 @@ INSTRUCTIONS SUPPLÉMENTAIRES:
           temperature: 0.75,
           maxOutputTokens: tokenLimit,
           thinkingConfig: {
-            thinkingLevel: ThinkingLevel.LOW,
+            thinkingLevel: ThinkingLevel.MINIMAL,
           },
         },
       });
@@ -1289,7 +1289,7 @@ INSTRUCTIONS FINALES:
           temperature: 0.7,
           maxOutputTokens: 256,
           thinkingConfig: {
-            thinkingLevel: ThinkingLevel.LOW,
+            thinkingLevel: ThinkingLevel.MINIMAL,
           },
         },
       });
@@ -1353,7 +1353,7 @@ INSTRUCTIONS FINALES:
         temperature: 0.7,
         maxOutputTokens: 256,
         thinkingConfig: {
-          thinkingLevel: ThinkingLevel.LOW,
+          thinkingLevel: ThinkingLevel.MINIMAL,
         },
       },
     });
