@@ -61,6 +61,12 @@ Desktop.ini
 # vitest
 .vitest
 
+# Playwright auth state (session tokens — never commit)
+e2e/.auth/user.json
+# Playwright test results
+playwright-report/
+test-results/
+
 # Vercel
 .vercel
 
