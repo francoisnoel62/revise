@@ -21,11 +21,13 @@ vi.mock('@/infrastructure/config/providers', async () => {
 
 describe('getLLMProviderById', () => {
   const mockProviderRepo: ProviderRepository = {
-    createProvider: vi.fn(),
+    create: vi.fn(),
     findById: vi.fn(),
-    findByOwnerId: vi.fn(),
-    updateProvider: vi.fn(),
-    deleteProvider: vi.fn(),
+    listProviders: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+    isUsedByProjects: vi.fn(),
+    deleteAllByOwner: vi.fn(),
   };
 
   beforeEach(() => {
@@ -35,15 +37,14 @@ describe('getLLMProviderById', () => {
 
   it('should return LLM provider when provider exists and is valid', async () => {
     const mockProvider = Provider.create(
+      'provider-1',
       'user-1',
       'Test Provider',
       'openai',
       'sk-test-key',
-      'gpt-4o',
-      'provider-1',
-      new Date()
+      'gpt-4o'
     );
-    mockProvider.markAsValid(new Date());
+    mockProvider.markAsValid();
 
     vi.mocked(mockProviderRepo.findById).mockResolvedValue(mockProvider);
 
@@ -54,7 +55,7 @@ describe('getLLMProviderById', () => {
       getProviderName: vi.fn(),
       getModel: vi.fn(),
     };
-    vi.mocked(providers.createLLMProvider).mockReturnValue(mockLLMProvider);
+    vi.mocked(providers.createLLMProvider).mockReturnValue(mockLLMProvider as unknown as ReturnType<typeof providers.createLLMProvider>);
 
     const result = await getLLMProviderById('user-1', 'provider-1');
 
@@ -76,13 +77,12 @@ describe('getLLMProviderById', () => {
 
   it('should throw error when provider is invalid', async () => {
     const mockProvider = Provider.create(
+      'provider-1',
       'user-1',
       'Invalid Provider',
       'openai',
       'sk-invalid-key',
-      'gpt-4o',
-      'provider-1',
-      new Date()
+      'gpt-4o'
     );
     // Don't mark as valid, so it remains invalid
 

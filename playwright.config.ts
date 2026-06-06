@@ -43,8 +43,8 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         storageState: AUTH_FILE,
-        headless: false,
-        slowMo: 250,
+        headless: !!process.env.CI,
+        launchOptions: { slowMo: process.env.CI ? 0 : 250 },
         actionTimeout: 30_000,
         navigationTimeout: 45_000,
       },

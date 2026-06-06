@@ -22,7 +22,7 @@ describe('CreateProjectSettingsUseCase', () => {
       generate: vi.fn(() => 'generated-id'),
     };
 
-    useCase = new CreateProjectSettingsUseCase(mockRepository, mockIdGenerator);
+    useCase = new CreateProjectSettingsUseCase(mockRepository as unknown as import('@/domain/interfaces/ProjectSettingsRepository').ProjectSettingsRepository, mockIdGenerator as unknown as import('@/domain/interfaces/IdGenerator').IdGenerator);
   });
 
   it('creates settings with valid input', async () => {

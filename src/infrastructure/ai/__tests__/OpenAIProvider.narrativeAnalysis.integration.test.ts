@@ -8,7 +8,7 @@ describe('OpenAIProvider.generateNarrativeAnalysis (Integration)', () => {
   // OpenAI client rejects browser environments for security
   // This test can be run manually in Node environment
   it.skip('should generate real narrative analysis', async () => {
-    const provider = new OpenAIProvider(apiKey!, 'gpt-4o-mini');
+    const provider = new OpenAIProvider(apiKey!, {} as unknown as import('@/domain/interfaces/PromptRepository').PromptRepository, 'gpt-4o-mini');
 
     const sampleText = `
 # Chapitre 1

@@ -108,7 +108,7 @@ describe('ImportProjectUseCase', () => {
     const failingUseCase = new ImportProjectUseCase(failingParser, undefined);
 
     await expect(async () => {
-      await failingUseCase.execute(Buffer.from('data'), 'file.docx', undefined);
+      await failingUseCase.execute(null, Buffer.from('data'), 'file.docx');
     }).rejects.toThrow('Corrupted file');
   });
 

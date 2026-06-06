@@ -23,7 +23,7 @@ describe('DeleteCoverImageUseCase', () => {
       delete: vi.fn(),
     };
 
-    useCase = new DeleteCoverImageUseCase(mockRepository, mockBlobStorage);
+    useCase = new DeleteCoverImageUseCase(mockRepository as unknown as import('@/domain/interfaces/ProjectSettingsRepository').ProjectSettingsRepository, mockBlobStorage as unknown as import('@/domain/interfaces/BlobStorage').BlobStorage);
   });
 
   it('deletes cover image and clears URL in settings', async () => {

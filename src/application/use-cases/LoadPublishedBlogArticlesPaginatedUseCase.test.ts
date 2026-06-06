@@ -15,12 +15,9 @@ describe('LoadPublishedBlogArticlesPaginatedUseCase', () => {
       title,
       excerpt: 'Excerpt',
       content: 'Content',
-      readingTimeMinutes: 5,
+      readingTime: 5,
       isPublished: true,
-      publishedAt: new Date('2024-01-01'),
       authorId: 'author-1',
-      createdAt: new Date('2024-01-01'),
-      updatedAt: new Date('2024-01-01'),
     });
   };
 
@@ -34,6 +31,7 @@ describe('LoadPublishedBlogArticlesPaginatedUseCase', () => {
     findById: vi.fn(),
     findAll: vi.fn(),
     slugExists: vi.fn(),
+    incrementViewCount: vi.fn(),
   });
 
   const createPaginatedResponse = (

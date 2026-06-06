@@ -21,8 +21,8 @@ beforeAll(() => {
 
 describe('CommandPalette', () => {
   const mockProviders: SafeProvider[] = [
-    { id: 'provider-1', name: 'GPT-4', type: 'openai', isValid: true },
-    { id: 'provider-2', name: 'Claude', type: 'anthropic', isValid: true },
+    { id: 'provider-1', name: 'GPT-4', type: 'openai', isValid: true, maskedApiKey: 'sk-...test', model: 'gpt-4o', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    { id: 'provider-2', name: 'Claude', type: 'anthropic', isValid: true, maskedApiKey: 'sk-...test', model: 'claude-3', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
   ];
 
   const defaultProps = {

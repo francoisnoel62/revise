@@ -36,9 +36,11 @@ describe('CreateProjectUseCase', () => {
       'owner-123',
       'Test Provider',
       'openai',
-      'gpt-4o-mini',
       'encrypted-key',
-      true // isValid
+      'gpt-4o-mini',
+      true, // isValid
+      new Date(),
+      new Date()
     );
   };
 
@@ -48,9 +50,11 @@ describe('CreateProjectUseCase', () => {
       'owner-123',
       'Invalid Provider',
       'openai',
-      'gpt-4o-mini',
       'encrypted-key',
-      false // isValid
+      'gpt-4o-mini',
+      false, // isValid
+      new Date(),
+      new Date()
     );
   };
 

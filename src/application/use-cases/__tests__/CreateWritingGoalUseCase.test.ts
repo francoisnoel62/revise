@@ -18,7 +18,7 @@ describe('CreateWritingGoalUseCase', () => {
       generate: vi.fn(() => 'generated-id'),
     };
 
-    useCase = new CreateWritingGoalUseCase(mockRepository, mockIdGenerator);
+    useCase = new CreateWritingGoalUseCase(mockRepository as unknown as import('@/domain/interfaces/WritingGoalRepository').WritingGoalRepository, mockIdGenerator as unknown as import('@/domain/interfaces/IdGenerator').IdGenerator);
   });
 
   it('creates a goal with valid input', async () => {

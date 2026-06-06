@@ -36,6 +36,7 @@ const mockProjects = [
     chapterCount: 3,
     wordCount: 1500,
     updatedAt: new Date().toISOString(),
+    activeGoal: null,
   },
   {
     id: 'proj-2',
@@ -43,6 +44,7 @@ const mockProjects = [
     chapterCount: 1,
     wordCount: 500,
     updatedAt: new Date(Date.now() - 86400000).toISOString(), // Yesterday
+    activeGoal: null,
   },
 ];
 

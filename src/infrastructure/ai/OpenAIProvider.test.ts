@@ -23,7 +23,7 @@ describe('OpenAIProvider', () => {
   let mockCreate: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    provider = new OpenAIProvider('fake-api-key', 'gpt-4o');
+    provider = new OpenAIProvider('fake-api-key', {} as unknown as import('@/domain/interfaces/PromptRepository').PromptRepository, 'gpt-4o');
     // Access the mock after the provider is created
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockCreate = (provider as any).client.chat.completions.create;

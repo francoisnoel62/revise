@@ -5,7 +5,7 @@ describe('AnthropicProvider.generateSynthesis (Integration)', () => {
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
   it.skip('should generate real synthesis analysis', async () => {
-    const provider = new AnthropicProvider(apiKey!, 'claude-3-5-sonnet-20241022');
+    const provider = new AnthropicProvider(apiKey!, {} as unknown as import('@/domain/interfaces/PromptRepository').PromptRepository, 'claude-3-5-sonnet-20241022');
 
     const sampleText = `
 # Chapitre 1

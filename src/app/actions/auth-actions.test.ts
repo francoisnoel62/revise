@@ -4,11 +4,12 @@
 import { describe, it, expect, vi, beforeEach
  } from 'vitest';
 import { registerUserAction, checkEmailAvailableAction } from './auth-actions';
+import type { InMemoryRateLimiter } from '@/infrastructure/security/InMemoryRateLimiter';
+import type { HCaptchaVerifier } from '@/infrastructure/security/HCaptchaVerifier';
 
 // Mock the providers
 vi.mock('@/infrastructure/config/providers', () => ({
   getUserRepository: vi.fn(),
-  getEmailService: vi.fn(),
 }));
 
 // Mock next/headers
@@ -27,7 +28,7 @@ vi.mock('@/infrastructure/security/InMemoryRateLimiter', () => ({
     checkLimit: vi.fn().mockResolvedValue({ allowed: true, remainingAttempts: 5, resetInSeconds: 3600 }),
     recordAttempt: vi.fn().mockResolvedValue(undefined),
     resetLimit: vi.fn().mockResolvedValue(undefined),
-  })),
+  } as unknown as import('@/infrastructure/security/InMemoryRateLimiter').InMemoryRateLimiter)),
 }));
 
 // Mock hCaptcha verifier (disabled by default in tests)
@@ -35,7 +36,7 @@ vi.mock('@/infrastructure/security/HCaptchaVerifier', () => ({
   getHCaptchaVerifier: vi.fn(() => null),
 }));
 
-import { getUserRepository, getEmailService } from '@/infrastructure/config/providers';
+import { getUserRepository } from '@/infrastructure/config/providers';
 import { getRateLimiter } from '@/infrastructure/security/InMemoryRateLimiter';
 import { getHCaptchaVerifier } from '@/infrastructure/security/HCaptchaVerifier';
 
@@ -47,18 +48,14 @@ describe('auth-actions', () => {
     emailExists: vi.fn(),
     approveUser: vi.fn(),
     deleteUser: vi.fn(),
-  };
-
-  const mockEmailService = {
-    sendApprovalRequestEmail: vi.fn().mockResolvedValue(undefined),
-    sendUserApprovedEmail: vi.fn().mockResolvedValue(undefined),
-    sendUserRejectedEmail: vi.fn().mockResolvedValue(undefined),
+    updatePassword: vi.fn(),
+    verifyPassword: vi.fn(),
+    hashPassword: vi.fn(),
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getUserRepository).mockResolvedValue(mockUserRepo);
-    vi.mocked(getEmailService).mockResolvedValue(mockEmailService);
   });
 
   describe('registerUserAction', () => {
@@ -274,7 +271,7 @@ describe('auth-actions', () => {
         checkLimit: vi.fn().mockResolvedValue({ allowed: false, remainingAttempts: 0, resetInSeconds: 1800 }),
         recordAttempt: vi.fn().mockResolvedValue(undefined),
         resetLimit: vi.fn().mockResolvedValue(undefined),
-      });
+      } as unknown as InMemoryRateLimiter);
 
       const result = await registerUserAction(
         'user@protonmail.com',
@@ -296,12 +293,12 @@ describe('auth-actions', () => {
         checkLimit: vi.fn().mockResolvedValue({ allowed: true, remainingAttempts: 5, resetInSeconds: 3600 }),
         recordAttempt: vi.fn().mockResolvedValue(undefined),
         resetLimit: vi.fn().mockResolvedValue(undefined),
-      });
+      } as unknown as InMemoryRateLimiter);
 
       // Enable CAPTCHA verifier
       vi.mocked(getHCaptchaVerifier).mockReturnValue({
         verify: vi.fn().mockResolvedValue({ success: true }),
-      });
+      } as unknown as HCaptchaVerifier);
 
       const result = await registerUserAction(
         'user@protonmail.com',
@@ -324,11 +321,11 @@ describe('auth-actions', () => {
         checkLimit: vi.fn().mockResolvedValue({ allowed: true, remainingAttempts: 5, resetInSeconds: 3600 }),
         recordAttempt: vi.fn().mockResolvedValue(undefined),
         resetLimit: vi.fn().mockResolvedValue(undefined),
-      });
+      } as unknown as InMemoryRateLimiter);
 
       vi.mocked(getHCaptchaVerifier).mockReturnValue({
         verify: vi.fn().mockResolvedValue({ success: false, errorCodes: ['invalid-input-response'] }),
-      });
+      } as unknown as HCaptchaVerifier);
 
       const result = await registerUserAction(
         'user@protonmail.com',
@@ -358,11 +355,11 @@ describe('auth-actions', () => {
         checkLimit: vi.fn().mockResolvedValue({ allowed: true, remainingAttempts: 5, resetInSeconds: 3600 }),
         recordAttempt: vi.fn().mockResolvedValue(undefined),
         resetLimit: vi.fn().mockResolvedValue(undefined),
-      });
+      } as unknown as InMemoryRateLimiter);
 
       vi.mocked(getHCaptchaVerifier).mockReturnValue({
         verify: vi.fn().mockResolvedValue({ success: true }),
-      });
+      } as unknown as HCaptchaVerifier);
 
       const result = await registerUserAction(
         'user@protonmail.com',

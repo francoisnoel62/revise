@@ -7,6 +7,18 @@ import {
   UserNotFoundError,
   EmailMismatchError,
 } from '../DeleteUserAccountUseCase';
+import type { UserRepository } from '@/domain/interfaces/UserRepository';
+import type { ProjectRepository } from '@/domain/interfaces/ProjectRepository';
+import type { ProviderRepository } from '@/domain/interfaces/ProviderRepository';
+import type { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
+import type { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
+import type { ProjectSettingsRepository } from '@/domain/interfaces/ProjectSettingsRepository';
+import type { WordCountSnapshotRepository } from '@/domain/interfaces/WordCountSnapshotRepository';
+import type { WritingQuotaRepository } from '@/domain/interfaces/WritingQuotaRepository';
+import type { WritingGoalRepository } from '@/domain/interfaces/WritingGoalRepository';
+import type { CharacterRepository } from '@/domain/interfaces/CharacterRepository';
+import type { ProjectTaskRepository } from '@/domain/interfaces/ProjectTaskRepository';
+import type { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
 
 describe('DeleteUserAccountUseCase', () => {
   let mockUserRepository: {
@@ -79,13 +91,13 @@ describe('DeleteUserAccountUseCase', () => {
 
   it('should delete word count snapshots when the repository is provided', async () => {
     const useCase = new DeleteUserAccountUseCase(
-      mockUserRepository,
-      mockProjectRepository,
-      mockProviderRepository,
-      mockMetadataRepository,
-      mockCorrectionHistoryRepository,
-      mockProjectSettingsRepository,
-      mockWordCountSnapshotRepository
+      mockUserRepository as unknown as UserRepository,
+      mockProjectRepository as unknown as ProjectRepository,
+      mockProviderRepository as unknown as ProviderRepository,
+      mockMetadataRepository as unknown as MetadataRepository,
+      mockCorrectionHistoryRepository as unknown as CorrectionHistoryRepository,
+      mockProjectSettingsRepository as unknown as ProjectSettingsRepository,
+      mockWordCountSnapshotRepository as unknown as WordCountSnapshotRepository
     );
 
     await useCase.execute({ userId: 'user-1', confirmEmail: 'test@example.com' });
@@ -95,18 +107,18 @@ describe('DeleteUserAccountUseCase', () => {
 
   it('should delete all owned data across every provided repository (RGPD)', async () => {
     const useCase = new DeleteUserAccountUseCase(
-      mockUserRepository,
-      mockProjectRepository,
-      mockProviderRepository,
-      mockMetadataRepository,
-      mockCorrectionHistoryRepository,
-      mockProjectSettingsRepository,
-      mockWordCountSnapshotRepository,
-      mockWritingQuotaRepository,
-      mockWritingGoalRepository,
-      mockCharacterRepository,
-      mockProjectTaskRepository,
-      mockAIUsageRepository
+      mockUserRepository as unknown as UserRepository,
+      mockProjectRepository as unknown as ProjectRepository,
+      mockProviderRepository as unknown as ProviderRepository,
+      mockMetadataRepository as unknown as MetadataRepository,
+      mockCorrectionHistoryRepository as unknown as CorrectionHistoryRepository,
+      mockProjectSettingsRepository as unknown as ProjectSettingsRepository,
+      mockWordCountSnapshotRepository as unknown as WordCountSnapshotRepository,
+      mockWritingQuotaRepository as unknown as WritingQuotaRepository,
+      mockWritingGoalRepository as unknown as WritingGoalRepository,
+      mockCharacterRepository as unknown as CharacterRepository,
+      mockProjectTaskRepository as unknown as ProjectTaskRepository,
+      mockAIUsageRepository as unknown as AIUsageRepository
     );
 
     await useCase.execute({ userId: 'user-1', confirmEmail: 'test@example.com' });
@@ -122,12 +134,12 @@ describe('DeleteUserAccountUseCase', () => {
     mockUserRepository.findById.mockResolvedValue(null);
 
     const useCase = new DeleteUserAccountUseCase(
-      mockUserRepository,
-      mockProjectRepository,
-      mockProviderRepository,
-      mockMetadataRepository,
-      mockCorrectionHistoryRepository,
-      mockProjectSettingsRepository
+      mockUserRepository as unknown as UserRepository,
+      mockProjectRepository as unknown as ProjectRepository,
+      mockProviderRepository as unknown as ProviderRepository,
+      mockMetadataRepository as unknown as MetadataRepository,
+      mockCorrectionHistoryRepository as unknown as CorrectionHistoryRepository,
+      mockProjectSettingsRepository as unknown as ProjectSettingsRepository
     );
 
     await expect(
@@ -137,12 +149,12 @@ describe('DeleteUserAccountUseCase', () => {
 
   it('should throw EmailMismatchError when email does not match', async () => {
     const useCase = new DeleteUserAccountUseCase(
-      mockUserRepository,
-      mockProjectRepository,
-      mockProviderRepository,
-      mockMetadataRepository,
-      mockCorrectionHistoryRepository,
-      mockProjectSettingsRepository
+      mockUserRepository as unknown as UserRepository,
+      mockProjectRepository as unknown as ProjectRepository,
+      mockProviderRepository as unknown as ProviderRepository,
+      mockMetadataRepository as unknown as MetadataRepository,
+      mockCorrectionHistoryRepository as unknown as CorrectionHistoryRepository,
+      mockProjectSettingsRepository as unknown as ProjectSettingsRepository
     );
 
     await expect(
@@ -152,12 +164,12 @@ describe('DeleteUserAccountUseCase', () => {
 
   it('should delete project settings and include in result', async () => {
     const useCase = new DeleteUserAccountUseCase(
-      mockUserRepository,
-      mockProjectRepository,
-      mockProviderRepository,
-      mockMetadataRepository,
-      mockCorrectionHistoryRepository,
-      mockProjectSettingsRepository
+      mockUserRepository as unknown as UserRepository,
+      mockProjectRepository as unknown as ProjectRepository,
+      mockProviderRepository as unknown as ProviderRepository,
+      mockMetadataRepository as unknown as MetadataRepository,
+      mockCorrectionHistoryRepository as unknown as CorrectionHistoryRepository,
+      mockProjectSettingsRepository as unknown as ProjectSettingsRepository
     );
 
     const result = await useCase.execute({
@@ -203,12 +215,12 @@ describe('DeleteUserAccountUseCase', () => {
     });
 
     const useCase = new DeleteUserAccountUseCase(
-      mockUserRepository,
-      mockProjectRepository,
-      mockProviderRepository,
-      mockMetadataRepository,
-      mockCorrectionHistoryRepository,
-      mockProjectSettingsRepository
+      mockUserRepository as unknown as UserRepository,
+      mockProjectRepository as unknown as ProjectRepository,
+      mockProviderRepository as unknown as ProviderRepository,
+      mockMetadataRepository as unknown as MetadataRepository,
+      mockCorrectionHistoryRepository as unknown as CorrectionHistoryRepository,
+      mockProjectSettingsRepository as unknown as ProjectSettingsRepository
     );
 
     await useCase.execute({
@@ -224,12 +236,12 @@ describe('DeleteUserAccountUseCase', () => {
 
   it('should return correct deletion counts', async () => {
     const useCase = new DeleteUserAccountUseCase(
-      mockUserRepository,
-      mockProjectRepository,
-      mockProviderRepository,
-      mockMetadataRepository,
-      mockCorrectionHistoryRepository,
-      mockProjectSettingsRepository
+      mockUserRepository as unknown as UserRepository,
+      mockProjectRepository as unknown as ProjectRepository,
+      mockProviderRepository as unknown as ProviderRepository,
+      mockMetadataRepository as unknown as MetadataRepository,
+      mockCorrectionHistoryRepository as unknown as CorrectionHistoryRepository,
+      mockProjectSettingsRepository as unknown as ProjectSettingsRepository
     );
 
     const result = await useCase.execute({

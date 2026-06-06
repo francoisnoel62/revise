@@ -11,7 +11,7 @@ import { MongoDBProjectRepository } from '@/infrastructure/persistence/MongoDBPr
 import { CheckMetadataFreshnessUseCase } from '@/application/use-cases/CheckMetadataFreshnessUseCase';
 import { ProjectMetadata } from '@/domain/entities/ProjectMetadata';
 import { ResearchDocument } from '@/domain/entities/ResearchDocument';
-import { getDatabase, closeDatabase } from '@/infrastructure/config/database';
+import { getDatabase, closeDatabase as _closeDatabase } from '@/infrastructure/config/database';
 import type { Db } from 'mongodb';
 import { hashText } from '@/application/utils/text-hash';
 import { extractProjectFullText } from '@/application/services/project-text';

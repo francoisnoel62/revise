@@ -25,8 +25,8 @@ describe('MetadataCard', () => {
   };
 
   const mockProviders = [
-    { id: 'provider-1', name: 'OpenAI GPT-4', type: 'openai' },
-    { id: 'provider-2', name: 'Claude Sonnet', type: 'anthropic' },
+    { id: 'provider-1', name: 'OpenAI GPT-4', type: 'openai' as const, maskedApiKey: 'sk-...test', model: 'gpt-4o', isValid: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    { id: 'provider-2', name: 'Claude Sonnet', type: 'anthropic' as const, maskedApiKey: 'sk-...test', model: 'claude-3', isValid: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
   ];
 
   const mockHandlers = {

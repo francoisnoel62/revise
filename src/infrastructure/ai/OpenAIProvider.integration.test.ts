@@ -12,6 +12,7 @@ async function isOpenAIAvailable(): Promise<boolean> {
 
   const provider = new OpenAIProvider(
     process.env.OPENAI_API_KEY,
+    {} as unknown as import('@/domain/interfaces/PromptRepository').PromptRepository,
     process.env.OPENAI_MODEL || 'gpt-4o'
   );
 
@@ -34,7 +35,7 @@ describe.skipIf(!openAIAvailable)('OpenAIProvider Integration', () => {
   beforeAll(() => {
     const apiKey = process.env.OPENAI_API_KEY!;
     const model = process.env.OPENAI_MODEL || 'gpt-4o';
-    provider = new OpenAIProvider(apiKey, model);
+    provider = new OpenAIProvider(apiKey, {} as unknown as import('@/domain/interfaces/PromptRepository').PromptRepository, model);
   });
 
   it('should generate 3 distinct proposals with real API', async () => {

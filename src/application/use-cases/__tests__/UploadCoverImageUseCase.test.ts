@@ -27,7 +27,7 @@ describe('UploadCoverImageUseCase', () => {
       delete: vi.fn(),
     };
 
-    useCase = new UploadCoverImageUseCase(mockRepository, mockBlobStorage);
+    useCase = new UploadCoverImageUseCase(mockRepository as unknown as import('@/domain/interfaces/ProjectSettingsRepository').ProjectSettingsRepository, mockBlobStorage as unknown as import('@/domain/interfaces/BlobStorage').BlobStorage);
   });
 
   it('uploads cover image and updates settings', async () => {

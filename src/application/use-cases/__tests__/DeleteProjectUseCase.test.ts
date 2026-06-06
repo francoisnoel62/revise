@@ -3,6 +3,9 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DeleteProjectUseCase } from '../DeleteProjectUseCase';
+import type { ProjectRepository } from '@/domain/interfaces/ProjectRepository';
+import type { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
+import type { ProjectSettingsRepository } from '@/domain/interfaces/ProjectSettingsRepository';
 
 describe('DeleteProjectUseCase', () => {
   let mockProjectRepository: { deleteProject: ReturnType<typeof vi.fn> };
@@ -24,7 +27,7 @@ describe('DeleteProjectUseCase', () => {
   });
 
   it('should delete project', async () => {
-    const useCase = new DeleteProjectUseCase(mockProjectRepository);
+    const useCase = new DeleteProjectUseCase(mockProjectRepository as unknown as ProjectRepository);
 
     await useCase.execute({ ownerId: 'owner-1', projectId: 'project-1' });
 
@@ -33,8 +36,8 @@ describe('DeleteProjectUseCase', () => {
 
   it('should delete metadata when repository is provided', async () => {
     const useCase = new DeleteProjectUseCase(
-      mockProjectRepository,
-      mockMetadataRepository
+      mockProjectRepository as unknown as ProjectRepository,
+      mockMetadataRepository as unknown as MetadataRepository
     );
 
     await useCase.execute({ ownerId: 'owner-1', projectId: 'project-1' });
@@ -45,9 +48,9 @@ describe('DeleteProjectUseCase', () => {
 
   it('should delete project settings when repository is provided', async () => {
     const useCase = new DeleteProjectUseCase(
-      mockProjectRepository,
+      mockProjectRepository as unknown as ProjectRepository,
       undefined,
-      mockProjectSettingsRepository
+      mockProjectSettingsRepository as unknown as ProjectSettingsRepository
     );
 
     await useCase.execute({ ownerId: 'owner-1', projectId: 'project-1' });
@@ -75,9 +78,9 @@ describe('DeleteProjectUseCase', () => {
     });
 
     const useCase = new DeleteProjectUseCase(
-      mockProjectRepository,
-      mockMetadataRepository,
-      mockProjectSettingsRepository
+      mockProjectRepository as unknown as ProjectRepository,
+      mockMetadataRepository as unknown as MetadataRepository,
+      mockProjectSettingsRepository as unknown as ProjectSettingsRepository
     );
 
     await useCase.execute({ ownerId: 'owner-1', projectId: 'project-1' });

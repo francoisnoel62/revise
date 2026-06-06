@@ -12,7 +12,8 @@ describe('IndentHeading', () => {
 
   it('should have indent attribute configuration', () => {
     const extension = IndentHeading.configure({ levels: [1, 2] });
-    const schema = extension.config.addAttributes?.();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const schema = (extension.config.addAttributes as any)?.() as Record<string, any>;
 
     expect(schema).toHaveProperty('indent');
     expect(schema).toHaveProperty('level');
@@ -20,7 +21,8 @@ describe('IndentHeading', () => {
 
   it('should parse indent from data-indent attribute', () => {
     const extension = IndentHeading.configure({ levels: [1, 2, 3] });
-    const schema = extension.config.addAttributes?.();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const schema = (extension.config.addAttributes as any)?.() as Record<string, any>;
 
     // Mock element with data-indent
     const element = {
@@ -36,7 +38,8 @@ describe('IndentHeading', () => {
 
   it('should parse indent from text-indent style', () => {
     const extension = IndentHeading.configure({ levels: [1, 2, 3] });
-    const schema = extension.config.addAttributes?.();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const schema = (extension.config.addAttributes as any)?.() as Record<string, any>;
 
     // Mock element with text-indent style
     const element = {
@@ -52,7 +55,8 @@ describe('IndentHeading', () => {
 
   it('should not parse indent for zero values', () => {
     const extension = IndentHeading.configure({ levels: [1, 2, 3] });
-    const schema = extension.config.addAttributes?.();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const schema = (extension.config.addAttributes as any)?.() as Record<string, any>;
 
     // Mock element with text-indent: 0
     const element = {
@@ -68,7 +72,8 @@ describe('IndentHeading', () => {
 
   it('should render indent as data-indent attribute', () => {
     const extension = IndentHeading.configure({ levels: [1, 2, 3] });
-    const schema = extension.config.addAttributes?.();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const schema = (extension.config.addAttributes as any)?.() as Record<string, any>;
 
     const rendered = schema?.indent?.renderHTML?.({ indent: true });
     expect(rendered).toEqual({ 'data-indent': 'true' });
@@ -76,7 +81,8 @@ describe('IndentHeading', () => {
 
   it('should return empty object when no indent', () => {
     const extension = IndentHeading.configure({ levels: [1, 2, 3] });
-    const schema = extension.config.addAttributes?.();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const schema = (extension.config.addAttributes as any)?.() as Record<string, any>;
 
     const rendered = schema?.indent?.renderHTML?.({ indent: false });
     expect(rendered).toEqual({});

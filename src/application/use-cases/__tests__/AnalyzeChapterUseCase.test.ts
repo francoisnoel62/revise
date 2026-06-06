@@ -19,7 +19,7 @@ const createMockProject = (chapterId: string, chapterContent: string) => ({
 
 const createMockProjectRepository = (project: ReturnType<typeof createMockProject> | null) => ({
   loadProject: vi.fn().mockResolvedValue(project),
-});
+} as unknown as import('@/domain/interfaces/ProjectRepository').ProjectRepository);
 
 const createMockCharacterRepository = () => ({
   findByProjectId: vi.fn().mockResolvedValue([]),
@@ -83,8 +83,8 @@ describe('AnalyzeChapterUseCase', () => {
 
     useCase = new AnalyzeChapterUseCase(
       mockProjectRepository,
-      mockCharacterRepository,
-      mockIdGenerator,
+      mockCharacterRepository as unknown as import('@/domain/interfaces/CharacterRepository').CharacterRepository,
+      mockIdGenerator as unknown as import('@/domain/interfaces/IdGenerator').IdGenerator,
       mockStrategies
     );
   });
@@ -120,8 +120,8 @@ describe('AnalyzeChapterUseCase', () => {
       mockProjectRepository = createMockProjectRepository(null);
       useCase = new AnalyzeChapterUseCase(
         mockProjectRepository,
-        mockCharacterRepository,
-        mockIdGenerator,
+        mockCharacterRepository as unknown as import('@/domain/interfaces/CharacterRepository').CharacterRepository,
+        mockIdGenerator as unknown as import('@/domain/interfaces/IdGenerator').IdGenerator,
         mockStrategies
       );
 
@@ -133,8 +133,8 @@ describe('AnalyzeChapterUseCase', () => {
       mockProjectRepository = createMockProjectRepository(mockProject);
       useCase = new AnalyzeChapterUseCase(
         mockProjectRepository,
-        mockCharacterRepository,
-        mockIdGenerator,
+        mockCharacterRepository as unknown as import('@/domain/interfaces/CharacterRepository').CharacterRepository,
+        mockIdGenerator as unknown as import('@/domain/interfaces/IdGenerator').IdGenerator,
         mockStrategies
       );
 

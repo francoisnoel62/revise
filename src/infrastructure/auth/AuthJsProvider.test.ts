@@ -21,7 +21,8 @@ describe('AuthJsProvider', () => {
 
   describe('getUserId', () => {
     it('returns user ID when authenticated', async () => {
-      vi.mocked(auth).mockResolvedValue({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (auth as any).mockResolvedValue({
         user: { id: 'user-123', email: 'test@example.com' },
         expires: new Date().toISOString(),
       });
@@ -32,15 +33,17 @@ describe('AuthJsProvider', () => {
     });
 
     it('throws UnauthorizedError when not authenticated', async () => {
-      vi.mocked(auth).mockResolvedValue(null);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (auth as any).mockResolvedValue(null);
 
       await expect(provider.getUserId()).rejects.toThrow(UnauthorizedError);
     });
 
     it('throws UnauthorizedError when session has no user', async () => {
-      vi.mocked(auth).mockResolvedValue({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (auth as any).mockResolvedValue({
         expires: new Date().toISOString(),
-      } as { user?: undefined; expires: string });
+      });
 
       await expect(provider.getUserId()).rejects.toThrow(UnauthorizedError);
     });
@@ -48,7 +51,8 @@ describe('AuthJsProvider', () => {
 
   describe('isAuthenticated', () => {
     it('returns true when authenticated', async () => {
-      vi.mocked(auth).mockResolvedValue({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (auth as any).mockResolvedValue({
         user: { id: 'user-123', email: 'test@example.com' },
         expires: new Date().toISOString(),
       });
@@ -59,7 +63,8 @@ describe('AuthJsProvider', () => {
     });
 
     it('returns false when not authenticated', async () => {
-      vi.mocked(auth).mockResolvedValue(null);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (auth as any).mockResolvedValue(null);
 
       const result = await provider.isAuthenticated();
 
@@ -69,7 +74,8 @@ describe('AuthJsProvider', () => {
 
   describe('getSession', () => {
     it('returns UserSession when authenticated', async () => {
-      vi.mocked(auth).mockResolvedValue({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (auth as any).mockResolvedValue({
         user: { id: 'user-123', email: 'test@example.com', name: 'Test User' },
         expires: new Date().toISOString(),
       });
@@ -84,7 +90,8 @@ describe('AuthJsProvider', () => {
     });
 
     it('returns null when not authenticated', async () => {
-      vi.mocked(auth).mockResolvedValue(null);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (auth as any).mockResolvedValue(null);
 
       const session = await provider.getSession();
 

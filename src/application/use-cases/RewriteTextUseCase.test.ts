@@ -35,6 +35,47 @@ class MockLLMProvider implements LLMProvider {
   getModel() {
     return 'mock-model';
   }
+
+  async generateNarrativeAnalysis(_fullText: string) {
+    return {} as import('@/domain/value-objects/NarrativeAnalysis').NarrativeAnalysis;
+  }
+
+  async generateStylisticDNA(_fullText: string) {
+    return {} as import('@/domain/value-objects/StylisticDNA').StylisticDNA;
+  }
+
+  async generateCharacters(_fullText: string) {
+    return {} as import('@/domain/value-objects/Characters').Characters;
+  }
+
+  async generatePlot(_fullText: string) {
+    return {} as import('@/domain/value-objects/Plot').Plot;
+  }
+
+  async generateWorldbuilding(_fullText: string) {
+    return {} as import('@/domain/value-objects/Worldbuilding').Worldbuilding;
+  }
+
+  async generateSynthesis(_fullText: string, _previousAnalyses: object) {
+    return {} as import('@/domain/value-objects/Synthesis').Synthesis;
+  }
+
+  async generateChapterSummaries(_fullText: string) {
+    return {} as import('@/domain/value-objects/ChapterSummaries').ChapterSummaries;
+  }
+
+  async generateChapter(_fullText: string, _generationType: import('@/domain/value-objects/ChapterGenerationType').ChapterGenerationTypeKey) {
+    return {} as import('@/domain/value-objects/ChapterGeneration').ChapterGeneration;
+  }
+
+  async generateCompletion(_textBeforeCursor: string) {
+    return '';
+  }
+
+  generateCompletionStream(_textBeforeCursor: string): AsyncIterableIterator<string> {
+    async function* gen() {}
+    return gen();
+  }
 }
 
 describe('RewriteTextUseCase', () => {
@@ -70,7 +111,7 @@ describe('RewriteTextUseCase', () => {
     const selection = new TextSelection(0, 13); // "Hello, world!"
 
     let capturedText = '';
-    const customProvider: LLMProvider = {
+    const customProvider = {
       async generateRewrites(text: string) {
         capturedText = text;
         return [
@@ -90,7 +131,7 @@ describe('RewriteTextUseCase', () => {
       getModel() {
         return 'custom-model';
       },
-    };
+    } as unknown as LLMProvider;
     const customUseCase = new RewriteTextUseCase(customProvider);
 
     await customUseCase.execute(document, selection);
@@ -103,7 +144,7 @@ describe('RewriteTextUseCase', () => {
     const selection = new TextSelection(10, 15); // "brown"
 
     let capturedContext: string | undefined;
-    const customProvider: LLMProvider = {
+    const customProvider = {
       async generateRewrites(text: string, context?: string) {
         capturedContext = context;
         return [
@@ -123,7 +164,7 @@ describe('RewriteTextUseCase', () => {
       getModel() {
         return 'custom-model';
       },
-    };
+    } as unknown as LLMProvider;
     const customUseCase = new RewriteTextUseCase(customProvider);
 
     await customUseCase.execute(document, selection);
@@ -144,7 +185,7 @@ describe('RewriteTextUseCase', () => {
     const document = new TextDocument('Test content');
     const selection = new TextSelection(0, 4);
 
-    const failingProvider: LLMProvider = {
+    const failingProvider = {
       async generateRewrites() {
         throw new Error('API unavailable');
       },
@@ -157,7 +198,7 @@ describe('RewriteTextUseCase', () => {
       getModel() {
         return 'failing-model';
       },
-    };
+    } as unknown as LLMProvider;
     const failingUseCase = new RewriteTextUseCase(failingProvider);
 
     await expect(async () => {
@@ -189,7 +230,7 @@ describe('RewriteTextUseCase', () => {
       let capturedText = '';
       let capturedContext = '';
 
-      const customProvider: LLMProvider = {
+      const customProvider = {
         async generateRewrites(text: string, context?: string) {
           capturedText = text;
           capturedContext = context || '';
@@ -206,7 +247,7 @@ describe('RewriteTextUseCase', () => {
         getModel() {
           return 'custom-model';
         },
-      };
+      } as unknown as LLMProvider;
       const customUseCase = new RewriteTextUseCase(customProvider);
 
       await customUseCase.executeWithText('selected text', 'full document context');
@@ -241,7 +282,7 @@ describe('RewriteTextUseCase', () => {
       const plainTextContext = 'Hello world'; // Extracted from JSON
 
       let capturedText = '';
-      const customProvider: LLMProvider = {
+      const customProvider = {
         async generateRewrites(text: string) {
           capturedText = text;
           return [new RewriteProposal('Bonjour', 'french')];
@@ -255,7 +296,7 @@ describe('RewriteTextUseCase', () => {
         getModel() {
           return 'test-model';
         },
-      };
+      } as unknown as LLMProvider;
 
       const customUseCase = new RewriteTextUseCase(customProvider);
       const result = await customUseCase.executeWithText(selectedText, plainTextContext);
@@ -291,7 +332,7 @@ describe('RewriteTextUseCase', () => {
       };
 
       const caseWithMeta = new RewriteTextUseCase(providerWithMetadata);
-      await caseWithMeta.executeWithText('text', 'context', { stylisticDNA });
+      await caseWithMeta.executeWithText('text', 'context', { stylisticDNA } as unknown as string);
 
       expect(mockGenerate).toHaveBeenCalledWith('text', 'context', { stylisticDNA });
     });
@@ -339,7 +380,7 @@ describe('RewriteTextUseCase', () => {
       };
 
       const caseWithBoth = new RewriteTextUseCase(provider);
-      await caseWithBoth.executeWithText('text', 'context', { narrative, stylisticDNA });
+      await caseWithBoth.executeWithText('text', 'context', { narrative, stylisticDNA } as unknown as string);
 
       expect(mockGenerate).toHaveBeenCalledWith('text', 'context', { narrative, stylisticDNA });
     });

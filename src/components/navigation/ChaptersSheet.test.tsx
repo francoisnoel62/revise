@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { ChaptersSheet } from './ChaptersSheet';
+import { ChaptersSheet as ChaptersSheetComponent } from './ChaptersSheet';
 import { Chapter } from '@/domain/entities/Chapter';
+
+// ChaptersSheet now manages its own state; cast to allow legacy props in skipped tests
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ChaptersSheet = ChaptersSheetComponent as unknown as React.ComponentType<Record<string, any>>;
+import React from 'react';
 
 // Mock the store
 vi.mock('@/store/projectStore', () => ({

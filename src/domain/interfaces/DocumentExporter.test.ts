@@ -8,6 +8,7 @@ describe('DocumentExporter interface', () => {
     const mockExporter: DocumentExporter = {
       supports: (_filename: string) => true,
       exportProject: async (_project: Project, _filename: string) => Buffer.from(''),
+      exportChapters: async (_chapters: Chapter[], _filename: string) => Buffer.from(''),
       exportChapter: async (_chapter: Chapter, _filename: string) => Buffer.from(''),
       export: async (_content: string, _filename: string) => Buffer.from(''),
     };

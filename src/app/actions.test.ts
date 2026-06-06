@@ -65,7 +65,7 @@ describe('importDocument', () => {
       ]),
       parse: vi.fn().mockResolvedValue('content'),
     };
-    vi.mocked(getDocumentParser).mockResolvedValue(mockParser);
+    vi.mocked(getDocumentParser).mockResolvedValue(mockParser as unknown as import('@/domain/interfaces/DocumentParser').DocumentParser);
   });
 
   it('uses getDocumentParser for dependency injection', async () => {

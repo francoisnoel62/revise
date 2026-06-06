@@ -157,7 +157,15 @@ describe('ProjectCard', () => {
 
     vi.mocked(updateProjectTitleAction).mockResolvedValue({
       success: true,
-      data: { ...mockProject, title: 'New Title' },
+      data: {
+        id: mockProject.id,
+        title: 'New Title',
+        chapters: [],
+        activeChapterId: null,
+        providerId: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
     });
 
     render(

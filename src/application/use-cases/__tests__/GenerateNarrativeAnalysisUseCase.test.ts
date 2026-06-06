@@ -30,6 +30,15 @@ describe('GenerateNarrativeAnalysisUseCase', () => {
     getProviderName: vi.fn().mockReturnValue('OpenAI'),
     getModel: vi.fn().mockReturnValue('gpt-4o-mini'),
     generateNarrativeAnalysis: vi.fn(),
+    generateStylisticDNA: vi.fn(),
+    generateCharacters: vi.fn(),
+    generatePlot: vi.fn(),
+    generateWorldbuilding: vi.fn(),
+    generateSynthesis: vi.fn(),
+    generateChapterSummaries: vi.fn(),
+    generateChapter: vi.fn(),
+    generateCompletion: vi.fn(),
+    generateCompletionStream: vi.fn(),
   };
 
   const mockIdGenerator = {

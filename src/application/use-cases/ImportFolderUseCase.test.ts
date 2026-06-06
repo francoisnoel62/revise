@@ -28,7 +28,9 @@ describe('ImportFolderUseCase', () => {
       listProjects: vi.fn(),
       deleteProject: vi.fn(),
       updateProject: vi.fn(),
+      updateChapter: vi.fn(),
       deleteAllByOwner: vi.fn(),
+      findPublishedByToken: vi.fn(),
     };
 
     useCase = new ImportFolderUseCase(mockParser, mockRepository);
@@ -72,7 +74,7 @@ describe('ImportFolderUseCase', () => {
 
     vi.mocked(mockParser.supports).mockReturnValue(true);
     vi.mocked(mockParser.parseToChapters).mockResolvedValue(chapters);
-    vi.mocked(mockRepository.createProject).mockResolvedValue(undefined);
+    vi.mocked(mockRepository.createProject).mockImplementation(async (_, p) => p);
 
     const project = await useCase.execute('user-1', files, 'Mon Roman');
 
@@ -87,7 +89,7 @@ describe('ImportFolderUseCase', () => {
 
     vi.mocked(mockParser.supports).mockReturnValue(true);
     vi.mocked(mockParser.parseToChapters).mockResolvedValue(chapters);
-    vi.mocked(mockRepository.createProject).mockResolvedValue(undefined);
+    vi.mocked(mockRepository.createProject).mockImplementation(async (_, p) => p);
 
     const project = await useCase.execute('user-1', files, 'Test');
 
@@ -104,7 +106,7 @@ describe('ImportFolderUseCase', () => {
 
     vi.mocked(mockParser.supports).mockReturnValue(true);
     vi.mocked(mockParser.parseToChapters).mockResolvedValue(chapters);
-    vi.mocked(mockRepository.createProject).mockResolvedValue(undefined);
+    vi.mocked(mockRepository.createProject).mockImplementation(async (_, p) => p);
 
     await useCase.execute('user-1', files, 'Test');
 
@@ -117,7 +119,7 @@ describe('ImportFolderUseCase', () => {
 
     vi.mocked(mockParser.supports).mockReturnValue(true);
     vi.mocked(mockParser.parseToChapters).mockResolvedValue(chapters);
-    vi.mocked(mockRepository.createProject).mockResolvedValue(undefined);
+    vi.mocked(mockRepository.createProject).mockImplementation(async (_, p) => p);
 
     const project = await useCase.execute('user-1', files, 'Mon Super Roman');
 

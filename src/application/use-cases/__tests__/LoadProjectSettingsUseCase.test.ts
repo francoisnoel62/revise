@@ -14,7 +14,7 @@ describe('LoadProjectSettingsUseCase', () => {
       findByProjectId: vi.fn(),
     };
 
-    useCase = new LoadProjectSettingsUseCase(mockRepository);
+    useCase = new LoadProjectSettingsUseCase(mockRepository as unknown as import('@/domain/interfaces/ProjectSettingsRepository').ProjectSettingsRepository);
   });
 
   it('returns settings when found', async () => {

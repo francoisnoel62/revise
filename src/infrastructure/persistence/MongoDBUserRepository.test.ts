@@ -71,6 +71,8 @@ describe('MongoDBUserRepository', () => {
         email: 'new@example.com',
         password: 'plaintext',
         name: 'New User',
+        acceptedTerms: true,
+        acceptedPrivacy: true,
       });
 
       expect(bcrypt.hash).toHaveBeenCalledWith('plaintext', 12);
@@ -82,7 +84,7 @@ describe('MongoDBUserRepository', () => {
       mockCollection.findOne.mockResolvedValue({ _id: 'existing' });
 
       await expect(
-        repository.create({ email: 'existing@example.com', password: 'password' })
+        repository.create({ email: 'existing@example.com', password: 'password', acceptedTerms: true, acceptedPrivacy: true })
       ).rejects.toThrow('already registered');
     });
   });

@@ -42,6 +42,7 @@ const mockProject = {
     },
   ],
   activeChapterId: 'ch-1',
+  providerId: null,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 };

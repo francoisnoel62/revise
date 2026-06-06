@@ -25,7 +25,7 @@ describe('RecordWordCountSnapshotUseCase', () => {
     mockIdGenerator = {
       generate: vi.fn(() => '507f1f77bcf86cd799439011'),
     };
-    useCase = new RecordWordCountSnapshotUseCase(mockRepository, mockIdGenerator);
+    useCase = new RecordWordCountSnapshotUseCase(mockRepository as unknown as import('@/domain/interfaces/WordCountSnapshotRepository').WordCountSnapshotRepository, mockIdGenerator as unknown as import('@/domain/interfaces/IdGenerator').IdGenerator);
   });
 
   it('upserts a snapshot for the given local date and total', async () => {

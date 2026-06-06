@@ -18,7 +18,7 @@ describe('UpdateProjectSettingsUseCase', () => {
       update: vi.fn((userId, settings) => Promise.resolve(settings)),
     };
 
-    useCase = new UpdateProjectSettingsUseCase(mockRepository);
+    useCase = new UpdateProjectSettingsUseCase(mockRepository as unknown as import('@/domain/interfaces/ProjectSettingsRepository').ProjectSettingsRepository);
   });
 
   it('updates title', async () => {

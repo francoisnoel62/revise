@@ -39,6 +39,9 @@ describe('GenerateChapterSummariesUseCase', () => {
     generateWorldbuilding: vi.fn(),
     generateSynthesis: vi.fn(),
     generateChapterSummaries: vi.fn(),
+    generateChapter: vi.fn(),
+    generateCompletion: vi.fn(),
+    generateCompletionStream: vi.fn(),
   };
 
   const mockIdGenerator = {

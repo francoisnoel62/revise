@@ -189,7 +189,7 @@ describe('Performance Tests', () => {
       // Reset store before each test
       const project = Project.createEmpty('test-user', 'Test Project');
       useProjectStore.setState({
-        project,
+        project: project as unknown as import('@/app/actions/project-actions').SerializedProject,
         activeContent: JSON.stringify({ type: 'doc', content: [] }),
         hasUnsavedChanges: false,
       });
@@ -198,7 +198,7 @@ describe('Performance Tests', () => {
     it('should switch chapters in under 200ms', async () => {
       const project = createLargeProject();
       useProjectStore.setState({
-        project: serializeProject(project),
+        project: serializeProject(project) as unknown as import('@/app/actions/project-actions').SerializedProject,
         activeContent: project.getChapters()[0].getContent(),
       });
 
@@ -220,7 +220,7 @@ describe('Performance Tests', () => {
     it('should handle rapid chapter switches', async () => {
       const project = createLargeProject();
       useProjectStore.setState({
-        project: serializeProject(project),
+        project: serializeProject(project) as unknown as import('@/app/actions/project-actions').SerializedProject,
         activeContent: project.getChapters()[0].getContent(),
       });
 
@@ -254,7 +254,7 @@ describe('Performance Tests', () => {
     beforeEach(() => {
       const project = Project.createEmpty('test-user', 'Test Project');
       useProjectStore.setState({
-        project,
+        project: project as unknown as import('@/app/actions/project-actions').SerializedProject,
         activeContent: JSON.stringify({ type: 'doc', content: [] }),
         hasUnsavedChanges: false,
       });
@@ -263,7 +263,7 @@ describe('Performance Tests', () => {
     it('should update content quickly', () => {
       const project = createLargeProject();
       useProjectStore.setState({
-        project: serializeProject(project),
+        project: serializeProject(project) as unknown as import('@/app/actions/project-actions').SerializedProject,
         activeContent: project.getChapters()[0].getContent(),
       });
 

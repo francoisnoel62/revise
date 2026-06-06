@@ -52,7 +52,17 @@ describe('AnthropicProvider.generateNarrativeAnalysis (Unit)', () => {
     // Mock prompt repository
     mockPromptRepo = {
       getNarrativeAnalysisPrompt: vi.fn().mockResolvedValue('Test prompt'),
-    };
+      getStylisticDNAPrompt: vi.fn().mockResolvedValue(''),
+      getCharactersPrompt: vi.fn().mockResolvedValue(''),
+      getPlotPrompt: vi.fn().mockResolvedValue(''),
+      getWorldbuildingPrompt: vi.fn().mockResolvedValue(''),
+      getSynthesisPrompt: vi.fn().mockResolvedValue(''),
+      getChapterSummariesPrompt: vi.fn().mockResolvedValue(''),
+      getChapterBeginningPrompt: vi.fn().mockResolvedValue(''),
+      getChapterFullPrompt: vi.fn().mockResolvedValue(''),
+      getChapterOutlinePrompt: vi.fn().mockResolvedValue(''),
+      getCompletionPrompt: vi.fn().mockResolvedValue(''),
+    } as import('@/domain/interfaces/PromptRepository').PromptRepository;
 
     provider = new AnthropicProvider('test-key', mockPromptRepo, 'claude-sonnet-4-5-20250929');
   });

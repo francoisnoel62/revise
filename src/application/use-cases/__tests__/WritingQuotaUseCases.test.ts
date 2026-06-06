@@ -7,6 +7,7 @@ import { UpdateWritingQuotaUseCase } from '../UpdateWritingQuotaUseCase';
 import { ListWritingQuotasUseCase } from '../ListWritingQuotasUseCase';
 import { DeleteWritingQuotaUseCase } from '../DeleteWritingQuotaUseCase';
 import { WritingQuota } from '@/domain/entities/WritingQuota';
+import type { WritingQuotaRepository } from '@/domain/interfaces/WritingQuotaRepository';
 
 describe('WritingQuota use cases', () => {
   let mockRepository: {
@@ -32,7 +33,7 @@ describe('WritingQuota use cases', () => {
   });
 
   it('creates a quota with valid input', async () => {
-    const useCase = new CreateWritingQuotaUseCase(mockRepository, mockIdGenerator);
+    const useCase = new CreateWritingQuotaUseCase(mockRepository as unknown as WritingQuotaRepository, mockIdGenerator as unknown as import('@/domain/interfaces/IdGenerator').IdGenerator);
 
     const result = await useCase.execute({
       userId: 'user-1',
@@ -48,7 +49,7 @@ describe('WritingQuota use cases', () => {
   });
 
   it('rejects an invalid target when creating', async () => {
-    const useCase = new CreateWritingQuotaUseCase(mockRepository, mockIdGenerator);
+    const useCase = new CreateWritingQuotaUseCase(mockRepository as unknown as WritingQuotaRepository, mockIdGenerator as unknown as import('@/domain/interfaces/IdGenerator').IdGenerator);
     await expect(
       useCase.execute({ userId: 'user-1', projectId: 'project-1', period: 'daily', targetWords: 0 })
     ).rejects.toThrow();
@@ -57,7 +58,7 @@ describe('WritingQuota use cases', () => {
   it('updates only the provided fields', async () => {
     const existing = WritingQuota.create('q-1', 'project-1', 'user-1', 'daily', 1000);
     mockRepository.findById.mockResolvedValue(existing);
-    const useCase = new UpdateWritingQuotaUseCase(mockRepository);
+    const useCase = new UpdateWritingQuotaUseCase(mockRepository as unknown as WritingQuotaRepository);
 
     const result = await useCase.execute({
       userId: 'user-1',
@@ -71,7 +72,7 @@ describe('WritingQuota use cases', () => {
 
   it('throws when updating a missing quota', async () => {
     mockRepository.findById.mockResolvedValue(null);
-    const useCase = new UpdateWritingQuotaUseCase(mockRepository);
+    const useCase = new UpdateWritingQuotaUseCase(mockRepository as unknown as WritingQuotaRepository);
     await expect(
       useCase.execute({ userId: 'user-1', quotaId: 'missing', targetWords: 1500 })
     ).rejects.toThrow('Quota not found');
@@ -80,7 +81,7 @@ describe('WritingQuota use cases', () => {
   it('lists quotas for a project', async () => {
     const quota = WritingQuota.create('q-1', 'project-1', 'user-1', 'weekly', 5000);
     mockRepository.findByProjectId.mockResolvedValue([quota]);
-    const useCase = new ListWritingQuotasUseCase(mockRepository);
+    const useCase = new ListWritingQuotasUseCase(mockRepository as unknown as WritingQuotaRepository);
 
     const result = await useCase.execute({ userId: 'user-1', projectId: 'project-1' });
 
@@ -89,7 +90,7 @@ describe('WritingQuota use cases', () => {
   });
 
   it('deletes a quota', async () => {
-    const useCase = new DeleteWritingQuotaUseCase(mockRepository);
+    const useCase = new DeleteWritingQuotaUseCase(mockRepository as unknown as WritingQuotaRepository);
     await useCase.execute({ userId: 'user-1', quotaId: 'q-1' });
     expect(mockRepository.delete).toHaveBeenCalledWith('user-1', 'q-1');
   });

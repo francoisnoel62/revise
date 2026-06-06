@@ -4,6 +4,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 import mammoth from 'mammoth';
+// Cast mammoth to access transforms which are present at runtime but not in the type definitions
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mammothWithTransforms = mammoth as any;
 import { DocxParser } from './DocxParser';
 
 describe('DocxParser', () => {
@@ -88,7 +91,7 @@ describe('DocxParser', () => {
       const result = await mammoth.convertToHtml(
         { buffer },
         {
-          transformDocument: mammoth.transforms.paragraph(transformParagraph),
+          transformDocument: mammothWithTransforms.transforms.paragraph(transformParagraph),
           styleMap: ["p[style-name='IndentedParagraph'] => p.indented:fresh"],
         }
       );
