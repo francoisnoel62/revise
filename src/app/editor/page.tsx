@@ -12,6 +12,7 @@ import { TextEditor } from '@/components/editor/TextEditor';
 import { FormattingToolbar } from '@/components/editor/FormattingToolbar';
 import { RewriteLoadingOverlay } from '@/components/editor/RewriteLoadingOverlay';
 import { ChaptersSheet } from '@/components/navigation/ChaptersSheet';
+import { ProjectSettingsMenu } from '@/components/navigation/ProjectSettingsMenu';
 import { ProposalsSheet } from '@/components/proposals/ProposalsSheet';
 import { ExportDialog } from '@/components/document/ExportDialog';
 import { SaveStatus } from '@/components/ui/SaveStatus';
@@ -497,6 +498,7 @@ function EditorContent() {
               </Button>
             </Link>
             <ChaptersSheet />
+            <ProjectSettingsMenu projectId={project.id} />
           </div>
           <div className="flex-1 text-center min-w-0 px-1">
             <h1 className="text-sm font-semibold truncate">{project.title}</h1>
@@ -517,6 +519,7 @@ function EditorContent() {
               </Button>
             </Link>
             <ChaptersSheet />
+            <ProjectSettingsMenu projectId={project.id} />
           </div>
           <div className="flex-1 text-center min-w-0 px-2">
             <h1 className="text-base font-semibold truncate">{project.title}</h1>
@@ -543,6 +546,7 @@ function EditorContent() {
               </Button>
             </Link>
             <ChaptersSheet />
+            <ProjectSettingsMenu projectId={project.id} />
           </div>
           {/* Center: project title */}
           <div className="text-center">
