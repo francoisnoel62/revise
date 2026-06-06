@@ -1,43 +1,38 @@
-// ABOUTME: End-to-end test for complete user flow from import to rewrite to export
-// ABOUTME: Validates the entire application works as expected in real browser
+// ABOUTME: End-to-end test for the public landing page and navigation flow
+// ABOUTME: Tests what unauthenticated users see and can do on the public routes
 
 import { test, expect } from '@playwright/test';
 
-test.describe('Main User Flow', () => {
-  test('should complete full document workflow', async ({ page }) => {
+test.describe('Landing Page', () => {
+  test('should display the landing page with hero section', async ({ page }) => {
     await page.goto('/');
 
-    // Check page loaded
-    await expect(page.getByRole('heading', { name: 'Revise' })).toBeVisible();
+    // Check page loaded with the app name in nav
+    await expect(page.getByText('Revise Studio').first()).toBeVisible();
 
-    // Type some text
-    const editor = page.locator('.ProseMirror');
-    await editor.click();
-    await editor.fill('The quick brown fox jumps over the lazy dog.');
+    // Check hero heading
+    await expect(page.getByText('De l\'idée au livre publié.')).toBeVisible();
 
-    // Check content is present
-    const text = await editor.textContent();
-    expect(text).toContain('quick brown fox');
-
-    // Note: Full rewrite flow requires OPENAI_API_KEY
-    // This test validates UI interactions only
+    // Check CTA buttons (use first() to handle duplicate elements)
+    await expect(page.getByRole('link', { name: /commencer à écrire/i }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: /découvrir le studio/i }).first()).toBeVisible();
   });
 
-  test('should show import and export buttons', async ({ page }) => {
+  test('should show navigation with login and signup buttons', async ({ page }) => {
     await page.goto('/');
 
-    await expect(page.getByText('Importer .docx')).toBeVisible();
-    await expect(page.getByText('Exporter .docx')).toBeVisible();
+    const nav = page.getByRole('navigation');
+    await expect(nav.getByRole('link', { name: /connexion/i })).toBeVisible();
+    await expect(nav.getByRole('link', { name: /demander un accès/i })).toBeVisible();
   });
 
-  test('should allow typing in editor', async ({ page }) => {
+  test('should navigate to sign-in when clicking Connexion', async ({ page }) => {
     await page.goto('/');
 
-    const editor = page.locator('.ProseMirror');
-    await editor.click();
-    await page.keyboard.type('Test content');
+    const nav = page.getByRole('navigation');
+    await nav.getByRole('link', { name: /connexion/i }).click();
 
-    const content = await editor.textContent();
-    expect(content).toContain('Test content');
+    await page.waitForURL('/auth/signin');
+    await expect(page).toHaveURL('/auth/signin');
   });
 });
