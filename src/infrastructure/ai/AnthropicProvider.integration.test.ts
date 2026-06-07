@@ -7,7 +7,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { AnthropicProvider } from './AnthropicProvider';
 import { FilePromptRepository } from '@/infrastructure/prompts/FilePromptRepository';
 
-describe.skipIf(!process.env.ANTHROPIC_API_KEY)('AnthropicProvider Integration', () => {
+describe.skipIf(!process.env.ANTHROPIC_API_KEY || !process.env.ANTHROPIC_INTEGRATION_TESTS)('AnthropicProvider Integration', () => {
   let provider: AnthropicProvider;
 
   beforeAll(() => {

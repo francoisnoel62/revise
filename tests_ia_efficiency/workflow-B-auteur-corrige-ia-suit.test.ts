@@ -128,7 +128,8 @@ describe('Workflow B — L\'auteur corrige, l\'IA suit', () => {
       expect(result[0].isStale).toBe(true);
     });
 
-    it('une fiche éditée par l\'auteur n\'est JAMAIS périmée — même si le manuscrit a changé', async () => {
+    it('une fiche éditée par l\'auteur est toujours périmée si le manuscrit a changé depuis', async () => {
+      // La péremption est uniquement basée sur le hash — l'édition manuelle ne l'exempte pas.
       const ficheEditeeApresGeneration = new ProjectMetadata(
         'm-edited', 'p1', 'characters', 'Personnages', metaContentJson,
         {
@@ -150,7 +151,7 @@ describe('Workflow B — L\'auteur corrige, l\'IA suit', () => {
 
       const result = await useCase.execute({ ownerId: 'u1', projectId: 'p1' });
 
-      expect(result[0].isStale).toBe(false);
+      expect(result[0].isStale).toBe(true);
     });
 
     it('une annexe éditoriale (Dédicace) n\'est jamais marquée périmée', async () => {
@@ -171,8 +172,9 @@ describe('Workflow B — L\'auteur corrige, l\'IA suit', () => {
   });
 
   describe('Cohérence globale — les deux règles sont compatibles', () => {
-    it('la fiche éditée est à la fois exclue de la péremption ET utilise le texte édité dans le contexte', async () => {
-      // Même entité testée sous deux angles : staleness + context injection
+    it('la fiche éditée peut être périmée ET utilise quand même le texte édité dans le contexte IA', async () => {
+      // Même entité testée sous deux angles : staleness + context injection.
+      // La péremption (hash) et le contexte IA (texte édité) sont deux préoccupations indépendantes.
 
       const ficheEditee = new ProjectMetadata(
         'm-edited', 'p1', 'characters', 'Personnages', metaContentJson,
@@ -187,7 +189,7 @@ describe('Workflow B — L\'auteur corrige, l\'IA suit', () => {
         }
       );
 
-      // Angle 1 : la fiche n'est pas périmée
+      // Angle 1 : la fiche est périmée car le manuscrit a changé (hash-based)
       const chapters = [{ getTitle: () => 'Ch1', getContent: () => chapterJson(MANUSCRIT_ETENDU) }];
       const project = { getChapters: () => chapters };
       const freshnessUseCase = new CheckMetadataFreshnessUseCase(
@@ -195,7 +197,7 @@ describe('Workflow B — L\'auteur corrige, l\'IA suit', () => {
         projectRepo(project) as never
       );
       const freshnessResult = await freshnessUseCase.execute({ ownerId: 'u1', projectId: 'p1' });
-      expect(freshnessResult[0].isStale).toBe(false);
+      expect(freshnessResult[0].isStale).toBe(true);
 
       // Angle 2 : AIContextBuilder utilise le texte édité (wasEditedSinceGeneration=true car lastEdited > generatedAt)
       const metaMock = makeMetadata({
