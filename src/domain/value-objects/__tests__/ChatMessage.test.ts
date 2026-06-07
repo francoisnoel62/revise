@@ -1,7 +1,7 @@
 // ABOUTME: Tests for ChatMessage value object
 // ABOUTME: Covers creation, validation, reconstruction, and serialization
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { ChatMessage } from '../ChatMessage';
 
 describe('ChatMessage', () => {
