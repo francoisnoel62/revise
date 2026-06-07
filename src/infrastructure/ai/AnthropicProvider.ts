@@ -8,7 +8,7 @@ import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
 import { NarrativeAnalysis } from '@/domain/value-objects/NarrativeAnalysis';
 import { StylisticDNA } from '@/domain/value-objects/StylisticDNA';
-import { Characters } from '@/domain/value-objects/Characters';
+import { Characters, CharacterProfile } from '@/domain/value-objects/Characters';
 import { Plot } from '@/domain/value-objects/Plot';
 import { Worldbuilding } from '@/domain/value-objects/Worldbuilding';
 import { Synthesis } from '@/domain/value-objects/Synthesis';
@@ -1454,6 +1454,115 @@ INSTRUCTIONS FINALES:
       }
     }
   }
+
+  // ===========================
+  // CHARACTER SHEET GENERATION
+  // ===========================
+
+  async generateCharacterSheet(
+    characterName: string,
+    existingFields: Omit<CharacterProfile, 'name'>,
+    projectContext: string
+  ): Promise<Omit<CharacterProfile, 'name'>> {
+    const basePrompt = await this.promptRepository.getCharacterSheetPrompt();
+    const systemPrompt = this.buildCharacterSheetSystemPrompt(basePrompt, characterName, existingFields);
+
+    try {
+      const params = this.buildApiParams({
+        system: systemPrompt,
+        messages: [{ role: 'user', content: projectContext }],
+        baseMaxTokens: 4096,
+        temperature: 0.4,
+        thinkingBudget: 4096,
+      });
+
+      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
+
+      this.checkRefusal(message);
+
+      const text = this.extractTextContent(message.content);
+      return this.parseCharacterSheetResponse(text);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error during character sheet generation');
+    }
+  }
+
+  private buildCharacterSheetSystemPrompt(
+    basePrompt: string,
+    characterName: string,
+    existingFields: Omit<CharacterProfile, 'name'>
+  ): string {
+    const existing = Object.entries(existingFields)
+      .filter(([, v]) => v && v.trim())
+      .map(([k, v]) => `${k}: ${v}`)
+      .join('\n');
+
+    const existingSection = existing
+      ? `\n\nFICHE EXISTANTE DU PERSONNAGE "${characterName}":\n${existing}\n\nComplète et enrichis les champs existants. Ne les efface pas — améliore-les.`
+      : `\n\nPersonnage à documenter : "${characterName}". Aucun champ n'est encore rempli.`;
+
+    return `${basePrompt}${existingSection}
+
+---
+
+FORMAT DE SORTIE JSON:
+
+Retourne UNIQUEMENT un objet JSON avec exactement ces 8 clés :
+
+{
+  "identity": "Identité (âge, statut, rôle dans l'histoire)",
+  "appearance": "Description physique",
+  "psychology": "Psychologie, traits de caractère, motivations",
+  "voiceAndLanguage": "Voix, registre de langage, tics de langage",
+  "backstory": "Histoire personnelle et passé",
+  "relationships": "Relations avec les autres personnages",
+  "narrativeFunction": "Fonction narrative dans l'histoire",
+  "openQuestions": "Questions ouvertes sur ce personnage"
+}
+
+INSTRUCTIONS:
+- Détecte la langue du texte et réponds dans la MÊME LANGUE
+- Ne fabrique pas de faits absents du texte
+- Si une information est absente du texte, laisse le champ vide ("")
+- Retourne UNIQUEMENT le JSON, sans markdown code blocks`;
+  }
+
+  private parseCharacterSheetResponse(content: string): Omit<CharacterProfile, 'name'> {
+    const jsonContent = this.extractJson(content);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let parsed: any;
+    try {
+      parsed = JSON.parse(jsonContent);
+    } catch {
+      throw new Error('Failed to parse character sheet response from Anthropic');
+    }
+
+    const fields = ['identity', 'appearance', 'psychology', 'voiceAndLanguage', 'backstory', 'relationships', 'narrativeFunction', 'openQuestions'];
+    for (const field of fields) {
+      if (typeof parsed[field] !== 'string') {
+        throw new Error(`Invalid character sheet response: missing field "${field}"`);
+      }
+    }
+
+    return {
+      identity: parsed.identity,
+      appearance: parsed.appearance,
+      psychology: parsed.psychology,
+      voiceAndLanguage: parsed.voiceAndLanguage,
+      backstory: parsed.backstory,
+      relationships: parsed.relationships,
+      narrativeFunction: parsed.narrativeFunction,
+      openQuestions: parsed.openQuestions,
+    };
+  }
+
+  // ===========================
+  // STREAMING CHAT
+  // ===========================
 
   async *chatStream(
     messages: ChatMessage[],

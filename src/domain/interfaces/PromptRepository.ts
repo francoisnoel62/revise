@@ -95,4 +95,12 @@ export interface PromptRepository {
    * @returns The complete autocompletion prompt
    */
   getCompletionPrompt(): Promise<string>;
+
+  /**
+   * Get the system prompt for character sheet generation.
+   * Completes or enriches all 8 character sheet fields from manuscript context.
+   *
+   * @returns The complete character sheet prompt
+   */
+  getCharacterSheetPrompt(): Promise<string>;
 }

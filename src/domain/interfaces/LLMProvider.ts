@@ -12,6 +12,7 @@ import { ChapterSummaries } from '../value-objects/ChapterSummaries';
 import { ChapterGeneration } from '../value-objects/ChapterGeneration';
 import { ChapterGenerationTypeKey } from '../value-objects/ChapterGenerationType';
 import { ChatMessage } from '../value-objects/ChatMessage';
+import { CharacterProfile } from '../value-objects/Characters';
 
 /**
  * Test connection result.
@@ -203,4 +204,19 @@ export interface LLMProvider {
     messages: ChatMessage[],
     systemPrompt: string,
   ): AsyncIterableIterator<string>;
+
+  /**
+   * Generates or completes a character sheet for the given character.
+   * Uses the existing fields and project context to fill in all 8 fields.
+   *
+   * @param characterName The character's name
+   * @param existingFields Fields already filled in (may be empty strings)
+   * @param projectContext Assembled manuscript text + metadata summaries
+   * @returns Promise resolving to all 8 character sheet fields
+   */
+  generateCharacterSheet(
+    characterName: string,
+    existingFields: Omit<CharacterProfile, 'name'>,
+    projectContext: string
+  ): Promise<Omit<CharacterProfile, 'name'>>;
 }

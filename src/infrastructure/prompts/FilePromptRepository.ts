@@ -96,6 +96,13 @@ export class FilePromptRepository implements PromptRepository {
   }
 
   /**
+   * Read the character sheet generation prompt from markdown file.
+   */
+  async getCharacterSheetPrompt(): Promise<string> {
+    return this.readPromptFile('character-sheet.md', 'character sheet');
+  }
+
+  /**
    * Read the autocompletion prompt from markdown file.
    */
   async getCompletionPrompt(): Promise<string> {

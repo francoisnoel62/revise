@@ -9,7 +9,7 @@ import { AIOperationType } from '@/domain/value-objects/AIOperationType';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
 import { NarrativeAnalysis } from '@/domain/value-objects/NarrativeAnalysis';
 import { StylisticDNA } from '@/domain/value-objects/StylisticDNA';
-import { Characters } from '@/domain/value-objects/Characters';
+import { Characters, CharacterProfile } from '@/domain/value-objects/Characters';
 import { Plot } from '@/domain/value-objects/Plot';
 import { Worldbuilding } from '@/domain/value-objects/Worldbuilding';
 import { Synthesis } from '@/domain/value-objects/Synthesis';
@@ -213,5 +213,15 @@ export class TrackedLLMProvider implements LLMProvider {
       await this.recordUsage('character_chat', Date.now() - start);
       throw error;
     }
+  }
+
+  async generateCharacterSheet(
+    characterName: string,
+    existingFields: Omit<CharacterProfile, 'name'>,
+    projectContext: string
+  ): Promise<Omit<CharacterProfile, 'name'>> {
+    return this.trackUsage('character_sheet', () =>
+      this.wrapped.generateCharacterSheet(characterName, existingFields, projectContext)
+    );
   }
 }
