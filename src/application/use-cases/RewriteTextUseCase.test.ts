@@ -81,6 +81,14 @@ class MockLLMProvider implements LLMProvider {
     async function* gen() {}
     return gen();
   }
+
+  async generateCharacterSheet(
+    _characterName: string,
+    _existingFields: Omit<import('@/domain/value-objects/Characters').CharacterProfile, 'name'>,
+    _projectContext: string
+  ): Promise<Omit<import('@/domain/value-objects/Characters').CharacterProfile, 'name'>> {
+    return {} as Omit<import('@/domain/value-objects/Characters').CharacterProfile, 'name'>;
+  }
 }
 
 describe('RewriteTextUseCase', () => {

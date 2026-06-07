@@ -33,6 +33,7 @@ const mockStatsWithData: ActionResult<UsageStats> = {
       chapter_generation: { count: 0, inputTokens: 0, outputTokens: 0 },
       completion: { count: 10, inputTokens: 1000, outputTokens: 500 },
       character_chat: { count: 0, inputTokens: 0, outputTokens: 0 },
+      character_sheet: { count: 0, inputTokens: 0, outputTokens: 0 },
     },
   },
 };
@@ -56,6 +57,7 @@ const mockStatsEmpty: ActionResult<UsageStats> = {
       chapter_generation: { count: 0, inputTokens: 0, outputTokens: 0 },
       completion: { count: 0, inputTokens: 0, outputTokens: 0 },
       character_chat: { count: 0, inputTokens: 0, outputTokens: 0 },
+      character_sheet: { count: 0, inputTokens: 0, outputTokens: 0 },
     },
   },
 };

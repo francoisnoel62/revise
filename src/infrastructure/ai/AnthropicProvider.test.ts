@@ -30,6 +30,7 @@ const mockPromptRepository: PromptRepository = {
   getChapterFullPrompt: vi.fn().mockResolvedValue('mock chapter full prompt'),
   getChapterOutlinePrompt: vi.fn().mockResolvedValue('mock chapter outline prompt'),
   getCompletionPrompt: vi.fn().mockResolvedValue('mock completion prompt'),
+  getCharacterSheetPrompt: vi.fn().mockResolvedValue('mock character sheet prompt'),
 };
 
 describe('AnthropicProvider', () => {

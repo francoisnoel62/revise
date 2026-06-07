@@ -1,5 +1,5 @@
 // ABOUTME: Form component for creating/editing characters
-// ABOUTME: Handles all character profile fields
+// ABOUTME: Handles all character profile fields, with optional AI auto-fill for edit mode
 
 'use client';
 
@@ -9,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
-import { SerializedCharacter } from '@/app/actions/character-actions';
+import { ChevronDown, ChevronUp, Loader2, Sparkles } from 'lucide-react';
+import { SerializedCharacter, generateCharacterSheetFieldsAction } from '@/app/actions/character-actions';
 
 interface CharacterFormData {
   name: string;
@@ -30,6 +30,8 @@ interface CharacterFormProps {
   submitLabel?: string;
   isLoading?: boolean;
   showAllFields?: boolean;
+  characterId?: string;
+  projectId?: string;
 }
 
 export function CharacterForm({
@@ -38,6 +40,8 @@ export function CharacterForm({
   submitLabel = 'Créer le personnage',
   isLoading = false,
   showAllFields = false,
+  characterId,
+  projectId,
 }: CharacterFormProps) {
   const [formData, setFormData] = useState<CharacterFormData>({
     name: initialValues?.name ?? '',
@@ -51,12 +55,13 @@ export function CharacterForm({
     openQuestions: initialValues?.openQuestions ?? '',
   });
   const [isExpanded, setIsExpanded] = useState(showAllFields);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onSubmit(formData);
     if (!initialValues) {
-      // Reset form only for creation
       setFormData({
         name: '',
         identity: '',
@@ -75,6 +80,24 @@ export function CharacterForm({
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleAutoFill = async () => {
+    if (!characterId || !projectId) return;
+    setIsGenerating(true);
+    setGenerateError(null);
+    try {
+      const result = await generateCharacterSheetFieldsAction(characterId, projectId);
+      if (result.success) {
+        setFormData((prev) => ({ ...prev, ...result.fields }));
+      } else {
+        setGenerateError(result.error);
+      }
+    } catch {
+      setGenerateError('Erreur inattendue lors de la génération');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const optionalFields = [
     { key: 'identity' as const, label: 'Identité', placeholder: 'Qui est ce personnage ?' },
     { key: 'appearance' as const, label: 'Apparence', placeholder: 'Description physique' },
@@ -85,6 +108,8 @@ export function CharacterForm({
     { key: 'narrativeFunction' as const, label: 'Fonction narrative', placeholder: 'Rôle dans l\'histoire' },
     { key: 'openQuestions' as const, label: 'Questions ouvertes', placeholder: 'Points à développer' },
   ];
+
+  const showAutoFill = !!(characterId && projectId && isExpanded);
 
   return (
     <Card>
@@ -103,7 +128,7 @@ export function CharacterForm({
               onChange={(e) => handleChange('name', e.target.value)}
               placeholder="Nom du personnage"
               required
-              disabled={isLoading}
+              disabled={isLoading || isGenerating}
             />
           </div>
 
@@ -131,7 +156,7 @@ export function CharacterForm({
                     value={formData[field.key]}
                     onChange={(e) => handleChange(field.key, e.target.value)}
                     placeholder={field.placeholder}
-                    disabled={isLoading}
+                    disabled={isLoading || isGenerating}
                     rows={3}
                   />
                 </div>
@@ -139,7 +164,29 @@ export function CharacterForm({
             </div>
           )}
 
-          <Button type="submit" className="w-full" disabled={isLoading || !formData.name.trim()}>
+          {showAutoFill && (
+            <div className="space-y-1">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleAutoFill}
+                disabled={isLoading || isGenerating || !formData.name.trim()}
+              >
+                {isGenerating ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-2 h-4 w-4" />
+                )}
+                {isGenerating ? 'Génération en cours…' : 'Auto-remplir avec l\'IA'}
+              </Button>
+              {generateError && (
+                <p className="text-sm text-destructive">{generateError}</p>
+              )}
+            </div>
+          )}
+
+          <Button type="submit" className="w-full" disabled={isLoading || isGenerating || !formData.name.trim()}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {submitLabel}
           </Button>

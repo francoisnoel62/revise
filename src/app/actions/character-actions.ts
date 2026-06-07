@@ -3,13 +3,22 @@
 
 'use server';
 
-import { getCharacterRepo, getIdGenerator, getAuthenticatedUserId } from './utils';
+import {
+  getCharacterRepo,
+  getIdGenerator,
+  getAuthenticatedUserId,
+  getMetadataRepo,
+  getRepository,
+  getTrackedLLMProviderForProject,
+  getTrackedLLMProviderById,
+} from './utils';
 import { CreateCharacterUseCase } from '@/application/use-cases/CreateCharacterUseCase';
 import { LoadCharacterUseCase } from '@/application/use-cases/LoadCharacterUseCase';
 import { ListProjectCharactersUseCase } from '@/application/use-cases/ListProjectCharactersUseCase';
 import { UpdateCharacterUseCase } from '@/application/use-cases/UpdateCharacterUseCase';
 import { DeleteCharacterUseCase } from '@/application/use-cases/DeleteCharacterUseCase';
 import { SyncCharactersFromAnalysisUseCase, SyncResult } from '@/application/use-cases/SyncCharactersFromAnalysisUseCase';
+import { GenerateCharacterSheetUseCase } from '@/application/use-cases/GenerateCharacterSheetUseCase';
 import { Character } from '@/domain/entities/Character';
 import { CharacterProfile } from '@/domain/value-objects/Characters';
 
@@ -236,6 +245,46 @@ export async function syncCharactersFromAnalysisAction(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Erreur lors de la synchronisation',
+    };
+  }
+}
+
+export async function generateCharacterSheetFieldsAction(
+  characterId: string,
+  projectId: string,
+  providerId?: string
+): Promise<
+  { success: true; fields: Omit<CharacterProfile, 'name'> } | { success: false; error: string }
+> {
+  try {
+    const authResult = await getAuthenticatedUserId();
+    if ('error' in authResult) {
+      return { success: false, error: 'Non authentifié' };
+    }
+
+    const llmProvider = providerId
+      ? await getTrackedLLMProviderById(authResult.userId, providerId, projectId)
+      : await getTrackedLLMProviderForProject(authResult.userId, projectId);
+
+    const useCase = new GenerateCharacterSheetUseCase(
+      await getCharacterRepo(),
+      await getRepository(),
+      await getMetadataRepo(),
+      llmProvider,
+    );
+
+    const fields = await useCase.execute({
+      ownerId: authResult.userId,
+      projectId,
+      characterId,
+    });
+
+    return { success: true, fields };
+  } catch (error) {
+    console.error('Error generating character sheet:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur lors de la génération',
     };
   }
 }

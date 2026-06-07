@@ -95,6 +95,7 @@ describe('TrackedLLMProvider', () => {
       generateCompletion: vi.fn().mockResolvedValue('completed text'),
       generateCompletionStream: vi.fn(),
       chatStream: vi.fn(),
+      generateCharacterSheet: vi.fn().mockResolvedValue({}),
     } as unknown as LLMProvider;
 
     mockRepository = {

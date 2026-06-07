@@ -230,6 +230,8 @@ export default function CharactersPage() {
               initialValues={editingCharacter}
               submitLabel="Enregistrer"
               showAllFields
+              characterId={editingCharacter.id}
+              projectId={projectId}
             />
           )}
         </DialogContent>
