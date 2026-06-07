@@ -4,6 +4,7 @@
 import { MetadataRepository } from '../../domain/interfaces/MetadataRepository';
 import { ResearchDocumentRepository } from '../../domain/interfaces/ResearchDocumentRepository';
 import { ResearchDocument } from '../../domain/entities/ResearchDocument';
+import { Character } from '../../domain/entities/Character';
 import type {
   NarrativeAnalysis,
   StylisticDNA,
@@ -20,6 +21,8 @@ type Resolved =
 const COMPLETION_RAWTEXT_CAP = 400;
 const CHAPTER_RAWTEXT_CAP = 800;
 const REWRITE_RAWTEXT_CAP = 600;
+const PERSONA_RAWTEXT_CAP = 600;
+const PERSONA_CHAR_FIELD_CAP = 400;
 
 // Research docs are the author's intentional context — leaner for latency-critical completion.
 const COMPLETION_RESEARCH_CAP = 600;
@@ -181,6 +184,57 @@ export class AIContextBuilder {
     lines.push('- Toutes les propositions : maintiens le point de vue narratif établi');
 
     return lines.join('\n');
+  }
+
+  async buildCharacterPersona(
+    character: Character,
+    ownerId: string,
+    projectId: string,
+  ): Promise<string> {
+    const resolved = await this.resolve(ownerId, projectId, ['narrative-analysis', 'plot']);
+
+    const narrativeBlock = this.project<NarrativeAnalysis>(
+      resolved,
+      'narrative-analysis',
+      PERSONA_RAWTEXT_CAP,
+      (d) => `POV : ${d.narratorType}. Focalisation : ${d.focalization}.`,
+      (_label, text) => text,
+    );
+
+    const plotBlock = this.project<Plot>(
+      resolved,
+      'plot',
+      PERSONA_RAWTEXT_CAP,
+      (d) => [d.plotState, d.conflicts].filter(Boolean).join(' — '),
+      (_label, text) => text,
+    );
+
+    const characterSheet = [
+      character.getIdentity()         && `Identité : ${truncate(character.getIdentity(), PERSONA_CHAR_FIELD_CAP)}`,
+      character.getPsychology()       && `Psychologie : ${truncate(character.getPsychology(), PERSONA_CHAR_FIELD_CAP)}`,
+      character.getVoiceAndLanguage() && `Voix et langage : ${truncate(character.getVoiceAndLanguage(), PERSONA_CHAR_FIELD_CAP)}`,
+      character.getBackstory()        && `Histoire : ${truncate(character.getBackstory(), PERSONA_CHAR_FIELD_CAP)}`,
+      character.getRelationships()    && `Relations : ${truncate(character.getRelationships(), PERSONA_CHAR_FIELD_CAP)}`,
+      character.getOpenQuestions()    && `Questions ouvertes : ${truncate(character.getOpenQuestions(), PERSONA_CHAR_FIELD_CAP)}`,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    return [
+      `Tu incarnes le personnage "${character.getName()}" d'un roman en cours d'écriture.`,
+      `Réponds toujours en restant dans sa voix et sa psychologie, à la première personne.`,
+      ``,
+      `=== FICHE DU PERSONNAGE ===`,
+      characterSheet,
+      narrativeBlock && `\n=== CONTEXTE DU ROMAN ===\n${narrativeBlock}${plotBlock ? '\n' + plotBlock : ''}`,
+      ``,
+      `RÈGLES ABSOLUES :`,
+      `- Ne réponds qu'à partir de ce qui est dans cette fiche et dans le roman.`,
+      `- Si tu ne sais pas ou si ce n'est pas dans le texte, dis-le franchement ("Je ne sais pas" ou "Ce n'est pas établi dans mon histoire").`,
+      `- Ne fabrique jamais de canon. L'auteur est seul juge de ce qui existe dans l'œuvre.`,
+    ]
+      .filter((line) => line !== undefined)
+      .join('\n');
   }
 
   private async projectResearch(

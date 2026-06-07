@@ -76,6 +76,11 @@ class MockLLMProvider implements LLMProvider {
     async function* gen() {}
     return gen();
   }
+
+  chatStream(_messages: import('@/domain/value-objects/ChatMessage').ChatMessage[], _systemPrompt: string): AsyncIterableIterator<string> {
+    async function* gen() {}
+    return gen();
+  }
 }
 
 describe('RewriteTextUseCase', () => {
