@@ -28,31 +28,31 @@ Deux faits techniques rebattent les cartes :
 
 ### Le seul vrai risque du modèle géré = la marge sur les gros consommateurs
 
-En modèle géré, Revise paie l'API et facture un forfait fixe. Le danger : un auteur très actif sur un modèle cher consomme plus que son forfait. Chiffrons (ordres de grandeur, à revalider — prix API ~ début 2026, en $/million de tokens) :
+En modèle géré, Revise paie l'API et facture un forfait fixe. Le danger : un auteur très actif consomme plus que son forfait. Prix API réels (juin 2026, en $/million de tokens) :
 
-| Modèle | Entrée | Sortie | Profil de coût |
-|---|---|---|---|
-| Gemini Flash | ~0,10–0,30 | ~0,40 | **Très bon marché** |
-| Claude Haiku 4.5 | ~1 | ~5 | Bon marché |
-| GPT‑4o | ~2,5 | ~10 | Moyen |
-| Claude Sonnet 4.5 | ~3 | ~15 | Moyen-haut |
-| Claude Opus | ~15 | ~75 | Cher |
+| Provider | Modèle | Entrée | Sortie | Profil |
+|---|---|---|---|---|
+| Anthropic | **Opus 4.8** | 5 | 25 | Meilleure prose/voix, raisonnement, contexte 1M |
+| Anthropic | Sonnet 4.6 | 3 | 15 | Équilibré |
+| Anthropic | **Haiku 4.5** | 1 | 5 | Rapide/éco (contexte 200K) |
+| Google | Gemini 3 Pro | 2 | 12 | Gros contexte, analyse structurée |
+| Google | Gemini 3 Flash | 0,50 | 3 | Le plus rapide + le moins cher |
+| OpenAI | GPT‑5.5 | 5 | 30 | Top OpenAI, cher |
 
-**Coût par opération (estimations, modèle moyen type Sonnet) :**
-- Réécriture (3 propositions) : entrée ~2k / sortie ~0,5k → **~0,01 €**
-- Analyse de chapitre (ADN stylistique, narratif, perso…) : entrée ~15k / sortie ~3k → **~0,09 €**
-- Autocomplétion : ~0,004 € l'unité, mais **fréquente**
+> **Correction d'une hypothèse antérieure :** Opus était estimé à 15 $/75 $ ; le prix réel d'**Opus 4.8 est 5 $/25 $**. « Le meilleur modèle pour tous » est donc bien plus abordable que craint — voir §6 (Routage par tâche).
 
-**Coût mensuel par auteur (Sonnet) :**
-- Auteur modéré (50 réécritures, 20 analyses, 300 complétions) → **~4–8 €**
-- Gros auteur → **~20–40 €**
+**Coût par opération (avec le routage retenu en §6) :**
+- Réécriture (3 propositions, Opus) : entrée ~2k / sortie ~0,5k → **~0,02 €**
+- Analyse de manuscrit (Opus, avec prompt caching du contexte partagé) : **~0,10–0,15 €**
+- Autocomplétion (Haiku) : **~0,0015 €** l'unité, mais **très fréquente**
 
-Avec **Gemini Flash** par défaut, divise ces montants par ~10–20 (auteur modéré ≈ 0,5–1 €). Avec **Opus**, multiplie par ~5.
+**Coût mensuel par auteur (stack Claude retenu) :**
+- Auteur modéré (50 réécritures, 1 suite d'analyses, 300 complétions) → **~3–3,5 €**
+- Gros auteur → **~10–18 €**
 
-**Trois leviers qui rendent le modèle géré viable (à exploiter sur l'infra existante) :**
-1. **Routage par modèle** : modèle bon marché par défaut (Gemini Flash/Haiku), modèles premium réservés aux paliers payants. La différenciation produit devient *la qualité du modèle*.
-2. **Prompt caching** : les analyses renvoient sans cesse le **même contexte de projet** en entrée (gros volume). Le cache (supporté côté Anthropic/Google) coupe l'entrée de ~90 % sur ces opérations → c'est le poste de coût n°1, donc le plus gros gain de marge.
-3. **Crédits plafonnés** plutôt que « illimité » : on borne mécaniquement l'exposition.
+**Deux leviers qui protègent la marge (à exploiter sur l'infra existante) :**
+1. **Prompt caching** : les analyses renvoient sans cesse le **même contexte de manuscrit** en entrée (gros volume). Le cache coupe l'entrée de ~90 % sur ces opérations → c'est le poste de coût n°1, donc le plus gros gain de marge.
+2. **Crédits plafonnés** plutôt que « illimité » : on borne mécaniquement l'exposition. (Le routage par *qualité de modèle entre paliers* est volontairement écarté — voir §6 : tous les auteurs accèdent aux meilleurs modèles.)
 
 ### Tableau d'arbitrage
 
@@ -76,7 +76,7 @@ Avec **Gemini Flash** par défaut, divise ces montants par ~10–20 (auteur mod�
 1. **BYOK comme « échappatoire Pro », pas comme modèle principal.** Géré par crédits pour les 95 % qui veulent la simplicité ; BYOK proposé en option *illimitée* pour les power users — et **ça ne coûte rien à Revise**. Neutralise simultanément la barrière à l'entrée ET le risque de marge.
 2. **Vendre des crédits, pas de « l'illimité ».** « Vous payez X → N crédits IA. » Intuitif, transparent, et **plafonne l'exposition**. Le metering existant (`AIUsageRecord`) alimente directement le décompte.
 3. **Prix en « unités auteur », jamais en tokens.** Personne n'écrit en tokens. On facture par *analyse de chapitre*, *session de réécriture*, *1000 mots générés*. On traduit le metering technique en langage d'auteur.
-4. **Le paywall = la qualité du modèle.** Gratuit sur modèle économique ; payant débloque Sonnet/GPT‑4o puis Opus. La marge suit naturellement (gratuit = peu cher à servir).
+4. **Le meilleur modèle pour tous — la différenciation se fait au volume, jamais à la qualité IA.** Décision produit : un petit forfait et un gros forfait accèdent **aux mêmes meilleurs modèles à jour**. On ne dégrade jamais l'IA des moins fortunés. La différenciation passe par le **volume de crédits** et les **fonctionnalités non-IA** (export, projets, priorité). Voir §6 pour le routage par tâche. *(Aligné `philosophie.md` : la qualité de la suggestion ne dépend pas du budget.)*
 5. **« On paie l'écriture, pas l'IA ».** L'IA devient une fonctionnalité du SaaS d'écriture (au même titre que le cockpit, les quotas d'écriture `WritingQuota`), pas un compteur anxiogène. Réduit la peur de la facture.
 6. **Pool de crédits inclus + dépassement sans mur.** L'abonnement inclut un pool mensuel ; une fois épuisé → soit recharge (top-up), soit on branche sa propre clé. **Jamais de blocage sec.**
 7. **Offre « Auteur Fondateur » pour la cohorte bêta déjà approuvée.** Convertir la bonne volonté de la bêta fermée (tarif à vie / annuel avantageux).
@@ -88,13 +88,30 @@ Avec **Gemini Flash** par défaut, divise ces montants par ~10–20 (auteur mod�
 
 Adapté à la cible **mixte/large**. Un seul mécanisme à comprendre (**les crédits**) + des paliers.
 
-| Palier | Prix indicatif | Modèles | IA incluse | Cible |
+**Tous les paliers accèdent aux mêmes meilleurs modèles** (routage par tâche, §6). La différenciation est le **volume de crédits** + les fonctionnalités.
+
+| Palier | Prix/mois | Crédits inclus/mois | Différenciation (PAS le modèle) | Cible |
 |---|---|---|---|---|
-| **Découverte** (gratuit) | 0 € | Économique uniquement (Flash/Haiku) | Petit pool mensuel de crédits | Tester sans barrière |
-| **Auteur** | ~9–12 €/mois | + Sonnet / GPT‑4o | Pool généreux | Cœur de cible |
-| **Pro** | ~19–29 €/mois | + Opus, analyses avancées, export | Grand pool + priorité | Semi-pro & pro |
-| **BYOK** (option, +0 €) | gratuit sur tout palier | Tous (sa clé) | **Illimité, à son coût** | Power users |
-| **Recharges** | packs à l'unité | — | Crédits supplémentaires | Pics ponctuels |
+| **Découverte** (gratuit) | 0 € | **20** | Pour goûter | Tester sans barrière |
+| **Auteur** | **12 €** | **150** | Toutes fonctions | Cœur de cible |
+| **Pro** | **24 €** | **350** | Export/analyses avancées + priorité | Semi-pro & pro |
+| **BYOK** (option, +0 €) | gratuit | illimité (sa clé) | À son coût | Power users |
+| **Recharge** | à l'achat | **+100 = 9 €** | Crédits supplémentaires | Pics ponctuels |
+
+*Annuel : −20 % (2 mois offerts). Tarifs indicatifs, à calibrer sur les données de bêta (`AIUsageRecord`).*
+
+**Barème de crédits (unités auteur, pas des tokens).** On ne metère que les actes IA délibérés ; l'autocomplétion et les résumés sont **inclus** (coût négligeable, et metérer la frappe = anxiété).
+
+| Acte IA | Crédits |
+|---|---|
+| Autocomplétion | **inclus (0)** |
+| Résumés de chapitres | **inclus (0)** |
+| Réécriture (3 propositions) | **1** |
+| Génération de chapitre | **3** |
+| Analyse (par type, ex. ADN stylistique) | **3** |
+| Analyse complète (les 6 types) | **12** *(remise vs 18)* |
+
+**Vérification de marge** (1 crédit ≈ 0,08 € de prix de vente ; coût réel sous-jacent ≤ 0,04 €/crédit) : un palier Auteur (150 cr à 12 €) consommé **entièrement en analyses** (le pire cas) coûte ~6,5 € → **marge ~46 %** ; au mix typique (surtout réécritures + autocomplétion incluse) → **marge 60–75 %**. Les crédits **plafonnent** mécaniquement le pire cas, et le BYOK absorbe les power users.
 
 **Principe directeur, aligné `philosophie.md` :** on **ne metère que le calcul IA**. L'éditeur, le texte de l'auteur, l'écriture et la sauvegarde restent **gratuits et illimités** à tous les paliers. On ne met jamais les mots de l'auteur derrière un paywall, on ne pousse jamais à « plus d'IA » au détriment de la voix, on n'entraîne jamais sur les écrits. Le pricing monétise **l'outillage et le choix**, jamais le texte.
 
@@ -102,7 +119,7 @@ Adapté à la cible **mixte/large**. Un seul mécanisme à comprendre (**les cr�
 - **Simple** : un concept (crédits) + des paliers lisibles.
 - **Transparent** : crédits affichés en unités auteur ; la page « Utilisation IA » du cockpit existe déjà pour les montrer.
 - **Facile techniquement** : la mesure et le BYOK sont déjà là (et l'usage est même déjà affiché) ; il reste à brancher l'enforcement — Stripe + champ `plan/credits` sur `User` + décompte de solde + garde-fou. (Détail volontairement hors scope de cette étude.)
-- **Faible risque** : crédits plafonnent l'exposition ; le BYOK offload les gros consommateurs ; routage + caching protègent la marge.
+- **Faible risque** : crédits plafonnent l'exposition ; le BYOK offload les gros consommateurs ; prompt caching + routage par tâche (§6) protègent la marge.
 - **Compétitif** : zéro barrière à l'entrée pour les nouveaux, tout en gardant le BYOK pour les exigeants.
 
 ---
@@ -111,7 +128,7 @@ Adapté à la cible **mixte/large**. Un seul mécanisme à comprendre (**les cr�
 
 | Risque | Parade |
 |---|---|
-| Marge érodée par gros consommateurs | Crédits plafonnés + routage modèle + **prompt caching** sur le contexte de projet + BYOK comme exutoire |
+| Marge érodée par gros consommateurs | Crédits plafonnés + routage par tâche (§6) + **prompt caching** sur le contexte de manuscrit + BYOK comme exutoire |
 | Prix API qui montent | Crédits réindexables ; coûts adossés au modèle servi, pas à un illimité |
 | Anxiété du compteur | Affichage en unités auteur, jamais de blocage sec, écriture toujours gratuite |
 | Conflit avec la philosophie | Ne metérer que le calcul IA ; texte de l'auteur jamais payant ni utilisé pour l'entraînement |
@@ -131,6 +148,34 @@ Briques **déjà présentes** à réutiliser le jour de l'implémentation :
 - Porteur du plan → ajouter `plan`/`credits` sur `src/domain/entities/User.ts`
 
 Briques **à ajouter** (l'enforcement — hors scope de cette étude, à planifier séparément) : intégration paiement (Stripe), notion de solde de crédits + décrément à chaque `AIUsageRecord` écrit, **garde-fou pré-appel** (refus si solde nul + proposition recharge/BYOK), mapping opération → coût en crédits, UI de plan et de solde. Aujourd'hui, **aucune** de ces briques d'enforcement n'existe.
+
+---
+
+## 6. Routage par tâche : le meilleur modèle pour chaque tâche, identique pour tous
+
+**Décision produit :** pas de différenciation de qualité IA entre paliers. On sert **le meilleur modèle adapté à chaque tâche** — pas le meilleur modèle pour *toutes* les tâches. L'autocomplétion et la génération de chapitre ne demandent pas le même travail, donc pas le même modèle. Le routage est **identique pour tous les utilisateurs** (un petit forfait et un gros forfait ont la même qualité).
+
+Prix de référence (juin 2026) : Opus 4.8 = 5 $/25 $ · Haiku 4.5 = 1 $/5 $ (par M de tokens). Stack retenu : **Claude, deux modèles**.
+
+| Tâche Revise (`AIOperationType`) | Modèle | Pourquoi |
+|---|---|---|
+| Réécriture (`rewrite`) | **Opus 4.8** | Voix : cœur du produit, meilleure prose |
+| Génération de chapitre (`chapter_generation`) | **Opus 4.8** | Écriture longue dans la voix de l'auteur |
+| ADN stylistique (`stylistic_dna`) | **Opus 4.8** | Analyse littéraire fine |
+| Analyse narrative (`narrative_analysis`) | **Opus 4.8** | Narratologie + contexte 1M |
+| Synthèse (`synthesis`) | **Opus 4.8** | Méta-jugement éditorial |
+| Personnages (`characters`) | **Opus 4.8** | Choix puriste : qualité max |
+| Intrigue (`plot`) | **Opus 4.8** | Idem |
+| Univers (`worldbuilding`) | **Opus 4.8** | Idem |
+| Résumés de chapitres (`chapter_summaries`) | **Haiku 4.5** | Résumé en vrac = tâche facile, éco |
+| Autocomplétion (`completion`) | **Haiku 4.5** | Très fréquent, latence prioritaire |
+
+**Principe :** Opus 4.8 pour tout ce qui touche **la voix ou le jugement littéraire** ; Haiku 4.5 pour le **haut-volume / basse-latence**. Un seul provider → ops simples, voix cohérente, prompt caching efficace.
+
+**Notes :**
+- Haiku 4.5 plafonne à **200K de contexte** (vs 1M pour Opus). OK pour l'autocomplétion ; pour les résumés d'un manuscrit très long → traiter chapitre par chapitre (déjà le cas) ou repli Opus.
+- Le routage doit rester **à jour** : `LLMProviderFactoryImpl.ts` / `providers.ts` rendent le changement de modèle par défaut quasi gratuit à chaque nouvelle version.
+- **Valider par A/B aveugle** sur de vrais manuscrits avant de figer : `AIUsageRecord` logue déjà le modèle par opération, donc on mesure la préférence réelle plutôt que de se fier aux réputations.
 
 ---
 
