@@ -19,6 +19,7 @@ import {
   getArticleViewRepository,
   getProjectTaskRepository,
   getCharacterRepository as getCharacterRepositoryFromConfig,
+  getCharacterConversationRepository as getCharacterConversationRepositoryFromConfig,
   getProjectSettingsRepository as getProjectSettingsRepositoryFromConfig,
   getResearchDocumentRepository as getResearchDocumentRepositoryFromConfig,
   getBlobStorage as getBlobStorageFromConfig,
@@ -45,6 +46,7 @@ import { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
 import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository';
 import { ProjectTaskRepository } from '@/domain/interfaces/ProjectTaskRepository';
 import { CharacterRepository } from '@/domain/interfaces/CharacterRepository';
+import { CharacterConversationRepository } from '@/domain/interfaces/CharacterConversationRepository';
 import { ArticleViewRepository } from '@/domain/interfaces/ArticleViewRepository';
 import { ProjectSettingsRepository } from '@/domain/interfaces/ProjectSettingsRepository';
 import { ResearchDocumentRepository } from '@/domain/interfaces/ResearchDocumentRepository';
@@ -223,6 +225,13 @@ export async function getProjectTaskRepo(): Promise<ProjectTaskRepository> {
  */
 export async function getCharacterRepo(): Promise<CharacterRepository> {
   return await getCharacterRepositoryFromConfig();
+}
+
+/**
+ * Get character conversation repository instance.
+ */
+export async function getCharacterConversationRepo(): Promise<CharacterConversationRepository> {
+  return await getCharacterConversationRepositoryFromConfig();
 }
 
 /**

@@ -12,7 +12,7 @@ import {
   deleteCharacterAction,
   SerializedCharacter,
 } from '@/app/actions/character-actions';
-import { CharacterForm, CharacterCard } from '@/components/cockpit';
+import { CharacterForm, CharacterCard, CharacterChatSheet } from '@/components/cockpit';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
@@ -40,6 +40,7 @@ export default function CharactersPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [editingCharacter, setEditingCharacter] = useState<SerializedCharacter | null>(null);
   const [deletingCharacterId, setDeletingCharacterId] = useState<string | null>(null);
+  const [chattingCharacter, setChattingCharacter] = useState<SerializedCharacter | null>(null);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -209,6 +210,7 @@ export default function CharactersPage() {
                   character={character}
                   onEdit={setEditingCharacter}
                   onDelete={setDeletingCharacterId}
+                  onChat={setChattingCharacter}
                 />
               ))}
             </div>
@@ -253,6 +255,16 @@ export default function CharactersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Character Chat */}
+      {chattingCharacter && (
+        <CharacterChatSheet
+          open={!!chattingCharacter}
+          character={chattingCharacter}
+          projectId={projectId}
+          onClose={() => setChattingCharacter(null)}
+        />
+      )}
     </div>
   );
 }
