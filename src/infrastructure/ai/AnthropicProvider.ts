@@ -15,6 +15,7 @@ import { Synthesis } from '@/domain/value-objects/Synthesis';
 import { ChapterSummaries } from '@/domain/value-objects/ChapterSummaries';
 import { ChapterGeneration } from '@/domain/value-objects/ChapterGeneration';
 import { ChapterGenerationTypeKey } from '@/domain/value-objects/ChapterGenerationType';
+import { ChatMessage } from '@/domain/value-objects/ChatMessage';
 
 interface ProposalResponse {
   proposals: Array<{
@@ -1452,5 +1453,13 @@ INSTRUCTIONS FINALES:
         }
       }
     }
+  }
+
+  // eslint-disable-next-line require-yield
+  async *chatStream(
+    _messages: ChatMessage[],
+    _systemPrompt: string,
+  ): AsyncIterableIterator<string> {
+    throw new Error('chatStream not implemented — scheduled for Phase 2');
   }
 }

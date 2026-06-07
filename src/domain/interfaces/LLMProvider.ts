@@ -11,6 +11,7 @@ import { Synthesis } from '../value-objects/Synthesis';
 import { ChapterSummaries } from '../value-objects/ChapterSummaries';
 import { ChapterGeneration } from '../value-objects/ChapterGeneration';
 import { ChapterGenerationTypeKey } from '../value-objects/ChapterGenerationType';
+import { ChatMessage } from '../value-objects/ChatMessage';
 
 /**
  * Test connection result.
@@ -188,5 +189,18 @@ export interface LLMProvider {
     textBeforeCursor: string,
     textAfterCursor?: string,
     projectContext?: string
+  ): AsyncIterableIterator<string>;
+
+  /**
+   * Streams a conversational reply from a character persona.
+   * Yields text chunks as they are generated.
+   *
+   * @param messages Conversation history
+   * @param systemPrompt Character persona instructions
+   * @returns AsyncIterator yielding text chunks
+   */
+  chatStream(
+    messages: ChatMessage[],
+    systemPrompt: string,
   ): AsyncIterableIterator<string>;
 }

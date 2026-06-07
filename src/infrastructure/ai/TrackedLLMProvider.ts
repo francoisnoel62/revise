@@ -16,6 +16,7 @@ import { Synthesis } from '@/domain/value-objects/Synthesis';
 import { ChapterSummaries } from '@/domain/value-objects/ChapterSummaries';
 import { ChapterGeneration } from '@/domain/value-objects/ChapterGeneration';
 import { ChapterGenerationTypeKey } from '@/domain/value-objects/ChapterGenerationType';
+import { ChatMessage } from '@/domain/value-objects/ChatMessage';
 
 export class TrackedLLMProvider implements LLMProvider {
   private lastInputTokens: number | null = null;
@@ -196,6 +197,25 @@ export class TrackedLLMProvider implements LLMProvider {
     } catch (error) {
       const durationMs = Date.now() - startTime;
       this.recordUsage('completion', durationMs).catch(console.error);
+      throw error;
+    }
+  }
+
+  async *chatStream(
+    messages: ChatMessage[],
+    systemPrompt: string,
+  ): AsyncIterableIterator<string> {
+    const startTime = Date.now();
+    try {
+      const iterator = this.wrapped.chatStream(messages, systemPrompt);
+      for await (const chunk of iterator) {
+        yield chunk;
+      }
+      const durationMs = Date.now() - startTime;
+      this.recordUsage('character_chat', durationMs).catch(console.error);
+    } catch (error) {
+      const durationMs = Date.now() - startTime;
+      this.recordUsage('character_chat', durationMs).catch(console.error);
       throw error;
     }
   }
