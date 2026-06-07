@@ -8,6 +8,7 @@ import { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
 import { IdGenerator } from '@/domain/interfaces/IdGenerator';
 import { AIUsageRecord } from '@/domain/entities/AIUsageRecord';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
+import { ChatMessage } from '@/domain/value-objects/ChatMessage';
 
 describe('TrackedLLMProvider', () => {
   let mockProvider: LLMProvider;
@@ -93,6 +94,7 @@ describe('TrackedLLMProvider', () => {
       }),
       generateCompletion: vi.fn().mockResolvedValue('completed text'),
       generateCompletionStream: vi.fn(),
+      chatStream: vi.fn(),
     } as unknown as LLMProvider;
 
     mockRepository = {
@@ -266,6 +268,27 @@ describe('TrackedLLMProvider', () => {
 
       const savedRecord = (mockRepository.save as ReturnType<typeof vi.fn>).mock.calls[0][0];
       expect(savedRecord.getOperation()).toBe('completion');
+    });
+  });
+
+  describe('chatStream tracking', () => {
+    it('records character_chat usage after stream completes', async () => {
+      async function* fakeStream() {
+        yield 'Hello';
+        yield ' world';
+      }
+      vi.mocked(mockProvider.chatStream).mockReturnValue(fakeStream());
+
+      const messages = [ChatMessage.create('author', 'Hi')];
+      const chunks: string[] = [];
+      for await (const chunk of trackedProvider.chatStream(messages, 'You are a character.')) {
+        chunks.push(chunk);
+      }
+
+      expect(chunks).toEqual(['Hello', ' world']);
+      expect(mockRepository.save).toHaveBeenCalled();
+      const record = (mockRepository.save as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(record.getOperation()).toBe('character_chat');
     });
   });
 

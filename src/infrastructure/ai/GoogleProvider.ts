@@ -1382,11 +1382,29 @@ INSTRUCTIONS FINALES:
     console.log('[GoogleProvider] Stream finished, total chunks:', chunkIndex);
   }
 
-  // eslint-disable-next-line require-yield
   async *chatStream(
-    _messages: ChatMessage[],
-    _systemPrompt: string,
+    messages: ChatMessage[],
+    systemPrompt: string,
   ): AsyncIterableIterator<string> {
-    throw new Error('chatStream not implemented — scheduled for Phase 2');
+    const history = messages.slice(0, -1).map((m) => ({
+      role: m.getRole() === 'author' ? 'user' : 'model',
+      parts: [{ text: m.getContent() }],
+    }));
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage) return;
+
+    const chat = this.client.chats.create({
+      model: this.modelName,
+      config: { systemInstruction: systemPrompt },
+      history,
+    });
+
+    const response = await chat.sendMessageStream({
+      message: lastMessage.getContent(),
+    });
+
+    for await (const chunk of response) {
+      if (chunk.text) yield chunk.text;
+    }
   }
 }

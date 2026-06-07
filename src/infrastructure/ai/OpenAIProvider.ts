@@ -1532,11 +1532,28 @@ INSTRUCTIONS FINALES:
     }
   }
 
-  // eslint-disable-next-line require-yield
   async *chatStream(
-    _messages: ChatMessage[],
-    _systemPrompt: string,
+    messages: ChatMessage[],
+    systemPrompt: string,
   ): AsyncIterableIterator<string> {
-    throw new Error('chatStream not implemented — scheduled for Phase 2');
+    const apiMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+      { role: 'system', content: systemPrompt },
+      ...messages.map((m) => ({
+        role: m.getRole() === 'author' ? ('user' as const) : ('assistant' as const),
+        content: m.getContent(),
+      })),
+    ];
+
+    const stream = await this.client.chat.completions.create({
+      model: this.model,
+      messages: apiMessages,
+      stream: true,
+      max_tokens: 1024,
+    });
+
+    for await (const chunk of stream) {
+      const text = chunk.choices[0]?.delta?.content;
+      if (text) yield text;
+    }
   }
 }

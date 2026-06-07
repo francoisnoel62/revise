@@ -205,17 +205,12 @@ export class TrackedLLMProvider implements LLMProvider {
     messages: ChatMessage[],
     systemPrompt: string,
   ): AsyncIterableIterator<string> {
-    const startTime = Date.now();
+    const start = Date.now();
     try {
-      const iterator = this.wrapped.chatStream(messages, systemPrompt);
-      for await (const chunk of iterator) {
-        yield chunk;
-      }
-      const durationMs = Date.now() - startTime;
-      this.recordUsage('character_chat', durationMs).catch(console.error);
+      yield* this.wrapped.chatStream(messages, systemPrompt);
+      await this.recordUsage('character_chat', Date.now() - start);
     } catch (error) {
-      const durationMs = Date.now() - startTime;
-      this.recordUsage('character_chat', durationMs).catch(console.error);
+      await this.recordUsage('character_chat', Date.now() - start);
       throw error;
     }
   }

@@ -39,6 +39,8 @@ import { MongoDBContactMessageRepository } from '@/infrastructure/persistence/Mo
 import { MongoDBArticleViewRepository } from '@/infrastructure/persistence/MongoDBArticleViewRepository';
 import { MongoDBProjectTaskRepository } from '@/infrastructure/persistence/MongoDBProjectTaskRepository';
 import { MongoDBCharacterRepository } from '@/infrastructure/persistence/MongoDBCharacterRepository';
+import { MongoDBCharacterConversationRepository } from '@/infrastructure/persistence/MongoDBCharacterConversationRepository';
+import { CharacterConversationRepository } from '@/domain/interfaces/CharacterConversationRepository';
 import { MongoDBProjectSettingsRepository } from '@/infrastructure/persistence/MongoDBProjectSettingsRepository';
 import { MongoDBResearchDocumentRepository } from '@/infrastructure/persistence/MongoDBResearchDocumentRepository';
 import { InMemoryProjectRepository } from '@/infrastructure/persistence/InMemoryProjectRepository';
@@ -238,6 +240,20 @@ export async function getCharacterRepository(): Promise<CharacterRepository> {
     await characterRepoInstance.ensureIndexes();
   }
   return characterRepoInstance;
+}
+
+/**
+ * Get the character conversation repository.
+ */
+let characterConversationRepoInstance: MongoDBCharacterConversationRepository | null = null;
+
+export async function getCharacterConversationRepository(): Promise<CharacterConversationRepository> {
+  if (!characterConversationRepoInstance) {
+    const db = await getDatabase();
+    characterConversationRepoInstance = new MongoDBCharacterConversationRepository(db);
+    await characterConversationRepoInstance.ensureIndexes();
+  }
+  return characterConversationRepoInstance;
 }
 
 /**

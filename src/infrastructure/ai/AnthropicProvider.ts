@@ -1455,11 +1455,29 @@ INSTRUCTIONS FINALES:
     }
   }
 
-  // eslint-disable-next-line require-yield
   async *chatStream(
-    _messages: ChatMessage[],
-    _systemPrompt: string,
+    messages: ChatMessage[],
+    systemPrompt: string,
   ): AsyncIterableIterator<string> {
-    throw new Error('chatStream not implemented — scheduled for Phase 2');
+    const apiMessages = messages.map((m) => ({
+      role: m.getRole() === 'author' ? ('user' as const) : ('assistant' as const),
+      content: m.getContent(),
+    }));
+
+    const stream = this.client.messages.stream({
+      model: this.model,
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages: apiMessages,
+    });
+
+    for await (const event of stream) {
+      if (
+        event.type === 'content_block_delta' &&
+        event.delta.type === 'text_delta'
+      ) {
+        yield event.delta.text;
+      }
+    }
   }
 }
