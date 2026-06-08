@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GenerateCharacterSheetUseCase, GenerateCharacterSheetInput } from '../GenerateCharacterSheetUseCase';
 import { Character } from '../../../domain/entities/Character';
 
-const makeCharacter = (overrides: Partial<{ identity: string; appearance: string; psychology: string }> = {}) => {
+const makeCharacter = (_overrides: Partial<{ identity: string; appearance: string; psychology: string }> = {}) => {
   const char = Character.create('char-1', 'proj-1', 'user-1', 'Alice');
   // Apply overrides via update if needed — use the raw character for now
   return char;

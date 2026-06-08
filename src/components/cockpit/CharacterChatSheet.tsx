@@ -34,7 +34,7 @@ export function CharacterChatSheet({
   initialMessages = [],
 }: CharacterChatSheetProps) {
   const [inputValue, setInputValue] = useState('');
-  const scrollRef = useRef<HTMLElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const { messages, isStreaming, sendMessage } = useCharacterChat({
     projectId,
