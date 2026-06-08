@@ -98,6 +98,75 @@ describe('AIUsageRecord', () => {
     });
   });
 
+  describe('cachedInputTokens', () => {
+    it('stores and returns cached input tokens', () => {
+      const record = AIUsageRecord.create(
+        'record-1',
+        'user-1',
+        'project-1',
+        'rewrite',
+        'Anthropic',
+        'claude-sonnet',
+        500,
+        150,
+        2500,
+        400
+      );
+
+      expect(record.getCachedInputTokens()).toBe(400);
+    });
+
+    it('defaults cached input tokens to null when omitted', () => {
+      const record = AIUsageRecord.create(
+        'record-1',
+        'user-1',
+        'project-1',
+        'rewrite',
+        'OpenAI',
+        'gpt-4o-mini',
+        500,
+        150,
+        2500
+      );
+
+      expect(record.getCachedInputTokens()).toBeNull();
+    });
+
+    it('throws error for negative cached input tokens', () => {
+      expect(() =>
+        AIUsageRecord.create(
+          'record-1',
+          'user-1',
+          'project-1',
+          'rewrite',
+          'OpenAI',
+          'gpt-4o-mini',
+          100,
+          50,
+          1000,
+          -10
+        )
+      ).toThrow('Cached input tokens cannot be negative');
+    });
+
+    it('reconstructs cached input tokens as null when absent from properties', () => {
+      const record = AIUsageRecord.reconstruct({
+        id: 'record-1',
+        userId: 'user-1',
+        projectId: 'project-1',
+        operation: 'narrative_analysis',
+        provider: 'Anthropic',
+        model: 'claude-3-sonnet',
+        inputTokens: 10000,
+        outputTokens: 2000,
+        durationMs: 5000,
+        createdAt: new Date('2024-01-15'),
+      });
+
+      expect(record.getCachedInputTokens()).toBeNull();
+    });
+  });
+
   describe('getTotalTokens', () => {
     it('returns sum of input and output tokens', () => {
       const record = AIUsageRecord.create(

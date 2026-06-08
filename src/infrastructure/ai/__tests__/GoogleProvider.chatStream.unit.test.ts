@@ -96,7 +96,11 @@ describe('GoogleProvider.chatStream', () => {
     const messages = [ChatMessage.create('author', 'Salut')];
     for await (const _ of provider.chatStream(messages, 'sys')) { /* drain */ }
 
-    expect(provider.getLastTokenUsage()).toEqual({ inputTokens: 40, outputTokens: 9 });
+    expect(provider.getLastTokenUsage()).toEqual({
+      inputTokens: 40,
+      outputTokens: 9,
+      cachedInputTokens: null,
+    });
   });
 
   it('returns early when messages array is empty', async () => {

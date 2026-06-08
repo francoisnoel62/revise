@@ -21,6 +21,7 @@ import { ChatMessage } from '@/domain/value-objects/ChatMessage';
 export class TrackedLLMProvider implements LLMProvider {
   private lastInputTokens: number | null = null;
   private lastOutputTokens: number | null = null;
+  private lastCachedInputTokens: number | null = null;
 
   constructor(
     private readonly wrapped: LLMProvider,
@@ -69,7 +70,8 @@ export class TrackedLLMProvider implements LLMProvider {
       this.wrapped.getModel(),
       this.lastInputTokens,
       this.lastOutputTokens,
-      durationMs
+      durationMs,
+      this.lastCachedInputTokens
     );
 
     await this.usageRepository.save(record);
@@ -77,6 +79,7 @@ export class TrackedLLMProvider implements LLMProvider {
     // Reset token counts for next operation
     this.lastInputTokens = null;
     this.lastOutputTokens = null;
+    this.lastCachedInputTokens = null;
   }
 
   setTokenCounts(inputTokens: number | null, outputTokens: number | null): void {
@@ -94,6 +97,7 @@ export class TrackedLLMProvider implements LLMProvider {
     if (usage) {
       this.lastInputTokens = usage.inputTokens;
       this.lastOutputTokens = usage.outputTokens;
+      this.lastCachedInputTokens = usage.cachedInputTokens;
     }
   }
 

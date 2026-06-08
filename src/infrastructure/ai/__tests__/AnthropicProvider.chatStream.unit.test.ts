@@ -90,7 +90,11 @@ describe('AnthropicProvider.chatStream', () => {
     const messages = [ChatMessage.create('author', 'Hi')];
     for await (const _ of provider.chatStream(messages, 'sys')) { /* drain */ }
 
-    expect(provider.getLastTokenUsage()).toEqual({ inputTokens: 100, outputTokens: 20 });
+    expect(provider.getLastTokenUsage()).toEqual({
+      inputTokens: 100,
+      outputTokens: 20,
+      cachedInputTokens: null,
+    });
   });
 
   it('passes system prompt and caps max_tokens at 1024', async () => {

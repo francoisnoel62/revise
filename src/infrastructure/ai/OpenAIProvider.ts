@@ -163,11 +163,16 @@ export class OpenAIProvider implements LLMProvider {
    * retrieved via getLastTokenUsage() by usage-tracking decorators.
    */
   private captureUsage(completion: {
-    usage?: { prompt_tokens?: number; completion_tokens?: number } | null;
+    usage?: {
+      prompt_tokens?: number;
+      completion_tokens?: number;
+      prompt_tokens_details?: { cached_tokens?: number } | null;
+    } | null;
   }): void {
     this.lastTokenUsage = {
       inputTokens: completion.usage?.prompt_tokens ?? null,
       outputTokens: completion.usage?.completion_tokens ?? null,
+      cachedInputTokens: completion.usage?.prompt_tokens_details?.cached_tokens ?? null,
     };
   }
 

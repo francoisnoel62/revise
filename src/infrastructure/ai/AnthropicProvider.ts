@@ -79,6 +79,7 @@ export class AnthropicProvider implements LLMProvider {
     this.lastTokenUsage = {
       inputTokens: message.usage?.input_tokens ?? null,
       outputTokens: message.usage?.output_tokens ?? null,
+      cachedInputTokens: message.usage?.cache_read_input_tokens ?? null,
     };
     return message;
   }
@@ -1455,10 +1456,12 @@ INSTRUCTIONS FINALES:
     let isFirstChunk = true;
     let inputTokens: number | null = null;
     let outputTokens: number | null = null;
+    let cachedInputTokens: number | null = null;
 
     for await (const event of stream) {
       if (event.type === 'message_start') {
         inputTokens = event.message.usage?.input_tokens ?? inputTokens;
+        cachedInputTokens = event.message.usage?.cache_read_input_tokens ?? cachedInputTokens;
       } else if (event.type === 'message_delta') {
         outputTokens = event.usage.output_tokens ?? outputTokens;
       } else if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
@@ -1478,7 +1481,7 @@ INSTRUCTIONS FINALES:
       }
     }
 
-    this.lastTokenUsage = { inputTokens, outputTokens };
+    this.lastTokenUsage = { inputTokens, outputTokens, cachedInputTokens };
   }
 
   // ===========================
@@ -1608,10 +1611,12 @@ INSTRUCTIONS:
 
     let inputTokens: number | null = null;
     let outputTokens: number | null = null;
+    let cachedInputTokens: number | null = null;
 
     for await (const event of stream) {
       if (event.type === 'message_start') {
         inputTokens = event.message.usage?.input_tokens ?? inputTokens;
+        cachedInputTokens = event.message.usage?.cache_read_input_tokens ?? cachedInputTokens;
       } else if (event.type === 'message_delta') {
         outputTokens = event.usage.output_tokens ?? outputTokens;
       } else if (
@@ -1622,6 +1627,6 @@ INSTRUCTIONS:
       }
     }
 
-    this.lastTokenUsage = { inputTokens, outputTokens };
+    this.lastTokenUsage = { inputTokens, outputTokens, cachedInputTokens };
   }
 }

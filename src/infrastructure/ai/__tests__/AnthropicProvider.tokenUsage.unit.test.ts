@@ -19,7 +19,11 @@ const mockPromptRepository = {
   getNarrativeAnalysisPrompt: vi.fn().mockResolvedValue('mock prompt'),
 } as unknown as PromptRepository;
 
-function rewritesResponse(usage?: { input_tokens: number; output_tokens: number }) {
+function rewritesResponse(usage?: {
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_input_tokens?: number;
+}) {
   return {
     usage,
     content: [
@@ -57,7 +61,25 @@ describe('AnthropicProvider token usage', () => {
 
     await provider.generateRewrites('text');
 
-    expect(provider.getLastTokenUsage()).toEqual({ inputTokens: 1500, outputTokens: 420 });
+    expect(provider.getLastTokenUsage()).toEqual({
+      inputTokens: 1500,
+      outputTokens: 420,
+      cachedInputTokens: null,
+    });
+  });
+
+  it('captures cached input tokens from cache_read_input_tokens', async () => {
+    mockCreate.mockResolvedValue(
+      rewritesResponse({ input_tokens: 1500, output_tokens: 420, cache_read_input_tokens: 1200 })
+    );
+
+    await provider.generateRewrites('text');
+
+    expect(provider.getLastTokenUsage()).toEqual({
+      inputTokens: 1500,
+      outputTokens: 420,
+      cachedInputTokens: 1200,
+    });
   });
 
   it('reports null counts when the response carries no usage', async () => {
@@ -65,6 +87,10 @@ describe('AnthropicProvider token usage', () => {
 
     await provider.generateRewrites('text');
 
-    expect(provider.getLastTokenUsage()).toEqual({ inputTokens: null, outputTokens: null });
+    expect(provider.getLastTokenUsage()).toEqual({
+      inputTokens: null,
+      outputTokens: null,
+      cachedInputTokens: null,
+    });
   });
 });

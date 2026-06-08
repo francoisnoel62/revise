@@ -97,7 +97,11 @@ describe('OpenAIProvider.chatStream', () => {
     const messages = [ChatMessage.create('author', 'Hi')];
     for await (const _ of provider.chatStream(messages, 'sys')) { /* drain */ }
 
-    expect(provider.getLastTokenUsage()).toEqual({ inputTokens: 50, outputTokens: 12 });
+    expect(provider.getLastTokenUsage()).toEqual({
+      inputTokens: 50,
+      outputTokens: 12,
+      cachedInputTokens: null,
+    });
   });
 
   it('requests usage in the stream via stream_options', async () => {

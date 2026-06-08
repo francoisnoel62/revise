@@ -29,6 +29,8 @@ export interface ConnectionTestResult {
 export interface TokenUsage {
   inputTokens: number | null;
   outputTokens: number | null;
+  /** Portion of inputTokens served from the provider's prompt cache, when reported. */
+  cachedInputTokens: number | null;
 }
 
 export interface LLMProvider {

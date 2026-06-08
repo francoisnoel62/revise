@@ -57,11 +57,16 @@ export class GoogleProvider implements LLMProvider {
    * retrieved via getLastTokenUsage() by usage-tracking decorators.
    */
   private captureUsage(result: {
-    usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
+    usageMetadata?: {
+      promptTokenCount?: number;
+      candidatesTokenCount?: number;
+      cachedContentTokenCount?: number;
+    };
   }): void {
     this.lastTokenUsage = {
       inputTokens: result.usageMetadata?.promptTokenCount ?? null,
       outputTokens: result.usageMetadata?.candidatesTokenCount ?? null,
+      cachedInputTokens: result.usageMetadata?.cachedContentTokenCount ?? null,
     };
   }
 

@@ -21,7 +21,11 @@ const mockPromptRepository = {
   getNarrativeAnalysisPrompt: vi.fn().mockResolvedValue('mock prompt'),
 } as unknown as PromptRepository;
 
-function rewritesCompletion(usage?: { prompt_tokens: number; completion_tokens: number }) {
+function rewritesCompletion(usage?: {
+  prompt_tokens: number;
+  completion_tokens: number;
+  prompt_tokens_details?: { cached_tokens: number };
+}) {
   return {
     usage,
     choices: [
@@ -60,7 +64,29 @@ describe('OpenAIProvider token usage', () => {
 
     await provider.generateRewrites('text');
 
-    expect(provider.getLastTokenUsage()).toEqual({ inputTokens: 800, outputTokens: 210 });
+    expect(provider.getLastTokenUsage()).toEqual({
+      inputTokens: 800,
+      outputTokens: 210,
+      cachedInputTokens: null,
+    });
+  });
+
+  it('captures cached input tokens from prompt_tokens_details', async () => {
+    mockCreate.mockResolvedValue(
+      rewritesCompletion({
+        prompt_tokens: 800,
+        completion_tokens: 210,
+        prompt_tokens_details: { cached_tokens: 640 },
+      })
+    );
+
+    await provider.generateRewrites('text');
+
+    expect(provider.getLastTokenUsage()).toEqual({
+      inputTokens: 800,
+      outputTokens: 210,
+      cachedInputTokens: 640,
+    });
   });
 
   it('reports null counts when the response carries no usage', async () => {
@@ -68,6 +94,10 @@ describe('OpenAIProvider token usage', () => {
 
     await provider.generateRewrites('text');
 
-    expect(provider.getLastTokenUsage()).toEqual({ inputTokens: null, outputTokens: null });
+    expect(provider.getLastTokenUsage()).toEqual({
+      inputTokens: null,
+      outputTokens: null,
+      cachedInputTokens: null,
+    });
   });
 });

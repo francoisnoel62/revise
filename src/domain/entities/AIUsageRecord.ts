@@ -12,6 +12,7 @@ export interface AIUsageRecordProperties {
   model: string;
   inputTokens: number | null;
   outputTokens: number | null;
+  cachedInputTokens?: number | null;
   durationMs: number;
   createdAt: Date;
 }
@@ -25,12 +26,14 @@ export class AIUsageRecord {
   private readonly model: string;
   private readonly inputTokens: number | null;
   private readonly outputTokens: number | null;
+  private readonly cachedInputTokens: number | null;
   private readonly durationMs: number;
   private readonly createdAt: Date;
 
   private constructor(props: AIUsageRecordProperties) {
     this.validateDuration(props.durationMs);
     this.validateTokens(props.inputTokens, props.outputTokens);
+    this.validateCachedTokens(props.cachedInputTokens ?? null);
 
     this.id = props.id;
     this.userId = props.userId;
@@ -40,6 +43,7 @@ export class AIUsageRecord {
     this.model = props.model;
     this.inputTokens = props.inputTokens;
     this.outputTokens = props.outputTokens;
+    this.cachedInputTokens = props.cachedInputTokens ?? null;
     this.durationMs = props.durationMs;
     this.createdAt = props.createdAt;
   }
@@ -59,6 +63,12 @@ export class AIUsageRecord {
     }
   }
 
+  private validateCachedTokens(cached: number | null): void {
+    if (cached !== null && cached < 0) {
+      throw new Error('Cached input tokens cannot be negative');
+    }
+  }
+
   static create(
     id: string,
     userId: string,
@@ -68,7 +78,8 @@ export class AIUsageRecord {
     model: string,
     inputTokens: number | null,
     outputTokens: number | null,
-    durationMs: number
+    durationMs: number,
+    cachedInputTokens: number | null = null
   ): AIUsageRecord {
     return new AIUsageRecord({
       id,
@@ -79,6 +90,7 @@ export class AIUsageRecord {
       model,
       inputTokens,
       outputTokens,
+      cachedInputTokens,
       durationMs,
       createdAt: new Date(),
     });
@@ -118,6 +130,10 @@ export class AIUsageRecord {
 
   getOutputTokens(): number | null {
     return this.outputTokens;
+  }
+
+  getCachedInputTokens(): number | null {
+    return this.cachedInputTokens;
   }
 
   getTotalTokens(): number | null {

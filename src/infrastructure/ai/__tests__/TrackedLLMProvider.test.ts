@@ -324,6 +324,18 @@ describe('TrackedLLMProvider', () => {
       expect(savedRecord.getOutputTokens()).toBe(300);
     });
 
+    it('records cached input tokens reported by the wrapped provider', async () => {
+      vi.mocked(mockProvider).getLastTokenUsage = vi
+        .fn()
+        .mockReturnValue({ inputTokens: 1200, outputTokens: 300, cachedInputTokens: 900 });
+
+      await trackedProvider.generateRewrites('test text');
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const savedRecord = (mockRepository.save as ReturnType<typeof vi.fn>).mock.calls[0][0] as AIUsageRecord;
+      expect(savedRecord.getCachedInputTokens()).toBe(900);
+    });
+
     it('records null tokens when the wrapped provider reports no usage', async () => {
       vi.mocked(mockProvider).getLastTokenUsage = vi.fn().mockReturnValue(null);
 

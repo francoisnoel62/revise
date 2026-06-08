@@ -51,7 +51,30 @@ describe('GoogleProvider token usage', () => {
 
     await provider.generateRewrites('text');
 
-    expect(provider.getLastTokenUsage()).toEqual({ inputTokens: 640, outputTokens: 180 });
+    expect(provider.getLastTokenUsage()).toEqual({
+      inputTokens: 640,
+      outputTokens: 180,
+      cachedInputTokens: null,
+    });
+  });
+
+  it('captures cached tokens from cachedContentTokenCount', async () => {
+    mockGenerateContent.mockResolvedValue({
+      text: rewritesText,
+      usageMetadata: {
+        promptTokenCount: 640,
+        candidatesTokenCount: 180,
+        cachedContentTokenCount: 500,
+      },
+    });
+
+    await provider.generateRewrites('text');
+
+    expect(provider.getLastTokenUsage()).toEqual({
+      inputTokens: 640,
+      outputTokens: 180,
+      cachedInputTokens: 500,
+    });
   });
 
   it('reports null counts when the response carries no usageMetadata', async () => {
@@ -59,6 +82,10 @@ describe('GoogleProvider token usage', () => {
 
     await provider.generateRewrites('text');
 
-    expect(provider.getLastTokenUsage()).toEqual({ inputTokens: null, outputTokens: null });
+    expect(provider.getLastTokenUsage()).toEqual({
+      inputTokens: null,
+      outputTokens: null,
+      cachedInputTokens: null,
+    });
   });
 });
