@@ -9,13 +9,14 @@ import { AIOperationType } from '@/domain/value-objects/AIOperationType';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
 import { NarrativeAnalysis } from '@/domain/value-objects/NarrativeAnalysis';
 import { StylisticDNA } from '@/domain/value-objects/StylisticDNA';
-import { Characters } from '@/domain/value-objects/Characters';
+import { Characters, CharacterProfile } from '@/domain/value-objects/Characters';
 import { Plot } from '@/domain/value-objects/Plot';
 import { Worldbuilding } from '@/domain/value-objects/Worldbuilding';
 import { Synthesis } from '@/domain/value-objects/Synthesis';
 import { ChapterSummaries } from '@/domain/value-objects/ChapterSummaries';
 import { ChapterGeneration } from '@/domain/value-objects/ChapterGeneration';
 import { ChapterGenerationTypeKey } from '@/domain/value-objects/ChapterGenerationType';
+import { ChatMessage } from '@/domain/value-objects/ChatMessage';
 
 export class TrackedLLMProvider implements LLMProvider {
   private lastInputTokens: number | null = null;
@@ -198,5 +199,29 @@ export class TrackedLLMProvider implements LLMProvider {
       this.recordUsage('completion', durationMs).catch(console.error);
       throw error;
     }
+  }
+
+  async *chatStream(
+    messages: ChatMessage[],
+    systemPrompt: string,
+  ): AsyncIterableIterator<string> {
+    const start = Date.now();
+    try {
+      yield* this.wrapped.chatStream(messages, systemPrompt);
+      await this.recordUsage('character_chat', Date.now() - start);
+    } catch (error) {
+      await this.recordUsage('character_chat', Date.now() - start);
+      throw error;
+    }
+  }
+
+  async generateCharacterSheet(
+    characterName: string,
+    existingFields: Omit<CharacterProfile, 'name'>,
+    projectContext: string
+  ): Promise<Omit<CharacterProfile, 'name'>> {
+    return this.trackUsage('character_sheet', () =>
+      this.wrapped.generateCharacterSheet(characterName, existingFields, projectContext)
+    );
   }
 }

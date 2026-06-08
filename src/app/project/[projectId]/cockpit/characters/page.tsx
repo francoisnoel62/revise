@@ -12,7 +12,12 @@ import {
   deleteCharacterAction,
   SerializedCharacter,
 } from '@/app/actions/character-actions';
-import { CharacterForm, CharacterCard } from '@/components/cockpit';
+import {
+  listConversationsAction,
+  loadConversationAction,
+  SerializedMessage,
+} from '@/app/actions/character-conversation-actions';
+import { CharacterForm, CharacterCard, CharacterChatSheet } from '@/components/cockpit';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
@@ -40,6 +45,9 @@ export default function CharactersPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [editingCharacter, setEditingCharacter] = useState<SerializedCharacter | null>(null);
   const [deletingCharacterId, setDeletingCharacterId] = useState<string | null>(null);
+  const [chattingCharacter, setChattingCharacter] = useState<SerializedCharacter | null>(null);
+  const [chattingConversationId, setChattingConversationId] = useState<string | undefined>(undefined);
+  const [chattingMessages, setChattingMessages] = useState<SerializedMessage[]>([]);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -147,6 +155,25 @@ export default function CharactersPage() {
     }
   };
 
+  const handleOpenChat = useCallback(async (character: SerializedCharacter) => {
+    const listResult = await listConversationsAction(character.id);
+    if (listResult.success && listResult.data.length > 0) {
+      const latest = listResult.data[0];
+      const loadResult = await loadConversationAction(latest.id);
+      if (loadResult.success) {
+        setChattingConversationId(latest.id);
+        setChattingMessages(loadResult.data);
+      } else {
+        setChattingConversationId(undefined);
+        setChattingMessages([]);
+      }
+    } else {
+      setChattingConversationId(undefined);
+      setChattingMessages([]);
+    }
+    setChattingCharacter(character);
+  }, []);
+
   const handleDelete = async () => {
     if (!deletingCharacterId) return;
 
@@ -209,6 +236,7 @@ export default function CharactersPage() {
                   character={character}
                   onEdit={setEditingCharacter}
                   onDelete={setDeletingCharacterId}
+                  onChat={handleOpenChat}
                 />
               ))}
             </div>
@@ -228,6 +256,8 @@ export default function CharactersPage() {
               initialValues={editingCharacter}
               submitLabel="Enregistrer"
               showAllFields
+              characterId={editingCharacter.id}
+              projectId={projectId}
             />
           )}
         </DialogContent>
@@ -253,6 +283,18 @@ export default function CharactersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Character Chat */}
+      {chattingCharacter && (
+        <CharacterChatSheet
+          open={!!chattingCharacter}
+          character={chattingCharacter}
+          projectId={projectId}
+          onClose={() => setChattingCharacter(null)}
+          initialConversationId={chattingConversationId}
+          initialMessages={chattingMessages}
+        />
+      )}
     </div>
   );
 }

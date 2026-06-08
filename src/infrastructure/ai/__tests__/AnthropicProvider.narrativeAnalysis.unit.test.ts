@@ -62,6 +62,7 @@ describe('AnthropicProvider.generateNarrativeAnalysis (Unit)', () => {
       getChapterFullPrompt: vi.fn().mockResolvedValue(''),
       getChapterOutlinePrompt: vi.fn().mockResolvedValue(''),
       getCompletionPrompt: vi.fn().mockResolvedValue(''),
+      getCharacterSheetPrompt: vi.fn().mockResolvedValue(''),
     } as import('@/domain/interfaces/PromptRepository').PromptRepository;
 
     provider = new AnthropicProvider('test-key', mockPromptRepo, 'claude-sonnet-4-5-20250929');

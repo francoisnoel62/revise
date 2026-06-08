@@ -5,16 +5,17 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, User } from 'lucide-react';
+import { MessageSquare, Pencil, Trash2, User } from 'lucide-react';
 import { SerializedCharacter } from '@/app/actions/character-actions';
 
 interface CharacterCardProps {
   character: SerializedCharacter;
   onEdit: (character: SerializedCharacter) => void;
   onDelete: (characterId: string) => void;
+  onChat: (character: SerializedCharacter) => void;
 }
 
-export function CharacterCard({ character, onEdit, onDelete }: CharacterCardProps) {
+export function CharacterCard({ character, onEdit, onDelete, onChat }: CharacterCardProps) {
   const hasContent =
     character.identity ||
     character.appearance ||
@@ -31,6 +32,16 @@ export function CharacterCard({ character, onEdit, onDelete }: CharacterCardProp
           <CardTitle className="text-lg">{character.name}</CardTitle>
         </div>
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onChat(character)}
+            className="h-8 w-8"
+            title="Discuter avec ce personnage"
+          >
+            <MessageSquare className="h-4 w-4" />
+            <span className="sr-only">Discuter</span>
+          </Button>
           <Button
             variant="ghost"
             size="icon"

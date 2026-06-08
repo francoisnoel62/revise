@@ -57,6 +57,7 @@ export default [
         HTMLInputElement: "readonly",
         HTMLButtonElement: "readonly",
         HTMLElement: "readonly",
+        HTMLDivElement: "readonly",
         // Web APIs
         Response: "readonly",
         ReadableStream: "readonly",

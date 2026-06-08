@@ -128,7 +128,7 @@ describe('Workflow B — L\'auteur corrige, l\'IA suit', () => {
       expect(result[0].isStale).toBe(true);
     });
 
-    it('une fiche éditée par l\'auteur est toujours périmée si le manuscrit a changé depuis', async () => {
+    it('une fiche éditée par l\'auteur est toujours périmée si le manuscrit a changé depuis la génération', async () => {
       // La péremption est uniquement basée sur le hash — l'édition manuelle ne l'exempte pas.
       const ficheEditeeApresGeneration = new ProjectMetadata(
         'm-edited', 'p1', 'characters', 'Personnages', metaContentJson,
@@ -171,8 +171,8 @@ describe('Workflow B — L\'auteur corrige, l\'IA suit', () => {
     });
   });
 
-  describe('Cohérence globale — les deux règles sont compatibles', () => {
-    it('la fiche éditée peut être périmée ET utilise quand même le texte édité dans le contexte IA', async () => {
+  describe('Cohérence globale — péremption et contexte IA sont indépendants', () => {
+    it('la fiche éditée est périmée si le manuscrit a changé, ET le contexte IA utilise quand même le texte édité', async () => {
       // Même entité testée sous deux angles : staleness + context injection.
       // La péremption (hash) et le contexte IA (texte édité) sont deux préoccupations indépendantes.
 

@@ -12,6 +12,8 @@ export const AI_OPERATION_TYPES = [
   'chapter_summaries',
   'chapter_generation',
   'completion',
+  'character_chat',
+  'character_sheet',
 ] as const;
 
 export type AIOperationType = (typeof AI_OPERATION_TYPES)[number];
@@ -31,4 +33,6 @@ export const AI_OPERATION_LABELS: Record<AIOperationType, string> = {
   chapter_summaries: 'Résumés chapitres',
   chapter_generation: 'Génération chapitre',
   completion: 'Autocomplétion',
+  character_chat: 'Chat personnage',
+  character_sheet: 'Génération fiche personnage',
 };

@@ -42,6 +42,8 @@ describe('GenerateChapterSummariesUseCase', () => {
     generateChapter: vi.fn(),
     generateCompletion: vi.fn(),
     generateCompletionStream: vi.fn(),
+    chatStream: vi.fn(),
+    generateCharacterSheet: vi.fn(),
   };
 
   const mockIdGenerator = {

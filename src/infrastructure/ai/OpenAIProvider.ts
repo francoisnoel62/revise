@@ -7,13 +7,14 @@ import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
 import { NarrativeAnalysis } from '@/domain/value-objects/NarrativeAnalysis';
 import { StylisticDNA } from '@/domain/value-objects/StylisticDNA';
-import { Characters } from '@/domain/value-objects/Characters';
+import { Characters, CharacterProfile } from '@/domain/value-objects/Characters';
 import { Plot } from '@/domain/value-objects/Plot';
 import { Worldbuilding } from '@/domain/value-objects/Worldbuilding';
 import { Synthesis } from '@/domain/value-objects/Synthesis';
 import { ChapterSummaries } from '@/domain/value-objects/ChapterSummaries';
 import { ChapterGeneration } from '@/domain/value-objects/ChapterGeneration';
 import { ChapterGenerationTypeKey } from '@/domain/value-objects/ChapterGenerationType';
+import { ChatMessage } from '@/domain/value-objects/ChatMessage';
 
 interface ProposalResponse {
   proposals: Array<{
@@ -1528,6 +1529,142 @@ INSTRUCTIONS FINALES:
         }
         yield content;
       }
+    }
+  }
+
+  // ===========================
+  // CHARACTER SHEET GENERATION
+  // ===========================
+
+  async generateCharacterSheet(
+    characterName: string,
+    existingFields: Omit<CharacterProfile, 'name'>,
+    projectContext: string
+  ): Promise<Omit<CharacterProfile, 'name'>> {
+    const basePrompt = await this.promptRepository.getCharacterSheetPrompt();
+    const systemPrompt = this.buildCharacterSheetPrompt(basePrompt, characterName, existingFields);
+
+    try {
+      const isReasoning = this.isReasoningModel();
+      const completion = await this.client.chat.completions.create({
+        model: this.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: projectContext },
+        ],
+        ...this.getResponseFormatParam(),
+        ...(isReasoning ? {} : { temperature: 0.4 }),
+        ...this.getTokenLimitParam(4096),
+      });
+
+      const content = completion.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('Empty response from OpenAI');
+      }
+
+      return this.parseCharacterSheetResponse(content);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error during character sheet generation');
+    }
+  }
+
+  private buildCharacterSheetPrompt(
+    basePrompt: string,
+    characterName: string,
+    existingFields: Omit<CharacterProfile, 'name'>
+  ): string {
+    const existing = Object.entries(existingFields)
+      .filter(([, v]) => v && v.trim())
+      .map(([k, v]) => `${k}: ${v}`)
+      .join('\n');
+
+    const existingSection = existing
+      ? `\n\nFICHE EXISTANTE DU PERSONNAGE "${characterName}":\n${existing}\n\nComplète et enrichis les champs existants.`
+      : `\n\nPersonnage à documenter : "${characterName}". Aucun champ n'est encore rempli.`;
+
+    return `${basePrompt}${existingSection}
+
+---
+
+FORMAT DE SORTIE JSON:
+
+Retourne UNIQUEMENT un objet JSON avec exactement ces 8 clés :
+
+{
+  "identity": "Identité",
+  "appearance": "Description physique",
+  "psychology": "Psychologie",
+  "voiceAndLanguage": "Voix et langage",
+  "backstory": "Histoire personnelle",
+  "relationships": "Relations",
+  "narrativeFunction": "Fonction narrative",
+  "openQuestions": "Questions ouvertes"
+}
+
+INSTRUCTIONS:
+- Détecte la langue du texte et réponds dans la MÊME LANGUE
+- Ne fabrique pas de faits absents du texte
+- Si une information est absente, laisse le champ vide ("")
+- Retourne UNIQUEMENT le JSON`;
+  }
+
+  private parseCharacterSheetResponse(content: string): Omit<CharacterProfile, 'name'> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let parsed: any;
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      throw new Error('Failed to parse character sheet response from OpenAI');
+    }
+
+    const fields = ['identity', 'appearance', 'psychology', 'voiceAndLanguage', 'backstory', 'relationships', 'narrativeFunction', 'openQuestions'];
+    for (const field of fields) {
+      if (typeof parsed[field] !== 'string') {
+        throw new Error(`Invalid character sheet response: missing field "${field}"`);
+      }
+    }
+
+    return {
+      identity: parsed.identity,
+      appearance: parsed.appearance,
+      psychology: parsed.psychology,
+      voiceAndLanguage: parsed.voiceAndLanguage,
+      backstory: parsed.backstory,
+      relationships: parsed.relationships,
+      narrativeFunction: parsed.narrativeFunction,
+      openQuestions: parsed.openQuestions,
+    };
+  }
+
+  // ===========================
+  // STREAMING CHAT
+  // ===========================
+
+  async *chatStream(
+    messages: ChatMessage[],
+    systemPrompt: string,
+  ): AsyncIterableIterator<string> {
+    const apiMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+      { role: 'system', content: systemPrompt },
+      ...messages.map((m) => ({
+        role: m.getRole() === 'author' ? ('user' as const) : ('assistant' as const),
+        content: m.getContent(),
+      })),
+    ];
+
+    const stream = await this.client.chat.completions.create({
+      model: this.model,
+      messages: apiMessages,
+      stream: true,
+      max_tokens: 1024,
+    });
+
+    for await (const chunk of stream) {
+      const text = chunk.choices[0]?.delta?.content;
+      if (text) yield text;
     }
   }
 }
