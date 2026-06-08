@@ -20,7 +20,9 @@ const mockStatsWithData: ActionResult<UsageStats> = {
     totalOperations: 42,
     totalInputTokens: 15000,
     totalOutputTokens: 5000,
+    totalCachedInputTokens: 4000,
     totalDurationMs: 60000,
+    totalCostEur: 0.42,
     byOperation: {
       rewrite: { count: 20, inputTokens: 8000, outputTokens: 2000 },
       narrative_analysis: { count: 5, inputTokens: 3000, outputTokens: 1000 },
@@ -44,7 +46,9 @@ const mockStatsEmpty: ActionResult<UsageStats> = {
     totalOperations: 0,
     totalInputTokens: 0,
     totalOutputTokens: 0,
+    totalCachedInputTokens: 0,
     totalDurationMs: 0,
+    totalCostEur: 0,
     byOperation: {
       rewrite: { count: 0, inputTokens: 0, outputTokens: 0 },
       narrative_analysis: { count: 0, inputTokens: 0, outputTokens: 0 },
@@ -104,6 +108,19 @@ describe('UsageStatsCard', () => {
     // Check operation breakdown - top operations
     expect(screen.getByText('Réécriture')).toBeInTheDocument();
     expect(screen.getByText('20')).toBeInTheDocument();
+  });
+
+  it('displays the total cost in euros and cached tokens', async () => {
+    vi.mocked(getProjectUsageStatsAction).mockResolvedValue(mockStatsWithData);
+
+    render(<UsageStatsCard projectId="project-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Coût')).toBeInTheDocument();
+    });
+
+    // Cached tokens note (4000 → "4.0k cachés")
+    expect(screen.getByText(/cachés/)).toBeInTheDocument();
   });
 
   it('shows empty state when no usage data', async () => {

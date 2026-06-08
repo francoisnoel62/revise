@@ -13,10 +13,24 @@ For current features and roadmap, see [README.md](README.md).
   no provider read the token usage from its API responses, so every `AIUsageRecord` was saved with
   `null` tokens (operation count and duration worked since they don't depend on the provider).
   `LLMProvider` now exposes an optional `getLastTokenUsage()`; `AnthropicProvider`,
-  `OpenAIProvider`, and `GoogleProvider` capture input/output tokens from each non-streaming
-  response, and `TrackedLLMProvider` pulls that usage into the saved record on success.
-  Streaming operations (character chat, autocompletion stream) still record `null` tokens — a
-  follow-up. Historical records remain at `0`; only new operations are counted.
+  `OpenAIProvider`, and `GoogleProvider` capture input/output tokens, and `TrackedLLMProvider`
+  pulls that usage into the saved record on success. Historical records remain at `0`; only new
+  operations are counted.
+
+### Added
+- **AI usage cost tracking** - building on the token fix, the cockpit "Utilisation IA" page now
+  shows the euro cost and cached-token count of AI usage, the prerequisite for token-based billing.
+  - Streaming operations (character chat, autocompletion stream) now also capture tokens
+    (Anthropic `message_start`/`message_delta` events, OpenAI `stream_options.include_usage`,
+    Google chunk `usageMetadata`).
+  - Cached prompt tokens are captured per provider (`cache_read_input_tokens`,
+    `prompt_tokens_details.cached_tokens`, `cachedContentTokenCount`) and threaded through the
+    entity, serializer, and aggregation.
+  - A maintained `ModelPricing` table (euros per million tokens) computes the cost of each call —
+    discounting cached tokens — and `TrackedLLMProvider` snapshots it onto the record at usage
+    time, so later price changes never rewrite historical cost. Unpriced models store a null cost.
+  - `UsageStats` exposes `totalCostEur` / `totalCachedInputTokens` (and per-operation equivalents);
+    `UsageStatsCard` renders the cost and cached-token figures.
 
 ## Phase 8.0 - AI Contextual Strategy (Actes 1-3) (June 2026)
 

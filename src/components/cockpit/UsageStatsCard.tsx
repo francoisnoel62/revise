@@ -6,7 +6,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Zap, Timer } from 'lucide-react';
+import { Sparkles, Zap, Timer, Euro } from 'lucide-react';
 import { AI_OPERATION_LABELS } from '@/lib/ui-labels';
 import { getProjectUsageStatsAction } from '@/app/actions/usage-actions';
 
@@ -14,7 +14,9 @@ interface UsageStats {
   totalOperations: number;
   totalInputTokens: number;
   totalOutputTokens: number;
+  totalCachedInputTokens: number;
   totalDurationMs: number;
+  totalCostEur: number;
   byOperation: Record<string, { count: number; inputTokens: number; outputTokens: number }>;
 }
 
@@ -30,6 +32,15 @@ function formatNumber(n: number): string {
     return `${(n / 1000).toFixed(1)}k`;
   }
   return n.toLocaleString('fr-FR');
+}
+
+function formatCostEur(eur: number): string {
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4,
+  }).format(eur);
 }
 
 function formatDuration(ms: number): string {
@@ -154,7 +165,7 @@ export function UsageStatsCard({ projectId }: UsageStatsCardProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Summary stats */}
-        <div className="grid grid-cols-3 gap-4 text-center">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
           <div>
             <div className="text-2xl font-bold">{formatNumber(stats.totalOperations)}</div>
             <div className="text-xs text-muted-foreground">Opérations</div>
@@ -165,6 +176,13 @@ export function UsageStatsCard({ projectId }: UsageStatsCardProps) {
               {formatNumber(totalTokens)}
             </div>
             <div className="text-xs text-muted-foreground">Tokens</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold flex items-center justify-center gap-1">
+              <Euro className="h-4 w-4 text-emerald-600" />
+              {formatCostEur(stats.totalCostEur)}
+            </div>
+            <div className="text-xs text-muted-foreground">Coût</div>
           </div>
           <div>
             <div className="text-2xl font-bold flex items-center justify-center gap-1">
@@ -180,6 +198,14 @@ export function UsageStatsCard({ projectId }: UsageStatsCardProps) {
           <span className="text-green-600">{formatNumber(stats.totalInputTokens)} entrée</span>
           {' / '}
           <span className="text-blue-600">{formatNumber(stats.totalOutputTokens)} sortie</span>
+          {stats.totalCachedInputTokens > 0 && (
+            <>
+              {' · '}
+              <span className="text-purple-600">
+                {formatNumber(stats.totalCachedInputTokens)} cachés
+              </span>
+            </>
+          )}
         </div>
 
         {/* Operations breakdown */}
