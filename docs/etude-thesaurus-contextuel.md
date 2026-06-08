@@ -40,6 +40,41 @@ thésaurus qui respecte la singularité de la voix »*. Réponse retenue : un th
 3. **Ancrage sur la voix du projet dès le départ** — retenu. C'est le vrai
    différenciateur : le thésaurus *connaît la voix* via l'**ADN Stylistique**.
 
+## Décisions d'interview (MVP figé)
+
+> Tranchées en interview avec l'auteur. **Priment** sur les pistes plus larges du
+> reste de la note quand il y a tension. Définissent le périmètre V1.
+
+1. **Justification = effet de scène, pas définition.** Chaque proposition est
+   justifiée par *ce qu'elle fait à la scène* (« installe une tension, suggère
+   qu'elle ne veut pas être vue »), pas par son sens de dictionnaire. Revise devient
+   un **explorateur de mots par intention dramatique**, pas un dictionnaire — c'est
+   ce qui creuse l'écart avec Word/Antidote.
+2. **Structure = cœur de synonymes + couche audacieuse optionnelle.** Le thésaurus
+   propose **avant tout des synonymes mot-pour-mot** (substitution propre). Une
+   couche optionnelle peut aller jusqu'à des **tournures, voire un autre geste de
+   scène**, quand ça sert mieux l'intention.
+3. **Présentation en deux temps.** Par défaut : **uniquement les synonymes** (net,
+   rassurant). Un geste explicite *« aller plus loin »* déplie la couche audacieuse.
+   On n'impose pas l'audace — l'auteur la demande.
+4. **Les deux couches _sont_ le hybride lexical/IA** (ce n'est plus un détail
+   technique) :
+   - **Couche 1** — synonymes **nus**, **instantanés**, **lexicaux**, **0 token**,
+     **sans justification** (la base lexicale ne connaît pas la scène). Le geste
+     rapide, dans le flow, pour 90 % des cas.
+   - **Couche 2** (« aller plus loin ») — propositions **IA** (~1-2 s, payant),
+     **justifiées par l'effet de scène** + couche audacieuse (tournures, gestes),
+     **ancrées sur la voix**. La justification d'effet est un *luxe qu'on déplie*,
+     pas le minimum vital.
+5. **Périmètre V1 = affiner un mot qu'on a.** Le geste *substituer* (un mot déjà
+   écrit, sélectionné) est le cœur. Le geste *explorer depuis rien* (Command Palette,
+   taper une intention sans sélection) passe en **phase 2**.
+6. **Ancrage voix exigeant + transparent.** La couche 2 « voix » ne s'allume que si
+   l'**ADN Stylistique** du projet existe ; sans lui, on reste sur synonymes nus +
+   effet de scène générique. Cette posture *récompense* l'analyse de style et y
+   incite. La récompense est rendue **visible** par une mention de transparence
+   (*« accordé à ton style »*).
+
 ## Ce qui rend CE thésaurus singulier
 
 Au lieu d'une liste plate, les propositions sont structurées **par intention**,
@@ -65,19 +100,21 @@ pas par équivalence :
 Les deux intentions n'arrivent pas au même instant de l'écriture ; elles ne
 partagent donc pas la même UI.
 
-### Geste 1 — Substituer (j'ai un mot, j'en veux un meilleur)
+### Geste 1 — Substituer (j'ai un mot, j'en veux un meilleur) — **V1**
 L'auteur a écrit le mot, il bute dessus. → **Double-clic / sélection du mot →
 palette inline** ancrée au mot. C'est le flow réécriture, mais au niveau du mot.
 Friction quasi nulle, on reste dans le flow. Geste **par défaut**, le plus fréquent.
+**C'est le cœur du MVP** (décision d'interview n°5) : la palette montre d'abord les
+synonymes nus (couche 1), puis *« aller plus loin »* déplie la couche IA justifiée.
 
-### Geste 2 — Explorer (je n'ai pas encore le mot)
+### Geste 2 — Explorer (je n'ai pas encore le mot) — **phase 2**
 L'auteur est bloqué, le curseur clignote, rien à sélectionner. → **Command Palette**
 ([`CommandPalette`](../src/components/editor/CommandPalette.tsx), `Ctrl+Shift+I`) où
 il tape une intention : un concept, une émotion, une sensation (« la peur qui
 monte », « le froid »). Revise ouvre un **champ lexical** structuré dans un panneau
 plus riche (proche de `ProposalsSheet`).
 
-### Geste 3 (bonus à fort levier) — Résoudre une répétition
+### Geste 3 (bonus à fort levier) — Résoudre une répétition — **phase 2**
 Revise détecte déjà les répétitions (Phase 7 :
 [`RepetitionAnalysisStrategy`](../src/application/strategies/RepetitionAnalysisStrategy.ts),
 [`RepetitionCluster`](../src/domain/value-objects/RepetitionCluster.ts)). Quand
@@ -143,10 +180,21 @@ mot**.
 
 ## Prochaines étapes suggérées
 
-1. Trancher : **source lexicale FR libre** (sourcing + licence) vs **MVP IA seule**.
-2. Figer le **format d'une proposition de nuance** (`WordAlternative` : champs,
-   glose) — c'est le différenciateur, à prototyper en premier.
-3. Rédiger une spec MVP courte (prompt « nuancer pas équivaloir », schéma palette
-   inline + panneau exploration, branchement sur les répétitions).
-4. Implémenter en TDD (skill `tdd-cycle`) : value-object → méthode `LLMProvider` →
-   use-case → providers → actions → UI, dans cet ordre.
+1. **Sourcer la base lexicale FR libre** (couche 1, décidée comme nécessaire au MVP :
+   synonymes nus instantanés). Pistes : WordNet FR (WOLF), Dicollecte/Grammalecte,
+   CNRTL. Licence à vérifier. *Seul inconnu technique restant.*
+2. Figer le **format d'une proposition de couche 2** (`WordAlternative` : `word` +
+   **`sceneEffect`** la justification d'effet de scène + `register`) — c'est le
+   différenciateur, à prototyper en premier. Note : la couche 1 n'a pas de
+   justification, son type peut être un simple `string[]`.
+3. Rédiger une spec MVP courte : prompt couche 2 (« **effet de scène, pas
+   définition** » ; « **synonymes d'abord, tournures/geste de scène seulement si ça
+   sert l'intention** »), schéma de la palette inline en deux temps
+   (synonymes → « aller plus loin »), garde « ancrage exigeant » (couche voix
+   conditionnée à l'existence de l'ADN stylistique) + mention *« accordé à ton style »*.
+4. Implémenter en TDD (skill `tdd-cycle`) : base lexicale (couche 1) → value-object
+   `WordAlternative` → méthode `LLMProvider` (couche 2) → use-case → providers →
+   actions → UI palette deux temps, dans cet ordre.
+
+> **Hors périmètre V1** (phase 2) : geste *explorer depuis rien* (Command Palette),
+> branchement sur la détection de répétitions.
