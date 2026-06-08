@@ -179,6 +179,33 @@ Prix de référence (juin 2026) : Opus 4.8 = 5 $/25 $ · Haiku 4.5 = 1 $/5 $ (pa
 
 ---
 
+## 7. Pistes complémentaires
+
+Idées au-delà du socle (crédits, routage, mode local, journal de transparence). ⭐ = priorités.
+
+### Confiance / différenciation (alignées philosophie)
+1. **⭐ Rapport de divulgation IA + « attestation de paternité ».** De plus en plus d'éditeurs, concours et plateformes exigent de **déclarer l'usage de l'IA**. Générer en un clic un rapport (« voici ce que l'IA a fait sur ce manuscrit ») + un indicateur **« % écrit de votre main vs assisté »**. Réutilise le metering + le journal de transparence (`docs/transparency-ledger.md`). Timing parfait, on-brand, peu de concurrents.
+2. **Indicateur d'intégrité de la voix.** Sur la base de `stylistic_dna`, signaler quand une suggestion s'écarte de *votre* voix — pour la préserver, pas la standardiser.
+
+### Fonctionnalités payantes (différencient les paliers, sans toucher la qualité IA)
+3. **Export pro** (EPUB, format manuscrit édition, mise en page soignée) — palier Pro.
+4. **Partage bêta-lecteurs / éditeur** (commentaires sur un chapitre) — collaboratif, « collant ».
+5. **Historique de versions** du manuscrit — rassurant et premium.
+6. **Profil de voix persistant** — capitaliser sur `authorProfile` (déjà paramètre de `generateRewrites`) pour une cohérence de voix sur tout le livre. Approfondit le moat.
+
+### Mécanismes de monétisation (au-delà de l'abonnement)
+7. **Pack manuscrit one-shot** : analyse complète d'un manuscrit fini, **sans abonnement**. Capte la longue traîne anti-récurrent.
+8. **Plans ateliers d'écriture / collectifs (B2B2C)** : sièges groupés pour ateliers, écoles, associations d'auteurs — marché francophone réel.
+9. **Parrainage** : crédits pour inviter un autre auteur. Viral, peu coûteux.
+10. **Offre « Auteur Fondateur »** pour la cohorte bêta approuvée (annuel/à vie avantageux).
+
+### Levier de marge (concret, sans impact UX)
+11. **⭐ Batch API pour les analyses.** Les 6 analyses de manuscrit ne sont **pas temps réel** → API Batch (Anthropic/OpenAI) = **−50 % de coût**, sans dégrader l'expérience. Autocomplétion et réécriture restent synchrones.
+
+**Top 3 si arbitrage :** (1) Rapport de divulgation IA / attestation, (2) Batch API pour les analyses, (3) Export pro + partage bêta-lecteurs.
+
+---
+
 ## Verification (de l'étude, pas du code)
 
 Cette étude est validée si elle permet à Fanfan de **trancher**, en répondant à :
