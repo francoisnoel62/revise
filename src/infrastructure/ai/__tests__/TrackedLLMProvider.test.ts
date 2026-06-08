@@ -291,6 +291,23 @@ describe('TrackedLLMProvider', () => {
       const record = (mockRepository.save as ReturnType<typeof vi.fn>).mock.calls[0][0];
       expect(record.getOperation()).toBe('character_chat');
     });
+
+    it('captures token usage reported by the wrapped provider after the stream', async () => {
+      async function* fakeStream() {
+        yield 'Hi';
+      }
+      vi.mocked(mockProvider.chatStream).mockReturnValue(fakeStream());
+      vi.mocked(mockProvider).getLastTokenUsage = vi
+        .fn()
+        .mockReturnValue({ inputTokens: 80, outputTokens: 25 });
+
+      const messages = [ChatMessage.create('author', 'Hi')];
+      for await (const _ of trackedProvider.chatStream(messages, 'persona')) { /* drain */ }
+
+      const record = (mockRepository.save as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(record.getInputTokens()).toBe(80);
+      expect(record.getOutputTokens()).toBe(25);
+    });
   });
 
   describe('token usage capture from wrapped provider', () => {

@@ -1393,6 +1393,7 @@ INSTRUCTIONS FINALES:
 
     for await (const chunk of response) {
       chunkIndex++;
+      if (chunk.usageMetadata) this.captureUsage(chunk);
       const content = chunk.text;
       console.log(`[GoogleProvider] Chunk ${chunkIndex}:`, content ? `"${content.substring(0, 50)}..."` : '(empty)');
       if (content) {
@@ -1543,6 +1544,7 @@ INSTRUCTIONS:
     });
 
     for await (const chunk of response) {
+      if (chunk.usageMetadata) this.captureUsage(chunk);
       if (chunk.text) yield chunk.text;
     }
   }

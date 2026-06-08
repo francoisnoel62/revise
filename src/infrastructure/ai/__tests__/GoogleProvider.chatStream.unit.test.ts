@@ -86,6 +86,19 @@ describe('GoogleProvider.chatStream', () => {
     expect(chatArgs.config.systemInstruction).toBe('My persona');
   });
 
+  it('captures token usage from the stream usageMetadata', async () => {
+    async function* withUsage() {
+      yield { text: 'Bonjour' };
+      yield { text: '', usageMetadata: { promptTokenCount: 40, candidatesTokenCount: 9 } };
+    }
+    mockSendMessageStream.mockResolvedValue(withUsage());
+
+    const messages = [ChatMessage.create('author', 'Salut')];
+    for await (const _ of provider.chatStream(messages, 'sys')) { /* drain */ }
+
+    expect(provider.getLastTokenUsage()).toEqual({ inputTokens: 40, outputTokens: 9 });
+  });
+
   it('returns early when messages array is empty', async () => {
     const chunks: string[] = [];
     for await (const chunk of provider.chatStream([], 'sys')) {

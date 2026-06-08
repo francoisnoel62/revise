@@ -1540,11 +1540,13 @@ INSTRUCTIONS FINALES:
       ...(isReasoning ? {} : { temperature: 0.7 }),
       ...this.getTokenLimitParam(256),
       stream: true,
+      stream_options: { include_usage: true },
     });
 
     let isFirstChunk = true;
 
     for await (const chunk of stream) {
+      if (chunk.usage) this.captureUsage(chunk);
       const content = chunk.choices[0]?.delta?.content;
       if (content) {
         // Clean up first chunk if it starts with quotes
@@ -1688,10 +1690,12 @@ INSTRUCTIONS:
       model: this.model,
       messages: apiMessages,
       stream: true,
+      stream_options: { include_usage: true },
       max_tokens: 1024,
     });
 
     for await (const chunk of stream) {
+      if (chunk.usage) this.captureUsage(chunk);
       const text = chunk.choices[0]?.delta?.content;
       if (text) yield text;
     }

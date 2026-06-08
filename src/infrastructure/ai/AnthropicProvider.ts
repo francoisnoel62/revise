@@ -1453,10 +1453,16 @@ INSTRUCTIONS FINALES:
     });
 
     let isFirstChunk = true;
+    let inputTokens: number | null = null;
+    let outputTokens: number | null = null;
 
     for await (const event of stream) {
-      // Only yield text deltas, skip thinking_delta blocks
-      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+      if (event.type === 'message_start') {
+        inputTokens = event.message.usage?.input_tokens ?? inputTokens;
+      } else if (event.type === 'message_delta') {
+        outputTokens = event.usage.output_tokens ?? outputTokens;
+      } else if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+        // Only yield text deltas, skip thinking_delta blocks
         const content = event.delta.text;
         if (content) {
           // Clean up first chunk if it starts with quotes
@@ -1471,6 +1477,8 @@ INSTRUCTIONS FINALES:
         }
       }
     }
+
+    this.lastTokenUsage = { inputTokens, outputTokens };
   }
 
   // ===========================
@@ -1598,13 +1606,22 @@ INSTRUCTIONS:
       messages: apiMessages,
     });
 
+    let inputTokens: number | null = null;
+    let outputTokens: number | null = null;
+
     for await (const event of stream) {
-      if (
+      if (event.type === 'message_start') {
+        inputTokens = event.message.usage?.input_tokens ?? inputTokens;
+      } else if (event.type === 'message_delta') {
+        outputTokens = event.usage.output_tokens ?? outputTokens;
+      } else if (
         event.type === 'content_block_delta' &&
         event.delta.type === 'text_delta'
       ) {
         yield event.delta.text;
       }
     }
+
+    this.lastTokenUsage = { inputTokens, outputTokens };
   }
 }

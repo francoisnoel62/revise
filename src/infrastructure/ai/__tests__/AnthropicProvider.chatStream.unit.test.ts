@@ -78,6 +78,21 @@ describe('AnthropicProvider.chatStream', () => {
     expect(callArgs.messages[2].role).toBe('user');
   });
 
+  it('captures token usage from message_start and message_delta events', async () => {
+    async function* withUsage() {
+      yield { type: 'message_start', message: { usage: { input_tokens: 100 } } };
+      yield { type: 'content_block_delta', delta: { type: 'text_delta', text: 'Hi' } };
+      yield { type: 'message_delta', usage: { output_tokens: 20 } };
+      yield { type: 'message_stop' };
+    }
+    mockClient.messages.stream.mockReturnValue(withUsage());
+
+    const messages = [ChatMessage.create('author', 'Hi')];
+    for await (const _ of provider.chatStream(messages, 'sys')) { /* drain */ }
+
+    expect(provider.getLastTokenUsage()).toEqual({ inputTokens: 100, outputTokens: 20 });
+  });
+
   it('passes system prompt and caps max_tokens at 1024', async () => {
     mockClient.messages.stream.mockReturnValue(makeStreamEvents([]));
 
