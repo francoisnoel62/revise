@@ -50,9 +50,30 @@ En modèle géré, Revise paie l'API et facture un forfait fixe. Le danger : un 
 - Auteur modéré (50 réécritures, 1 suite d'analyses, 300 complétions) → **~3–3,5 €**
 - Gros auteur → **~10–18 €**
 
-**Deux leviers qui protègent la marge (à exploiter sur l'infra existante) :**
+**Trois leviers qui protègent la marge (à exploiter sur l'infra existante) :**
 1. **Prompt caching** : les analyses renvoient sans cesse le **même contexte de manuscrit** en entrée (gros volume). Le cache coupe l'entrée de ~90 % sur ces opérations → c'est le poste de coût n°1, donc le plus gros gain de marge.
-2. **Crédits plafonnés** plutôt que « illimité » : on borne mécaniquement l'exposition. (Le routage par *qualité de modèle entre paliers* est volontairement écarté — voir §6 : tous les auteurs accèdent aux meilleurs modèles.)
+2. **Batch API pour les analyses** : les 6 analyses de manuscrit + les résumés ne sont **pas temps réel** → en mode asynchrone (Batch API, supporté par Anthropic/OpenAI/Google), **−50 % sur tous les tokens**, sans dégrader l'expérience. Détail ci-dessous.
+3. **Crédits plafonnés** plutôt que « illimité » : on borne mécaniquement l'exposition. (Le routage par *qualité de modèle entre paliers* est volontairement écarté — voir §6 : tous les auteurs accèdent aux meilleurs modèles.)
+
+#### Levier 2 en détail — Batch API
+
+Le Batch API traite des requêtes **en asynchrone** contre **−50 % sur le prix des tokens** (entrée et sortie). Chez Anthropic : `POST /v1/messages/batches`, lots jusqu'à 100 000 requêtes, la plupart finis en **< 1 h** (max **24 h**), toutes les fonctions du Messages API supportées. SDK : `client.messages.batches.create(...)` → poll `retrieve()` jusqu'à `processing_status === "ended"` → itérer `results()`.
+
+**Contrepartie : la latence.** Le batch n'est pas temps réel (minutes, parfois heures) → réservé aux opérations où **l'auteur peut attendre**.
+
+| Opération | Batch ? | Pourquoi |
+|---|---|---|
+| Autocomplétion, Réécriture | ❌ synchrone | l'auteur attend devant l'écran |
+| Génération de chapitre | ⚠️ au choix | sauf si vendu en « génère pendant la nuit » |
+| **6 analyses + résumés** | ✅ **batch** | poste de coût le plus lourd, pas urgent |
+
+**Seul changement d'UX** : remplacer le spinner bloquant par « Analyse lancée — on vous prévient » + notification. L'auteur continue d'écrire pendant ce temps.
+
+**Deux nuances :**
+- **La synthèse dépend des 5 autres analyses** → batcher les 5 indépendantes, puis lancer la synthèse (2ᵉ lot ou synchrone).
+- **Batch et caching ne s'additionnent pas naïvement** : dans un lot, les requêtes tournent en parallèle → le cache n'est pas « chaud » pour les premières. Ne pas compter −95 % cumulés. Pour des analyses lancées d'un coup, **le batch est le levier le plus fiable** ; le caching brille surtout sur les analyses relancées dans la même session.
+
+→ Effet net : les analyses pesant l'essentiel du coût Opus, le batch **divise ce poste par deux**, sans toucher à la qualité ni à l'écriture en direct. Seul coût : un peu d'orchestration asynchrone + notification.
 
 ### Tableau d'arbitrage
 
@@ -200,7 +221,7 @@ Idées au-delà du socle (crédits, routage, mode local, journal de transparence
 10. **Offre « Auteur Fondateur »** pour la cohorte bêta approuvée (annuel/à vie avantageux).
 
 ### Levier de marge (concret, sans impact UX)
-11. **⭐ Batch API pour les analyses.** Les 6 analyses de manuscrit ne sont **pas temps réel** → API Batch (Anthropic/OpenAI) = **−50 % de coût**, sans dégrader l'expérience. Autocomplétion et réécriture restent synchrones.
+11. **⭐ Batch API pour les analyses** → traité en détail au **§1, Levier 2** (−50 % sur les analyses, en asynchrone).
 
 **Top 3 si arbitrage :** (1) Rapport de divulgation IA / attestation, (2) Batch API pour les analyses, (3) Export pro + partage bêta-lecteurs.
 
