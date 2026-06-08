@@ -293,6 +293,46 @@ describe('TrackedLLMProvider', () => {
     });
   });
 
+  describe('token usage capture from wrapped provider', () => {
+    it('records tokens reported by the wrapped provider after a successful call', async () => {
+      vi.mocked(mockProvider).getLastTokenUsage = vi
+        .fn()
+        .mockReturnValue({ inputTokens: 1200, outputTokens: 300 });
+
+      await trackedProvider.generateRewrites('test text');
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const savedRecord = (mockRepository.save as ReturnType<typeof vi.fn>).mock.calls[0][0] as AIUsageRecord;
+      expect(savedRecord.getInputTokens()).toBe(1200);
+      expect(savedRecord.getOutputTokens()).toBe(300);
+    });
+
+    it('records null tokens when the wrapped provider reports no usage', async () => {
+      vi.mocked(mockProvider).getLastTokenUsage = vi.fn().mockReturnValue(null);
+
+      await trackedProvider.generateNarrativeAnalysis('text');
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const savedRecord = (mockRepository.save as ReturnType<typeof vi.fn>).mock.calls[0][0] as AIUsageRecord;
+      expect(savedRecord.getInputTokens()).toBeNull();
+      expect(savedRecord.getOutputTokens()).toBeNull();
+    });
+
+    it('does not attribute stale tokens to a failed call', async () => {
+      vi.mocked(mockProvider).getLastTokenUsage = vi
+        .fn()
+        .mockReturnValue({ inputTokens: 999, outputTokens: 999 });
+      vi.mocked(mockProvider.generateRewrites).mockRejectedValueOnce(new Error('API error'));
+
+      await expect(trackedProvider.generateRewrites('test')).rejects.toThrow('API error');
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const savedRecord = (mockRepository.save as ReturnType<typeof vi.fn>).mock.calls[0][0] as AIUsageRecord;
+      expect(savedRecord.getInputTokens()).toBeNull();
+      expect(savedRecord.getOutputTokens()).toBeNull();
+    });
+  });
+
   describe('setTokenCounts', () => {
     it('stores token counts for next usage record', async () => {
       trackedProvider.setTokenCounts(100, 50);

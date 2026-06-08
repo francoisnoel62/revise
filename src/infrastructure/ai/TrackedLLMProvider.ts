@@ -40,6 +40,10 @@ export class TrackedLLMProvider implements LLMProvider {
       const result = await fn();
       const durationMs = Date.now() - startTime;
 
+      // Capture real token usage reported by the wrapped provider (success only,
+      // to avoid attributing a previous call's tokens to a failed one).
+      this.captureWrappedUsage();
+
       // Record usage asynchronously (don't block the response)
       this.recordUsage(operation, durationMs).catch(console.error);
 
@@ -78,6 +82,19 @@ export class TrackedLLMProvider implements LLMProvider {
   setTokenCounts(inputTokens: number | null, outputTokens: number | null): void {
     this.lastInputTokens = inputTokens;
     this.lastOutputTokens = outputTokens;
+  }
+
+  /**
+   * Pull the token usage reported by the wrapped provider for its most recent
+   * call and stage it for the next usage record. No-op when the provider does
+   * not report usage, preserving any counts set manually via setTokenCounts.
+   */
+  private captureWrappedUsage(): void {
+    const usage = this.wrapped.getLastTokenUsage?.();
+    if (usage) {
+      this.lastInputTokens = usage.inputTokens;
+      this.lastOutputTokens = usage.outputTokens;
+    }
   }
 
   async generateRewrites(

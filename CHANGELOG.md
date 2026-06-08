@@ -6,6 +6,18 @@ For current features and roadmap, see [README.md](README.md).
 
 ---
 
+## Unreleased
+
+### Fixed
+- **AI token usage now recorded** - the cockpit "Utilisation IA" page showed `0` tokens because
+  no provider read the token usage from its API responses, so every `AIUsageRecord` was saved with
+  `null` tokens (operation count and duration worked since they don't depend on the provider).
+  `LLMProvider` now exposes an optional `getLastTokenUsage()`; `AnthropicProvider`,
+  `OpenAIProvider`, and `GoogleProvider` capture input/output tokens from each non-streaming
+  response, and `TrackedLLMProvider` pulls that usage into the saved record on success.
+  Streaming operations (character chat, autocompletion stream) still record `null` tokens — a
+  follow-up. Historical records remain at `0`; only new operations are counted.
+
 ## Phase 8.0 - AI Contextual Strategy (Actes 1-3) (June 2026)
 
 The AI now writes *from the author's own material* — their generated metadata **and**
