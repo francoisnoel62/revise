@@ -13,6 +13,7 @@ export interface AIUsageRecordProperties {
   inputTokens: number | null;
   outputTokens: number | null;
   cachedInputTokens?: number | null;
+  costEur?: number | null;
   durationMs: number;
   createdAt: Date;
 }
@@ -27,6 +28,7 @@ export class AIUsageRecord {
   private readonly inputTokens: number | null;
   private readonly outputTokens: number | null;
   private readonly cachedInputTokens: number | null;
+  private readonly costEur: number | null;
   private readonly durationMs: number;
   private readonly createdAt: Date;
 
@@ -44,6 +46,7 @@ export class AIUsageRecord {
     this.inputTokens = props.inputTokens;
     this.outputTokens = props.outputTokens;
     this.cachedInputTokens = props.cachedInputTokens ?? null;
+    this.costEur = props.costEur ?? null;
     this.durationMs = props.durationMs;
     this.createdAt = props.createdAt;
   }
@@ -79,7 +82,8 @@ export class AIUsageRecord {
     inputTokens: number | null,
     outputTokens: number | null,
     durationMs: number,
-    cachedInputTokens: number | null = null
+    cachedInputTokens: number | null = null,
+    costEur: number | null = null
   ): AIUsageRecord {
     return new AIUsageRecord({
       id,
@@ -91,6 +95,7 @@ export class AIUsageRecord {
       inputTokens,
       outputTokens,
       cachedInputTokens,
+      costEur,
       durationMs,
       createdAt: new Date(),
     });
@@ -134,6 +139,10 @@ export class AIUsageRecord {
 
   getCachedInputTokens(): number | null {
     return this.cachedInputTokens;
+  }
+
+  getCostEur(): number | null {
+    return this.costEur;
   }
 
   getTotalTokens(): number | null {

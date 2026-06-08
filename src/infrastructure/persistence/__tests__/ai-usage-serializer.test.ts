@@ -30,6 +30,28 @@ describe('ai-usage-serializer', () => {
     expect(doc.cachedInputTokens).toBe(1200);
   });
 
+  it('serializes and round-trips the euro cost', () => {
+    const record = AIUsageRecord.create(
+      new ObjectId().toHexString(),
+      'user-1',
+      'project-1',
+      'rewrite',
+      'Anthropic',
+      'claude-sonnet',
+      1500,
+      420,
+      2500,
+      1200,
+      0.0456
+    );
+
+    const doc = serializeAIUsage(record);
+    expect(doc.costEur).toBe(0.0456);
+
+    const restored = deserializeAIUsage(doc as AIUsageDocument);
+    expect(restored.getCostEur()).toBe(0.0456);
+  });
+
   it('round-trips cached input tokens through deserialization', () => {
     const id = new ObjectId();
     const doc: AIUsageDocument = {

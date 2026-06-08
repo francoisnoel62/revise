@@ -336,6 +336,29 @@ describe('TrackedLLMProvider', () => {
       expect(savedRecord.getCachedInputTokens()).toBe(900);
     });
 
+    it('computes and stores the euro cost from the wrapped usage and model', async () => {
+      vi.mocked(mockProvider).getLastTokenUsage = vi
+        .fn()
+        .mockReturnValue({ inputTokens: 1000, outputTokens: 500, cachedInputTokens: null });
+      // mockProvider reports provider "OpenAI" and model "gpt-4o-mini" (priced)
+
+      await trackedProvider.generateRewrites('test text');
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const savedRecord = (mockRepository.save as ReturnType<typeof vi.fn>).mock.calls[0][0] as AIUsageRecord;
+      expect(savedRecord.getCostEur()).toBeGreaterThan(0);
+    });
+
+    it('stores a null cost when the wrapped provider reports no usage', async () => {
+      vi.mocked(mockProvider).getLastTokenUsage = vi.fn().mockReturnValue(null);
+
+      await trackedProvider.generateCharacters('text');
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const savedRecord = (mockRepository.save as ReturnType<typeof vi.fn>).mock.calls[0][0] as AIUsageRecord;
+      expect(savedRecord.getCostEur()).toBeNull();
+    });
+
     it('records null tokens when the wrapped provider reports no usage', async () => {
       vi.mocked(mockProvider).getLastTokenUsage = vi.fn().mockReturnValue(null);
 

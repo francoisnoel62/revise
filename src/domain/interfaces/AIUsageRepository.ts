@@ -10,6 +10,7 @@ export interface UsageStats {
   totalOutputTokens: number;
   totalCachedInputTokens: number;
   totalDurationMs: number;
+  totalCostEur: number;
   byOperation: Record<
     AIOperationType,
     {
@@ -17,6 +18,7 @@ export interface UsageStats {
       inputTokens: number;
       outputTokens: number;
       cachedInputTokens: number;
+      costEur: number;
     }
   >;
 }

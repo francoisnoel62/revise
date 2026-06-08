@@ -167,6 +167,42 @@ describe('AIUsageRecord', () => {
     });
   });
 
+  describe('costEur', () => {
+    it('stores and returns the euro cost', () => {
+      const record = AIUsageRecord.create(
+        'record-1',
+        'user-1',
+        'project-1',
+        'rewrite',
+        'Anthropic',
+        'claude-sonnet',
+        500,
+        150,
+        2500,
+        400,
+        0.0123
+      );
+
+      expect(record.getCostEur()).toBe(0.0123);
+    });
+
+    it('defaults cost to null when omitted', () => {
+      const record = AIUsageRecord.create(
+        'record-1',
+        'user-1',
+        'project-1',
+        'rewrite',
+        'OpenAI',
+        'gpt-4o-mini',
+        500,
+        150,
+        2500
+      );
+
+      expect(record.getCostEur()).toBeNull();
+    });
+  });
+
   describe('getTotalTokens', () => {
     it('returns sum of input and output tokens', () => {
       const record = AIUsageRecord.create(

@@ -19,6 +19,7 @@ interface AggregatedStats {
   inputTokens: number;
   outputTokens: number;
   cachedInputTokens: number;
+  costEur: number;
   durationMs: number;
 }
 
@@ -115,6 +116,7 @@ export class MongoDBUsageRepository implements AIUsageRepository {
           inputTokens: { $sum: { $ifNull: ['$inputTokens', 0] } },
           outputTokens: { $sum: { $ifNull: ['$outputTokens', 0] } },
           cachedInputTokens: { $sum: { $ifNull: ['$cachedInputTokens', 0] } },
+          costEur: { $sum: { $ifNull: ['$costEur', 0] } },
           durationMs: { $sum: '$durationMs' },
         },
       },
@@ -231,6 +233,7 @@ export class MongoDBUsageRepository implements AIUsageRepository {
           inputTokens: { $sum: { $ifNull: ['$inputTokens', 0] } },
           outputTokens: { $sum: { $ifNull: ['$outputTokens', 0] } },
           cachedInputTokens: { $sum: { $ifNull: ['$cachedInputTokens', 0] } },
+          costEur: { $sum: { $ifNull: ['$costEur', 0] } },
           durationMs: { $sum: '$durationMs' },
         },
       },
@@ -256,6 +259,7 @@ export class MongoDBUsageRepository implements AIUsageRepository {
         inputTokens: 0,
         outputTokens: 0,
         cachedInputTokens: 0,
+        costEur: 0,
       };
     }
 
@@ -264,6 +268,7 @@ export class MongoDBUsageRepository implements AIUsageRepository {
     let totalOutputTokens = 0;
     let totalCachedInputTokens = 0;
     let totalDurationMs = 0;
+    let totalCostEur = 0;
 
     for (const result of results) {
       const operation = result._id as AIOperationType;
@@ -273,6 +278,7 @@ export class MongoDBUsageRepository implements AIUsageRepository {
           inputTokens: result.inputTokens,
           outputTokens: result.outputTokens,
           cachedInputTokens: result.cachedInputTokens,
+          costEur: result.costEur,
         };
       }
 
@@ -281,6 +287,7 @@ export class MongoDBUsageRepository implements AIUsageRepository {
       totalOutputTokens += result.outputTokens;
       totalCachedInputTokens += result.cachedInputTokens;
       totalDurationMs += result.durationMs;
+      totalCostEur += result.costEur;
     }
 
     return {
@@ -289,6 +296,7 @@ export class MongoDBUsageRepository implements AIUsageRepository {
       totalOutputTokens,
       totalCachedInputTokens,
       totalDurationMs,
+      totalCostEur,
       byOperation,
     };
   }

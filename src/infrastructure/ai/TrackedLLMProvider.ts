@@ -6,6 +6,7 @@ import { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
 import { IdGenerator } from '@/domain/interfaces/IdGenerator';
 import { AIUsageRecord } from '@/domain/entities/AIUsageRecord';
 import { AIOperationType } from '@/domain/value-objects/AIOperationType';
+import { computeCostEur } from '@/domain/value-objects/ModelPricing';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
 import { NarrativeAnalysis } from '@/domain/value-objects/NarrativeAnalysis';
 import { StylisticDNA } from '@/domain/value-objects/StylisticDNA';
@@ -61,17 +62,28 @@ export class TrackedLLMProvider implements LLMProvider {
     operation: AIOperationType,
     durationMs: number
   ): Promise<void> {
+    const provider = this.wrapped.getProviderName();
+    const model = this.wrapped.getModel();
+    const costEur = computeCostEur({
+      provider,
+      model,
+      inputTokens: this.lastInputTokens,
+      outputTokens: this.lastOutputTokens,
+      cachedInputTokens: this.lastCachedInputTokens,
+    });
+
     const record = AIUsageRecord.create(
       this.idGenerator.generate(),
       this.userId,
       this.projectId,
       operation,
-      this.wrapped.getProviderName(),
-      this.wrapped.getModel(),
+      provider,
+      model,
       this.lastInputTokens,
       this.lastOutputTokens,
       durationMs,
-      this.lastCachedInputTokens
+      this.lastCachedInputTokens,
+      costEur
     );
 
     await this.usageRepository.save(record);

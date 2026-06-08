@@ -15,6 +15,7 @@ export interface AIUsageDocument {
   inputTokens: number | null;
   outputTokens: number | null;
   cachedInputTokens?: number | null;
+  costEur?: number | null;
   durationMs: number;
   createdAt: Date;
 }
@@ -32,6 +33,7 @@ export function serializeAIUsage(
     inputTokens: record.getInputTokens(),
     outputTokens: record.getOutputTokens(),
     cachedInputTokens: record.getCachedInputTokens(),
+    costEur: record.getCostEur(),
     durationMs: record.getDurationMs(),
     createdAt: record.getCreatedAt(),
   };
@@ -48,6 +50,7 @@ export function deserializeAIUsage(doc: AIUsageDocument): AIUsageRecord {
     inputTokens: doc.inputTokens,
     outputTokens: doc.outputTokens,
     cachedInputTokens: doc.cachedInputTokens ?? null,
+    costEur: doc.costEur ?? null,
     durationMs: doc.durationMs,
     createdAt: doc.createdAt,
   };
