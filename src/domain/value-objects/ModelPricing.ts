@@ -27,25 +27,29 @@ interface PricingEntry {
 }
 
 /**
- * Maintained pricing snapshot in €/million tokens. Anthropic rates follow the
- * published list prices; OpenAI/Google rows are seed values to be kept in sync
- * with each provider's pricing page. Unknown models yield a null cost rather
- * than a fabricated one.
+ * Maintained pricing snapshot in €/million tokens. Rates converted from official
+ * USD list prices at EUR/USD 1.1537 (June 2026). Most specific prefixes are listed
+ * first so startsWith matching picks the right tier. Unknown models yield a null
+ * cost rather than a fabricated one.
  */
 const PRICING: Record<string, PricingEntry[]> = {
   Anthropic: [
-    { prefix: 'claude-opus-4', inputPerM: 5, outputPerM: 25, cachedInputPerM: 0.5, cachedInInput: false },
-    { prefix: 'claude-sonnet-4', inputPerM: 3, outputPerM: 15, cachedInputPerM: 0.3, cachedInInput: false },
-    { prefix: 'claude-haiku-4', inputPerM: 1, outputPerM: 5, cachedInputPerM: 0.1, cachedInInput: false },
+    { prefix: 'claude-opus-4', inputPerM: 4.33, outputPerM: 21.67, cachedInputPerM: 0.43, cachedInInput: false },
+    { prefix: 'claude-sonnet-4', inputPerM: 2.60, outputPerM: 13.00, cachedInputPerM: 0.26, cachedInInput: false },
+    { prefix: 'claude-haiku-4', inputPerM: 0.87, outputPerM: 4.33, cachedInputPerM: 0.09, cachedInInput: false },
   ],
   OpenAI: [
-    { prefix: 'gpt-4o-mini', inputPerM: 0.15, outputPerM: 0.6, cachedInputPerM: 0.075, cachedInInput: true },
-    { prefix: 'gpt-4o', inputPerM: 2.5, outputPerM: 10, cachedInputPerM: 1.25, cachedInInput: true },
-    { prefix: 'gpt-5', inputPerM: 1.25, outputPerM: 10, cachedInputPerM: 0.125, cachedInInput: true },
+    { prefix: 'gpt-4o-mini', inputPerM: 0.35, outputPerM: 1.39, cachedInputPerM: 0.17, cachedInInput: true },
+    { prefix: 'gpt-4o', inputPerM: 2.17, outputPerM: 8.67, cachedInputPerM: 1.08, cachedInInput: true },
+    { prefix: 'gpt-5.5', inputPerM: 4.33, outputPerM: 26.00, cachedInputPerM: 0.43, cachedInInput: true },
+    { prefix: 'gpt-5.4', inputPerM: 2.17, outputPerM: 13.00, cachedInputPerM: 0.22, cachedInInput: true },
+    { prefix: 'gpt-5', inputPerM: 1.08, outputPerM: 4.33, cachedInputPerM: 0.11, cachedInInput: true },
   ],
   'Google AI': [
-    { prefix: 'gemini-3', inputPerM: 2, outputPerM: 12, cachedInputPerM: 0.2, cachedInInput: true },
-    { prefix: 'gemini', inputPerM: 0.3, outputPerM: 2.5, cachedInputPerM: 0.075, cachedInInput: true },
+    { prefix: 'gemini-3.5', inputPerM: 1.30, outputPerM: 7.80, cachedInputPerM: 0.13, cachedInInput: true },
+    { prefix: 'gemini-3', inputPerM: 1.73, outputPerM: 10.40, cachedInputPerM: 0.17, cachedInInput: true },
+    { prefix: 'gemini-2.5', inputPerM: 0.26, outputPerM: 2.17, cachedInputPerM: 0.03, cachedInInput: true },
+    { prefix: 'gemini', inputPerM: 0.09, outputPerM: 0.35, cachedInputPerM: 0.01, cachedInInput: true },
   ],
 };
 

@@ -6,7 +6,7 @@ import { computeCostEur } from '../ModelPricing';
 
 describe('computeCostEur', () => {
   it('computes cost for a known Anthropic model', () => {
-    // Opus seed: 5 €/M input, 25 €/M output → 1000 in + 500 out
+    // Opus: 4.33 €/M input, 21.67 €/M output → 1000 in + 500 out
     const cost = computeCostEur({
       provider: 'Anthropic',
       model: 'claude-opus-4-8',
@@ -15,7 +15,8 @@ describe('computeCostEur', () => {
       cachedInputTokens: null,
     });
 
-    expect(cost).toBeCloseTo(0.005 + 0.0125, 6);
+    // 1000/1e6*4.33 + 500/1e6*21.67 = 0.00433 + 0.010835
+    expect(cost).toBeCloseTo(0.00433 + 0.010835, 6);
   });
 
   it('charges Anthropic cached tokens on top of input at the reduced rate', () => {
@@ -28,8 +29,8 @@ describe('computeCostEur', () => {
       cachedInputTokens: 2000,
     });
 
-    // 1000/1e6*5 + 2000/1e6*0.5 = 0.005 + 0.001
-    expect(cost).toBeCloseTo(0.006, 6);
+    // 1000/1e6*4.33 + 2000/1e6*0.43 = 0.00433 + 0.00086
+    expect(cost).toBeCloseTo(0.00433 + 0.00086, 6);
   });
 
   it('treats cached tokens as a subset of input for OpenAI', () => {
