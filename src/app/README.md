@@ -2,7 +2,7 @@
 
 Next.js App Router pages, layouts, UI components, and state management.
 
-**Status**: ✅ Phase 5.1 Complete (220+ component tests + 30+ store tests + 100+ server action tests)
+**Status**: ✅ Phase 9.0 Complete (see [README.md](../../README.md) for test statistics)
 
 ## Rules:
 - Depends on Application and Domain layers
@@ -246,6 +246,20 @@ Next.js App Router pages, layouts, UI components, and state management.
 
 ---
 
+#### `app/api/character-chat/stream/route.ts` ⭐ NEW (Phase 9.0)
+**Purpose**: SSE streaming endpoint for character chat
+
+**Features**:
+- Emits a `meta` event first (carrying `conversationId`) so the client can resume interrupted sessions
+- Streams character reply chunks via `ChatWithCharacterUseCase`
+- Auth-protected (session required)
+- `runtime = 'nodejs'` for streaming support
+
+**Methods**:
+- POST with `{ projectId, characterId, conversationId | null, message }`
+
+---
+
 #### `app/read/[projectId]/[token]/page.tsx` ⭐ NEW (Phase 5.0)
 **Purpose**: Public reader page for shared projects
 
@@ -368,6 +382,12 @@ Next.js App Router pages, layouts, UI components, and state management.
 - `loadPublishedProjectAction` → `LoadPublishedProjectUseCase`
 - `getPublishStatusAction` - Returns publish status for a project
 
+**`app/actions/character-conversation-actions.ts`** ⭐ NEW (Phase 9.0):
+- `createConversationAction` - Create a new conversation for a character
+- `listConversationsAction` - List conversations for a character
+- `loadConversationMessagesAction` - Load full message history for a conversation
+- `deleteConversationAction` - Delete a conversation
+
 **`app/actions/utils.ts`** (Dependency Injection):
 - `getRepository()` - Project repository
 - `getProviderRepo()` - Provider repository
@@ -377,6 +397,7 @@ Next.js App Router pages, layouts, UI components, and state management.
 - `getPromptRepo()` - Prompt repository (Phase 3.6)
 - `getLLMProviderFactory()` - LLM provider factory
 - `getIdGenerator()` - UUID generator
+- `getCharacterConversationRepo()` - Character conversation repository ⭐ NEW (Phase 9.0)
 
 **`app/actions/index.ts`** (Legacy - Phase 1/2):
 - `importDocument` - Uses `ImportProjectUseCase` via `DocxParser.parseToChapters()`
@@ -653,7 +674,57 @@ Next.js App Router pages, layouts, UI components, and state management.
 
 ---
 
+#### Cockpit Character Components ⭐ ENHANCED (Phase 6, 9.0) (`components/cockpit/`)
+
+**`CharacterCard`** ⭐ ENHANCED (Phase 9.0)
+**Purpose**: Card for a character with edit and chat actions
+
+**Phase 9.0 Enhancements**:
+- **Chat button** - Opens `CharacterChatSheet` for the selected character
+
+**Tests**: existing + new tests for chat button
+
+---
+
+**`CharacterForm`** ⭐ ENHANCED (Phase 9.0)
+**Purpose**: Create/edit character form
+
+**Phase 9.0 Enhancements**:
+- **Auto-fill button** - Calls `generateCharacterSheetAction` and pre-fills all 8 fields (aliases, description, traits, goals, relationships, etc.); author reviews and saves
+
+**Tests**: existing + new tests for auto-fill
+
+---
+
+**`CharacterChatSheet`** ⭐ NEW (Phase 9.0)
+**Purpose**: Right-side Sheet component for chatting with a character persona in real-time
+
+**Features**:
+- Streaming SSE replies via `/api/character-chat/stream`
+- Conversation history displayed in chat bubbles
+- Text input with Enter/Shift+Enter handling
+- Copy button on each character reply (for direct manuscript insertion)
+- Conversation persists across sheet open/close via `conversationId`
+
+**Uses**: `useCharacterChat` hook
+
+**Tests**: 15+ tests covering streaming, message display, and copy
+
+---
+
 #### Navigation Components ⭐ NEW
+
+**`ProjectSettingsMenu`** ⭐ NEW (Phase 9.0)
+**Purpose**: Dropdown in the editor header for quick access to all cockpit sections
+
+**Features**:
+- Groups cockpit links into "Pilotage" (overview, tasks, objectives, settings) and "Contenu" (characters, metadata, research, usage)
+- Mirrors the `CockpitSidebar` structure
+- No keyboard shortcut required — always accessible from editor header
+
+**Tests**: navigation rendering tests
+
+---
 
 **`ChaptersSheet`**
 **Purpose**: Left-side navigation panel with drag & drop chapter management
@@ -893,6 +964,22 @@ Next.js App Router pages, layouts, UI components, and state management.
 ---
 
 ### Hooks ⭐ NEW (Phase 3)
+
+#### `hooks/useCharacterChat.ts` ⭐ NEW (Phase 9.0)
+**Purpose**: SSE connection management, message state, and conversation persistence for character chat
+
+**Features**:
+- Opens a `fetch` SSE stream to `/api/character-chat/stream`
+- Reads the `meta` event to capture the `conversationId` (new or resumed)
+- Appends streaming chunks to the current assistant message in real-time
+- Exposes `messages: UIMessage[]`, `sendMessage(text)`, `isStreaming`, `error`
+- Stores `conversationId` across renders so sessions resume on sheet reopen
+
+**Used by**: `CharacterChatSheet`
+
+**Tests**: hook behaviour covered by `CharacterChatSheet` tests
+
+---
 
 #### `hooks/useAutosave.ts`
 **Purpose**: Auto-save hook with 1-second debounce

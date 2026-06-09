@@ -81,16 +81,13 @@ High-level project information.
 - Keyboard shortcuts: See README.md → Usage
 
 ### Testing
-- Test coverage: **871 passed (897 total, 97%+ pass rate)**
-- Test files: 112 files
+- Test coverage: **1700+ passed (1750+ total, 98%+ pass rate)**
+- Test files: 200+ files
 - Unit tests: Vitest + React Testing Library
-- Integration tests: Real API calls (OpenAI & Anthropic)
-- Provider-specific integration tests: 30+ tests (7 analysis types + generation) - conditional
-- Correction history tests: 39 unit tests (entity, use cases, edge cases)
-- Blog/legal/approval tests: Tests for all Phase 3.8-5.1 features
-- Publishing tests: New tests for public project sharing
-- E2E tests: Playwright (setup ready)
-- Coverage: 42% global, 92%+ domain entities, 100% use cases
+- Integration tests: Real API calls (OpenAI & Anthropic) — 35+ provider-specific tests
+- E2E tests: Playwright with auth seeding (`e2e/auth.setup.ts`)
+- AI Efficiency tests: Manual workflow tests A–D (`tests_ia_efficiency/`) validating contextual AI behaviour
+- Coverage: 92%+ domain entities, 100% use cases
 - See [API Reference](./developer/api-reference.md#testing) for examples
 
 ## 🔍 Find What You Need
@@ -130,6 +127,34 @@ High-level project information.
 → [Provider Management](./user/provider-management.md#troubleshooting)
 
 ## 🆕 What's New
+
+### Phase 9.0 - Character Chat & Character Sheet Auto-Fill (June 2026) ✅
+
+**Character Chat**:
+- ✅ Chat with any character from your project in their own voice (streaming SSE)
+- ✅ Conversation history persisted and resumed across sessions
+- ✅ Copy button on character replies for direct manuscript insertion
+- ✅ `CharacterChatSheet` component with real-time streaming
+
+**Character Sheet Auto-Fill**:
+- ✅ "Auto-fill" button in `CharacterForm` — AI generates 8 character fields from manuscript + metadata
+- ✅ Author reviews and decides what to keep; nothing is persisted automatically
+
+**AI Cost Tracking**:
+- ✅ All three providers now capture real token counts (input/output/cached) including from streams
+- ✅ `ModelPricing` table computes euro cost per call — cost stored per record, not retroactively recalculated
+- ✅ `UsageStatsCard` shows euro cost and cached-token figures
+
+**Editor Navigation**:
+- ✅ `ProjectSettingsMenu` — quick access to all cockpit sections from the editor header
+
+### Phase 8.0 - AI Contextual Strategy (June 2026) ✅
+
+**AI Context from Author Material**:
+- ✅ AI now writes from the author's own metadata and research documents
+- ✅ "Author edit wins" — edited analyses are never silently overridden
+- ✅ Staleness indicator on `MetadataCard`
+- ✅ Research documents feed into completion and chapter generation by locality
 
 ### Phase 5.1 - Markdown Folder Import (January 2026) ✅
 
@@ -349,6 +374,6 @@ docs/
 
 ---
 
-**Documentation Version**: Phase 5.1 (January 2026)
-**Last Updated**: January 21, 2026
-**Status**: Complete ✅ - Public Sharing, Markdown Import, AI Generation, Blog, RGPD (871 tests)
+**Documentation Version**: Phase 9.0 (June 2026)
+**Last Updated**: June 2026
+**Status**: Complete ✅ - Character Chat, Character Sheet AI, AI Cost Tracking, AI Context Strategy, 1750+ tests

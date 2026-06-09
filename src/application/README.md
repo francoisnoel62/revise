@@ -2,7 +2,7 @@
 
 Orchestrates domain logic through use cases.
 
-**Status**: ✅ Phase 8.0 Complete (see [README.md](../../README.md) for test statistics)
+**Status**: ✅ Phase 9.0 Complete (see [README.md](../../README.md) for test statistics)
 
 ## Rules:
 - Depends only on Domain layer
@@ -392,6 +392,46 @@ Orchestrates domain logic through use cases.
 
 ---
 
+### Character Chat Use Cases ⭐ NEW (Phase 9.0)
+
+---
+
+#### `ChatWithCharacterUseCase`
+**Purpose**: Streaming character chat — the AI responds in the character's voice
+
+**Dependencies**: `CharacterRepository`, `CharacterConversationRepository`, `LLMProvider`, `AIContextBuilder`, `IdGenerator` interfaces
+**Input**: `{ userId, projectId, characterId, conversationId | null, message }`
+**Output**: `AsyncIterableIterator<string>` — text chunks for SSE delivery
+
+**Workflow**:
+1. Load character (throws if not found)
+2. Hydrate existing conversation or create a new one
+3. Append the author message
+4. Build system prompt via `AIContextBuilder.buildCharacterPersona`
+5. Stream reply via `LLMProvider.chatStream` (last 20 messages as history)
+6. Accumulate chunks and persist the complete character reply on stream end
+
+**Tests**: 20+ tests covering streaming, new vs existing conversations, history capping
+
+---
+
+#### `GenerateCharacterSheetUseCase`
+**Purpose**: AI-assisted auto-fill of a character sheet (8 fields) — without persisting
+
+**Dependencies**: `CharacterRepository`, `ProjectRepository`, `MetadataRepository`, `LLMProvider` interfaces
+**Input**: `{ ownerId, projectId, characterId }`
+**Output**: 8-field `GenerateCharacterSheetResult` (all fields except `name`)
+
+**Workflow**:
+1. Load character and project
+2. Extract manuscript text (capped at 12 000 chars)
+3. Call `LLMProvider.generateCharacterSheet`
+4. Return result — the author decides what to keep; nothing is persisted
+
+**Tests**: 15+ tests covering generation and context loading
+
+---
+
 ### AI Context Strategy ⭐ NEW (Phase 8.0)
 
 The AI builds its context from the author's own material — generated metadata **and** research
@@ -408,6 +448,7 @@ documents — while never silently overriding what the author has edited. See
 - `buildCompletionContext(ownerId, projectId, chapterId?)` → context string (lean budget)
 - `buildChapterContext(ownerId, projectId)` → context string (generous budget)
 - `buildRewriteContext(ownerId, projectId)` → author-profile string (style + narration)
+- `buildCharacterPersona(character, projectId, ownerId)` → system prompt string for character chat ⭐ Phase 9.0
 
 **Key behaviors**:
 - **Author edit wins**: trusts `structuredData` only if `!wasEditedSinceGeneration()`; otherwise
@@ -1437,6 +1478,9 @@ Analysis strategies implement the Strategy pattern for different analysis types:
 **Coverage**: See [README.md](../../README.md) for current statistics.
 
 All use cases tested with mocked dependencies following Clean Architecture principles:
+- **Character Chat Use Cases**: 35+ tests ⭐ NEW (Phase 9.0)
+  - ChatWithCharacterUseCase: 20+ tests (streaming, history, new/existing conversations)
+  - GenerateCharacterSheetUseCase: 15+ tests (generation, context)
 - **Chapter Verification Use Cases**: 100+ tests ⭐ NEW (Phase 7)
   - AnalyzeChapterUseCase: 25 tests (including integration tests)
   - ApplyCorrectionUseCase: 10 tests

@@ -6,6 +6,56 @@ For current features and roadmap, see [README.md](README.md).
 
 ---
 
+## Phase 9.0 - Character Chat & Character Sheet Auto-Fill (June 2026)
+
+### Domain Layer
+- **CharacterConversation entity** - Persisted conversation between the author and a character
+  persona; owns an ordered list of `ChatMessage` value objects with `author` / `character` roles
+- **ChatMessage value object** - Single message in a character conversation (role, content, createdAt)
+- **ModelPricing value object** - Maintained pricing table (€/million tokens) for all supported
+  models; computes the euro cost of an LLM call (discounting cached tokens); cost is snapshot at
+  usage time so later price changes never rewrite historical records
+- **LLMProvider interface extended** - `chatStream(messages, systemPrompt)` for character-persona
+  streaming; `generateCharacterSheet(input)` for AI-assisted character sheet generation;
+  optional `getLastTokenUsage()` to expose input/output/cached token counts
+- **CharacterConversationRepository interface** - CRUD for conversations, scoped by `ownerId`
+
+### Application Layer
+- **ChatWithCharacterUseCase** - Streaming use case; builds the character persona context via
+  `AIContextBuilder.buildCharacterPersona`, hydrates / creates the conversation, calls
+  `LLMProvider.chatStream`, and persists the accumulated reply. Returns an `AsyncIterableIterator`
+  of text chunks for SSE delivery. History is capped at the last 20 messages.
+- **GenerateCharacterSheetUseCase** - Loads the character, project manuscript, and metadata;
+  calls `LLMProvider.generateCharacterSheet`; returns 8 filled-in character fields without
+  persisting (the author decides what to keep).
+- **AIContextBuilder extended** - `buildCharacterPersona(character, projectId, userId)` produces
+  a rich system prompt from the character profile + project metadata
+
+### Infrastructure Layer
+- **AnthropicProvider / OpenAIProvider / GoogleProvider** - implement `chatStream` (SSE streaming
+  over the provider API) and `generateCharacterSheet`; `getLastTokenUsage()` now also covers
+  streaming operations (`message_start` / `message_delta` for Anthropic; `stream_options.include_usage`
+  for OpenAI; `usageMetadata` chunks for Google)
+- **MongoDBCharacterConversationRepository** - conversation persistence with multi-tenant isolation
+- **character-conversation-serializer** - MongoDB document ↔ CharacterConversation serialization
+
+### Interface Layer
+- **CharacterChatSheet component** - Right-side Sheet component for chatting with a character;
+  streams replies via `/api/character-chat/stream`, shows conversation history, and exposes a
+  Copy button on each character reply
+- **CharacterCard updated** - Chat button opens `CharacterChatSheet` for the selected character
+- **CharacterForm updated** - "Auto-fill" button triggers `GenerateCharacterSheetUseCase` and
+  pre-fills all 8 character fields; author can edit before saving
+- **character-conversation-actions** - Server actions to create, list, load, and delete conversations
+- **`/api/character-chat/stream` SSE route** - Streams the character response; emits a `meta`
+  event first (carrying the `conversationId`) so the client can resume interrupted sessions
+- **useCharacterChat hook** - Client-side hook managing SSE connection, message state, and
+  conversation persistence
+- **ProjectSettingsMenu** - Dropdown in the editor header for quick access to all cockpit sections
+  (mirrors the `CockpitSidebar` structure; Pilotage / Contenu groups)
+
+---
+
 ## Unreleased
 
 ### Fixed

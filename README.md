@@ -31,7 +31,7 @@ Il comprend ce que ChatGPT ignore : les scènes, les conflits, la tension dramat
 | 🧱 **Blocage d'écriture** | Propose des continuations cohérentes avec votre style |
 | 🎬 **Scène qui ne fonctionne pas** | Améliore le rythme, les descriptions, les émotions |
 | 🔀 **Exploration créative** | Génère des variantes : mêmes idées, tons différents |
-| 👤 **Personnages plats** | Travaille les motivations, réactions, arcs |
+| 👤 **Personnages plats** | Travaille les motivations, réactions, arcs ; discutez directement avec eux |
 | ✏️ **Phrase qui coince** | 3 reformulations distinctes, vous choisissez |
 
 ### Le verdict clair
@@ -112,6 +112,16 @@ Pas de chat. Pas d'explications. Pas de friction. Vous restez dans votre flow.
 - **Compteur de mots** : Statistiques caractères/mots en temps réel
 - **Undo/Redo** : Boutons dans la toolbar + raccourcis clavier
 - **Raccourcis** : Gras, italique, surligné, tiret cadratin...
+
+### 💬 Chat avec les personnages
+
+Interagissez directement avec vos personnages dans leur voix :
+
+- **Conversation immersive** : Le personnage répond en s'appuyant sur son profil (traits, motivations, arcs), le manuscript et les métadonnées du projet
+- **Streaming temps réel** : Les réponses arrivent mot par mot, comme un vrai dialogue
+- **Historique persisté** : La conversation se sauvegarde et reprend à la réouverture
+- **Copie rapide** : Bouton "Copier" sur chaque réponse du personnage pour insérer une réplique dans le manuscrit
+- **Fiche personnage auto-générée** : Un bouton "Auto-fill" analyse le manuscrit et remplit les 8 champs de la fiche ; vous gardez le contrôle final
 
 ### 🧠 Analyse de manuscrit par IA
 
@@ -304,8 +314,8 @@ Clean Architecture stricte avec séparation par couches :
 ```
 src/
 ├── domain/           # Logique métier pure (zéro dépendance)
-│   ├── entities/     # Chapter, Project, Provider, User, ProjectMetadata, CorrectionHistory, BlogArticle, ContactMessage, Character, ProjectSettings, ProjectTask, ResearchDocument, WritingGoal, AIUsageRecord
-│   ├── value-objects/# TextSelection, RewriteProposal, MetadataType, TaskPriority, TaskStatus, Contributor, RelatedWork, NarrationSettings, AIOperationType...
+│   ├── entities/     # Chapter, Project, Provider, User, ProjectMetadata, CorrectionHistory, BlogArticle, ContactMessage, Character, CharacterConversation, ProjectSettings, ProjectTask, ResearchDocument, WritingGoal, AIUsageRecord
+│   ├── value-objects/# TextSelection, RewriteProposal, MetadataType, TaskPriority, TaskStatus, Contributor, RelatedWork, NarrationSettings, AIOperationType, ChatMessage, ModelPricing...
 │   └── interfaces/   # Contrats repositories & services
 │
 ├── application/      # Use cases orchestrant le domaine
@@ -313,7 +323,7 @@ src/
 │
 ├── infrastructure/   # Implémentations externes
 │   ├── ai/           # Providers OpenAI, Anthropic, TrackedLLMProvider
-│   ├── persistence/  # Repositories MongoDB (14 repositories)
+│   ├── persistence/  # Repositories MongoDB (15 repositories)
 │   ├── storage/      # Vercel Blob Storage
 │   ├── email/        # Service email Resend
 │   └── document/     # Import/export DOCX/PDF
@@ -333,7 +343,7 @@ src/
 ## 🧪 Tests
 
 ```bash
-npm test                  # 1500+ tests passed
+npm test                  # 1700+ tests passed
 npm run test:coverage     # Rapport de couverture
 npm run test:integration  # Tests avec vraies APIs (OpenAI & Anthropic)
 npm run test:e2e          # Tests end-to-end (Playwright)
@@ -341,9 +351,9 @@ npm run test:e2e          # Tests end-to-end (Playwright)
 
 | Statistiques | Valeur |
 |--------------|--------|
-| Tests totaux | 1550+ |
-| Tests passés | 1500+ |
-| Fichiers de test | 180+ |
+| Tests totaux | 1750+ |
+| Tests passés | 1700+ |
+| Fichiers de test | 200+ |
 | Couverture domaine | 92%+ (entités) |
 | Couverture application | **100%** (use cases) |
 | Tests d'intégration | 35+ provider-specific (conditional) |
@@ -373,8 +383,9 @@ npm run test:e2e          # Tests end-to-end (Playwright)
 - [x] Phase 6.1 : Images de couverture, objectifs d'écriture, sélection des chapitres, rate limiting, hCaptcha
 - [x] Phase 7.0 : Vérification de chapitre (orthographe, grammaire, ponctuation, style, répétitions)
 - [x] Phase 8.0 : Stratégie de contexte IA — l'IA écrit à partir des métadonnées et documents de recherche de l'auteur, avec la règle « l'édition de l'auteur l'emporte » et un indicateur de péremption des analyses
+- [x] Phase 9.0 : Chat avec les personnages (streaming SSE, historique persisté) + fiche personnage auto-générée + suivi des coûts IA (€) avec calcul par token + menu cockpit dans l'éditeur
 
-### 🔜 Phase 7.1
+### 🔜 En cours
 
 - [ ] Recherche full-text dans les chapitres
 - [ ] Templates de chapitres

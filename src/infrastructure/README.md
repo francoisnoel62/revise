@@ -2,7 +2,7 @@
 
 Implements domain interfaces with concrete external services.
 
-**Status**: ✅ Phase 8.0 Complete (see [README.md](../../README.md) for test statistics)
+**Status**: ✅ Phase 9.0 Complete (see [README.md](../../README.md) for test statistics)
 
 ## Rules:
 - Implements interfaces defined in Domain layer
@@ -13,14 +13,18 @@ Implements domain interfaces with concrete external services.
 
 ### AI Provider (✅ Phase 7 Enhanced)
 
-#### `OpenAIProvider` ⭐ ENHANCED (Phase 4.1)
+#### `OpenAIProvider` ⭐ ENHANCED (Phase 4.1, 9.0)
 **Implements**: `LLMProvider` interface
 **Technology**: OpenAI SDK with GPT-4o-mini/GPT-5-nano + o-series reasoning models
 
+**Phase 9.0 Enhancements**:
+- ✅ **`chatStream(messages, systemPrompt)`** - Streams character persona replies via `stream_options.include_usage`
+- ✅ **`generateCharacterSheet(input)`** - AI-assisted 8-field character sheet generation
+- ✅ **`getLastTokenUsage()`** - Captures input/output/cached tokens including from streaming operations
+
 **Phase 8.0 Enhancements**:
 - ✅ **Consumes context strings** - chapter/completion/rewrite receive ready-to-inject `projectContext` /
-  `authorProfile` blocks; per-provider field-selection projection (`enhanceCompletionPrompt`,
-  `buildAuthorProfileSection`) removed — projection now lives in `AIContextBuilder`
+  `authorProfile` blocks; per-provider field-selection projection removed — projection now lives in `AIContextBuilder`
 - ✅ **Worldbuilding in completion** - injects `worldRules` / `atmosphere` when available
 
 **Phase 4.1 Enhancements**:
@@ -41,13 +45,18 @@ Implements domain interfaces with concrete external services.
 - ✅ `generateWorldbuilding()` - Themes and symbolism
 - ✅ `generateSynthesis()` - Meta-analysis with editorial feedback
 
-**Tests**: 25+ tests (unit + integration) covering all 7 metadata analysis types + text rewriting + generation
+**Tests**: 35+ tests (unit + integration) covering all methods including chatStream and token tracking
 
 ---
 
-#### `AnthropicProvider` ⭐ NEW (Phase 3.6)
+#### `AnthropicProvider` ⭐ ENHANCED (Phase 3.6, 9.0)
 **Implements**: `LLMProvider` interface
 **Technology**: Anthropic SDK with Claude
+
+**Phase 9.0 Enhancements**:
+- ✅ **`chatStream`** - Captures token usage from `message_start` / `message_delta` SSE events
+- ✅ **`generateCharacterSheet`** - AI-assisted character sheet generation
+- ✅ **`getLastTokenUsage()`** - Exposes input/output/cached counts after any call
 
 **Capabilities**:
 - ✅ All 7 metadata analysis types (same as OpenAI)
@@ -55,10 +64,23 @@ Implements domain interfaces with concrete external services.
 - ✅ Error handling and retry logic
 - ✅ **Consumes context strings** for generation/completion/rewrite (Phase 8.0)
 
-**Tests**: 20+ tests (unit + integration) for all analysis types
+**Tests**: 30+ tests (unit + integration) for all analysis types and streaming
 
-> `GoogleProvider` (Gemini) implements the same `LLMProvider` contract; in Phase 8.0 its rewrites
-> also inject the author profile (`authorProfile` context string).
+---
+
+#### `GoogleProvider` ⭐ ENHANCED (Phase 8.0, 9.0)
+**Implements**: `LLMProvider` interface
+**Technology**: Google Generative AI SDK with Gemini
+
+**Phase 9.0 Enhancements**:
+- ✅ **`chatStream`** - Captures token usage from `usageMetadata` chunks
+- ✅ **`generateCharacterSheet`** - AI-assisted character sheet generation
+- ✅ **`getLastTokenUsage()`** - Exposes input/output/cached counts
+
+**Phase 8.0**:
+- ✅ Rewrites inject the author profile (`authorProfile` context string)
+
+**Tests**: 20+ tests covering streaming and token tracking
 
 ---
 
@@ -79,24 +101,29 @@ Implements domain interfaces with concrete external services.
 
 ---
 
-#### `TrackedLLMProvider` ⭐ NEW (Phase 6)
-**Purpose**: LLM provider wrapper that tracks AI usage
+#### `TrackedLLMProvider` ⭐ ENHANCED (Phase 6, 9.0)
+**Purpose**: LLM provider wrapper that tracks AI usage and costs
+
+**Phase 9.0 Enhancements**:
+- ✅ Calls `getLastTokenUsage()` on the wrapped provider after each operation
+- ✅ Computes euro cost via `ModelPricing.computeCost()` and snapshots it onto the `AIUsageRecord`
+- ✅ Supports streaming operations (`chatStream`, `generateCompletionStream`)
 
 **Features**:
 - Wraps any LLM provider implementation
-- Tracks token usage for all operations
-- Records usage to AIUsageRepository
-- Supports all LLM provider methods
-- Calculates estimated cost based on model pricing
+- Captures real token counts (input/output/cached) from provider API responses
+- Records usage + cost to `AIUsageRepository`
+- Supports all `LLMProvider` methods including `chatStream`
 
 **Workflow**:
 1. Intercepts LLM provider method calls
 2. Executes underlying provider method
-3. Extracts token counts from response
-4. Records usage to repository
-5. Returns original response
+3. Reads `getLastTokenUsage()` from the provider
+4. Computes cost via `ModelPricing.computeCost()`
+5. Saves `AIUsageRecord` with tokens + cost
+6. Returns original response / iterator
 
-**Tests**: 15+ tests covering tracking for all operation types
+**Tests**: 20+ tests covering tracking, cost calculation, and streaming operations
 
 ---
 
@@ -678,26 +705,49 @@ Implements domain interfaces with concrete external services.
 
 ---
 
-#### `MongoDBUsageRepository` ⭐ NEW (Phase 6)
+#### `MongoDBUsageRepository` ⭐ ENHANCED (Phase 6, 9.0)
 **Implements**: `AIUsageRepository` interface
 **Technology**: MongoDB Atlas with official Node.js driver
 
 **Purpose**: AI usage statistics with aggregation
 
 **Methods**:
-- `create(record)` - Creates usage record
+- `create(record)` - Creates usage record (now stores `costEur` and `cachedInputTokens`)
 - `findByUserId(userId, filters?)` - Lists usage for user
 - `findByProjectId(userId, projectId, filters?)` - Lists usage for project
-- `getUsageStats(userId, projectId?, dateRange?)` - Aggregates total usage
+- `getUsageStats(userId, projectId?, dateRange?)` - Aggregates total usage (incl. `totalCostEur`, `totalCachedInputTokens`)
 - `getDailyUsage(userId, projectId?, days?)` - Daily usage breakdown
 - `getUsageByOperation(userId, projectId?, dateRange?)` - Usage by operation type
 
 **Aggregation Pipelines**:
-- Total tokens and cost calculation
+- Total tokens, cached tokens, and euro cost calculation
 - Daily grouping for charts
 - Operation type breakdown
 
 **Tests**: 15+ tests covering CRUD and aggregation
+
+---
+
+#### `MongoDBCharacterConversationRepository` ⭐ NEW (Phase 9.0)
+**Implements**: `CharacterConversationRepository` interface
+**Technology**: MongoDB Atlas with official Node.js driver
+
+**Purpose**: Character conversation storage with multi-tenant isolation
+
+**Methods**:
+- `create(ownerId, conversation)` - Creates conversation document
+- `findById(ownerId, conversationId)` - Loads conversation (ownership verified)
+- `findByCharacterId(ownerId, characterId)` - Lists conversations for a character
+- `save(ownerId, conversation)` - Upserts conversation (used to append messages)
+- `delete(ownerId, conversationId)` - Deletes conversation
+
+**Multi-Tenant Security**:
+- All queries filter by `ownerId`
+- Enforced at database query level
+
+**Serialization**: Uses `character-conversation-serializer` (message array preserved in order)
+
+**Tests**: 20+ tests covering CRUD operations and multi-tenant isolation
 
 ---
 

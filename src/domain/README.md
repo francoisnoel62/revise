@@ -2,7 +2,7 @@
 
 Pure business logic with zero framework dependencies.
 
-**Status**: ✅ Phase 8.0 Complete (see [README.md](../../README.md) for test statistics)
+**Status**: ✅ Phase 9.0 Complete (see [README.md](../../README.md) for test statistics)
 
 ## Rules:
 - No imports from Next.js, React, or any external frameworks
@@ -285,23 +285,43 @@ Pure business logic with zero framework dependencies.
 
 ---
 
-#### `AIUsageRecord` ⭐ NEW (Phase 6)
+#### `AIUsageRecord` ⭐ ENHANCED (Phase 6, 9.0)
 **Purpose**: Represents an AI usage record for tracking and billing
 
 **Responsibilities**:
 - Manages usage identity (unique ID, project/user association)
 - Stores operation details (type, model, provider)
-- Tracks token counts (prompt, completion, total)
-- Calculates estimated cost based on model pricing
+- Tracks token counts (input, output, cached input) — captured from provider API responses (Phase 9.0)
+- Stores euro cost snapshot computed at usage time via `ModelPricing` (Phase 9.0)
 - Timestamps for when the operation occurred
 
 **Key Methods**:
 - `getId()`, `getProjectId()`, `getUserId()`, `getOperationType()`
-- `getModel()`, `getProvider()`, `getPromptTokens()`, `getCompletionTokens()`
-- `getTotalTokens()`, `getEstimatedCost()`, `getCreatedAt()`
+- `getModel()`, `getProvider()`, `getInputTokens()`, `getOutputTokens()`, `getCachedInputTokens()`
+- `getTotalTokens()`, `getCostEur()`, `getCreatedAt()`
 - `static create(id, projectId, userId, ...)` - Factory method
 
 **Tests**: 15+ tests covering entity creation and cost calculation
+
+---
+
+#### `CharacterConversation` ⭐ NEW (Phase 9.0)
+**Purpose**: Represents a persisted conversation between the author and a character persona
+
+**Responsibilities**:
+- Owns an ordered list of `ChatMessage` value objects
+- Scoped to a project and a specific character (`ownerId`, `projectId`, `characterId`)
+- Immutable append via `addMessage()` — returns a new instance
+
+**Key Methods**:
+- `getId()`, `getOwnerId()`, `getProjectId()`, `getCharacterId()`
+- `getMessages()` - Returns `ChatMessage[]` array
+- `addMessage(message)` - Returns new instance with appended message
+- `getCreatedAt()`, `getUpdatedAt()`
+- `static create(id, ownerId, projectId, characterId)` - Factory method
+- `static reconstruct(props)` - Reconstitution from serialized data
+
+**Tests**: 10+ tests covering creation, validation, and message appending
 
 ---
 
@@ -547,6 +567,40 @@ Pure business logic with zero framework dependencies.
 
 ---
 
+#### `ChatMessage` ⭐ NEW (Phase 9.0)
+**Purpose**: Single message in a character conversation
+
+**Responsibilities**:
+- Stores `role` (`'author'` | `'character'`), `content`, and `createdAt`
+- Validates that content is non-empty
+- Immutable by design
+
+**Key Methods**:
+- `getRole()`, `getContent()`, `getCreatedAt()`
+- `static create(role, content)` - Factory method
+- `static reconstruct(props)` - Reconstitution from serialized data
+- `toProperties()` - Serialization helper
+
+**Tests**: 10+ tests covering creation, validation, and role constraints
+
+---
+
+#### `ModelPricing` ⭐ NEW (Phase 9.0)
+**Purpose**: Maintained pricing table (€/million tokens) for all supported models; computes euro cost per LLM call
+
+**Responsibilities**:
+- Maps model prefixes to per-token costs (input, output, cached input)
+- Handles provider-specific cached-token accounting (Anthropic reports separately; OpenAI/Google include in prompt count)
+- Returns `null` cost for unknown/unpriced models
+- Cost is snapshot at usage time — later price changes never rewrite historical records
+
+**Key Functions**:
+- `computeCost({ provider, model, inputTokens, outputTokens, cachedInputTokens })` → `number | null`
+
+**Tests**: 20+ tests covering pricing computation, cached-token discounting, and unknown models
+
+---
+
 #### `RewriteProposal`
 **Purpose**: Immutable AI-generated text alternative
 
@@ -561,20 +615,23 @@ Pure business logic with zero framework dependencies.
 
 ### Interfaces (✅ Phase 7 Enhanced)
 
-#### `LLMProvider` ⭐ ENHANCED (Phase 3.6)
+#### `LLMProvider` ⭐ ENHANCED (Phase 3.6, 9.0)
 **Contract**: AI text generation and analysis service
 
 **Methods**:
 - `generateRewrites(selectedText, contextBefore, contextAfter, authorProfile?)` - Returns 3 `RewriteProposal` objects
 - `generateChapter(..., projectContext?)`, `generateCompletion(..., projectContext?)`, `generateCompletionStream(..., projectContext?)` - Receive ready-to-inject context strings (Phase 8.0)
-- `generateNarrativeAnalysis(chapters)` → `NarrativeAnalysis` ⭐ NEW
-- `generateCharacters(chapters)` → `Characters` ⭐ NEW
-- `generatePlot(chapters)` → `Plot` ⭐ NEW
-- `generateStylisticDNA(chapters)` → `StylisticDNA` ⭐ NEW
-- `generateWorldbuilding(chapters, analyses)` → `Worldbuilding` ⭐ NEW
-- `generateSynthesis(chapters, analyses)` → `Synthesis` ⭐ NEW
+- `generateNarrativeAnalysis(chapters)` → `NarrativeAnalysis`
+- `generateCharacters(chapters)` → `Characters`
+- `generatePlot(chapters)` → `Plot`
+- `generateStylisticDNA(chapters)` → `StylisticDNA`
+- `generateWorldbuilding(chapters, analyses)` → `Worldbuilding`
+- `generateSynthesis(chapters, analyses)` → `Synthesis`
+- `chatStream(messages, systemPrompt)` → `AsyncIterableIterator<string>` ⭐ Phase 9.0
+- `generateCharacterSheet(input)` → `GenerateCharacterSheetResult` ⭐ Phase 9.0
+- `getLastTokenUsage?()` → `TokenUsage | null` — optional; exposes input/output/cached counts after any call ⭐ Phase 9.0
 
-**Implementations**: `OpenAIProvider`, `AnthropicProvider` ⭐ NEW
+**Implementations**: `OpenAIProvider`, `AnthropicProvider`, `GoogleProvider`
 
 ---
 
@@ -863,6 +920,20 @@ Pure business logic with zero framework dependencies.
 
 ---
 
+#### `CharacterConversationRepository` ⭐ NEW (Phase 9.0)
+**Contract**: Character conversation persistence abstraction with multi-tenant support
+
+**Methods**:
+- `create(ownerId, conversation)` → `Promise<CharacterConversation>`
+- `findById(ownerId, conversationId)` → `Promise<CharacterConversation | null>`
+- `findByCharacterId(ownerId, characterId)` → `Promise<CharacterConversation[]>`
+- `save(ownerId, conversation)` → `Promise<CharacterConversation>` (upsert)
+- `delete(ownerId, conversationId)` → `Promise<void>`
+
+**Implementation**: `MongoDBCharacterConversationRepository`
+
+---
+
 #### `AIUsageRepository` ⭐ NEW (Phase 6)
 **Contract**: AI usage tracking persistence abstraction
 
@@ -954,6 +1025,9 @@ All domain logic has near-perfect test coverage with isolated unit tests:
 - TaskPriority, TaskStatus: 10+ tests (validation) ⭐ NEW (Phase 6)
 - Contributor, RelatedWork, NarrationSettings: 15+ tests (validation) ⭐ NEW (Phase 6)
 - AIOperationType: 5+ tests (validation) ⭐ NEW (Phase 6)
+- CharacterConversation: 10+ tests (creation, message appending, validation) ⭐ NEW (Phase 9.0)
+- ChatMessage: 10+ tests (creation, role constraints) ⭐ NEW (Phase 9.0)
+- ModelPricing: 20+ tests (cost computation, cached-token discounting) ⭐ NEW (Phase 9.0)
 - ChapterAnalysis: 30+ tests (entity, filtering, statistics) ⭐ NEW (Phase 7)
 - AnalysisHistory: 20+ tests (entity creation, validation) ⭐ NEW (Phase 7)
 - AnalysisCategory, AnalysisSeverity: 10+ tests (validation) ⭐ NEW (Phase 7)

@@ -27,6 +27,7 @@ Pure business logic with no framework dependencies.
 - `WritingGoal` - Writing goal with target word count, deadline, progress (Phase 6)
 - `AIUsageRecord` - AI usage tracking with operation type, tokens, cost (Phase 6)
 - `ChapterAnalysis` - Complete chapter analysis result with issues, repetitions, statistics (Phase 7)
+- `CharacterConversation` - Persisted conversation between the author and a character persona; owns an ordered list of `ChatMessage` value objects (Phase 9.0)
 - `TextDocument` - Legacy single document (Phase 1)
 
 **Value Objects**:
@@ -45,11 +46,13 @@ Pure business logic with no framework dependencies.
 - `AnalysisIssue` - Individual analysis issue with position, suggestion, status (Phase 7)
 - `RepetitionCluster` - Cluster of repeated words/phrases with positions (Phase 7)
 - `StyleRigor` - Analysis strictness level (strict, balanced, light) (Phase 7)
+- `ChatMessage` - Single message in a character conversation with role (`author` | `character`), content, and timestamp (Phase 9.0)
+- `ModelPricing` - Maintained pricing table (€/million tokens) for all supported models; computes euro cost per call discounting cached tokens; cost is snapshot at usage time (Phase 9.0)
 
 **Interfaces**:
 - `DocumentParser` - Parse documents to entities
 - `DocumentExporter` - Export entities to documents
-- `LLMProvider` - AI rewriting + 7 metadata analysis methods + chapter generation + completion (Phase 3.6, 4.1); generation/rewrite/completion methods receive ready-to-inject context strings (`projectContext` / `authorProfile`) rather than typed metadata (Phase 8.0)
+- `LLMProvider` - AI rewriting + 7 metadata analysis methods + chapter generation + completion + `chatStream` (character persona streaming) + `generateCharacterSheet` (Phase 3.6, 4.1, 9.0); generation/rewrite/completion methods receive ready-to-inject context strings (`projectContext` / `authorProfile`) rather than typed metadata (Phase 8.0); optional `getLastTokenUsage()` exposes input/output/cached token counts after any call (Phase 9.0)
 - `ProjectRepository` - Persistence abstraction with multi-tenant support
 - `ProviderRepository` - Provider storage with encryption (Phase 3.5)
 - `MetadataRepository` - Metadata storage with multi-tenant isolation (Phase 3.6)
@@ -65,6 +68,7 @@ Pure business logic with no framework dependencies.
 - `ResearchDocumentRepository` - Research document persistence (Phase 6)
 - `WritingGoalRepository` - Writing goal persistence (Phase 6)
 - `AIUsageRepository` - AI usage tracking persistence (Phase 6)
+- `CharacterConversationRepository` - Conversation persistence scoped by `ownerId` (Phase 9.0)
 - `BlobStorage` - Blob storage abstraction for images (Phase 6)
 - `RateLimiter` - Rate limiting abstraction for registration protection (Phase 6.1)
 - `CaptchaVerifier` - CAPTCHA verification abstraction (Phase 6.1)
@@ -126,9 +130,13 @@ Use cases orchestrating domain logic.
 - `GenerateChapterUseCase` - Generate chapter content from metadata context
 - `GenerateCompletionUseCase` - Generate autocompletion suggestions
 
+**Character Chat Use Cases** (Phase 9.0):
+- `ChatWithCharacterUseCase` - Streaming use case; builds the character persona via `AIContextBuilder.buildCharacterPersona`, hydrates/creates the conversation, streams reply via `LLMProvider.chatStream`, persists the accumulated reply. Returns an `AsyncIterableIterator` of text chunks. History capped at 20 messages.
+- `GenerateCharacterSheetUseCase` - Loads character + manuscript + metadata; calls `LLMProvider.generateCharacterSheet`; returns 8 filled-in character fields without persisting (author decides what to keep)
+
 **AI Context Strategy** (Phase 8.0):
 - `AIContextBuilder` (service) - Centralized metadata → prompt projection; produces ready-to-inject
-  context blocks (completion / chapter / rewrite), applies "author edit wins", projects research docs by locality
+  context blocks (completion / chapter / rewrite / character persona), applies "author edit wins", projects research docs by locality
 - `CheckMetadataFreshnessUseCase` - Read-only staleness check (manuscript hash vs stored metadata hash); never regenerates
 - `extractProjectFullText` (`services/project-text.ts`) - Canonical project text extraction shared by generation and freshness check
 - `text-hash` (`utils/text-hash.ts`) - SHA-256 content hashing (moved from Infrastructure to respect layer boundaries)
@@ -170,11 +178,11 @@ External service implementations.
 - TipTap conversion utilities (HTML ↔ JSON)
 
 **AI**:
-- `OpenAIProvider` - GPT-4o-mini/GPT-5 + 7 analysis types + generation + completion; consumes context strings, per-provider field projection removed (Phase 3.6, 4.1, 8.0)
-- `AnthropicProvider` - Claude + 7 analysis types + generation; consumes context strings (Phase 3.6, 4.1, 8.0)
-- `GoogleProvider` - Gemini + analysis + generation; rewrites inject the author profile (Phase 8.0)
+- `OpenAIProvider` - GPT-4o-mini/GPT-5 + 7 analysis types + generation + completion + `chatStream` + `generateCharacterSheet`; captures token usage (input/output/cached) including streaming via `stream_options.include_usage` (Phase 3.6, 4.1, 8.0, 9.0)
+- `AnthropicProvider` - Claude + 7 analysis types + generation + `chatStream` + `generateCharacterSheet`; captures token usage via `message_start`/`message_delta` events for streaming (Phase 3.6, 4.1, 8.0, 9.0)
+- `GoogleProvider` - Gemini + analysis + generation + `chatStream` + `generateCharacterSheet`; captures token usage via `usageMetadata` chunks; rewrites inject the author profile (Phase 8.0, 9.0)
 - `LLMProviderFactoryImpl` - Factory for creating LLM providers (Phase 3.5)
-- `TrackedLLMProvider` - LLM provider wrapper that tracks AI usage; passes context strings through (Phase 6, 8.0)
+- `TrackedLLMProvider` - LLM provider wrapper that tracks AI usage; pulls `getLastTokenUsage()` and `ModelPricing` cost onto the saved `AIUsageRecord` (Phase 6, 8.0, 9.0)
 - `AnalysisLLMClient` - AI client for spelling, grammar, punctuation, and style analysis (Phase 7)
 
 **Utils**:
@@ -213,7 +221,8 @@ External service implementations.
 - `MongoDBProjectTaskRepository` - Task storage with filtering and sorting (Phase 6)
 - `MongoDBResearchDocumentRepository` - Research document storage (Phase 6)
 - `MongoDBWritingGoalRepository` - Writing goal storage (Phase 6)
-- `MongoDBUsageRepository` - AI usage statistics with aggregation (Phase 6)
+- `MongoDBUsageRepository` - AI usage statistics with aggregation; stores `costEur` and `cachedInputTokens` (Phase 6, 9.0)
+- `MongoDBCharacterConversationRepository` - Conversation storage with multi-tenant isolation (Phase 9.0)
 - `InMemoryProjectRepository` - Ephemeral storage (testing/legacy)
 - All repositories support `deleteAllByOwner()` for RGPD compliance (Phase 3.11)
 - Serialization utilities for all entity types
@@ -258,6 +267,7 @@ React components and UI.
 - `project/[projectId]/cockpit/*` - Cockpit pages (overview, characters, metadata, objectives, research, settings, tasks, usage) (Phase 6)
 - `api/approve/route.ts` - User approval endpoint (Phase 3.8)
 - `api/completion/stream/route.ts` - Autocompletion SSE endpoint (Phase 4.1)
+- `api/character-chat/stream/route.ts` - Character chat SSE endpoint; emits a `meta` event (conversationId) then streams character reply chunks (Phase 9.0)
 
 **Components**:
 - **Auth**: `UserMenu` - User profile dropdown with sign-out and provider access
@@ -272,12 +282,13 @@ React components and UI.
 - **Legal**: `CookieConsent` (3 variants), `ContactForm` (Phase 3.11)
 - **Generation**: `FloatingGenerationMenu` (Phase 4.1)
 - **AI Menu**: `AIMenuDropdown`, `CommandPalette` (Ctrl+Shift+I) (Phase 4.1+)
+- **Navigation**: `ProjectSettingsMenu` - Dropdown in the editor header for quick access to all cockpit sections (Phase 9.0)
 - **Publishing**: `PublishDialog` (with chapter selection), `PublicReader` (with cover image) (Phase 5.0, 6.1)
 - **Cockpit**: `CockpitSidebar`, `StatCard`, `ProgressCard`, `QuickActionsCard`, `QuickActionButton` (Phase 6)
-- **Characters**: `CharacterCard`, `CharacterForm` (Phase 6)
+- **Characters**: `CharacterCard` (with Chat button opening CharacterChatSheet), `CharacterForm` (with Auto-fill button), `CharacterChatSheet` (streaming chat sheet) (Phase 6, 9.0)
 - **Tasks**: `TaskForm`, `TaskRow`, `TaskSummaryCard` (Phase 6)
 - **Goals**: `GoalCard`, `GoalForm` (Phase 6)
-- **Usage**: `UsageStatsCard`, `DailyUsageChart`, `UsageByOperationChart` (Phase 6)
+- **Usage**: `UsageStatsCard` (now shows euro cost and cached-token count), `DailyUsageChart`, `UsageByOperationChart` (Phase 6, 9.0)
 - **Settings**: `ProjectSettingsForm`, `CoverImageUpload`, `ContributorsField`, `RelatedWorksField` (Phase 6)
 - **Research**: `ResearchDocumentCard`, `ResearchDocumentForm` (Phase 6)
 - **Analysis**: `ChapterAnalysisPanel`, `AnalysisCategoryTabs`, `AnalysisConfigDialog`, `AnalysisIssueCard`, `AnalysisSummaryCard` (Phase 7)
@@ -304,6 +315,7 @@ React components and UI.
 - `usage-actions` - AI usage statistics (→ AIUsage Use Cases, Phase 6)
 - `writing-goal-actions` - Writing goal CRUD (→ WritingGoal Use Cases, Phase 6)
 - `character-actions` - Character CRUD + sync (→ Character Use Cases, Phase 6)
+- `character-conversation-actions` - Create, list, load, delete conversations (→ CharacterConversation, Phase 9.0)
 - `research-document-actions` - Research document CRUD (→ ResearchDocument Use Cases, Phase 6)
 - `project-settings-actions` - Project settings CRUD (→ ProjectSettings Use Cases, Phase 6)
 - `analysis-actions` - Chapter analysis operations (→ Analysis Use Cases, Phase 7)
@@ -327,10 +339,13 @@ React components and UI.
 - `getWritingGoalRepo()` - Writing goal repository (Phase 6)
 - `getUsageRepo()` - AI usage repository (Phase 6)
 - `getBlobStorage()` - Blob storage for images (Phase 6)
+- `getCharacterConversationRepo()` - Character conversation repository (Phase 9.0)
+
 **Hooks**:
 - `useAutosave` - Auto-save hook with 1-second debounce
 - `useHasAIProviders` - Check provider availability (Phase 3.10)
 - `useMobile` - Mobile device detection hook (Phase 6)
+- `useCharacterChat` - SSE connection management, message state, and conversation persistence for character chat (Phase 9.0)
 
 ## Data Flow
 
@@ -476,11 +491,12 @@ We use Repository pattern for swappable persistence.
 
 ## Testing Strategy
 
-- **Unit Tests**: Domain and application layers (~900+ tests)
-- **Integration Tests**: Infrastructure and store (~500+ tests including 35+ provider-specific)
-- **E2E Tests**: Complete workflows (10+ tests planned)
+- **Unit Tests**: Domain and application layers (~1000+ tests)
+- **Integration Tests**: Infrastructure and store (~600+ tests including 35+ provider-specific)
+- **E2E Tests**: Complete workflows with auth seeding (Playwright)
+- **AI Efficiency Tests**: Manual workflow tests A–D (`tests_ia_efficiency/`) validating contextual AI behaviour across providers
 - **Coverage Achieved**: 92%+ domain entities, 100% use cases
-- **Total Tests**: 1500+ passed (1550+ total, 98%+ pass rate, 180+ test files)
+- **Total Tests**: 1700+ passed (1750+ total, 200+ test files)
 
 ---
 
