@@ -18,6 +18,8 @@ interface AggregatedStats {
   count: number;
   inputTokens: number;
   outputTokens: number;
+  cachedInputTokens: number;
+  costEur: number;
   durationMs: number;
 }
 
@@ -113,6 +115,8 @@ export class MongoDBUsageRepository implements AIUsageRepository {
           count: { $sum: 1 },
           inputTokens: { $sum: { $ifNull: ['$inputTokens', 0] } },
           outputTokens: { $sum: { $ifNull: ['$outputTokens', 0] } },
+          cachedInputTokens: { $sum: { $ifNull: ['$cachedInputTokens', 0] } },
+          costEur: { $sum: { $ifNull: ['$costEur', 0] } },
           durationMs: { $sum: '$durationMs' },
         },
       },
@@ -228,6 +232,8 @@ export class MongoDBUsageRepository implements AIUsageRepository {
           count: { $sum: 1 },
           inputTokens: { $sum: { $ifNull: ['$inputTokens', 0] } },
           outputTokens: { $sum: { $ifNull: ['$outputTokens', 0] } },
+          cachedInputTokens: { $sum: { $ifNull: ['$cachedInputTokens', 0] } },
+          costEur: { $sum: { $ifNull: ['$costEur', 0] } },
           durationMs: { $sum: '$durationMs' },
         },
       },
@@ -252,13 +258,17 @@ export class MongoDBUsageRepository implements AIUsageRepository {
         count: 0,
         inputTokens: 0,
         outputTokens: 0,
+        cachedInputTokens: 0,
+        costEur: 0,
       };
     }
 
     let totalOperations = 0;
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
+    let totalCachedInputTokens = 0;
     let totalDurationMs = 0;
+    let totalCostEur = 0;
 
     for (const result of results) {
       const operation = result._id as AIOperationType;
@@ -267,20 +277,26 @@ export class MongoDBUsageRepository implements AIUsageRepository {
           count: result.count,
           inputTokens: result.inputTokens,
           outputTokens: result.outputTokens,
+          cachedInputTokens: result.cachedInputTokens,
+          costEur: result.costEur,
         };
       }
 
       totalOperations += result.count;
       totalInputTokens += result.inputTokens;
       totalOutputTokens += result.outputTokens;
+      totalCachedInputTokens += result.cachedInputTokens;
       totalDurationMs += result.durationMs;
+      totalCostEur += result.costEur;
     }
 
     return {
       totalOperations,
       totalInputTokens,
       totalOutputTokens,
+      totalCachedInputTokens,
       totalDurationMs,
+      totalCostEur,
       byOperation,
     };
   }

@@ -22,6 +22,17 @@ export interface ConnectionTestResult {
   error?: string;
 }
 
+/**
+ * Token usage reported by a provider for its most recent API call.
+ * A field is null when the provider did not report that count.
+ */
+export interface TokenUsage {
+  inputTokens: number | null;
+  outputTokens: number | null;
+  /** Portion of inputTokens served from the provider's prompt cache, when reported. */
+  cachedInputTokens: number | null;
+}
+
 export interface LLMProvider {
   /**
    * Generates multiple rewrite proposals for the given text
@@ -219,4 +230,11 @@ export interface LLMProvider {
     existingFields: Omit<CharacterProfile, 'name'>,
     projectContext: string
   ): Promise<Omit<CharacterProfile, 'name'>>;
+
+  /**
+   * Returns the token usage of the provider's most recent API call,
+   * or null if no usage was reported. Used by usage-tracking decorators
+   * to record real token consumption per operation.
+   */
+  getLastTokenUsage?(): TokenUsage | null;
 }

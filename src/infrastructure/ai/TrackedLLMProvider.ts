@@ -6,6 +6,7 @@ import { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
 import { IdGenerator } from '@/domain/interfaces/IdGenerator';
 import { AIUsageRecord } from '@/domain/entities/AIUsageRecord';
 import { AIOperationType } from '@/domain/value-objects/AIOperationType';
+import { computeCostEur } from '@/domain/value-objects/ModelPricing';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
 import { NarrativeAnalysis } from '@/domain/value-objects/NarrativeAnalysis';
 import { StylisticDNA } from '@/domain/value-objects/StylisticDNA';
@@ -21,6 +22,7 @@ import { ChatMessage } from '@/domain/value-objects/ChatMessage';
 export class TrackedLLMProvider implements LLMProvider {
   private lastInputTokens: number | null = null;
   private lastOutputTokens: number | null = null;
+  private lastCachedInputTokens: number | null = null;
 
   constructor(
     private readonly wrapped: LLMProvider,
@@ -40,6 +42,10 @@ export class TrackedLLMProvider implements LLMProvider {
       const result = await fn();
       const durationMs = Date.now() - startTime;
 
+      // Capture real token usage reported by the wrapped provider (success only,
+      // to avoid attributing a previous call's tokens to a failed one).
+      this.captureWrappedUsage();
+
       // Record usage asynchronously (don't block the response)
       this.recordUsage(operation, durationMs).catch(console.error);
 
@@ -56,16 +62,28 @@ export class TrackedLLMProvider implements LLMProvider {
     operation: AIOperationType,
     durationMs: number
   ): Promise<void> {
+    const provider = this.wrapped.getProviderName();
+    const model = this.wrapped.getModel();
+    const costEur = computeCostEur({
+      provider,
+      model,
+      inputTokens: this.lastInputTokens,
+      outputTokens: this.lastOutputTokens,
+      cachedInputTokens: this.lastCachedInputTokens,
+    });
+
     const record = AIUsageRecord.create(
       this.idGenerator.generate(),
       this.userId,
       this.projectId,
       operation,
-      this.wrapped.getProviderName(),
-      this.wrapped.getModel(),
+      provider,
+      model,
       this.lastInputTokens,
       this.lastOutputTokens,
-      durationMs
+      durationMs,
+      this.lastCachedInputTokens,
+      costEur
     );
 
     await this.usageRepository.save(record);
@@ -73,11 +91,26 @@ export class TrackedLLMProvider implements LLMProvider {
     // Reset token counts for next operation
     this.lastInputTokens = null;
     this.lastOutputTokens = null;
+    this.lastCachedInputTokens = null;
   }
 
   setTokenCounts(inputTokens: number | null, outputTokens: number | null): void {
     this.lastInputTokens = inputTokens;
     this.lastOutputTokens = outputTokens;
+  }
+
+  /**
+   * Pull the token usage reported by the wrapped provider for its most recent
+   * call and stage it for the next usage record. No-op when the provider does
+   * not report usage, preserving any counts set manually via setTokenCounts.
+   */
+  private captureWrappedUsage(): void {
+    const usage = this.wrapped.getLastTokenUsage?.();
+    if (usage) {
+      this.lastInputTokens = usage.inputTokens;
+      this.lastOutputTokens = usage.outputTokens;
+      this.lastCachedInputTokens = usage.cachedInputTokens;
+    }
   }
 
   async generateRewrites(
@@ -193,6 +226,7 @@ export class TrackedLLMProvider implements LLMProvider {
       }
 
       const durationMs = Date.now() - startTime;
+      this.captureWrappedUsage();
       this.recordUsage('completion', durationMs).catch(console.error);
     } catch (error) {
       const durationMs = Date.now() - startTime;
@@ -208,6 +242,7 @@ export class TrackedLLMProvider implements LLMProvider {
     const start = Date.now();
     try {
       yield* this.wrapped.chatStream(messages, systemPrompt);
+      this.captureWrappedUsage();
       await this.recordUsage('character_chat', Date.now() - start);
     } catch (error) {
       await this.recordUsage('character_chat', Date.now() - start);

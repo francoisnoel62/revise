@@ -2,7 +2,7 @@
 // ABOUTME: Generates 3 stylistically distinct proposals using carefully crafted prompt
 
 import { GoogleGenAI, ThinkingLevel } from '@google/genai';
-import { LLMProvider, ConnectionTestResult } from '@/domain/interfaces/LLMProvider';
+import { LLMProvider, ConnectionTestResult, TokenUsage } from '@/domain/interfaces/LLMProvider';
 import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
 import { NarrativeAnalysis } from '@/domain/value-objects/NarrativeAnalysis';
@@ -36,6 +36,7 @@ export class GoogleProvider implements LLMProvider {
   private client: GoogleGenAI;
   private modelName: string;
   private promptRepository: PromptRepository;
+  private lastTokenUsage: TokenUsage | null = null;
 
   constructor(
     apiKey: string,
@@ -45,6 +46,28 @@ export class GoogleProvider implements LLMProvider {
     this.client = new GoogleGenAI({ apiKey });
     this.modelName = model;
     this.promptRepository = promptRepository;
+  }
+
+  getLastTokenUsage(): TokenUsage | null {
+    return this.lastTokenUsage;
+  }
+
+  /**
+   * Capture the token usage reported on a Gemini response so it can be
+   * retrieved via getLastTokenUsage() by usage-tracking decorators.
+   */
+  private captureUsage(result: {
+    usageMetadata?: {
+      promptTokenCount?: number;
+      candidatesTokenCount?: number;
+      cachedContentTokenCount?: number;
+    };
+  }): void {
+    this.lastTokenUsage = {
+      inputTokens: result.usageMetadata?.promptTokenCount ?? null,
+      outputTokens: result.usageMetadata?.candidatesTokenCount ?? null,
+      cachedInputTokens: result.usageMetadata?.cachedContentTokenCount ?? null,
+    };
   }
 
   /**
@@ -91,6 +114,7 @@ export class GoogleProvider implements LLMProvider {
         },
       });
 
+      this.captureUsage(result);
       const content = result.text;
 
       if (!content) {
@@ -246,6 +270,7 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans aucun texte avant ou après.
         },
       });
 
+      this.captureUsage(result);
       const content = result.text;
       if (!content) {
         throw new Error('Empty response from Google AI');
@@ -369,6 +394,7 @@ INSTRUCTIONS FINALES:
         },
       });
 
+      this.captureUsage(result);
       const content = result.text;
       if (!content) {
         throw new Error('Empty response from Google AI');
@@ -470,6 +496,7 @@ INSTRUCTIONS:
         },
       });
 
+      this.captureUsage(result);
       const content = result.text;
       if (!content) {
         throw new Error('Empty response from Google AI');
@@ -600,6 +627,7 @@ INSTRUCTIONS:
         },
       });
 
+      this.captureUsage(result);
       const content = result.text;
       if (!content) {
         throw new Error('Empty response from Google AI');
@@ -757,6 +785,7 @@ INSTRUCTIONS:
         },
       });
 
+      this.captureUsage(result);
       const content = result.text;
       if (!content) {
         throw new Error('Empty response from Google AI');
@@ -916,6 +945,7 @@ INSTRUCTIONS:
         },
       });
 
+      this.captureUsage(result);
       const content = result.text;
       if (!content) {
         throw new Error('Empty response from Google AI');
@@ -1095,6 +1125,7 @@ INSTRUCTIONS:
         },
       });
 
+      this.captureUsage(result);
       const content = result.text;
       if (!content) {
         throw new Error('Empty response from Google AI');
@@ -1186,6 +1217,7 @@ INSTRUCTIONS SUPPLÉMENTAIRES:
         },
       });
 
+      this.captureUsage(result);
       const content = result.text;
       console.log('[GoogleProvider] generateChapter raw response:', content?.substring(0, 500));
 
@@ -1295,6 +1327,7 @@ INSTRUCTIONS FINALES:
         },
       });
 
+      this.captureUsage(result);
       const content = result.text;
       if (!content) {
         throw new Error('Empty response from Google AI');
@@ -1365,6 +1398,7 @@ INSTRUCTIONS FINALES:
 
     for await (const chunk of response) {
       chunkIndex++;
+      if (chunk.usageMetadata) this.captureUsage(chunk);
       const content = chunk.text;
       console.log(`[GoogleProvider] Chunk ${chunkIndex}:`, content ? `"${content.substring(0, 50)}..."` : '(empty)');
       if (content) {
@@ -1404,6 +1438,7 @@ INSTRUCTIONS FINALES:
         },
       });
 
+      this.captureUsage(result);
       const content = result.text;
       if (!content) {
         throw new Error('Empty response from Google AI');
@@ -1514,6 +1549,7 @@ INSTRUCTIONS:
     });
 
     for await (const chunk of response) {
+      if (chunk.usageMetadata) this.captureUsage(chunk);
       if (chunk.text) yield chunk.text;
     }
   }

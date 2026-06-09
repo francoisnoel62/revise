@@ -2,7 +2,7 @@
 // ABOUTME: Generates 3 stylistically distinct proposals using carefully crafted prompt
 
 import OpenAI from 'openai';
-import { LLMProvider, ConnectionTestResult } from '@/domain/interfaces/LLMProvider';
+import { LLMProvider, ConnectionTestResult, TokenUsage } from '@/domain/interfaces/LLMProvider';
 import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
 import { NarrativeAnalysis } from '@/domain/value-objects/NarrativeAnalysis';
@@ -142,6 +142,7 @@ export class OpenAIProvider implements LLMProvider {
   private client: OpenAI;
   private model: string;
   private promptRepository: PromptRepository;
+  private lastTokenUsage: TokenUsage | null = null;
 
   constructor(
     apiKey: string,
@@ -151,6 +152,28 @@ export class OpenAIProvider implements LLMProvider {
     this.client = new OpenAI({ apiKey });
     this.model = model;
     this.promptRepository = promptRepository;
+  }
+
+  getLastTokenUsage(): TokenUsage | null {
+    return this.lastTokenUsage;
+  }
+
+  /**
+   * Capture the token usage reported on an OpenAI completion so it can be
+   * retrieved via getLastTokenUsage() by usage-tracking decorators.
+   */
+  private captureUsage(completion: {
+    usage?: {
+      prompt_tokens?: number;
+      completion_tokens?: number;
+      prompt_tokens_details?: { cached_tokens?: number } | null;
+    } | null;
+  }): void {
+    this.lastTokenUsage = {
+      inputTokens: completion.usage?.prompt_tokens ?? null,
+      outputTokens: completion.usage?.completion_tokens ?? null,
+      cachedInputTokens: completion.usage?.prompt_tokens_details?.cached_tokens ?? null,
+    };
   }
 
   /**
@@ -214,6 +237,7 @@ export class OpenAIProvider implements LLMProvider {
             }),
       });
 
+      this.captureUsage(completion);
       const content = completion.choices[0]?.message?.content;
       if (!content) {
         throw new Error('Empty response from OpenAI');
@@ -371,6 +395,7 @@ FORMAT DE SORTIE (JSON):
         ...this.getTokenLimitParam(4096),
       });
 
+      this.captureUsage(completion);
       const content = completion.choices[0]?.message?.content;
       if (!content) {
         throw new Error('Empty response from OpenAI');
@@ -500,6 +525,7 @@ INSTRUCTIONS FINALES:
         ...this.getTokenLimitParam(4096),
       });
 
+      this.captureUsage(completion);
       const content = completion.choices[0]?.message?.content;
       if (!content) {
         throw new Error('Empty response from OpenAI');
@@ -603,6 +629,7 @@ INSTRUCTIONS:
         ...this.getTokenLimitParam(8192), // More tokens for detailed character profiles
       });
 
+      this.captureUsage(completion);
       const content = completion.choices[0]?.message?.content;
       if (!content) {
         throw new Error('Empty response from OpenAI');
@@ -735,6 +762,7 @@ INSTRUCTIONS:
         ...this.getTokenLimitParam(8192), // More tokens for scene breakdown
       });
 
+      this.captureUsage(completion);
       const content = completion.choices[0]?.message?.content;
       if (!content) {
         throw new Error('Empty response from OpenAI');
@@ -894,6 +922,7 @@ INSTRUCTIONS:
         ...this.getTokenLimitParam(6144),
       });
 
+      this.captureUsage(completion);
       const content = completion.choices[0]?.message?.content;
       if (!content) {
         throw new Error('Empty response from OpenAI');
@@ -1054,6 +1083,7 @@ INSTRUCTIONS:
         ...this.getTokenLimitParam(8192), // Large output for comprehensive synthesis
       });
 
+      this.captureUsage(completion);
       const content = completion.choices[0]?.message?.content;
       if (!content) {
         throw new Error('Empty response from OpenAI');
@@ -1235,6 +1265,7 @@ INSTRUCTIONS:
         ...this.getTokenLimitParam(4096),
       });
 
+      this.captureUsage(completion);
       const content = completion.choices[0]?.message?.content;
       if (!content) {
         throw new Error('Empty response from OpenAI');
@@ -1326,6 +1357,7 @@ INSTRUCTIONS SUPPLÉMENTAIRES:
         ...this.getTokenLimitParam(tokenLimit),
       });
 
+      this.captureUsage(completion);
       const content = completion.choices[0]?.message?.content;
       if (!content) {
         throw new Error('Empty response from OpenAI');
@@ -1452,6 +1484,7 @@ INSTRUCTIONS FINALES:
         ...this.getTokenLimitParam(256), // Short completions
       });
 
+      this.captureUsage(completion);
       const content = completion.choices[0]?.message?.content;
       if (!content) {
         throw new Error('Empty response from OpenAI');
@@ -1512,11 +1545,13 @@ INSTRUCTIONS FINALES:
       ...(isReasoning ? {} : { temperature: 0.7 }),
       ...this.getTokenLimitParam(256),
       stream: true,
+      stream_options: { include_usage: true },
     });
 
     let isFirstChunk = true;
 
     for await (const chunk of stream) {
+      if (chunk.usage) this.captureUsage(chunk);
       const content = chunk.choices[0]?.delta?.content;
       if (content) {
         // Clean up first chunk if it starts with quotes
@@ -1557,6 +1592,7 @@ INSTRUCTIONS FINALES:
         ...this.getTokenLimitParam(4096),
       });
 
+      this.captureUsage(completion);
       const content = completion.choices[0]?.message?.content;
       if (!content) {
         throw new Error('Empty response from OpenAI');
@@ -1659,10 +1695,12 @@ INSTRUCTIONS:
       model: this.model,
       messages: apiMessages,
       stream: true,
+      stream_options: { include_usage: true },
       max_tokens: 1024,
     });
 
     for await (const chunk of stream) {
+      if (chunk.usage) this.captureUsage(chunk);
       const text = chunk.choices[0]?.delta?.content;
       if (text) yield text;
     }

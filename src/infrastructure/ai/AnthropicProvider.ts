@@ -3,7 +3,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { MessageCreateParamsNonStreaming } from '@anthropic-ai/sdk/resources/messages/messages';
-import { LLMProvider, ConnectionTestResult } from '@/domain/interfaces/LLMProvider';
+import { LLMProvider, ConnectionTestResult, TokenUsage } from '@/domain/interfaces/LLMProvider';
 import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
 import { NarrativeAnalysis } from '@/domain/value-objects/NarrativeAnalysis';
@@ -54,6 +54,7 @@ export class AnthropicProvider implements LLMProvider {
   private client: Anthropic;
   private model: string;
   private promptRepository: PromptRepository;
+  private lastTokenUsage: TokenUsage | null = null;
 
   constructor(
     apiKey: string,
@@ -63,6 +64,24 @@ export class AnthropicProvider implements LLMProvider {
     this.client = new Anthropic({ apiKey });
     this.model = model;
     this.promptRepository = promptRepository;
+  }
+
+  getLastTokenUsage(): TokenUsage | null {
+    return this.lastTokenUsage;
+  }
+
+  /**
+   * Send a non-streaming message and capture the reported token usage so it can
+   * be retrieved via getLastTokenUsage() by usage-tracking decorators.
+   */
+  private async createMessage(params: MessageCreateParamsNonStreaming) {
+    const message = await this.client.messages.create(params);
+    this.lastTokenUsage = {
+      inputTokens: message.usage?.input_tokens ?? null,
+      outputTokens: message.usage?.output_tokens ?? null,
+      cachedInputTokens: message.usage?.cache_read_input_tokens ?? null,
+    };
+    return message;
   }
 
   /**
@@ -107,7 +126,7 @@ export class AnthropicProvider implements LLMProvider {
         thinkingBudget: 4096,
       });
 
-      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
+      const message = await this.createMessage(params as MessageCreateParamsNonStreaming);
 
       this.checkRefusal(message);
 
@@ -345,7 +364,7 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans aucun texte avant ou après.
         thinkingBudget: 8192,
       });
 
-      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
+      const message = await this.createMessage(params as MessageCreateParamsNonStreaming);
 
       this.checkRefusal(message);
 
@@ -474,7 +493,7 @@ INSTRUCTIONS FINALES:
         thinkingBudget: 8192,
       });
 
-      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
+      const message = await this.createMessage(params as MessageCreateParamsNonStreaming);
 
       this.checkRefusal(message);
 
@@ -574,7 +593,7 @@ INSTRUCTIONS:
         thinkingBudget: 8192,
       });
 
-      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
+      const message = await this.createMessage(params as MessageCreateParamsNonStreaming);
 
       this.checkRefusal(message);
 
@@ -703,7 +722,7 @@ INSTRUCTIONS:
         thinkingBudget: 8192,
       });
 
-      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
+      const message = await this.createMessage(params as MessageCreateParamsNonStreaming);
 
       this.checkRefusal(message);
 
@@ -859,7 +878,7 @@ INSTRUCTIONS:
         thinkingBudget: 8192,
       });
 
-      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
+      const message = await this.createMessage(params as MessageCreateParamsNonStreaming);
 
       this.checkRefusal(message);
 
@@ -1017,7 +1036,7 @@ INSTRUCTIONS:
         thinkingBudget: 10240,
       });
 
-      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
+      const message = await this.createMessage(params as MessageCreateParamsNonStreaming);
 
       this.checkRefusal(message);
 
@@ -1195,7 +1214,7 @@ INSTRUCTIONS:
         thinkingBudget: 4096,
       });
 
-      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
+      const message = await this.createMessage(params as MessageCreateParamsNonStreaming);
 
       this.checkRefusal(message);
 
@@ -1283,7 +1302,7 @@ INSTRUCTIONS SUPPLÉMENTAIRES:
         thinkingBudget: 6144,
       });
 
-      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
+      const message = await this.createMessage(params as MessageCreateParamsNonStreaming);
 
       this.checkRefusal(message);
 
@@ -1379,7 +1398,7 @@ INSTRUCTIONS FINALES:
         thinkingBudget: 0, // No thinking for autocompletion (latency critical)
       });
 
-      const response = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
+      const response = await this.createMessage(params as MessageCreateParamsNonStreaming);
 
       this.checkRefusal(response);
 
@@ -1435,10 +1454,18 @@ INSTRUCTIONS FINALES:
     });
 
     let isFirstChunk = true;
+    let inputTokens: number | null = null;
+    let outputTokens: number | null = null;
+    let cachedInputTokens: number | null = null;
 
     for await (const event of stream) {
-      // Only yield text deltas, skip thinking_delta blocks
-      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+      if (event.type === 'message_start') {
+        inputTokens = event.message.usage?.input_tokens ?? inputTokens;
+        cachedInputTokens = event.message.usage?.cache_read_input_tokens ?? cachedInputTokens;
+      } else if (event.type === 'message_delta') {
+        outputTokens = event.usage.output_tokens ?? outputTokens;
+      } else if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+        // Only yield text deltas, skip thinking_delta blocks
         const content = event.delta.text;
         if (content) {
           // Clean up first chunk if it starts with quotes
@@ -1453,6 +1480,8 @@ INSTRUCTIONS FINALES:
         }
       }
     }
+
+    this.lastTokenUsage = { inputTokens, outputTokens, cachedInputTokens };
   }
 
   // ===========================
@@ -1476,7 +1505,7 @@ INSTRUCTIONS FINALES:
         thinkingBudget: 4096,
       });
 
-      const message = await this.client.messages.create(params as MessageCreateParamsNonStreaming);
+      const message = await this.createMessage(params as MessageCreateParamsNonStreaming);
 
       this.checkRefusal(message);
 
@@ -1580,13 +1609,24 @@ INSTRUCTIONS:
       messages: apiMessages,
     });
 
+    let inputTokens: number | null = null;
+    let outputTokens: number | null = null;
+    let cachedInputTokens: number | null = null;
+
     for await (const event of stream) {
-      if (
+      if (event.type === 'message_start') {
+        inputTokens = event.message.usage?.input_tokens ?? inputTokens;
+        cachedInputTokens = event.message.usage?.cache_read_input_tokens ?? cachedInputTokens;
+      } else if (event.type === 'message_delta') {
+        outputTokens = event.usage.output_tokens ?? outputTokens;
+      } else if (
         event.type === 'content_block_delta' &&
         event.delta.type === 'text_delta'
       ) {
         yield event.delta.text;
       }
     }
+
+    this.lastTokenUsage = { inputTokens, outputTokens, cachedInputTokens };
   }
 }

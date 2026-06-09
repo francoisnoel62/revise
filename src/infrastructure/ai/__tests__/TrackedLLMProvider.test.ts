@@ -291,6 +291,98 @@ describe('TrackedLLMProvider', () => {
       const record = (mockRepository.save as ReturnType<typeof vi.fn>).mock.calls[0][0];
       expect(record.getOperation()).toBe('character_chat');
     });
+
+    it('captures token usage reported by the wrapped provider after the stream', async () => {
+      async function* fakeStream() {
+        yield 'Hi';
+      }
+      vi.mocked(mockProvider.chatStream).mockReturnValue(fakeStream());
+      vi.mocked(mockProvider).getLastTokenUsage = vi
+        .fn()
+        .mockReturnValue({ inputTokens: 80, outputTokens: 25 });
+
+      const messages = [ChatMessage.create('author', 'Hi')];
+      for await (const _ of trackedProvider.chatStream(messages, 'persona')) { /* drain */ }
+
+      const record = (mockRepository.save as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(record.getInputTokens()).toBe(80);
+      expect(record.getOutputTokens()).toBe(25);
+    });
+  });
+
+  describe('token usage capture from wrapped provider', () => {
+    it('records tokens reported by the wrapped provider after a successful call', async () => {
+      vi.mocked(mockProvider).getLastTokenUsage = vi
+        .fn()
+        .mockReturnValue({ inputTokens: 1200, outputTokens: 300 });
+
+      await trackedProvider.generateRewrites('test text');
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const savedRecord = (mockRepository.save as ReturnType<typeof vi.fn>).mock.calls[0][0] as AIUsageRecord;
+      expect(savedRecord.getInputTokens()).toBe(1200);
+      expect(savedRecord.getOutputTokens()).toBe(300);
+    });
+
+    it('records cached input tokens reported by the wrapped provider', async () => {
+      vi.mocked(mockProvider).getLastTokenUsage = vi
+        .fn()
+        .mockReturnValue({ inputTokens: 1200, outputTokens: 300, cachedInputTokens: 900 });
+
+      await trackedProvider.generateRewrites('test text');
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const savedRecord = (mockRepository.save as ReturnType<typeof vi.fn>).mock.calls[0][0] as AIUsageRecord;
+      expect(savedRecord.getCachedInputTokens()).toBe(900);
+    });
+
+    it('computes and stores the euro cost from the wrapped usage and model', async () => {
+      vi.mocked(mockProvider).getLastTokenUsage = vi
+        .fn()
+        .mockReturnValue({ inputTokens: 1000, outputTokens: 500, cachedInputTokens: null });
+      // mockProvider reports provider "OpenAI" and model "gpt-4o-mini" (priced)
+
+      await trackedProvider.generateRewrites('test text');
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const savedRecord = (mockRepository.save as ReturnType<typeof vi.fn>).mock.calls[0][0] as AIUsageRecord;
+      expect(savedRecord.getCostEur()).toBeGreaterThan(0);
+    });
+
+    it('stores a null cost when the wrapped provider reports no usage', async () => {
+      vi.mocked(mockProvider).getLastTokenUsage = vi.fn().mockReturnValue(null);
+
+      await trackedProvider.generateCharacters('text');
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const savedRecord = (mockRepository.save as ReturnType<typeof vi.fn>).mock.calls[0][0] as AIUsageRecord;
+      expect(savedRecord.getCostEur()).toBeNull();
+    });
+
+    it('records null tokens when the wrapped provider reports no usage', async () => {
+      vi.mocked(mockProvider).getLastTokenUsage = vi.fn().mockReturnValue(null);
+
+      await trackedProvider.generateNarrativeAnalysis('text');
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const savedRecord = (mockRepository.save as ReturnType<typeof vi.fn>).mock.calls[0][0] as AIUsageRecord;
+      expect(savedRecord.getInputTokens()).toBeNull();
+      expect(savedRecord.getOutputTokens()).toBeNull();
+    });
+
+    it('does not attribute stale tokens to a failed call', async () => {
+      vi.mocked(mockProvider).getLastTokenUsage = vi
+        .fn()
+        .mockReturnValue({ inputTokens: 999, outputTokens: 999 });
+      vi.mocked(mockProvider.generateRewrites).mockRejectedValueOnce(new Error('API error'));
+
+      await expect(trackedProvider.generateRewrites('test')).rejects.toThrow('API error');
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const savedRecord = (mockRepository.save as ReturnType<typeof vi.fn>).mock.calls[0][0] as AIUsageRecord;
+      expect(savedRecord.getInputTokens()).toBeNull();
+      expect(savedRecord.getOutputTokens()).toBeNull();
+    });
   });
 
   describe('setTokenCounts', () => {
