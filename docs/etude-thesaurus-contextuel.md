@@ -166,10 +166,8 @@ mot**.
 
 ## Risques & points de vigilance
 
-- **Source lexicale FR libre de droits** — *seul inconnu majeur*. Pistes : WordNet
-  FR (WOLF), Dicollecte/Grammalecte, ressources CNRTL. À sourcer et licencier
-  proprement avant tout engagement sur le volet hybride. Repli possible : IA seule
-  au MVP, lexical en phase 2.
+- **Source lexicale FR libre de droits** — *inconnu résolu* (recherche effectuée,
+  voir section ci-dessous). Repli possible : IA seule au MVP, lexical en phase 2.
 - **Dérive vers le dictionnaire générique** — atténuée si et seulement si le
   value-object porte la **glose de nuance** ; à tester dès le MVP.
 - **Coût / latence IA** — comparable aux réécritures (~1-3 s) ; le volet lexical
@@ -178,11 +176,45 @@ mot**.
   contexte existants ; pas de nouveau repository si les propositions ne sont pas
   persistées (à décider).
 
+## Source lexicale FR — résultat de recherche
+
+Quatre candidats évalués sur trois critères : licence, richesse sémantique, format
+exploitable programmatiquement.
+
+| Source | Licence | Richesse | Usage commercial |
+|--------|---------|----------|-----------------|
+| **JeuxDeMots (JDM)** | **Domaine public** | ~6 M termes, 550 M relations (synonymie, connotation, registre, champ sémantique) | **Oui, sans restriction** |
+| Wiktionnaire (via *wiktextract*) | CC BY-SA | Synonymes contextualisés, très couverts | Oui (attribution requise) |
+| WOLF — WordNet FR (INRIA) | CeCILL-C ≈ LGPL | Synsets organisés par sens | Oui si lib séparée |
+| Grammalecte / thésaurus LibreOffice | GPL v3 | Thésaurus soigné (2025) | Risqué — copyleft contaminant |
+
+**Décision retenue : JeuxDeMots.** Trois raisons :
+
+1. **Domaine public** — aucune contrainte de licence, aucun risque juridique, pas
+   d'attribution obligatoire dans l'UI.
+2. **Relations riches au-delà des synonymes stricts** — connotations, registres, champs
+   sémantiques : ce grain fin colle exactement à l'ambition de la couche 1 (propositions
+   structurées *par nuance*, pas liste plate).
+3. **Index local possible** — données téléchargeables, pas d'appel réseau au runtime,
+   latence nulle, 0 token IA.
+
+**Backup : Wiktionnaire** si la couverture JDM s'avère insuffisante sur le
+vocabulaire littéraire FR. Extraction via l'outil open source
+[wiktextract](https://github.com/tatuylonen/wiktextract).
+
+**À éviter** : CNRTL (pas d'API publique libre), Grammalecte (GPL v3 contaminant).
+
+> **Seule vérification restante** : valider empiriquement que JDM couvre correctement
+> le vocabulaire littéraire français sur un échantillon représentatif avant tout
+> engagement d'implémentation sur la couche 1.
+
 ## Prochaines étapes suggérées
 
-1. **Sourcer la base lexicale FR libre** (couche 1, décidée comme nécessaire au MVP :
-   synonymes nus instantanés). Pistes : WordNet FR (WOLF), Dicollecte/Grammalecte,
-   CNRTL. Licence à vérifier. *Seul inconnu technique restant.*
+1. **Intégrer JeuxDeMots comme base lexicale** (couche 1 : synonymes nus instantanés).
+   Télécharger le dump, filtrer les relations `synonyme` et `proche`, construire un
+   index JSON par mot. Vérifier la couverture du vocabulaire littéraire sur un
+   échantillon représentatif. Wiktionnaire (via *wiktextract*) en backup si couverture
+   insuffisante.
 2. Figer le **format d'une proposition de couche 2** (`WordAlternative` : `word` +
    **`sceneEffect`** la justification d'effet de scène + `register`) — c'est le
    différenciateur, à prototyper en premier. Note : la couche 1 n'a pas de
