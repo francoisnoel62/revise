@@ -13,8 +13,10 @@ vi.mock('@/infrastructure/config/providers', () => ({
   getCharacterRepository: vi.fn(),
   getMetadataRepository: vi.fn(),
   getProjectRepository: vi.fn(),
-  getProviderRepository: vi.fn(),
-  createLLMProvider: vi.fn(),
+}));
+
+vi.mock('@/app/actions/utils', () => ({
+  getTrackedLLMProviderById: vi.fn(),
 }));
 
 vi.mock('@/application/use-cases/ChatWithCharacterUseCase', () => ({
@@ -27,9 +29,8 @@ import {
   getCharacterRepository,
   getMetadataRepository,
   getProjectRepository,
-  getProviderRepository,
-  createLLMProvider,
 } from '@/infrastructure/config/providers';
+import { getTrackedLLMProviderById } from '@/app/actions/utils';
 import { ChatWithCharacterUseCase } from '@/application/use-cases/ChatWithCharacterUseCase';
 import { POST } from '../stream/route';
 
@@ -107,9 +108,7 @@ describe('POST /api/character-chat/stream', () => {
     const mockProject = { getProviderId: vi.fn().mockReturnValue('prov-1') };
     vi.mocked(getProjectRepository).mockResolvedValue({ loadProject: vi.fn().mockResolvedValue(mockProject) } as never);
 
-    const mockProvider = { isValidProvider: vi.fn().mockReturnValue(true) };
-    vi.mocked(getProviderRepository).mockResolvedValue({ findById: vi.fn().mockResolvedValue(mockProvider) } as never);
-    vi.mocked(createLLMProvider).mockReturnValue({ chatStream: async function*() {} } as never);
+    vi.mocked(getTrackedLLMProviderById).mockResolvedValue({ chatStream: async function*() {} } as never);
 
     async function* fakeGen() { yield 'Hello'; yield ' world'; }
     vi.mocked(ChatWithCharacterUseCase).mockImplementation(function(this: unknown) {

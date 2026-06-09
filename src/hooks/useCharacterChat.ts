@@ -59,6 +59,7 @@ export function useCharacterChat({
           signal: abortRef.current.signal,
         });
 
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         if (!response.body) throw new Error('No stream body');
 
         const reader = response.body.getReader();
@@ -78,9 +79,14 @@ export function useCharacterChat({
             const payload = line.slice(6);
             if (payload === '[DONE]') break;
 
-            const event = JSON.parse(payload);
+            let event: Record<string, unknown>;
+            try {
+              event = JSON.parse(payload);
+            } catch {
+              continue;
+            }
             if (event.type === 'meta') {
-              setConversationId(event.conversationId);
+              setConversationId(event.conversationId as string);
             } else if (event.type === 'chunk') {
               characterContent += event.text;
               setMessages((prev) => {
@@ -91,6 +97,8 @@ export function useCharacterChat({
                 };
                 return updated;
               });
+            } else if (event.type === 'error') {
+              throw new Error((event.message as string | undefined) ?? 'Erreur serveur');
             }
           }
         }

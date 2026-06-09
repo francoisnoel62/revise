@@ -8,9 +8,8 @@ import {
   getCharacterRepository,
   getMetadataRepository,
   getProjectRepository,
-  getProviderRepository,
-  createLLMProvider,
 } from '@/infrastructure/config/providers';
+import { getTrackedLLMProviderById } from '@/app/actions/utils';
 import { AIContextBuilder } from '@/application/services/AIContextBuilder';
 import { ChatWithCharacterUseCase } from '@/application/use-cases/ChatWithCharacterUseCase';
 import { CharacterConversation } from '@/domain/entities/CharacterConversation';
@@ -53,11 +52,7 @@ export async function POST(request: NextRequest) {
     const providerId = project.getProviderId();
     if (!providerId) return new Response('No AI provider configured', { status: 400 });
 
-    const providerRepo = await getProviderRepository();
-    const provider = await providerRepo.findById(userId, providerId);
-    if (!provider) return new Response('Provider not found', { status: 400 });
-
-    llmProvider = createLLMProvider(provider);
+    llmProvider = await getTrackedLLMProviderById(userId, providerId, projectId);
   } catch {
     return new Response('Provider error', { status: 500 });
   }
