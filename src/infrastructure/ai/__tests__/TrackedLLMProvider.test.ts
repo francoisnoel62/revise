@@ -10,9 +10,21 @@ import { AIUsageRecord } from '@/domain/entities/AIUsageRecord';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
 import { ChatMessage } from '@/domain/value-objects/ChatMessage';
 
+const mockPricingEntry = {
+  id: '1',
+  provider: 'openai' as const,
+  prefix: 'gpt-4o-mini',
+  inputPerM: 0.4,
+  outputPerM: 1.6,
+  cachedInputPerM: 0.2,
+  cachedInInput: true,
+  updatedAt: new Date(),
+};
+
 describe('TrackedLLMProvider', () => {
   let mockProvider: LLMProvider;
   let mockRepository: AIUsageRepository;
+  let mockPricingRepository: { findAll: ReturnType<typeof vi.fn> };
   let mockIdGenerator: IdGenerator;
   let trackedProvider: TrackedLLMProvider;
 
@@ -111,12 +123,17 @@ describe('TrackedLLMProvider', () => {
       generate: vi.fn().mockReturnValue('generated-id'),
     };
 
+    mockPricingRepository = {
+      findAll: vi.fn().mockResolvedValue([mockPricingEntry]),
+    };
+
     trackedProvider = new TrackedLLMProvider(
       mockProvider,
       mockRepository,
       mockIdGenerator,
       'user-1',
-      'project-1'
+      'project-1',
+      mockPricingRepository as never
     );
   });
 
