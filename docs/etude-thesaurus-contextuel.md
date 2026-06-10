@@ -148,10 +148,39 @@ mot**.
   `TrackedLLMProvider`. **Couche lexicale** (volet hybride) : une base FR libre de
   droits derrière une interface `Thesaurus` swappable (parsers/exporters sont déjà
   swappables par principe). C'est le **seul vrai inconnu technique** — voir Risques.
-- **Interface** — server action `thesaurus-actions` ; palette inline pour le geste 1 ;
-  panneau type `ProposalsSheet` pour le geste 2 ; action contextuelle branchée sur
-  l'UI des répétitions (Phase 7) pour le geste 3. Insertion en un clic ; l'auteur
-  décide.
+- **Interface** — server action `thesaurus-actions` ; palette inline pour le geste 1
+  (voir ci-dessous) ; panneau type `ProposalsSheet` pour le geste 2 ; action
+  contextuelle branchée sur l'UI des répétitions (Phase 7) pour le geste 3.
+  Insertion en un clic ; l'auteur décide.
+
+### Palette inline V1 — `BubbleMenu` TipTap
+
+Le composant `BubbleMenu` de `@tiptap/react` (déjà installé, non encore utilisé)
+est l'implémentation naturelle de la palette inline du geste 1 :
+
+```tsx
+<BubbleMenu
+  editor={editor}
+  shouldShow={({ editor }) => {
+    const { from, to } = editor.state.selection
+    // N'afficher que sur un seul mot sélectionné (pas d'espace dans la sélection)
+    return to > from && !editor.state.doc.textBetween(from, to).includes(' ')
+  }}
+>
+  {/* Couche 1 : synonymes nus — affichage immédiat, 0 token */}
+  {/* Bouton "Aller plus loin" → déclenche la couche 2 IA */}
+</BubbleMenu>
+```
+
+**Ce que `BubbleMenu` donne gratuitement** par rapport à un composant positionné
+manuellement :
+- Ancrage automatique au mot sélectionné (au-dessus ou en-dessous selon l'espace)
+- Fermeture sur clic extérieur et Escape
+- Intégration native avec l'état TipTap (sélection, `insertContent`)
+- Zéro calcul de position DOM à gérer
+
+La couche lexicale (JDM) et la couche IA restent indépendantes de ce choix UI ;
+`BubbleMenu` n'est que le contenant.
 
 ## Alignement philosophique
 

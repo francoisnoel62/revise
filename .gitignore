@@ -1,3 +1,6 @@
+# JDM lexical data cache (validate-jdm-coverage.mjs)
+.jdm-cache/
+
 # Dependencies
 node_modules/
 /.pnp
