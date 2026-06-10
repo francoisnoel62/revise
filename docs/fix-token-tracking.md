@@ -1,16 +1,20 @@
 # Plan : capturer les tokens d'usage IA (et afficher les bonnes métriques)
 
+> **✅ IMPLÉMENTÉ sur `origin/main`** (PR séparée, juin 2026). Ce document reste comme **référence technique** (champs SDK, design « pull », métriques supplémentaires). La branche `claude/ai-app-monetization-4qtag` ne contient pas encore ce correctif — il sera intégré lors du prochain merge de `main`.
+
 > Contexte issu de l'étude de monétisation (`docs/monetisation.md`). Ce document est le plan d'implémentation du correctif de mesure des tokens, prérequis à toute facturation au token/crédit.
 
-## Le problème
+## Le problème ✅ résolu sur `main`
 
-La structure de metering existe (schéma `AIUsageRecord`, agrégation MongoDB, UI cockpit), **mais la valeur des tokens n'est jamais capturée** :
+La structure de metering existait (schéma `AIUsageRecord`, agrégation MongoDB, UI cockpit), **mais la valeur des tokens n'était jamais capturée** :
 
-- `TrackedLLMProvider.setTokenCounts()` n'est **jamais appelé en production** (uniquement défini + testé).
-- **Aucun provider** (`AnthropicProvider`, `OpenAIProvider`, `GoogleProvider`) ne lit l'`usage` de sa réponse SDK.
-- Donc chaque `AIUsageRecord` est écrit avec `inputTokens: null, outputTokens: null`.
-- L'agrégation neutralise les `null` (`$ifNull → 0`, `MongoDBUsageRepository.ts:114-115,151-152,229-230`).
-- Le cockpit (`UsageStatsCard.tsx:165,180-182`) affiche donc **0 token**. Seuls le **nombre d'opérations** (comptage) et la **durée** (`Date.now()`) sont réels.
+- `TrackedLLMProvider.setTokenCounts()` n'était **jamais appelé en production** (uniquement défini + testé).
+- **Aucun provider** (`AnthropicProvider`, `OpenAIProvider`, `GoogleProvider`) ne lisait l'`usage` de sa réponse SDK.
+- Donc chaque `AIUsageRecord` était écrit avec `inputTokens: null, outputTokens: null`.
+- L'agrégation neutralisait les `null` (`$ifNull → 0`, `MongoDBUsageRepository.ts:114-115,151-152,229-230`).
+- Le cockpit (`UsageStatsCard.tsx:165,180-182`) affichait **0 token**.
+
+**→ Corrigé sur `origin/main`** : les trois providers exposent `getLastTokenUsage()`, le décorateur tire la valeur après chaque appel, les vrais tokens sont persistés et affichés.
 
 ## Champs `usage` par provider (vérifiés, à date)
 
