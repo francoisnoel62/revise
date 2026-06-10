@@ -8,7 +8,7 @@ import { getModelPricingRepository } from '@/infrastructure/config/providers';
 import { SyncModelPricingUseCase } from '@/application/use-cases/SyncModelPricingUseCase';
 import { OpenRouterPricingClient } from '@/infrastructure/pricing/OpenRouterPricingClient';
 import { ResendEmailService } from '@/infrastructure/email/ResendEmailService';
-import { ModelPricingEntry, PricingProvider } from '@/domain/interfaces/ModelPricingRepository';
+import { ModelPricingEntry } from '@/domain/interfaces/ModelPricingRepository';
 import { PricingSyncReport } from '@/domain/interfaces/EmailService';
 
 type ActionResult<T> =
@@ -79,4 +79,3 @@ export async function triggerPricingSyncAction(): Promise<ActionResult<PricingSy
   }
 }
 
-export type { PricingProvider };
