@@ -26,6 +26,7 @@ Pure business logic with no framework dependencies.
 - `ResearchDocument` - Research document with title, body, tags, and chapter locality (`linkedChapterIds`); read by the AI as the author's intentional context (Phase 6, 8.0)
 - `WritingGoal` - Writing goal with target word count, deadline, progress (Phase 6)
 - `AIUsageRecord` - AI usage tracking with operation type, tokens, cost (Phase 6)
+- `AIExchange` - Captured content of one AI exchange (system prompt, input, raw output) for the transparency ledger; stored separately from `AIUsageRecord`, encrypted at rest, opt-in, with retention/TTL purge. See [transparency-ledger.md](transparency-ledger.md)
 - `ChapterAnalysis` - Complete chapter analysis result with issues, repetitions, statistics (Phase 7)
 - `CharacterConversation` - Persisted conversation between the author and a character persona; owns an ordered list of `ChatMessage` value objects (Phase 9.0)
 - `TextDocument` - Legacy single document (Phase 1)
@@ -197,6 +198,7 @@ External service implementations.
 - AES-256-GCM utilities - API key encryption/decryption
 - Key masking utilities - Client-safe API key display
 - HMAC token generation for approval links (Phase 3.8)
+- `FieldEncryption` - AES-256-GCM encryption for transparency-ledger content fields; derives its key from `ENCRYPTION_KEY` via PBKDF2 with a distinct salt (domain-separated from API-key encryption)
 
 **Email** (Phase 3.8):
 - `ResendEmailService` - Email notifications via Resend API

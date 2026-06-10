@@ -1,12 +1,15 @@
 // ABOUTME: Decorator wrapper that tracks AI usage metrics for any LLMProvider
 // ABOUTME: Records tokens, duration, and operation type for each AI call
 
-import { LLMProvider, ConnectionTestResult } from '@/domain/interfaces/LLMProvider';
+import { LLMProvider, ConnectionTestResult, ExchangeContent } from '@/domain/interfaces/LLMProvider';
 import { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
+import { AIExchangeRepository } from '@/domain/interfaces/AIExchangeRepository';
 import { IdGenerator } from '@/domain/interfaces/IdGenerator';
 import { AIUsageRecord } from '@/domain/entities/AIUsageRecord';
+import { AIExchange } from '@/domain/entities/AIExchange';
 import { AIOperationType } from '@/domain/value-objects/AIOperationType';
 import { computeCostEur } from '@/domain/value-objects/ModelPricing';
+import { truncateExchangeField } from './exchange-truncation';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
 import { NarrativeAnalysis } from '@/domain/value-objects/NarrativeAnalysis';
 import { StylisticDNA } from '@/domain/value-objects/StylisticDNA';
@@ -19,18 +22,76 @@ import { ChapterGeneration } from '@/domain/value-objects/ChapterGeneration';
 import { ChapterGenerationTypeKey } from '@/domain/value-objects/ChapterGenerationType';
 import { ChatMessage } from '@/domain/value-objects/ChatMessage';
 
+export interface ExchangeLoggingConfig {
+  enabled: boolean;
+  retentionDays: number;
+}
+
 export class TrackedLLMProvider implements LLMProvider {
   private lastInputTokens: number | null = null;
   private lastOutputTokens: number | null = null;
   private lastCachedInputTokens: number | null = null;
+  private lastExchangeContent: ExchangeContent | null = null;
 
   constructor(
     private readonly wrapped: LLMProvider,
     private readonly usageRepository: AIUsageRepository,
     private readonly idGenerator: IdGenerator,
     private readonly userId: string,
-    private readonly projectId: string
+    private readonly projectId: string,
+    private readonly exchangeRepository: AIExchangeRepository | null = null,
+    private readonly exchangeLogging: ExchangeLoggingConfig | null = null
   ) {}
+
+  /**
+   * Pull the content of the wrapped provider's most recent call so it can be
+   * persisted by logExchange(). No-op when the provider does not capture it.
+   */
+  private captureWrappedExchange(): void {
+    this.lastExchangeContent = this.wrapped.getLastExchange?.() ?? null;
+  }
+
+  /**
+   * Persist the captured exchange content, encrypted and truncated, alongside
+   * the usage record. Best-effort: a failure here never breaks the AI call or
+   * the usage record. Skipped when logging is disabled or no content exists.
+   */
+  private async logExchange(
+    operation: AIOperationType,
+    usageRecord: AIUsageRecord
+  ): Promise<void> {
+    if (!this.exchangeRepository || !this.exchangeLogging?.enabled) {
+      return;
+    }
+    const content = this.lastExchangeContent;
+    if (!content) {
+      return;
+    }
+
+    try {
+      const exchange = AIExchange.create({
+        id: this.idGenerator.generate(),
+        userId: this.userId,
+        projectId: this.projectId,
+        usageRecordId: usageRecord.getId(),
+        operation,
+        provider: usageRecord.getProvider(),
+        model: usageRecord.getModel(),
+        systemPrompt: truncateExchangeField(content.systemPrompt),
+        input: truncateExchangeField(content.input),
+        output: truncateExchangeField(content.output),
+        inputTokens: usageRecord.getInputTokens(),
+        outputTokens: usageRecord.getOutputTokens(),
+        cachedInputTokens: usageRecord.getCachedInputTokens(),
+        costEur: usageRecord.getCostEur(),
+        durationMs: usageRecord.getDurationMs(),
+        retentionDays: this.exchangeLogging.retentionDays,
+      });
+      await this.exchangeRepository.save(exchange);
+    } catch (error) {
+      console.error('Failed to persist AI exchange content', error);
+    }
+  }
 
   private async trackUsage<T>(
     operation: AIOperationType,
@@ -42,9 +103,11 @@ export class TrackedLLMProvider implements LLMProvider {
       const result = await fn();
       const durationMs = Date.now() - startTime;
 
-      // Capture real token usage reported by the wrapped provider (success only,
-      // to avoid attributing a previous call's tokens to a failed one).
+      // Capture real token usage and exchange content reported by the wrapped
+      // provider (success only, to avoid attributing a previous call's data to
+      // a failed one).
       this.captureWrappedUsage();
+      this.captureWrappedExchange();
 
       // Record usage asynchronously (don't block the response)
       this.recordUsage(operation, durationMs).catch(console.error);
@@ -88,10 +151,14 @@ export class TrackedLLMProvider implements LLMProvider {
 
     await this.usageRepository.save(record);
 
-    // Reset token counts for next operation
+    // Persist the captured content (opt-in) linked to this usage record.
+    await this.logExchange(operation, record);
+
+    // Reset captured state for next operation
     this.lastInputTokens = null;
     this.lastOutputTokens = null;
     this.lastCachedInputTokens = null;
+    this.lastExchangeContent = null;
   }
 
   setTokenCounts(inputTokens: number | null, outputTokens: number | null): void {

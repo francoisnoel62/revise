@@ -4,7 +4,12 @@
 import { Db, Collection } from 'mongodb';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'node:crypto';
-import { User, UserRegistration, SafeUser } from '@/domain/entities/User';
+import {
+  User,
+  UserRegistration,
+  SafeUser,
+  DEFAULT_AI_EXCHANGE_RETENTION_DAYS,
+} from '@/domain/entities/User';
 import { UserRepository } from '@/domain/interfaces/UserRepository';
 
 const SALT_ROUNDS = 12;
@@ -19,8 +24,29 @@ interface UserDocument {
   approvedAt?: Date;
   termsAcceptedAt?: Date;
   privacyAcceptedAt?: Date;
+  aiExchangeLoggingEnabled?: boolean;
+  aiExchangeRetentionDays?: number;
   createdAt: Date;
   updatedAt: Date;
+}
+
+function toUser(doc: UserDocument): User {
+  return {
+    id: doc._id,
+    email: doc.email,
+    passwordHash: doc.passwordHash,
+    name: doc.name,
+    isApproved: doc.isApproved ?? false,
+    isAdmin: doc.isAdmin ?? false,
+    approvedAt: doc.approvedAt,
+    termsAcceptedAt: doc.termsAcceptedAt,
+    privacyAcceptedAt: doc.privacyAcceptedAt,
+    aiExchangeLoggingEnabled: doc.aiExchangeLoggingEnabled ?? false,
+    aiExchangeRetentionDays:
+      doc.aiExchangeRetentionDays ?? DEFAULT_AI_EXCHANGE_RETENTION_DAYS,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  };
 }
 
 export class MongoDBUserRepository implements UserRepository {
@@ -37,19 +63,7 @@ export class MongoDBUserRepository implements UserRepository {
 
     if (!doc) return null;
 
-    return {
-      id: doc._id,
-      email: doc.email,
-      passwordHash: doc.passwordHash,
-      name: doc.name,
-      isApproved: doc.isApproved ?? false,
-      isAdmin: doc.isAdmin ?? false,
-      approvedAt: doc.approvedAt,
-      termsAcceptedAt: doc.termsAcceptedAt,
-      privacyAcceptedAt: doc.privacyAcceptedAt,
-      createdAt: doc.createdAt,
-      updatedAt: doc.updatedAt,
-    };
+    return toUser(doc);
   }
 
   async findById(id: string): Promise<User | null> {
@@ -57,19 +71,7 @@ export class MongoDBUserRepository implements UserRepository {
 
     if (!doc) return null;
 
-    return {
-      id: doc._id,
-      email: doc.email,
-      passwordHash: doc.passwordHash,
-      name: doc.name,
-      isApproved: doc.isApproved ?? false,
-      isAdmin: doc.isAdmin ?? false,
-      approvedAt: doc.approvedAt,
-      termsAcceptedAt: doc.termsAcceptedAt,
-      privacyAcceptedAt: doc.privacyAcceptedAt,
-      createdAt: doc.createdAt,
-      updatedAt: doc.updatedAt,
-    };
+    return toUser(doc);
   }
 
   async create(registration: UserRegistration): Promise<SafeUser> {
@@ -154,6 +156,24 @@ export class MongoDBUserRepository implements UserRepository {
 
   async hashPassword(password: string): Promise<string> {
     return bcrypt.hash(password, SALT_ROUNDS);
+  }
+
+  async updateAIExchangeLogging(
+    userId: string,
+    enabled: boolean,
+    retentionDays: number
+  ): Promise<boolean> {
+    const result = await this.collection.updateOne(
+      { _id: userId },
+      {
+        $set: {
+          aiExchangeLoggingEnabled: enabled,
+          aiExchangeRetentionDays: retentionDays,
+          updatedAt: new Date(),
+        },
+      }
+    );
+    return result.matchedCount > 0;
   }
 
   /**

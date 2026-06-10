@@ -11,6 +11,7 @@ import {
   getProviderRepo,
   getMetadataRepo,
   getCorrectionHistoryRepo,
+  getAIExchangeRepo,
 } from './utils';
 
 export interface UserDataExport {
@@ -55,6 +56,18 @@ export interface UserDataExport {
     name: string;
     type: string;
     model: string;
+    createdAt: string;
+  }>;
+  aiExchanges: Array<{
+    id: string;
+    projectId: string;
+    operation: string;
+    provider: string;
+    model: string;
+    systemPrompt: string;
+    input: string;
+    output: string;
+    costEur: number | null;
     createdAt: string;
   }>;
 }
@@ -122,6 +135,33 @@ export async function exportUserDataAction(): Promise<ActionResult<UserDataExpor
     // Fetch all providers (without API keys for security)
     const providers = await providerRepo.listProviders(userId);
 
+    // Fetch captured AI exchanges (decrypted — the author owns this content).
+    // Guarded: if the encryption key is unavailable there is nothing to export.
+    const aiExchanges: UserDataExport['aiExchanges'] = [];
+    try {
+      const exchangeRepo = await getAIExchangeRepo();
+      const summaries = await exchangeRepo.findByOwner(userId);
+      for (const summary of summaries) {
+        const exchange = await exchangeRepo.findById(userId, summary.id);
+        if (exchange) {
+          aiExchanges.push({
+            id: exchange.getId(),
+            projectId: exchange.getProjectId(),
+            operation: exchange.getOperation(),
+            provider: exchange.getProvider(),
+            model: exchange.getModel(),
+            systemPrompt: exchange.getSystemPrompt(),
+            input: exchange.getInput(),
+            output: exchange.getOutput(),
+            costEur: exchange.getCostEur(),
+            createdAt: exchange.getCreatedAt().toISOString(),
+          });
+        }
+      }
+    } catch (error) {
+      console.error('AI exchange export skipped (encryption key unavailable?)', error);
+    }
+
     // Build export data
     const exportData: UserDataExport = {
       exportDate: new Date().toISOString(),
@@ -153,6 +193,7 @@ export async function exportUserDataAction(): Promise<ActionResult<UserDataExpor
         model: provider.getModel(),
         createdAt: provider.getCreatedAt().toISOString(),
       })),
+      aiExchanges,
     };
 
     return { success: true, data: exportData };

@@ -19,6 +19,7 @@ describe('ResetPasswordUseCase', () => {
     updatePassword: vi.fn(),
     verifyPassword: vi.fn(),
     hashPassword: vi.fn(),
+    updateAIExchangeLogging: vi.fn(),
   };
 
   const mockTokenRepository = {

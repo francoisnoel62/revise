@@ -15,6 +15,7 @@ import {
   getWordCountSnapshotRepository,
   getWritingQuotaRepository,
   getAIUsageRepository as getAIUsageRepositoryFromConfig,
+  getAIExchangeRepository as getAIExchangeRepositoryFromConfig,
   getBlogArticleRepository,
   getArticleViewRepository,
   getProjectTaskRepository,
@@ -43,6 +44,7 @@ import { WritingGoalRepository } from '@/domain/interfaces/WritingGoalRepository
 import { WordCountSnapshotRepository } from '@/domain/interfaces/WordCountSnapshotRepository';
 import { WritingQuotaRepository } from '@/domain/interfaces/WritingQuotaRepository';
 import { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
+import { AIExchangeRepository } from '@/domain/interfaces/AIExchangeRepository';
 import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository';
 import { ProjectTaskRepository } from '@/domain/interfaces/ProjectTaskRepository';
 import { CharacterRepository } from '@/domain/interfaces/CharacterRepository';
@@ -197,6 +199,48 @@ export async function getWritingQuotaRepo(): Promise<WritingQuotaRepository> {
  */
 export async function getAIUsageRepo(): Promise<AIUsageRepository> {
   return await getAIUsageRepositoryFromConfig();
+}
+
+/**
+ * Get AI exchange repository instance (captured exchange content).
+ */
+export async function getAIExchangeRepo(): Promise<AIExchangeRepository> {
+  return await getAIExchangeRepositoryFromConfig();
+}
+
+/**
+ * Resolve the user's AI exchange logging configuration and the exchange
+ * repository, but only when the user has opted in. Returns nulls when logging
+ * is disabled, or when the encryption key is missing — in which case content
+ * logging is silently skipped so AI operations are never blocked.
+ */
+async function resolveExchangeLogging(userId: string): Promise<{
+  exchangeRepository: AIExchangeRepository | null;
+  exchangeLogging: { enabled: boolean; retentionDays: number } | null;
+}> {
+  const userRepo = await getUserRepo();
+  const user = await userRepo.findById(userId);
+
+  if (!user?.aiExchangeLoggingEnabled) {
+    return { exchangeRepository: null, exchangeLogging: null };
+  }
+
+  try {
+    const exchangeRepository = await getAIExchangeRepo();
+    return {
+      exchangeRepository,
+      exchangeLogging: {
+        enabled: true,
+        retentionDays: user.aiExchangeRetentionDays,
+      },
+    };
+  } catch (error) {
+    console.error(
+      'AI exchange logging is enabled but unavailable (check ENCRYPTION_KEY)',
+      error
+    );
+    return { exchangeRepository: null, exchangeLogging: null };
+  }
 }
 
 /**
@@ -359,13 +403,17 @@ export async function getTrackedLLMProviderForProject(
 ): Promise<LLMProvider> {
   const baseProvider = await getLLMProviderForProject(userId, projectId);
   const usageRepo = await getAIUsageRepo();
+  const { exchangeRepository, exchangeLogging } =
+    await resolveExchangeLogging(userId);
 
   return new TrackedLLMProvider(
     baseProvider,
     usageRepo,
     objectIdGenerator,
     userId,
-    projectId
+    projectId,
+    exchangeRepository,
+    exchangeLogging
   );
 }
 
@@ -404,13 +452,17 @@ export async function getTrackedLLMProviderById(
 ): Promise<LLMProvider> {
   const baseProvider = await getLLMProviderById(userId, providerId);
   const usageRepo = await getAIUsageRepo();
+  const { exchangeRepository, exchangeLogging } =
+    await resolveExchangeLogging(userId);
 
   return new TrackedLLMProvider(
     baseProvider,
     usageRepo,
     objectIdGenerator,
     userId,
-    projectId
+    projectId,
+    exchangeRepository,
+    exchangeLogging
   );
 }
 
