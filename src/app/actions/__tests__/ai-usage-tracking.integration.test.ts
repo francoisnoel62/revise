@@ -43,6 +43,18 @@ vi.mock('@/infrastructure/config/providers', () => ({
     getStatsForUser: vi.fn(),
     deleteAllByOwner: vi.fn(),
   }),
+  // The tracked provider resolves the user's opt-in for exchange logging.
+  // Default: no user / logging disabled, so no exchange repository is needed.
+  getUserRepository: vi.fn().mockResolvedValue({
+    findById: vi.fn().mockResolvedValue(null),
+  }),
+  getAIExchangeRepository: vi.fn().mockResolvedValue({
+    save: vi.fn(),
+    findByOwner: vi.fn(),
+    findById: vi.fn(),
+    deleteAllByOwner: vi.fn(),
+    ensureIndexes: vi.fn(),
+  }),
 }));
 
 vi.mock('@/infrastructure/utils/ObjectIdGenerator', () => ({
