@@ -43,6 +43,9 @@ export interface AIExchangeRepository {
   /** Returns the full, decrypted exchange, or null when not found / not owned. */
   findById(userId: string, id: string): Promise<AIExchange | null>;
 
+  /** Distinct model identifiers used by the owner, for filter facets. */
+  distinctModels(userId: string): Promise<string[]>;
+
   deleteAllByOwner(userId: string): Promise<void>;
 
   ensureIndexes(): Promise<void>;

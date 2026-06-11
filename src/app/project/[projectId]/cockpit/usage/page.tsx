@@ -3,7 +3,9 @@
 
 'use client';
 
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { Eye } from 'lucide-react';
 import {
   UsageStatsCard,
   UsageByOperationChart,
@@ -16,11 +18,20 @@ export default function UsagePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Utilisation IA</h1>
-        <p className="text-muted-foreground">
-          Statistiques d&apos;utilisation de l&apos;intelligence artificielle
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Utilisation IA</h1>
+          <p className="text-muted-foreground">
+            Statistiques d&apos;utilisation de l&apos;intelligence artificielle
+          </p>
+        </div>
+        <Link
+          href="/historique-ia"
+          className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+        >
+          <Eye className="h-4 w-4" />
+          Voir le journal des échanges
+        </Link>
       </div>
 
       {/* Summary Stats */}

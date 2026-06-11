@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   AI_OPERATION_LABELS,
@@ -26,6 +27,7 @@ import {
 import {
   listAIExchangesAction,
   getAIExchangeAction,
+  getAIExchangeFacetsAction,
   type SerializedExchangeSummary,
   type SerializedExchangeDetail,
   type ListExchangeFilters,
@@ -33,6 +35,7 @@ import {
 import { listProjectsAction } from '@/app/actions/project-actions';
 
 const ALL = '__all__';
+const PAGE_SIZE = 50;
 
 function formatDate(iso: string): string {
   return new Intl.DateTimeFormat('fr-FR', {
@@ -56,11 +59,19 @@ function formatDuration(ms: number | null): string {
 export function AIExchangeLedger() {
   const [summaries, setSummaries] = useState<SerializedExchangeSummary[]>([]);
   const [projects, setProjects] = useState<Record<string, string>>({});
+  const [models, setModels] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState('');
 
   const [projectFilter, setProjectFilter] = useState(ALL);
   const [operationFilter, setOperationFilter] = useState(ALL);
+  const [modelFilter, setModelFilter] = useState(ALL);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
 
   const [details, setDetails] = useState<Record<string, SerializedExchangeDetail>>({});
   const [detailLoading, setDetailLoading] = useState<string | null>(null);
@@ -76,39 +87,73 @@ export function AIExchangeLedger() {
         setProjects(map);
       }
     });
+    getAIExchangeFacetsAction().then((result) => {
+      if (result.success) setModels(result.data.models);
+    });
   }, []);
 
   useEffect(() => {
     let active = true;
-    const filters: ListExchangeFilters = {};
+    const filters: ListExchangeFilters = {
+      limit: PAGE_SIZE,
+      offset: page * PAGE_SIZE,
+    };
     if (projectFilter !== ALL) filters.projectId = projectFilter;
     if (operationFilter !== ALL) filters.operation = operationFilter;
+    if (modelFilter !== ALL) filters.model = modelFilter;
+    if (startDate) filters.startDate = startDate;
+    if (endDate) filters.endDate = `${endDate}T23:59:59`;
 
     listAIExchangesAction(filters).then((result) => {
       if (!active) return;
       if (result.success) {
-        setSummaries(result.data);
+        setSummaries((prev) =>
+          page === 0 ? result.data : [...prev, ...result.data]
+        );
+        setHasMore(result.data.length === PAGE_SIZE);
         setError('');
       } else {
         setError(result.error);
       }
       setLoading(false);
+      setLoadingMore(false);
     });
 
     return () => {
       active = false;
     };
-  }, [projectFilter, operationFilter]);
+  }, [projectFilter, operationFilter, modelFilter, startDate, endDate, page]);
 
-  function handleFilterChange(setter: (value: string) => void, value: string) {
+  // Re-filter (server-side) resets paging and shows the skeleton again.
+  function applyServerFilter(apply: () => void) {
     setLoading(true);
-    setter(value);
+    setPage(0);
+    apply();
+  }
+
+  function handleLoadMore() {
+    setLoadingMore(true);
+    setPage((p) => p + 1);
   }
 
   const usedOperations = useMemo(
     () => AI_OPERATION_TYPES.filter((op) => AI_OPERATION_LABELS[op]),
     []
   );
+
+  // Free-text search filters the already-loaded rows on metadata only.
+  const visibleSummaries = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return summaries;
+    return summaries.filter((s) => {
+      const label = AI_OPERATION_LABELS[s.operation] ?? s.operation;
+      const project = projects[s.projectId] ?? '';
+      const date = formatDate(s.createdAt);
+      return [label, s.model, project, date].some((value) =>
+        value.toLowerCase().includes(q)
+      );
+    });
+  }, [summaries, search, projects]);
 
   async function handleOpen(id: string) {
     if (details[id] || detailLoading === id) return;
@@ -122,12 +167,14 @@ export function AIExchangeLedger() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Select
           value={projectFilter}
-          onValueChange={(value) => handleFilterChange(setProjectFilter, value)}
+          onValueChange={(value) =>
+            applyServerFilter(() => setProjectFilter(value))
+          }
         >
-          <SelectTrigger className="w-56">
+          <SelectTrigger className="w-48">
             <SelectValue placeholder="Tous les projets" />
           </SelectTrigger>
           <SelectContent>
@@ -142,9 +189,11 @@ export function AIExchangeLedger() {
 
         <Select
           value={operationFilter}
-          onValueChange={(value) => handleFilterChange(setOperationFilter, value)}
+          onValueChange={(value) =>
+            applyServerFilter(() => setOperationFilter(value))
+          }
         >
-          <SelectTrigger className="w-56">
+          <SelectTrigger className="w-48">
             <SelectValue placeholder="Toutes les opérations" />
           </SelectTrigger>
           <SelectContent>
@@ -156,6 +205,48 @@ export function AIExchangeLedger() {
             ))}
           </SelectContent>
         </Select>
+
+        <Select
+          value={modelFilter}
+          onValueChange={(value) =>
+            applyServerFilter(() => setModelFilter(value))
+          }
+        >
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Tous les modèles" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>Tous les modèles</SelectItem>
+            {models.map((model) => (
+              <SelectItem key={model} value={model}>
+                {model}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Input
+          type="date"
+          aria-label="Date de début"
+          value={startDate}
+          className="w-40"
+          onChange={(e) => applyServerFilter(() => setStartDate(e.target.value))}
+        />
+        <Input
+          type="date"
+          aria-label="Date de fin"
+          value={endDate}
+          className="w-40"
+          onChange={(e) => applyServerFilter(() => setEndDate(e.target.value))}
+        />
+
+        <Input
+          type="search"
+          placeholder="Rechercher (métadonnées)…"
+          value={search}
+          className="w-56"
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
       {error && (
@@ -173,13 +264,17 @@ export function AIExchangeLedger() {
           Aucun échange journalisé pour l&apos;instant. Activez la journalisation
           dans les paramètres, puis utilisez l&apos;IA sur un projet.
         </div>
+      ) : visibleSummaries.length === 0 ? (
+        <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+          Aucun résultat pour cette recherche.
+        </div>
       ) : (
         <Accordion
           type="single"
           collapsible
           onValueChange={(value) => value && handleOpen(value)}
         >
-          {summaries.map((summary) => (
+          {visibleSummaries.map((summary) => (
             <AccordionItem key={summary.id} value={summary.id}>
               <AccordionTrigger className="hover:no-underline">
                 <div className="flex flex-1 flex-wrap items-center gap-x-4 gap-y-1 pr-4 text-left text-sm">
@@ -217,6 +312,18 @@ export function AIExchangeLedger() {
             </AccordionItem>
           ))}
         </Accordion>
+      )}
+
+      {!loading && hasMore && !search.trim() && (
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            onClick={handleLoadMore}
+            disabled={loadingMore}
+          >
+            {loadingMore ? 'Chargement…' : 'Charger plus'}
+          </Button>
+        </div>
       )}
     </div>
   );

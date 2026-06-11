@@ -100,6 +100,24 @@ export async function listAIExchangesAction(
 }
 
 /**
+ * Return filter facets for the ledger (distinct models used by the user).
+ */
+export async function getAIExchangeFacetsAction(): Promise<
+  ActionResult<{ models: string[] }>
+> {
+  const auth = await getAuthenticatedUserId();
+  if ('error' in auth) {
+    return auth.error;
+  }
+
+  return withErrorHandling(async () => {
+    const repo = await getAIExchangeRepo();
+    const models = await repo.distinctModels(auth.userId);
+    return { models };
+  });
+}
+
+/**
  * Fetch and decrypt a single exchange the current user owns.
  * This is the only path that decrypts content.
  */

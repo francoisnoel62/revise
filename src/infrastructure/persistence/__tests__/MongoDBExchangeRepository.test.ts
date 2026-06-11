@@ -38,6 +38,7 @@ describe('MongoDBExchangeRepository', () => {
     find: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
     deleteMany: ReturnType<typeof vi.fn>;
+    distinct: ReturnType<typeof vi.fn>;
     createIndex: ReturnType<typeof vi.fn>;
   };
   let mockDb: { collection: ReturnType<typeof vi.fn> };
@@ -55,6 +56,7 @@ describe('MongoDBExchangeRepository', () => {
       find: vi.fn(() => mockCursor),
       findOne: vi.fn(async () => null),
       deleteMany: vi.fn(async () => ({ deletedCount: 0 })),
+      distinct: vi.fn(async () => []),
       createIndex: vi.fn(async () => 'idx'),
     };
     mockDb = { collection: vi.fn(() => mockCollection) };
@@ -110,6 +112,17 @@ describe('MongoDBExchangeRepository', () => {
 
     expect(result).toBeNull();
     expect(mockCollection.findOne).not.toHaveBeenCalled();
+  });
+
+  it('returns distinct sorted models scoped to the owner', async () => {
+    mockCollection.distinct.mockResolvedValue(['gpt-4o', 'claude-sonnet']);
+
+    const models = await repository.distinctModels('user-1');
+
+    expect(mockCollection.distinct).toHaveBeenCalledWith('model', {
+      userId: 'user-1',
+    });
+    expect(models).toEqual(['claude-sonnet', 'gpt-4o']);
   });
 
   it('deletes all exchanges for an owner', async () => {

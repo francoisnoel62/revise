@@ -100,6 +100,11 @@ export class MongoDBExchangeRepository implements AIExchangeRepository {
     return deserializeAIExchange(doc, this.encryption);
   }
 
+  async distinctModels(userId: string): Promise<string[]> {
+    const models = await this.collection().distinct('model', { userId });
+    return models.filter((m): m is string => typeof m === 'string').sort();
+  }
+
   async deleteAllByOwner(userId: string): Promise<void> {
     await this.collection().deleteMany({ userId });
   }
