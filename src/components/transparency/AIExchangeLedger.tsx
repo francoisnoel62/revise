@@ -20,10 +20,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  AI_OPERATION_LABELS,
-  AI_OPERATION_TYPES,
-} from '@/domain/value-objects/AIOperationType';
+import { AI_OPERATION_LABELS } from '@/lib/ui-labels';
 import {
   listAIExchangesAction,
   getAIExchangeAction,
@@ -136,10 +133,7 @@ export function AIExchangeLedger() {
     setPage((p) => p + 1);
   }
 
-  const usedOperations = useMemo(
-    () => AI_OPERATION_TYPES.filter((op) => AI_OPERATION_LABELS[op]),
-    []
-  );
+  const usedOperations = useMemo(() => Object.keys(AI_OPERATION_LABELS), []);
 
   // Free-text search filters the already-loaded rows on metadata only.
   const visibleSummaries = useMemo(() => {

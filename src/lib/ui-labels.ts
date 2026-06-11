@@ -60,6 +60,8 @@ export const AI_OPERATION_LABELS: Record<string, string> = {
   chapter_summaries: 'Résumés chapitres',
   chapter_generation: 'Génération chapitre',
   completion: 'Autocomplétion',
+  character_chat: 'Chat personnage',
+  character_sheet: 'Génération fiche personnage',
 };
 
 /**
