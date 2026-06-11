@@ -7,10 +7,8 @@ import {
   getProviderRepository,
   getMetadataRepository,
   getResearchDocumentRepository,
-  getPromptRepository,
 } from '@/infrastructure/config/providers';
 import { getTrackedLLMProviderById } from '@/app/actions/utils';
-import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
 import { metadataCache } from '@/infrastructure/cache/MetadataCache';
 import { AIContextBuilder } from '@/application/services/AIContextBuilder';
 
@@ -48,7 +46,6 @@ export async function POST(request: NextRequest) {
 
   // 3. Get LLM provider via composition root
   const providerRepo = await getProviderRepository();
-  const promptRepo = getPromptRepository();
   const { getProjectRepository } = await import('@/infrastructure/config/providers');
   const projectRepo = await getProjectRepository();
 
@@ -73,13 +70,6 @@ export async function POST(request: NextRequest) {
     console.log('[Autocomplete] Using provider:', selectedProvider.getName(), '(', selectedProvider.getType(), ')', 'model:', selectedProvider.getModel());
     // Tracked provider so autocompletion usage and exchange content are recorded.
     llmProvider = await getTrackedLLMProviderById(userId, selectedProvider.getId(), projectId);
-  } else if (process.env.OPENAI_API_KEY) {
-    // Fallback to environment variable (development only)
-    llmProvider = new OpenAIProvider(
-      process.env.OPENAI_API_KEY,
-      promptRepo,
-      'gpt-4o-mini'
-    );
   } else {
     return new Response('No AI provider configured', { status: 400 });
   }
