@@ -102,6 +102,22 @@ describe('GoogleProvider.suggestAlternatives', () => {
     expect(result[0].word).toBe('épier');
   });
 
+  it('handles top-level JSON array (JSON mode shorthand from Google)', async () => {
+    // When responseMimeType: 'application/json' is set, Google may return a bare array
+    // instead of {"alternatives": [...]}. extractJson mangles arrays by slicing {…},{…}
+    // which is invalid JSON — this test ensures the fallback parser handles it.
+    mockGenerateContent.mockResolvedValue({
+      text: JSON.stringify([
+        { word: 'épier', sceneEffect: 'installe une menace silencieuse' },
+        { word: 'observer', sceneEffect: 'maintient une distance neutre' },
+      ]),
+    });
+
+    const result = await provider.suggestAlternatives('regarder', 'phrase');
+    expect(result).toHaveLength(2);
+    expect(result[0].word).toBe('épier');
+  });
+
   it('throws on invalid JSON response', async () => {
     mockGenerateContent.mockResolvedValue({ text: 'not json at all' });
 

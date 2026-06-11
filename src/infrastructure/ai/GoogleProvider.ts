@@ -1586,21 +1586,28 @@ FORMAT DE SORTIE JSON (retourne UNIQUEMENT ce JSON, sans texte avant ni après) 
   }
 
   private parseThesaurusResponse(content: string): WordAlternative[] {
-    const jsonContent = this.extractJson(content);
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let parsed: any;
     try {
-      parsed = JSON.parse(jsonContent);
+      parsed = JSON.parse(this.extractJson(content));
     } catch {
-      throw new Error('Failed to parse thesaurus response from Google AI');
+      // extractJson mangles top-level JSON arrays ([{...},{...}]) by slicing {…},{…}
+      // which is not valid JSON. Fall back to parsing the raw content directly.
+      try {
+        parsed = JSON.parse(content.trim());
+      } catch {
+        throw new Error('Failed to parse thesaurus response from Google AI');
+      }
     }
 
-    if (!Array.isArray(parsed.alternatives)) {
+    // Accept both {"alternatives":[...]} (expected) and [...] (JSON-mode shorthand)
+    const alternatives: unknown[] = Array.isArray(parsed) ? parsed : parsed.alternatives;
+
+    if (!Array.isArray(alternatives)) {
       throw new Error('Invalid thesaurus response format: missing alternatives array');
     }
 
-    return parsed.alternatives
+    return alternatives
       .filter(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (alt: any) =>
