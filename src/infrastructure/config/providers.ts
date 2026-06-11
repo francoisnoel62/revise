@@ -34,6 +34,8 @@ import { MongoDBWritingGoalRepository } from '@/infrastructure/persistence/Mongo
 import { MongoDBWordCountSnapshotRepository } from '@/infrastructure/persistence/MongoDBWordCountSnapshotRepository';
 import { MongoDBWritingQuotaRepository } from '@/infrastructure/persistence/MongoDBWritingQuotaRepository';
 import { MongoDBUsageRepository } from '@/infrastructure/persistence/MongoDBUsageRepository';
+import { MongoDBModelPricingRepository } from '@/infrastructure/persistence/MongoDBModelPricingRepository';
+import { ModelPricingRepository } from '@/domain/interfaces/ModelPricingRepository';
 import { MongoDBBlogArticleRepository } from '@/infrastructure/persistence/MongoDBBlogArticleRepository';
 import { MongoDBContactMessageRepository } from '@/infrastructure/persistence/MongoDBContactMessageRepository';
 import { MongoDBArticleViewRepository } from '@/infrastructure/persistence/MongoDBArticleViewRepository';
@@ -205,6 +207,20 @@ export async function getWordCountSnapshotRepository(): Promise<WordCountSnapsho
 export async function getWritingQuotaRepository(): Promise<WritingQuotaRepository> {
   const db = await getDatabase();
   return new MongoDBWritingQuotaRepository(db);
+}
+
+/**
+ * Get the model pricing repository.
+ */
+let modelPricingRepoInstance: MongoDBModelPricingRepository | null = null;
+
+export async function getModelPricingRepository(): Promise<ModelPricingRepository> {
+  if (!modelPricingRepoInstance) {
+    const db = await getDatabase();
+    modelPricingRepoInstance = new MongoDBModelPricingRepository(db);
+    await modelPricingRepoInstance.ensureIndexes();
+  }
+  return modelPricingRepoInstance;
 }
 
 /**

@@ -63,6 +63,10 @@ async function createIndexes(db: Db): Promise<void> {
   await blogArticles.createIndex({ isPublished: 1, publishedAt: -1 });
   await blogArticles.createIndex({ updatedAt: -1 });
 
+  // Model pricing collection indexes
+  const modelPricing = db.collection('model_pricing');
+  await modelPricing.createIndex({ provider: 1, prefix: 1 }, { unique: true });
+
   // Password reset tokens collection indexes
   const passwordResetTokens = db.collection('password_reset_tokens');
   await passwordResetTokens.createIndex({ token: 1 }, { unique: true });
