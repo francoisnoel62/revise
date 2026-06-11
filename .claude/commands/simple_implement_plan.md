@@ -10,7 +10,7 @@ Before beginning any setup or implementing any plans, it is essential to review 
 - .claude/philosophie.md — if missing, notify the user.
 - package.json — if missing, notify the user.
 - CLAUDE.md
-- all documentation files in /docs/
+- documentation files in /docs/ linked with the approved technical plan
 - all readme files in /src/
 
 These documents define the philosophical, collaborative, and technical foundations of the project and must be understood before any action is taken.
