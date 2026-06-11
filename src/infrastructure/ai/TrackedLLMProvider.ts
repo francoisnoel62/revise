@@ -294,6 +294,7 @@ export class TrackedLLMProvider implements LLMProvider {
 
       const durationMs = Date.now() - startTime;
       this.captureWrappedUsage();
+      this.captureWrappedExchange();
       this.recordUsage('completion', durationMs).catch(console.error);
     } catch (error) {
       const durationMs = Date.now() - startTime;
@@ -310,6 +311,7 @@ export class TrackedLLMProvider implements LLMProvider {
     try {
       yield* this.wrapped.chatStream(messages, systemPrompt);
       this.captureWrappedUsage();
+      this.captureWrappedExchange();
       await this.recordUsage('character_chat', Date.now() - start);
     } catch (error) {
       await this.recordUsage('character_chat', Date.now() - start);

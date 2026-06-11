@@ -2,7 +2,7 @@
 // ABOUTME: Generates 3 stylistically distinct proposals using carefully crafted prompt
 
 import OpenAI from 'openai';
-import { LLMProvider, ConnectionTestResult, TokenUsage } from '@/domain/interfaces/LLMProvider';
+import { LLMProvider, ConnectionTestResult, TokenUsage, ExchangeContent } from '@/domain/interfaces/LLMProvider';
 import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
 import { NarrativeAnalysis } from '@/domain/value-objects/NarrativeAnalysis';
@@ -143,6 +143,7 @@ export class OpenAIProvider implements LLMProvider {
   private model: string;
   private promptRepository: PromptRepository;
   private lastTokenUsage: TokenUsage | null = null;
+  private lastExchange: ExchangeContent | null = null;
 
   constructor(
     apiKey: string,
@@ -156,6 +157,46 @@ export class OpenAIProvider implements LLMProvider {
 
   getLastTokenUsage(): TokenUsage | null {
     return this.lastTokenUsage;
+  }
+
+  getLastExchange(): ExchangeContent | null {
+    return this.lastExchange;
+  }
+
+  /**
+   * Single choke point for non-streaming chat completions: builds the
+   * system+user message pair, captures token usage AND the exchange content
+   * (system prompt, input, raw output) so every operation is captured
+   * uniformly. Per-operation params (response_format, temperature, token
+   * limits…) are passed through unchanged.
+   */
+  private async createChatCompletion(
+    systemPrompt: string,
+    userPrompt: string,
+    params: Omit<
+      OpenAI.Chat.ChatCompletionCreateParamsNonStreaming,
+      'model' | 'messages'
+    >
+  ): Promise<OpenAI.Chat.ChatCompletion> {
+    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ];
+
+    const completion = await this.client.chat.completions.create({
+      model: this.model,
+      messages,
+      ...params,
+    });
+
+    this.captureUsage(completion);
+    this.lastExchange = {
+      systemPrompt,
+      input: userPrompt,
+      output: completion.choices[0]?.message?.content ?? '',
+    };
+
+    return completion;
   }
 
   /**
@@ -220,12 +261,7 @@ export class OpenAIProvider implements LLMProvider {
     try {
       // GPT-5 and o-series models don't support temperature, top_p, presence_penalty, frequency_penalty, response_format
       const isReasoning = this.isReasoningModel();
-      const completion = await this.client.chat.completions.create({
-        model: this.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
+      const completion = await this.createChatCompletion(systemPrompt, userPrompt, {
         ...this.getResponseFormatParam(),
         ...(isReasoning
           ? {}
@@ -237,7 +273,6 @@ export class OpenAIProvider implements LLMProvider {
             }),
       });
 
-      this.captureUsage(completion);
       const content = completion.choices[0]?.message?.content;
       if (!content) {
         throw new Error('Empty response from OpenAI');
@@ -384,18 +419,11 @@ FORMAT DE SORTIE (JSON):
 
     try {
       const isReasoning = this.isReasoningModel();
-      const completion = await this.client.chat.completions.create({
-        model: this.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
+      const completion = await this.createChatCompletion(systemPrompt, userPrompt, {
         ...this.getResponseFormatParam(),
         ...(isReasoning ? {} : { temperature: 0.3 }), // Lower for more consistent analysis
         ...this.getTokenLimitParam(4096),
       });
-
-      this.captureUsage(completion);
       const content = completion.choices[0]?.message?.content;
       if (!content) {
         throw new Error('Empty response from OpenAI');
@@ -514,18 +542,11 @@ INSTRUCTIONS FINALES:
 
     try {
       const isReasoning = this.isReasoningModel();
-      const completion = await this.client.chat.completions.create({
-        model: this.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
+      const completion = await this.createChatCompletion(systemPrompt, userPrompt, {
         ...this.getResponseFormatParam(),
         ...(isReasoning ? {} : { temperature: 0.3 }),
         ...this.getTokenLimitParam(4096),
       });
-
-      this.captureUsage(completion);
       const content = completion.choices[0]?.message?.content;
       if (!content) {
         throw new Error('Empty response from OpenAI');
@@ -618,18 +639,11 @@ INSTRUCTIONS:
 
     try {
       const isReasoning = this.isReasoningModel();
-      const completion = await this.client.chat.completions.create({
-        model: this.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
+      const completion = await this.createChatCompletion(systemPrompt, userPrompt, {
         ...this.getResponseFormatParam(),
         ...(isReasoning ? {} : { temperature: 0.3 }),
         ...this.getTokenLimitParam(8192), // More tokens for detailed character profiles
       });
-
-      this.captureUsage(completion);
       const content = completion.choices[0]?.message?.content;
       if (!content) {
         throw new Error('Empty response from OpenAI');
@@ -751,18 +765,11 @@ INSTRUCTIONS:
 
     try {
       const isReasoning = this.isReasoningModel();
-      const completion = await this.client.chat.completions.create({
-        model: this.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
+      const completion = await this.createChatCompletion(systemPrompt, userPrompt, {
         ...this.getResponseFormatParam(),
         ...(isReasoning ? {} : { temperature: 0.3 }),
         ...this.getTokenLimitParam(8192), // More tokens for scene breakdown
       });
-
-      this.captureUsage(completion);
       const content = completion.choices[0]?.message?.content;
       if (!content) {
         throw new Error('Empty response from OpenAI');
@@ -911,18 +918,11 @@ INSTRUCTIONS:
 
     try {
       const isReasoning = this.isReasoningModel();
-      const completion = await this.client.chat.completions.create({
-        model: this.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
+      const completion = await this.createChatCompletion(systemPrompt, userPrompt, {
         ...this.getResponseFormatParam(),
         ...(isReasoning ? {} : { temperature: 0.3 }),
         ...this.getTokenLimitParam(6144),
       });
-
-      this.captureUsage(completion);
       const content = completion.choices[0]?.message?.content;
       if (!content) {
         throw new Error('Empty response from OpenAI');
@@ -1072,18 +1072,11 @@ INSTRUCTIONS:
 
     try {
       const isReasoning = this.isReasoningModel();
-      const completion = await this.client.chat.completions.create({
-        model: this.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
+      const completion = await this.createChatCompletion(systemPrompt, userPrompt, {
         ...this.getResponseFormatParam(),
         ...(isReasoning ? {} : { temperature: 0.3 }),
         ...this.getTokenLimitParam(8192), // Large output for comprehensive synthesis
       });
-
-      this.captureUsage(completion);
       const content = completion.choices[0]?.message?.content;
       if (!content) {
         throw new Error('Empty response from OpenAI');
@@ -1254,18 +1247,11 @@ INSTRUCTIONS:
 
     try {
       const isReasoning = this.isReasoningModel();
-      const completion = await this.client.chat.completions.create({
-        model: this.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
+      const completion = await this.createChatCompletion(systemPrompt, userPrompt, {
         ...this.getResponseFormatParam(),
         ...(isReasoning ? {} : { temperature: 0.3 }),
         ...this.getTokenLimitParam(4096),
       });
-
-      this.captureUsage(completion);
       const content = completion.choices[0]?.message?.content;
       if (!content) {
         throw new Error('Empty response from OpenAI');
@@ -1346,18 +1332,11 @@ INSTRUCTIONS SUPPLÉMENTAIRES:
 
     try {
       const isReasoning = this.isReasoningModel();
-      const completion = await this.client.chat.completions.create({
-        model: this.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
+      const completion = await this.createChatCompletion(systemPrompt, userPrompt, {
         ...this.getResponseFormatParam(),
         ...(isReasoning ? {} : { temperature: 0.75 }), // Higher creativity for generation
         ...this.getTokenLimitParam(tokenLimit),
       });
-
-      this.captureUsage(completion);
       const content = completion.choices[0]?.message?.content;
       if (!content) {
         throw new Error('Empty response from OpenAI');
@@ -1474,17 +1453,10 @@ INSTRUCTIONS FINALES:
 
     try {
       const isReasoning = this.isReasoningModel();
-      const completion = await this.client.chat.completions.create({
-        model: this.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
+      const completion = await this.createChatCompletion(systemPrompt, userPrompt, {
         ...(isReasoning ? {} : { temperature: 0.7 }),
         ...this.getTokenLimitParam(256), // Short completions
       });
-
-      this.captureUsage(completion);
       const content = completion.choices[0]?.message?.content;
       if (!content) {
         throw new Error('Empty response from OpenAI');
@@ -1549,11 +1521,13 @@ INSTRUCTIONS FINALES:
     });
 
     let isFirstChunk = true;
+    let output = '';
 
     for await (const chunk of stream) {
       if (chunk.usage) this.captureUsage(chunk);
       const content = chunk.choices[0]?.delta?.content;
       if (content) {
+        output += content;
         // Clean up first chunk if it starts with quotes
         if (isFirstChunk) {
           isFirstChunk = false;
@@ -1565,6 +1539,8 @@ INSTRUCTIONS FINALES:
         yield content;
       }
     }
+
+    this.lastExchange = { systemPrompt, input: userPrompt, output };
   }
 
   // ===========================
@@ -1581,18 +1557,11 @@ INSTRUCTIONS FINALES:
 
     try {
       const isReasoning = this.isReasoningModel();
-      const completion = await this.client.chat.completions.create({
-        model: this.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: projectContext },
-        ],
+      const completion = await this.createChatCompletion(systemPrompt, projectContext, {
         ...this.getResponseFormatParam(),
         ...(isReasoning ? {} : { temperature: 0.4 }),
         ...this.getTokenLimitParam(4096),
       });
-
-      this.captureUsage(completion);
       const content = completion.choices[0]?.message?.content;
       if (!content) {
         throw new Error('Empty response from OpenAI');
@@ -1699,10 +1668,20 @@ INSTRUCTIONS:
       max_tokens: 1024,
     });
 
+    let output = '';
     for await (const chunk of stream) {
       if (chunk.usage) this.captureUsage(chunk);
       const text = chunk.choices[0]?.delta?.content;
-      if (text) yield text;
+      if (text) {
+        output += text;
+        yield text;
+      }
     }
+
+    this.lastExchange = {
+      systemPrompt,
+      input: messages.map((m) => m.getContent()).join('\n\n'),
+      output,
+    };
   }
 }

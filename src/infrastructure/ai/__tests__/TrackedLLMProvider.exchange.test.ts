@@ -135,6 +135,43 @@ describe('TrackedLLMProvider exchange logging', () => {
     expect(exchangeRepo.save).not.toHaveBeenCalled();
   });
 
+  it('logs the captured exchange after a completion stream finishes', async () => {
+    async function* fakeStream() {
+      yield 'Hel';
+      yield 'lo';
+    }
+    vi.mocked(mockProvider).generateCompletionStream = vi
+      .fn()
+      .mockReturnValue(fakeStream());
+    vi.mocked(mockProvider).getLastExchange = vi.fn().mockReturnValue({
+      systemPrompt: 'Complete the text',
+      input: '[AVANT] Il',
+      output: 'Hello',
+    });
+
+    const tracked = new TrackedLLMProvider(
+      mockProvider,
+      usageRepo,
+      idGenerator,
+      'user-1',
+      'project-1',
+      exchangeRepo,
+      { enabled: true, retentionDays: 30 }
+    );
+
+    for await (const _ of tracked.generateCompletionStream('Il')) {
+      /* drain */
+    }
+    await flush();
+
+    expect(exchangeRepo.save).toHaveBeenCalledTimes(1);
+    const exchange = (exchangeRepo.save as ReturnType<typeof vi.fn>).mock
+      .calls[0][0] as AIExchange;
+    expect(exchange.getOperation()).toBe('completion');
+    expect(exchange.getInput()).toBe('[AVANT] Il');
+    expect(exchange.getOutput()).toBe('Hello');
+  });
+
   it('does not log content for a failed call', async () => {
     vi.mocked(mockProvider.generateRewrites).mockRejectedValueOnce(
       new Error('API error')
