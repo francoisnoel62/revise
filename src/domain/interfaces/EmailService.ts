@@ -1,7 +1,15 @@
 // ABOUTME: Interface for sending emails.
-// ABOUTME: Abstracts email delivery for notifications like user approval requests.
+// ABOUTME: Abstracts email delivery for notifications like user approval requests and sync reports.
 
 import { SafeUser } from '../entities/User';
+
+export interface PricingSyncReport {
+  newModels: string[];
+  updatedModels: string[];
+  totalModels: number;
+  syncedAt: Date;
+  errors: string[];
+}
 
 export interface EmailService {
   /**
@@ -24,4 +32,9 @@ export interface EmailService {
    * Send confirmation email after password has been changed.
    */
   sendPasswordChangedEmail(user: SafeUser): Promise<void>;
+
+  /**
+   * Send a pricing sync report to the admin after a model pricing synchronization.
+   */
+  sendPricingSyncReport(report: PricingSyncReport): Promise<void>;
 }

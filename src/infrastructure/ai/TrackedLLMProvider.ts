@@ -10,6 +10,8 @@ import { AIExchange } from '@/domain/entities/AIExchange';
 import { AIOperationType } from '@/domain/value-objects/AIOperationType';
 import { computeCostEur } from '@/domain/value-objects/ModelPricing';
 import { truncateExchangeField } from './exchange-truncation';
+import { ModelPricingRepository, ModelPricingEntry, PricingProvider } from '@/domain/interfaces/ModelPricingRepository';
+import { EUR_USD_RATE } from '@/infrastructure/pricing/OpenRouterPricingClient';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
 import { NarrativeAnalysis } from '@/domain/value-objects/NarrativeAnalysis';
 import { StylisticDNA } from '@/domain/value-objects/StylisticDNA';
@@ -27,11 +29,23 @@ export interface ExchangeLoggingConfig {
   retentionDays: number;
 }
 
+/** Maps display provider names returned by LLMProvider.getProviderName() to normalized ProviderType keys. */
+const PROVIDER_NAME_MAP: Record<string, PricingProvider> = {
+  'Anthropic': 'anthropic',
+  'OpenAI': 'openai',
+  'Google AI': 'google',
+};
+
+const PRICING_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
 export class TrackedLLMProvider implements LLMProvider {
   private lastInputTokens: number | null = null;
   private lastOutputTokens: number | null = null;
   private lastCachedInputTokens: number | null = null;
   private lastExchangeContent: ExchangeContent | null = null;
+
+  private pricingCache: ModelPricingEntry[] | null = null;
+  private pricingCacheAt = 0;
 
   constructor(
     private readonly wrapped: LLMProvider,
@@ -40,7 +54,8 @@ export class TrackedLLMProvider implements LLMProvider {
     private readonly userId: string,
     private readonly projectId: string,
     private readonly exchangeRepository: AIExchangeRepository | null = null,
-    private readonly exchangeLogging: ExchangeLoggingConfig | null = null
+    private readonly exchangeLogging: ExchangeLoggingConfig | null = null,
+    private readonly pricingRepository?: ModelPricingRepository
   ) {}
 
   /**
@@ -121,26 +136,55 @@ export class TrackedLLMProvider implements LLMProvider {
     }
   }
 
+  private async resolvePricingEntry(
+    normalizedProvider: PricingProvider,
+    model: string
+  ): Promise<ModelPricingEntry | null> {
+    if (!this.pricingRepository) return null;
+
+    const now = Date.now();
+    if (!this.pricingCache || now - this.pricingCacheAt > PRICING_CACHE_TTL_MS) {
+      this.pricingCache = await this.pricingRepository.findAll();
+      this.pricingCacheAt = now;
+    }
+
+    return (
+      this.pricingCache.find(
+        (e) => e.provider === normalizedProvider && model.startsWith(e.prefix)
+      ) ?? null
+    );
+  }
+
   private async recordUsage(
     operation: AIOperationType,
     durationMs: number
   ): Promise<void> {
-    const provider = this.wrapped.getProviderName();
+    const displayProvider = this.wrapped.getProviderName();
     const model = this.wrapped.getModel();
-    const costEur = computeCostEur({
-      provider,
-      model,
-      inputTokens: this.lastInputTokens,
-      outputTokens: this.lastOutputTokens,
-      cachedInputTokens: this.lastCachedInputTokens,
-    });
+    const normalizedProvider = PROVIDER_NAME_MAP[displayProvider];
+
+    let costEur: number | null = null;
+    if (normalizedProvider) {
+      const entry = await this.resolvePricingEntry(normalizedProvider, model);
+      costEur = computeCostEur(
+        {
+          provider: displayProvider,
+          model,
+          inputTokens: this.lastInputTokens,
+          outputTokens: this.lastOutputTokens,
+          cachedInputTokens: this.lastCachedInputTokens,
+        },
+        entry,
+        EUR_USD_RATE
+      );
+    }
 
     const record = AIUsageRecord.create(
       this.idGenerator.generate(),
       this.userId,
       this.projectId,
       operation,
-      provider,
+      displayProvider,
       model,
       this.lastInputTokens,
       this.lastOutputTokens,

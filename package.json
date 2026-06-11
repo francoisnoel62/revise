@@ -17,6 +17,7 @@
     "test:integration:db": "vitest run --config vitest.integration.config.ts src/app/actions/__tests__/ai-usage-tracking.integration.test.ts src/application/services/__tests__/AIContextBuilder.integration.test.ts src/infrastructure/document/document-pipeline.integration.test.ts src/infrastructure/persistence/MongoDBExchangeRepository.integration.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "pricing:seed": "tsx scripts/seed-pricing.ts",
     "verify": "npm run lint && npm test && npm run build",
     "migrate:writing-goals": "node scripts/migrate-writing-goals.mjs",
     "backfill:word-count": "node scripts/backfill-word-count-snapshots.mjs",

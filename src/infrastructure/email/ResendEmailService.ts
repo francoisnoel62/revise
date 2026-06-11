@@ -2,7 +2,7 @@
 // ABOUTME: Sends registration approval emails to admin with secure links.
 
 import { Resend } from 'resend';
-import { EmailService } from '@/domain/interfaces/EmailService';
+import { EmailService, PricingSyncReport } from '@/domain/interfaces/EmailService';
 import { SafeUser } from '@/domain/entities/User';
 import { config } from '../config/env';
 import { HMACApprovalTokenGenerator } from '../auth/HMACApprovalTokenGenerator';
@@ -628,6 +628,38 @@ Cet email a été envoyé à ${user.email} suite à une demande de réinitialisa
       from: this.fromEmail,
       to: user.email,
       subject: '[Revise] Réinitialisation de votre mot de passe',
+      html,
+      text,
+    });
+  }
+
+  async sendPricingSyncReport(report: PricingSyncReport): Promise<void> {
+    const date = report.syncedAt.toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' });
+    const errorsHtml = report.errors.length
+      ? `<p style="color:#b91c1c"><strong>Erreurs (${report.errors.length}) :</strong><br>${report.errors.join('<br>')}</p>`
+      : '';
+
+    const html = `
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<style>body{font-family:system-ui,sans-serif;line-height:1.6;color:#333;padding:20px}
+.container{max-width:600px;margin:0 auto}.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:13px;font-weight:500;margin:2px}
+.new{background:#dcfce7;color:#166534}.updated{background:#dbeafe;color:#1e40af}
+h1{font-size:20px}ul{margin:8px 0;padding-left:20px}li{margin:2px 0}</style></head>
+<body><div class="container">
+<h1>Synchronisation des tarifs IA — ${date}</h1>
+<p><strong>Total modèles en base :</strong> ${report.totalModels}</p>
+${report.newModels.length ? `<p><strong>Nouveaux modèles (${report.newModels.length}) :</strong></p><ul>${report.newModels.map((m) => `<li><span class="badge new">new</span> ${m}</li>`).join('')}</ul>` : ''}
+${report.updatedModels.length ? `<p><strong>Prix mis à jour (${report.updatedModels.length}) :</strong></p><ul>${report.updatedModels.map((m) => `<li><span class="badge updated">updated</span> ${m}</li>`).join('')}</ul>` : ''}
+${report.newModels.length === 0 && report.updatedModels.length === 0 ? '<p>Aucun changement détecté.</p>' : ''}
+${errorsHtml}
+</div></body></html>`.trim();
+
+    const text = `Synchronisation des tarifs IA — ${date}\n\nTotal: ${report.totalModels} modèles\nNouveaux: ${report.newModels.join(', ') || 'aucun'}\nMis à jour: ${report.updatedModels.join(', ') || 'aucun'}\nErreurs: ${report.errors.join(', ') || 'aucune'}`;
+
+    await this.resend.emails.send({
+      from: this.fromEmail,
+      to: this.adminEmail,
+      subject: `[Revise] Tarifs IA synchronisés — ${report.newModels.length} nouveaux, ${report.updatedModels.length} mis à jour`,
       html,
       text,
     });
