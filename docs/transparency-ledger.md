@@ -90,19 +90,22 @@ journal fonctionne. Format stocké : `base64(iv):base64(authTag):base64(cipherte
     (`systemPrompt`). Conformément à la décision produit, on montre le prompt brut, sans
     résumé reformulé.
 
-## Couverture par fournisseur (état actuel)
+## Couverture par fournisseur
 
-La capture est implémentée proprement pour **Anthropic** via son point d'entrée unique
-`createMessage`, qui couvre uniformément toutes les opérations non-streaming (le
-fournisseur par défaut ; le modèle des maquettes est Opus 4.8).
+La capture est implémentée pour les **trois fournisseurs** via un point d'entrée privé
+unique par provider, qui capture uniformément `systemPrompt`/`input`/`output` :
 
-**Suite à faire** : OpenAI et Google routent leurs appels via de nombreux sites
-d'appel en ligne ; `getLastExchange()` y est optionnel et n'est pas encore implémenté.
-Le suivi de consommation (tokens/coût) y fonctionne comme avant ; seul le **contenu**
-n'est pas encore capturé. La feature dégrade proprement : `TrackedLLMProvider` ignore
-la journalisation de contenu quand le fournisseur ne capture pas d'échange. Le
-streaming (autocomplétion, chat personnage) est également hors périmètre de capture
-pour l'instant.
+- **Anthropic** : `createMessage` (le fournisseur par défaut ; modèle des maquettes Opus 4.8).
+- **OpenAI** : `createChatCompletion` (11 opérations non-streaming routées par ce point).
+- **Google** : `generateContentTracked` (idem).
+
+Le **streaming** est également couvert : `generateCompletionStream` (autocomplétion) et
+`chatStream` (chat personnage) accumulent la sortie et fixent `lastExchange` en fin de
+flux ; `TrackedLLMProvider` appelle `captureWrappedExchange()` après ces flux pour
+persister l'échange.
+
+`getLastExchange()` reste optionnel sur l'interface `LLMProvider` : un fournisseur qui ne
+le capture pas dégrade proprement (le suivi tokens/coût continue, sans contenu).
 
 ## Fichiers clés
 
