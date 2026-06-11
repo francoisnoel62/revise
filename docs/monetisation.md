@@ -205,7 +205,7 @@ Prix de référence (juin 2026) : Opus 4.8 = 5 $/25 $ · Haiku 4.5 = 1 $/5 $ (pa
 Idées au-delà du socle (crédits, routage, mode local, journal de transparence). ⭐ = priorités.
 
 ### Confiance / différenciation (alignées philosophie)
-1. **⭐ Rapport de divulgation IA + « attestation de paternité ».** De plus en plus d'éditeurs, concours et plateformes exigent de **déclarer l'usage de l'IA**. Générer en un clic un rapport (« voici ce que l'IA a fait sur ce manuscrit ») + un indicateur **« % écrit de votre main vs assisté »**. Réutilise le metering + le journal de transparence (`docs/transparency-ledger.md`). Timing parfait, on-brand, peu de concurrents.
+1. **⭐ Rapport de divulgation IA + « attestation de paternité ».** De plus en plus d'éditeurs, concours et plateformes exigent de **déclarer l'usage de l'IA**. Générer en un clic un rapport (« voici ce que l'IA a fait sur ce manuscrit ») + un indicateur **« % écrit de votre main vs assisté »**. Réutilise le metering + le **journal de transparence — désormais implémenté (PR #96, `docs/transparency-ledger.md`)** : les `AIExchange` capturés fournissent directement la matière du rapport. Timing parfait, on-brand, peu de concurrents.
 2. **Indicateur d'intégrité de la voix.** Sur la base de `stylistic_dna`, signaler quand une suggestion s'écarte de *votre* voix — pour la préserver, pas la standardiser.
 
 ### Fonctionnalités payantes (différencient les paliers, sans toucher la qualité IA)

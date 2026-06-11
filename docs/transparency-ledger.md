@@ -1,6 +1,26 @@
 # Plan : Journal de transparence IA (table de données interactive)
 
+> **✅ IMPLÉMENTÉ — PR [#96](https://github.com/francoisnoel62/revise/pull/96)** (« Add AI transparency ledger with encrypted exchange content capture »), branche `claude/grill-me-feature-idea-fvofas`. **Ouverte, basée sur `main`, pas encore mergée** (la branche `claude/ai-app-monetization-4qtag` ne la contient pas). Ce document reste comme **référence de conception** ; voir ci-dessous les **écarts entre le plan et l'implémentation livrée**.
+
 > Issu de l'étude de monétisation (`docs/monetisation.md`) et lié au correctif de capture (`docs/fix-token-tracking.md`). Objectif : donner à l'auteur un accès clair, opération par opération, à **ce qui a été envoyé à l'IA et ce qui a été reçu**.
+
+## Écarts plan → implémentation livrée (PR #96)
+
+L'implémentation suit fidèlement le plan, avec quelques décisions affinées en cours de route :
+
+| Sujet | Plan d'origine | Livré dans la PR #96 |
+|---|---|---|
+| **Activation** | « Activé par défaut » | **Opt-in (désactivé par défaut)** — `aiExchangeLoggingEnabled: false`. Choix plus prudent côté vie privée. |
+| **Rétention** | Liée au **palier** (7/30/90 j) | **Réglage par utilisateur** (`aiExchangeRetentionDays`, 7–365 j, défaut 30). Pas encore branché sur les paliers de `monetisation.md` — le levier de monétisation reste à câbler. |
+| **Chiffrement** | Réutiliser `crypto.ts` | **`FieldEncryption.ts` dédié** (AES-256-GCM, IV aléatoire par champ) + **troncature à 50 Ko/champ** (`exchange-truncation.ts`) — répond directement à la réserve de perf du plan. |
+| **Emplacement** | Sous-page des paramètres | **Page dédiée `/historique-ia`** ; les paramètres hébergent la carte `AIExchangeLoggingCard` (toggle + rétention + purge). |
+| **RGPD** | Suppression (art. 17) | Suppression à la suppression de compte (art. 17) **+ export des données** (art. 20, `user-actions.ts`). |
+| **Métriques en table** | Métadonnées (modèle, coût…) | **Snapshot dénormalisé** sur `AIExchange` (`inputTokens`, `outputTokens`, `cachedInputTokens`, `costEur`, `durationMs`) → table et détail sans jointure ; `aiUsage` reste la source de vérité agrégée. |
+| **Capture providers** | Les 3 providers | Anthropic d'abord, puis **OpenAI + Google** (+ streaming) ajoutés dans des commits suivants de la même PR. |
+
+Fidèles au plan : entité `AIExchange` séparée d'`AIUsageRecord`, isolation par `ownerId`, **résumés métadonnées sans déchiffrement** (`findByOwner` → `AIExchangeSummary`) avec déchiffrement **uniquement au détail** (`findById`), index **TTL** sur `expiresAt`, modèle « pull » via `getLastExchange()`, vue table + détail.
+
+> Le reste de ce document décrit le **plan d'origine** (conservé comme référence de conception).
 
 ## Pourquoi
 
