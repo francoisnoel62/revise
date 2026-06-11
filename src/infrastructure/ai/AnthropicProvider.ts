@@ -16,6 +16,7 @@ import { ChapterSummaries } from '@/domain/value-objects/ChapterSummaries';
 import { ChapterGeneration } from '@/domain/value-objects/ChapterGeneration';
 import { ChapterGenerationTypeKey } from '@/domain/value-objects/ChapterGenerationType';
 import { ChatMessage } from '@/domain/value-objects/ChatMessage';
+import { WordAlternative, createWordAlternative } from '@/domain/value-objects/WordAlternative';
 
 interface ProposalResponse {
   proposals: Array<{
@@ -1587,6 +1588,99 @@ INSTRUCTIONS:
       narrativeFunction: parsed.narrativeFunction,
       openQuestions: parsed.openQuestions,
     };
+  }
+
+  // =============================
+  // THESAURUS — SUGGEST ALTERNATIVES
+  // =============================
+
+  async suggestAlternatives(
+    word: string,
+    sentence: string,
+    authorProfile?: string
+  ): Promise<WordAlternative[]> {
+    const systemPrompt = this.buildThesaurusSystemPrompt(authorProfile);
+    const userMessage = `Mot : ${word}\nPhrase de contexte : ${sentence}`;
+
+    try {
+      const params = this.buildApiParams({
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userMessage }],
+        baseMaxTokens: 1024,
+        temperature: 0.7,
+        thinkingBudget: 0,
+      });
+
+      const message = await this.createMessage(params as MessageCreateParamsNonStreaming);
+
+      this.checkRefusal(message);
+
+      const text = this.extractTextContent(message.content);
+      return this.parseThesaurusResponse(text);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error during thesaurus suggestion');
+    }
+  }
+
+  private buildThesaurusSystemPrompt(authorProfile?: string): string {
+    const voiceSection = authorProfile
+      ? `\nVOIX DU PROJET — ancre tes propositions sur cette voix :\n${authorProfile}\n`
+      : '';
+
+    return `Tu es un thésaurus littéraire expert. Pour le mot donné dans sa phrase de contexte, propose des alternatives qui nuancent l'intention de scène plutôt que de simples synonymes interchangeables.
+
+RÈGLES:
+- Propose entre 3 et 5 alternatives
+- Pour chaque alternative : le mot exact + ce qu'il fait à la scène (l'effet dramatique, pas la définition du dictionnaire)
+- Priorité aux synonymes mot-pour-mot ; n'inclus des tournures que si elles servent mieux l'intention
+- Reste dans la langue du texte (FR→FR, EN→EN)
+- Propose des nuances distinctes, pas des synonymes interchangeables
+- Le champ "register" est optionnel : inclus-le uniquement si le registre est clairement distinct (ex: "littéraire", "argotique", "soutenu", "familier")
+${voiceSection}
+FORMAT DE SORTIE JSON (retourne UNIQUEMENT ce JSON, sans texte avant ni après) :
+{
+  "alternatives": [
+    { "word": "...", "sceneEffect": "...", "register": "..." },
+    { "word": "...", "sceneEffect": "..." }
+  ]
+}`;
+  }
+
+  private parseThesaurusResponse(content: string): WordAlternative[] {
+    const jsonContent = this.extractJson(content);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let parsed: any;
+    try {
+      parsed = JSON.parse(jsonContent);
+    } catch {
+      throw new Error('Failed to parse thesaurus response from Anthropic');
+    }
+
+    if (!Array.isArray(parsed.alternatives)) {
+      throw new Error('Invalid thesaurus response format: missing alternatives array');
+    }
+
+    return parsed.alternatives
+      .filter(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (alt: any) =>
+          typeof alt.word === 'string' &&
+          alt.word.trim().length > 0 &&
+          typeof alt.sceneEffect === 'string' &&
+          alt.sceneEffect.trim().length > 0
+      )
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((alt: any) =>
+        createWordAlternative({
+          word: alt.word,
+          sceneEffect: alt.sceneEffect,
+          register: typeof alt.register === 'string' ? alt.register : undefined,
+        })
+      );
   }
 
   // ===========================
