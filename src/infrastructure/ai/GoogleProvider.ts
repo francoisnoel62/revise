@@ -1542,6 +1542,7 @@ INSTRUCTIONS:
         config: {
           temperature: 0.7,
           maxOutputTokens: 1024,
+          responseMimeType: 'application/json',
         },
       });
 
