@@ -20,6 +20,7 @@ describe('RegisterUserUseCase', () => {
     updatePassword: vi.fn(),
     verifyPassword: vi.fn(),
     hashPassword: vi.fn(),
+    updateAIExchangeLogging: vi.fn(),
   };
 
   const mockEmailService = {

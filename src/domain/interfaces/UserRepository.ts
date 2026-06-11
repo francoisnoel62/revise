@@ -57,4 +57,14 @@ export interface UserRepository {
    * Hash a password for storage.
    */
   hashPassword(password: string): Promise<string>;
+
+  /**
+   * Update the user's AI exchange logging preferences (transparency ledger).
+   * @returns true if the user was updated, false if not found
+   */
+  updateAIExchangeLogging(
+    userId: string,
+    enabled: boolean,
+    retentionDays: number
+  ): Promise<boolean>;
 }

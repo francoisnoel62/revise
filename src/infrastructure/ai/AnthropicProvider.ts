@@ -3,7 +3,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { MessageCreateParamsNonStreaming } from '@anthropic-ai/sdk/resources/messages/messages';
-import { LLMProvider, ConnectionTestResult, TokenUsage } from '@/domain/interfaces/LLMProvider';
+import { LLMProvider, ConnectionTestResult, TokenUsage, ExchangeContent } from '@/domain/interfaces/LLMProvider';
 import { PromptRepository } from '@/domain/interfaces/PromptRepository';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
 import { NarrativeAnalysis } from '@/domain/value-objects/NarrativeAnalysis';
@@ -55,6 +55,7 @@ export class AnthropicProvider implements LLMProvider {
   private model: string;
   private promptRepository: PromptRepository;
   private lastTokenUsage: TokenUsage | null = null;
+  private lastExchange: ExchangeContent | null = null;
 
   constructor(
     apiKey: string,
@@ -70,9 +71,15 @@ export class AnthropicProvider implements LLMProvider {
     return this.lastTokenUsage;
   }
 
+  getLastExchange(): ExchangeContent | null {
+    return this.lastExchange;
+  }
+
   /**
-   * Send a non-streaming message and capture the reported token usage so it can
-   * be retrieved via getLastTokenUsage() by usage-tracking decorators.
+   * Send a non-streaming message and capture the reported token usage and the
+   * exchange content (system prompt, input, raw output) so they can be
+   * retrieved by usage-tracking and transparency decorators. Every operation
+   * routed through this method is captured uniformly.
    */
   private async createMessage(params: MessageCreateParamsNonStreaming) {
     const message = await this.client.messages.create(params);
@@ -81,7 +88,42 @@ export class AnthropicProvider implements LLMProvider {
       outputTokens: message.usage?.output_tokens ?? null,
       cachedInputTokens: message.usage?.cache_read_input_tokens ?? null,
     };
+    this.lastExchange = {
+      systemPrompt: typeof params.system === 'string' ? params.system : '',
+      input: this.stringifyRequestMessages(params.messages),
+      output: this.collectTextContent(message.content),
+    };
     return message;
+  }
+
+  /**
+   * Flatten request messages into the human-readable text actually sent
+   * (selected text + transmitted context), for the transparency ledger.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private stringifyRequestMessages(messages: any[]): string {
+    if (!Array.isArray(messages)) {
+      return '';
+    }
+    return messages
+      .map((m) => (typeof m.content === 'string' ? m.content : ''))
+      .filter((content) => content.length > 0)
+      .join('\n\n');
+  }
+
+  /**
+   * Concatenate all text blocks of a response, skipping thinking blocks.
+   * Unlike extractTextContent it never throws, so capture stays best-effort.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private collectTextContent(content: any[]): string {
+    if (!Array.isArray(content)) {
+      return '';
+    }
+    return content
+      .filter((block) => block.type === 'text')
+      .map((block) => block.text)
+      .join('\n');
   }
 
   /**

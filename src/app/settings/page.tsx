@@ -26,6 +26,7 @@ import { ArrowLeft, Trash2, Download, Shield, KeyRound, CheckCircle } from 'luci
 import { deleteAccountAction } from '@/app/actions/auth-actions';
 import { exportUserDataAction } from '@/app/actions/user-actions';
 import { changePasswordAction } from '@/app/actions/password-actions';
+import { AIExchangeLoggingCard } from '@/components/settings/AIExchangeLoggingCard';
 
 export default function SettingsPage() {
   const { data: session, status } = useSession();
@@ -325,6 +326,9 @@ export default function SettingsPage() {
               </Button>
             </CardContent>
           </Card>
+
+          {/* AI Transparency Ledger */}
+          <AIExchangeLoggingCard />
 
           {/* Delete Account */}
           <Card className="border-red-200">

@@ -11,6 +11,7 @@ import { WritingGoalRepository } from '@/domain/interfaces/WritingGoalRepository
 import { WordCountSnapshotRepository } from '@/domain/interfaces/WordCountSnapshotRepository';
 import { WritingQuotaRepository } from '@/domain/interfaces/WritingQuotaRepository';
 import { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
+import { AIExchangeRepository } from '@/domain/interfaces/AIExchangeRepository';
 import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository';
 import { ContactMessageRepository } from '@/domain/interfaces/ContactMessageRepository';
 import { ProjectTaskRepository } from '@/domain/interfaces/ProjectTaskRepository';
@@ -34,6 +35,8 @@ import { MongoDBWritingGoalRepository } from '@/infrastructure/persistence/Mongo
 import { MongoDBWordCountSnapshotRepository } from '@/infrastructure/persistence/MongoDBWordCountSnapshotRepository';
 import { MongoDBWritingQuotaRepository } from '@/infrastructure/persistence/MongoDBWritingQuotaRepository';
 import { MongoDBUsageRepository } from '@/infrastructure/persistence/MongoDBUsageRepository';
+import { MongoDBExchangeRepository } from '@/infrastructure/persistence/MongoDBExchangeRepository';
+import { getFieldEncryption } from '@/infrastructure/security/FieldEncryption';
 import { MongoDBModelPricingRepository } from '@/infrastructure/persistence/MongoDBModelPricingRepository';
 import { ModelPricingRepository } from '@/domain/interfaces/ModelPricingRepository';
 import { MongoDBBlogArticleRepository } from '@/infrastructure/persistence/MongoDBBlogArticleRepository';
@@ -234,6 +237,23 @@ export async function getAIUsageRepository(): Promise<AIUsageRepository> {
     aiUsageRepoInstance = new MongoDBUsageRepository(db);
   }
   return aiUsageRepoInstance;
+}
+
+/**
+ * Get the AI exchange repository (captured exchange content, encrypted at rest).
+ */
+let aiExchangeRepoInstance: MongoDBExchangeRepository | null = null;
+
+export async function getAIExchangeRepository(): Promise<AIExchangeRepository> {
+  if (!aiExchangeRepoInstance) {
+    const db = await getDatabase();
+    aiExchangeRepoInstance = new MongoDBExchangeRepository(
+      db,
+      getFieldEncryption()
+    );
+    await aiExchangeRepoInstance.ensureIndexes();
+  }
+  return aiExchangeRepoInstance;
 }
 
 /**

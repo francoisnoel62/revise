@@ -133,6 +133,8 @@ describe('TrackedLLMProvider', () => {
       mockIdGenerator,
       'user-1',
       'project-1',
+      null,
+      null,
       mockPricingRepository as never
     );
   });

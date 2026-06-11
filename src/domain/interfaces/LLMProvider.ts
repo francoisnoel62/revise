@@ -33,6 +33,18 @@ export interface TokenUsage {
   cachedInputTokens: number | null;
 }
 
+/**
+ * The real content of a provider's most recent API call: the assembled system
+ * prompt, the user-facing input (selected text + transmitted context), and the
+ * raw model output. Used by the transparency ledger to let authors see exactly
+ * what was sent and received.
+ */
+export interface ExchangeContent {
+  systemPrompt: string;
+  input: string;
+  output: string;
+}
+
 export interface LLMProvider {
   /**
    * Generates multiple rewrite proposals for the given text
@@ -237,4 +249,12 @@ export interface LLMProvider {
    * to record real token consumption per operation.
    */
   getLastTokenUsage?(): TokenUsage | null;
+
+  /**
+   * Returns the real content (system prompt, input, raw output) of the
+   * provider's most recent API call, or null when the provider does not
+   * capture it. Consumed by the transparency ledger to persist a readable
+   * record of each exchange.
+   */
+  getLastExchange?(): ExchangeContent | null;
 }

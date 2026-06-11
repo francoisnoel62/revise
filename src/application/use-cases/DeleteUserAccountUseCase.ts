@@ -13,6 +13,7 @@ import { WritingGoalRepository } from '@/domain/interfaces/WritingGoalRepository
 import { CharacterRepository } from '@/domain/interfaces/CharacterRepository';
 import { ProjectTaskRepository } from '@/domain/interfaces/ProjectTaskRepository';
 import { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
+import { AIExchangeRepository } from '@/domain/interfaces/AIExchangeRepository';
 
 export interface DeleteUserAccountInput {
   userId: string;
@@ -54,7 +55,8 @@ export class DeleteUserAccountUseCase {
     private writingGoalRepository?: WritingGoalRepository,
     private characterRepository?: CharacterRepository,
     private projectTaskRepository?: ProjectTaskRepository,
-    private aiUsageRepository?: AIUsageRepository
+    private aiUsageRepository?: AIUsageRepository,
+    private aiExchangeRepository?: AIExchangeRepository
   ) {}
 
   async execute(input: DeleteUserAccountInput): Promise<DeleteUserAccountResult> {
@@ -91,6 +93,7 @@ export class DeleteUserAccountUseCase {
     await this.characterRepository?.deleteAllByOwner(input.userId);
     await this.projectTaskRepository?.deleteAllByOwner(input.userId);
     await this.aiUsageRepository?.deleteAllByOwner(input.userId);
+    await this.aiExchangeRepository?.deleteAllByOwner(input.userId);
 
     // Delete projects
     const projectsDeleted = await this.projectRepository.deleteAllByOwner(input.userId);
