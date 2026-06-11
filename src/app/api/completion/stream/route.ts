@@ -8,8 +8,8 @@ import {
   getMetadataRepository,
   getResearchDocumentRepository,
   getPromptRepository,
-  createLLMProvider,
 } from '@/infrastructure/config/providers';
+import { getTrackedLLMProviderById } from '@/app/actions/utils';
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
 import { metadataCache } from '@/infrastructure/cache/MetadataCache';
 import { AIContextBuilder } from '@/application/services/AIContextBuilder';
@@ -71,7 +71,8 @@ export async function POST(request: NextRequest) {
 
   if (selectedProvider) {
     console.log('[Autocomplete] Using provider:', selectedProvider.getName(), '(', selectedProvider.getType(), ')', 'model:', selectedProvider.getModel());
-    llmProvider = createLLMProvider(selectedProvider);
+    // Tracked provider so autocompletion usage and exchange content are recorded.
+    llmProvider = await getTrackedLLMProviderById(userId, selectedProvider.getId(), projectId);
   } else if (process.env.OPENAI_API_KEY) {
     // Fallback to environment variable (development only)
     llmProvider = new OpenAIProvider(
