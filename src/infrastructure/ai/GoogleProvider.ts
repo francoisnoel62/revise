@@ -1596,7 +1596,9 @@ FORMAT DE SORTIE JSON (retourne UNIQUEMENT ce JSON, sans texte avant ni après) 
       try {
         parsed = JSON.parse(content.trim());
       } catch {
-        throw new Error('Failed to parse thesaurus response from Google AI');
+        throw new Error(
+          `Failed to parse thesaurus response from Google AI. Raw (first 300): ${content.trim().slice(0, 300)}`
+        );
       }
     }
 
