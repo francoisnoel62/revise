@@ -3,6 +3,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TrackedLLMProvider } from '@/infrastructure/ai/TrackedLLMProvider';
+import { getModelPricingRepository } from '@/infrastructure/config/providers';
 
 // Mock infrastructure dependencies
 vi.mock('@/infrastructure/config/providers', () => ({
@@ -55,6 +56,10 @@ vi.mock('@/infrastructure/config/providers', () => ({
     deleteAllByOwner: vi.fn(),
     ensureIndexes: vi.fn(),
   }),
+  // The tracked provider needs the pricing repository to compute euro costs.
+  getModelPricingRepository: vi.fn().mockResolvedValue({
+    findAll: vi.fn().mockResolvedValue([]),
+  }),
 }));
 
 vi.mock('@/infrastructure/utils/ObjectIdGenerator', () => ({
@@ -100,6 +105,14 @@ describe('AI Usage Tracking Integration', () => {
       expect(typeof provider.generateChapter).toBe('function');
       expect(typeof provider.generateCompletion).toBe('function');
     });
+
+    it('wires the pricing repository so euro costs can be computed', async () => {
+      const { getTrackedLLMProviderForProject } = await import('../utils');
+
+      await getTrackedLLMProviderForProject('user-1', 'project-1');
+
+      expect(getModelPricingRepository).toHaveBeenCalled();
+    });
   });
 
   describe('getTrackedLLMProviderById', () => {
@@ -119,6 +132,14 @@ describe('AI Usage Tracking Integration', () => {
       // TrackedLLMProvider should have all LLMProvider methods
       expect(typeof provider.generateRewrites).toBe('function');
       expect(typeof provider.generateCompletion).toBe('function');
+    });
+
+    it('wires the pricing repository so euro costs can be computed', async () => {
+      const { getTrackedLLMProviderById } = await import('../utils');
+
+      await getTrackedLLMProviderById('user-1', 'provider-1', 'project-1');
+
+      expect(getModelPricingRepository).toHaveBeenCalled();
     });
   });
 

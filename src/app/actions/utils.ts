@@ -25,6 +25,7 @@ import {
   getResearchDocumentRepository as getResearchDocumentRepositoryFromConfig,
   getBlobStorage as getBlobStorageFromConfig,
   getPromptRepository,
+  getModelPricingRepository,
   createLLMProvider,
   getDocumentParser as getDocumentParserFromConfig,
   getFolderParser as getFolderParserFromConfig,
@@ -403,6 +404,7 @@ export async function getTrackedLLMProviderForProject(
 ): Promise<LLMProvider> {
   const baseProvider = await getLLMProviderForProject(userId, projectId);
   const usageRepo = await getAIUsageRepo();
+  const pricingRepo = await getModelPricingRepository();
   const { exchangeRepository, exchangeLogging } =
     await resolveExchangeLogging(userId);
 
@@ -413,7 +415,8 @@ export async function getTrackedLLMProviderForProject(
     userId,
     projectId,
     exchangeRepository,
-    exchangeLogging
+    exchangeLogging,
+    pricingRepo
   );
 }
 
@@ -452,6 +455,7 @@ export async function getTrackedLLMProviderById(
 ): Promise<LLMProvider> {
   const baseProvider = await getLLMProviderById(userId, providerId);
   const usageRepo = await getAIUsageRepo();
+  const pricingRepo = await getModelPricingRepository();
   const { exchangeRepository, exchangeLogging } =
     await resolveExchangeLogging(userId);
 
@@ -462,7 +466,8 @@ export async function getTrackedLLMProviderById(
     userId,
     projectId,
     exchangeRepository,
-    exchangeLogging
+    exchangeLogging,
+    pricingRepo
   );
 }
 
