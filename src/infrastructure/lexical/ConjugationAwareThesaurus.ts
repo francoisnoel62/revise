@@ -36,11 +36,14 @@ export class ConjugationAwareThesaurus implements Thesaurus {
       if (!targetMorph) continue;
 
       const synonymLemmas = await this.base.lookup(form.lemma);
+      const inflected = await this.morphology.inflectBatch(synonymLemmas, 'VER', targetMorph);
+
+      // Iterate the original synonyms to preserve their order
       for (const synonym of synonymLemmas) {
-        const inflected = await this.morphology.inflect(synonym, 'VER', targetMorph);
-        if (inflected && !seen.has(inflected)) {
-          seen.add(inflected);
-          results.push(inflected);
+        const surface = inflected.get(synonym.trim().toLowerCase());
+        if (surface && !seen.has(surface)) {
+          seen.add(surface);
+          results.push(surface);
         }
       }
     }

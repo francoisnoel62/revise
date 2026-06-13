@@ -39,4 +39,28 @@ export class FrenchMorphology implements Morphology {
     const match = doc.forms.find((form) => form.morphs.includes(morph));
     return match?.ortho ?? null;
   }
+
+  async inflectBatch(
+    lemmas: string[],
+    cgram: string,
+    morph: string
+  ): Promise<Map<string, string>> {
+    const result = new Map<string, string>();
+    const suffix = `|${cgram}`;
+
+    const keys = [...new Set(lemmas.map((l) => l.trim().toLowerCase()))]
+      .filter((l) => l.length > 0)
+      .map((l) => `${l}${suffix}`);
+    if (keys.length === 0) return result;
+
+    const docs = await this.conjugations.find({ _id: { $in: keys } }).toArray();
+    for (const doc of docs) {
+      const match = doc.forms.find((form) => form.morphs.includes(morph));
+      if (match) {
+        const lemma = doc._id.slice(0, -suffix.length);
+        result.set(lemma, match.ortho);
+      }
+    }
+    return result;
+  }
 }

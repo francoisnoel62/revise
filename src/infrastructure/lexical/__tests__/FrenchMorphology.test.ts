@@ -7,11 +7,15 @@ import type { Db } from 'mongodb';
 
 const formsFindOne = vi.fn();
 const conjugationsFindOne = vi.fn();
+const conjugationsToArray = vi.fn();
+const conjugationsFind = vi.fn(() => ({ toArray: conjugationsToArray }));
 
 const mockDb = {
-  collection: vi.fn((name: string) => ({
-    findOne: name === 'lexique_forms' ? formsFindOne : conjugationsFindOne,
-  })),
+  collection: vi.fn((name: string) =>
+    name === 'lexique_forms'
+      ? { findOne: formsFindOne }
+      : { findOne: conjugationsFindOne, find: conjugationsFind }
+  ),
 } as unknown as Db;
 
 describe('FrenchMorphology', () => {
@@ -106,6 +110,53 @@ describe('FrenchMorphology', () => {
 
       expect(mockDb.collection).toHaveBeenCalledWith('lexique_conjugations');
       expect(conjugationsFindOne).toHaveBeenCalledWith({ _id: 'observer|VER' });
+    });
+  });
+
+  describe('inflectBatch', () => {
+    it('re-inflects many lemmas in a single $in query', async () => {
+      conjugationsToArray.mockResolvedValue([
+        { _id: 'observer|VER', forms: [{ morphs: ['ind:imp:3s'], ortho: 'observait' }] },
+        { _id: 'scruter|VER', forms: [{ morphs: ['ind:imp:3s'], ortho: 'scrutait' }] },
+      ]);
+
+      const result = await morphology.inflectBatch(
+        ['observer', 'scruter', 'épier'],
+        'VER',
+        'ind:imp:3s'
+      );
+
+      expect(conjugationsFind).toHaveBeenCalledWith({
+        _id: { $in: ['observer|VER', 'scruter|VER', 'épier|VER'] },
+      });
+      expect(result.get('observer')).toBe('observait');
+      expect(result.get('scruter')).toBe('scrutait');
+      expect(result.has('épier')).toBe(false);
+    });
+
+    it('omits lemmas whose forms do not carry the target tag', async () => {
+      conjugationsToArray.mockResolvedValue([
+        { _id: 'observer|VER', forms: [{ morphs: ['inf:'], ortho: 'observer' }] },
+      ]);
+
+      const result = await morphology.inflectBatch(['observer'], 'VER', 'ind:imp:3s');
+
+      expect(result.size).toBe(0);
+    });
+
+    it('normalizes and de-duplicates keys before querying', async () => {
+      conjugationsToArray.mockResolvedValue([]);
+
+      await morphology.inflectBatch(['Observer', 'observer'], 'VER', 'ind:imp:3s');
+
+      expect(conjugationsFind).toHaveBeenCalledWith({ _id: { $in: ['observer|VER'] } });
+    });
+
+    it('returns an empty map without querying for an empty list', async () => {
+      const result = await morphology.inflectBatch([], 'VER', 'ind:imp:3s');
+
+      expect(result.size).toBe(0);
+      expect(conjugationsFind).not.toHaveBeenCalled();
     });
   });
 });

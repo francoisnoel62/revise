@@ -8,10 +8,10 @@ import type { Morphology } from '@/domain/interfaces/Morphology';
 
 const baseLookup = vi.fn();
 const lemmatize = vi.fn();
-const inflect = vi.fn();
+const inflectBatch = vi.fn();
 
 const base = { lookup: baseLookup } as unknown as Thesaurus;
-const morphology = { lemmatize, inflect } as unknown as Morphology;
+const morphology = { lemmatize, inflectBatch } as unknown as Morphology;
 
 describe('ConjugationAwareThesaurus', () => {
   let thesaurus: ConjugationAwareThesaurus;
@@ -24,20 +24,40 @@ describe('ConjugationAwareThesaurus', () => {
   it('re-inflects synonyms to match a conjugated verb', async () => {
     lemmatize.mockResolvedValue([{ lemma: 'regarder', cgram: 'VER', morphs: ['ind:imp:3s'] }]);
     baseLookup.mockResolvedValue(['observer', 'scruter', 'épier']);
-    inflect.mockImplementation(async (lemma: string) => `${lemma.slice(0, -2)}ait`);
+    inflectBatch.mockResolvedValue(
+      new Map([
+        ['observer', 'observait'],
+        ['scruter', 'scrutait'],
+        ['épier', 'épiait'],
+      ])
+    );
 
     const result = await thesaurus.lookup('regardait');
 
     expect(baseLookup).toHaveBeenCalledWith('regarder');
+    expect(inflectBatch).toHaveBeenCalledWith(['observer', 'scruter', 'épier'], 'VER', 'ind:imp:3s');
     expect(result).toEqual(['observait', 'scrutait', 'épiait']);
+  });
+
+  it('preserves the synonym order when re-inflecting', async () => {
+    lemmatize.mockResolvedValue([{ lemma: 'regarder', cgram: 'VER', morphs: ['ind:imp:3s'] }]);
+    baseLookup.mockResolvedValue(['scruter', 'observer']);
+    inflectBatch.mockResolvedValue(
+      new Map([
+        ['observer', 'observait'],
+        ['scruter', 'scrutait'],
+      ])
+    );
+
+    const result = await thesaurus.lookup('regardait');
+
+    expect(result).toEqual(['scrutait', 'observait']);
   });
 
   it('drops synonyms that cannot be re-inflected', async () => {
     lemmatize.mockResolvedValue([{ lemma: 'regarder', cgram: 'VER', morphs: ['ind:imp:3s'] }]);
     baseLookup.mockResolvedValue(['observer', 'scruter']);
-    inflect.mockImplementation(async (lemma: string) =>
-      lemma === 'observer' ? 'observait' : null
-    );
+    inflectBatch.mockResolvedValue(new Map([['observer', 'observait']]));
 
     const result = await thesaurus.lookup('regardait');
 
@@ -47,7 +67,7 @@ describe('ConjugationAwareThesaurus', () => {
   it('falls back to infinitive synonyms when nothing can be re-inflected', async () => {
     lemmatize.mockResolvedValue([{ lemma: 'regarder', cgram: 'VER', morphs: ['ind:imp:3s'] }]);
     baseLookup.mockResolvedValue(['observer', 'scruter']);
-    inflect.mockResolvedValue(null);
+    inflectBatch.mockResolvedValue(new Map());
 
     const result = await thesaurus.lookup('regardait');
 
@@ -61,7 +81,7 @@ describe('ConjugationAwareThesaurus', () => {
     const result = await thesaurus.lookup('regarder');
 
     expect(result).toEqual(['observer', 'scruter']);
-    expect(inflect).not.toHaveBeenCalled();
+    expect(inflectBatch).not.toHaveBeenCalled();
   });
 
   it('uses a plain lookup when the word is not a known verb form', async () => {
@@ -72,7 +92,7 @@ describe('ConjugationAwareThesaurus', () => {
 
     expect(baseLookup).toHaveBeenCalledWith('maisons');
     expect(result).toEqual(['demeure']);
-    expect(inflect).not.toHaveBeenCalled();
+    expect(inflectBatch).not.toHaveBeenCalled();
   });
 
   it('uses a plain lookup when the form is unknown to the morphology', async () => {
@@ -90,7 +110,7 @@ describe('ConjugationAwareThesaurus', () => {
       { lemma: 'achever', cgram: 'VER', morphs: ['ind:imp:3s'] },
     ]);
     baseLookup.mockResolvedValue(['terminer']);
-    inflect.mockResolvedValue('terminait');
+    inflectBatch.mockResolvedValue(new Map([['terminer', 'terminait']]));
 
     const result = await thesaurus.lookup('finissait');
 
