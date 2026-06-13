@@ -153,4 +153,46 @@ describe('ThesaurusPalette', () => {
     expect(mockEditor.chain).toHaveBeenCalled();
     expect(mockChain.insertContent).toHaveBeenCalledWith('observer');
   });
+
+  it('shows an error message when the AI action fails', async () => {
+    vi.mocked(getAIAlternativesAction).mockResolvedValue({
+      success: false,
+      error: 'quota dépassé',
+    });
+    renderAndRightClick();
+
+    await waitFor(() => expect(screen.getByText('Aller plus loin')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Aller plus loin'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/n'a pas pu répondre/i)).toBeInTheDocument();
+    });
+  });
+
+  it('shows an error message when the AI action throws', async () => {
+    vi.mocked(getAIAlternativesAction).mockRejectedValue(new Error('network'));
+    renderAndRightClick();
+
+    await waitFor(() => expect(screen.getByText('Aller plus loin')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Aller plus loin'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/n'a pas pu répondre/i)).toBeInTheDocument();
+    });
+  });
+
+  it('shows an empty-state message when the AI returns no alternatives', async () => {
+    vi.mocked(getAIAlternativesAction).mockResolvedValue({
+      success: true,
+      data: { layer1: ['observer'], layer2: [], voiceAnchored: false },
+    });
+    renderAndRightClick();
+
+    await waitFor(() => expect(screen.getByText('Aller plus loin')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Aller plus loin'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/aucune alternative/i)).toBeInTheDocument();
+    });
+  });
 });

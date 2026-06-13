@@ -24,6 +24,7 @@ export function ThesaurusPalette({ editor, projectId, showAILayer }: ThesaurusPa
   const [layer1Loading, setLayer1Loading] = useState(false);
   const [layer2Loading, setLayer2Loading] = useState(false);
   const [voiceAnchored, setVoiceAnchored] = useState(false);
+  const [aiError, setAiError] = useState(false);
   const [showAIResults, setShowAIResults] = useState(false);
   const [visible, setVisible] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
@@ -104,6 +105,7 @@ export function ThesaurusPalette({ editor, projectId, showAILayer }: ThesaurusPa
       lastLoadedWordRef.current = word;
       setShowAIResults(false);
       setLayer2([]);
+      setAiError(false);
       setPosition({ top: event.clientY, left: event.clientX });
 
       editor.chain().focus().setTextSelection({ from, to }).run();
@@ -144,12 +146,17 @@ export function ThesaurusPalette({ editor, projectId, showAILayer }: ThesaurusPa
     const { word, sentence } = capturedRef.current;
     setLayer2Loading(true);
     setShowAIResults(true);
+    setAiError(false);
     try {
       const result = await getAIAlternativesAction(projectId, word, sentence);
       if (result.success) {
         setLayer2(result.data.layer2);
         setVoiceAnchored(result.data.voiceAnchored);
+      } else {
+        setAiError(true);
       }
+    } catch {
+      setAiError(true);
     } finally {
       setLayer2Loading(false);
     }
@@ -237,6 +244,12 @@ export function ThesaurusPalette({ editor, projectId, showAILayer }: ThesaurusPa
               <div className="animate-spin h-3 w-3 border-2 border-blue-500 border-t-transparent rounded-full" />
               <span className="text-xs text-slate-400">IA en cours…</span>
             </div>
+          ) : aiError ? (
+            <p className="text-xs text-amber-600 italic py-1">
+              L&apos;IA n&apos;a pas pu répondre. Réessaie dans un instant.
+            </p>
+          ) : layer2.length === 0 ? (
+            <p className="text-xs text-slate-400 italic py-1">Aucune alternative proposée</p>
           ) : (
             <div className="space-y-2">
               {layer2.map((alt) => (
