@@ -616,7 +616,7 @@ function EditorContent() {
               onEditorReady={(editorInstance) => setEditor(editorInstance)}
               autocompleteEnabled={autocompleteEnabled}
             />
-            {/* Thesaurus palette — inline BubbleMenu triggered on single word selection */}
+            {/* Thesaurus palette — opens on right-click of a word in the editor */}
             <ThesaurusPalette
               editor={editor}
               projectId={project.id}

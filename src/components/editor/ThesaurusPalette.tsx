@@ -50,69 +50,70 @@ export function ThesaurusPalette({ editor, projectId, showAILayer }: ThesaurusPa
     [projectId]
   );
 
-  // Inspect the editor state, capture the selection and trigger layer1 if it's a new single word.
-  // Returns true when the palette should be visible, false otherwise.
-  const detectAndCapture = useCallback(
-    (e: Editor): boolean => {
-      const { from, to } = e.state.selection;
-      if (to <= from) return false;
+  // Find the word under a screen coordinate. Returns the word's document range and its
+  // enclosing paragraph (used as the sentence context), or null when the point is not on a word.
+  const findWordAt = useCallback(
+    (e: Editor, clientX: number, clientY: number) => {
+      const view = (e as unknown as {
+        view: { posAtCoords: (c: { left: number; top: number }) => { pos: number } | null };
+      }).view;
+      const hit = view.posAtCoords({ left: clientX, top: clientY });
+      if (!hit) return null;
 
-      const text = e.state.doc.textBetween(from, to).trim();
-      if (text.includes(' ') || text.length < 2) return false;
+      const doc = e.state.doc as unknown as {
+        resolve: (pos: number) => { start: () => number; end: () => number };
+        textBetween: (from: number, to: number) => string;
+      };
+      const $pos = doc.resolve(hit.pos);
+      const paragraphStart = $pos.start();
+      const sentence = doc.textBetween(paragraphStart, $pos.end());
+      const offset = hit.pos - paragraphStart;
 
-      if (text !== lastLoadedWordRef.current) {
-        let sentence = text;
-        try {
-          // $from is a ProseMirror ResolvedPos giving paragraph boundaries
-          const { $from } = e.state.selection as unknown as {
-            $from: { start: () => number; end: () => number };
-          };
-          sentence = e.state.doc.textBetween($from.start(), $from.end());
-        } catch {
-          // $from unavailable (e.g. in tests) — use selected text as fallback
-        }
+      // Word characters: letters, combining marks, apostrophes and hyphens (e.g. "aujourd'hui", "peut-être")
+      const isWordChar = (c: string | undefined) => !!c && /[\p{L}\p{M}'’-]/u.test(c);
+      let start = offset;
+      while (start > 0 && isWordChar(sentence[start - 1])) start--;
+      let end = offset;
+      while (end < sentence.length && isWordChar(sentence[end])) end++;
 
-        capturedRef.current = { from, to, word: text, sentence };
-        lastLoadedWordRef.current = text;
-        setShowAIResults(false);
-        setLayer2([]);
-        triggerLayer1(text);
-      }
-
-      // Compute screen position for the overlay
-      try {
-        const view = (e as unknown as { view: { coordsAtPos: (pos: number) => { top: number; left: number } } }).view;
-        const coords = view.coordsAtPos(from);
-        setPosition({ top: coords.top, left: coords.left });
-      } catch {
-        // DOM/view unavailable (tests) — keep default position
-      }
-
-      return true;
+      const word = sentence.slice(start, end);
+      if (word.length < 2) return null;
+      return { from: paragraphStart + start, to: paragraphStart + end, word, sentence };
     },
-    [triggerLayer1]
+    []
   );
 
-  // Initial detection on editor mount — handles tests where editor.on is not wired
+  // Right-click on a word opens the palette and loads its lexical synonyms.
+  // The native context menu is suppressed only when the click lands on a word.
   useEffect(() => {
     if (!editor) return;
-    const shouldShow = detectAndCapture(editor);
-    if (shouldShow) setVisible(true);
-  }, [editor, detectAndCapture]);
+    const dom = (editor as unknown as { view?: { dom?: HTMLElement } }).view?.dom;
+    if (!dom) return;
 
-  // Subscribe to selection changes for real-time detection in production
-  useEffect(() => {
-    if (!editor) return;
+    const handleContextMenu = (event: globalThis.MouseEvent) => {
+      const match = findWordAt(editor, event.clientX, event.clientY);
+      if (!match) {
+        setVisible(false);
+        lastLoadedWordRef.current = '';
+        return;
+      }
+      event.preventDefault();
 
-    const handleSelectionUpdate = () => {
-      const shouldShow = detectAndCapture(editor);
-      setVisible(shouldShow);
-      if (!shouldShow) lastLoadedWordRef.current = '';
+      const { from, to, word, sentence } = match;
+      capturedRef.current = { from, to, word, sentence };
+      lastLoadedWordRef.current = word;
+      setShowAIResults(false);
+      setLayer2([]);
+      setPosition({ top: event.clientY, left: event.clientX });
+
+      editor.chain().focus().setTextSelection({ from, to }).run();
+      triggerLayer1(word);
+      setVisible(true);
     };
 
-    editor.on('selectionUpdate', handleSelectionUpdate);
-    return () => { editor.off('selectionUpdate', handleSelectionUpdate); };
-  }, [editor, detectAndCapture]);
+    dom.addEventListener('contextmenu', handleContextMenu);
+    return () => dom.removeEventListener('contextmenu', handleContextMenu);
+  }, [editor, findWordAt, triggerLayer1]);
 
   // Close on click outside the palette
   useEffect(() => {
