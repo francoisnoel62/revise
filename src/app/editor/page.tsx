@@ -26,6 +26,7 @@ import { updateProjectProviderAction } from '@/app/actions/project-actions';
 import { generateChapterAction } from '@/app/actions/chapter-generation-actions';
 import { CorrectionHistoryDialog } from '@/components/history/CorrectionHistoryDialog';
 import { FloatingGenerationMenu } from '@/components/editor/FloatingGenerationMenu';
+import { ThesaurusPalette } from '@/components/editor/ThesaurusPalette';
 import { PublishDialog } from '@/components/publish/PublishDialog';
 import { CommandPalette } from '@/components/editor/CommandPalette';
 import { SearchReplaceBar } from '@/components/editor/SearchReplaceBar';
@@ -614,6 +615,12 @@ function EditorContent() {
               onSelectionChange={handleSelectionChange}
               onEditorReady={(editorInstance) => setEditor(editorInstance)}
               autocompleteEnabled={autocompleteEnabled}
+            />
+            {/* Thesaurus palette — opens on right-click of a word in the editor */}
+            <ThesaurusPalette
+              editor={editor}
+              projectId={project.id}
+              showAILayer={hasAIProviders}
             />
             {/* Show AI generation menu when editor is empty and AI features are available */}
             <FloatingGenerationMenu

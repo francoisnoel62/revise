@@ -108,6 +108,7 @@ describe('TrackedLLMProvider', () => {
       generateCompletionStream: vi.fn(),
       chatStream: vi.fn(),
       generateCharacterSheet: vi.fn().mockResolvedValue({}),
+      suggestAlternatives: vi.fn().mockResolvedValue([]),
     } as unknown as LLMProvider;
 
     mockRepository = {
@@ -326,6 +327,25 @@ describe('TrackedLLMProvider', () => {
       const record = (mockRepository.save as ReturnType<typeof vi.fn>).mock.calls[0][0];
       expect(record.getInputTokens()).toBe(80);
       expect(record.getOutputTokens()).toBe(25);
+    });
+  });
+
+  describe('suggestAlternatives', () => {
+    it('delegates to wrapped provider and tracks usage', async () => {
+      const result = await trackedProvider.suggestAlternatives('regarder', 'Elle le regardait.');
+
+      expect(mockProvider.suggestAlternatives).toHaveBeenCalledWith(
+        'regarder',
+        'Elle le regardait.',
+        undefined
+      );
+      expect(result).toEqual([]);
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(mockRepository.save).toHaveBeenCalled();
+      const savedRecord = (mockRepository.save as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(savedRecord.getOperation()).toBe('suggest_alternatives');
     });
   });
 

@@ -14,6 +14,7 @@ export const AI_OPERATION_TYPES = [
   'completion',
   'character_chat',
   'character_sheet',
+  'suggest_alternatives',
 ] as const;
 
 export type AIOperationType = (typeof AI_OPERATION_TYPES)[number];
@@ -35,4 +36,5 @@ export const AI_OPERATION_LABELS: Record<AIOperationType, string> = {
   completion: 'Autocomplétion',
   character_chat: 'Chat personnage',
   character_sheet: 'Génération fiche personnage',
+  suggest_alternatives: 'Suggestions de synonymes',
 };

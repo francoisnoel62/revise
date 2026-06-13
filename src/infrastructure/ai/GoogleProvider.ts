@@ -15,6 +15,7 @@ import { ChapterSummaries } from '@/domain/value-objects/ChapterSummaries';
 import { ChapterGeneration } from '@/domain/value-objects/ChapterGeneration';
 import { ChapterGenerationTypeKey } from '@/domain/value-objects/ChapterGenerationType';
 import { ChatMessage } from '@/domain/value-objects/ChatMessage';
+import { WordAlternative, createWordAlternative } from '@/domain/value-objects/WordAlternative';
 
 interface ProposalResponse {
   proposals: Array<{
@@ -1492,6 +1493,115 @@ INSTRUCTIONS:
       narrativeFunction: parsed.narrativeFunction,
       openQuestions: parsed.openQuestions,
     };
+  }
+
+  // =============================
+  // THESAURUS — SUGGEST ALTERNATIVES
+  // =============================
+
+  async suggestAlternatives(
+    word: string,
+    sentence: string,
+    authorProfile?: string
+  ): Promise<WordAlternative[]> {
+    const systemPrompt = this.buildThesaurusSystemPrompt(authorProfile);
+
+    try {
+      const result = await this.client.models.generateContent({
+        model: this.modelName,
+        contents: `${systemPrompt}\n\n---\n\nMot : ${word}\nPhrase de contexte : ${sentence}`,
+        config: {
+          temperature: 0.7,
+          maxOutputTokens: 2048,
+          responseMimeType: 'application/json',
+          // Gemini 3 Pro defaults to "high" thinking, which consumes the output
+          // budget before emitting the JSON and truncates it mid-string.
+          thinkingConfig: {
+            thinkingLevel: ThinkingLevel.MINIMAL,
+          },
+        },
+      });
+
+      this.captureUsage(result);
+      const content = result.text;
+      if (!content) {
+        throw new Error('Empty response from Google AI');
+      }
+
+      return this.parseThesaurusResponse(content);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error during thesaurus suggestion');
+    }
+  }
+
+  private buildThesaurusSystemPrompt(authorProfile?: string): string {
+    const voiceSection = authorProfile
+      ? `\nVOIX DU PROJET — ancre tes propositions sur cette voix :\n${authorProfile}\n`
+      : '';
+
+    return `Tu es un thésaurus littéraire expert. Pour le mot donné dans sa phrase de contexte, propose des alternatives qui nuancent l'intention de scène plutôt que de simples synonymes interchangeables.
+
+RÈGLES:
+- Propose entre 3 et 5 alternatives
+- Pour chaque alternative : le mot exact + ce qu'il fait à la scène (l'effet dramatique, pas la définition du dictionnaire)
+- Priorité aux synonymes mot-pour-mot ; n'inclus des tournures que si elles servent mieux l'intention
+- Reste dans la langue du texte (FR→FR, EN→EN)
+- Propose des nuances distinctes, pas des synonymes interchangeables
+- Le champ "register" est optionnel : inclus-le uniquement si le registre est clairement distinct (ex: "littéraire", "argotique", "soutenu", "familier")
+${voiceSection}
+FORMAT DE SORTIE JSON (retourne UNIQUEMENT ce JSON, sans texte avant ni après) :
+{
+  "alternatives": [
+    { "word": "...", "sceneEffect": "...", "register": "..." },
+    { "word": "...", "sceneEffect": "..." }
+  ]
+}`;
+  }
+
+  private parseThesaurusResponse(content: string): WordAlternative[] {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let parsed: any;
+    try {
+      parsed = JSON.parse(this.extractJson(content));
+    } catch {
+      // extractJson mangles top-level JSON arrays ([{...},{...}]) by slicing {…},{…}
+      // which is not valid JSON. Fall back to parsing the raw content directly.
+      try {
+        parsed = JSON.parse(content.trim());
+      } catch {
+        throw new Error(
+          `Failed to parse thesaurus response from Google AI. Raw (first 300): ${content.trim().slice(0, 300)}`
+        );
+      }
+    }
+
+    // Accept both {"alternatives":[...]} (expected) and [...] (JSON-mode shorthand)
+    const alternatives: unknown[] = Array.isArray(parsed) ? parsed : parsed.alternatives;
+
+    if (!Array.isArray(alternatives)) {
+      throw new Error('Invalid thesaurus response format: missing alternatives array');
+    }
+
+    return alternatives
+      .filter(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (alt: any) =>
+          typeof alt.word === 'string' &&
+          alt.word.trim().length > 0 &&
+          typeof alt.sceneEffect === 'string' &&
+          alt.sceneEffect.trim().length > 0
+      )
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((alt: any) =>
+        createWordAlternative({
+          word: alt.word,
+          sceneEffect: alt.sceneEffect,
+          register: typeof alt.register === 'string' ? alt.register : undefined,
+        })
+      );
   }
 
   // ===========================

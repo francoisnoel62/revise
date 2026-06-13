@@ -2,6 +2,7 @@
 // ABOUTME: Abstracts text generation to allow swappable implementations (OpenAI, Anthropic, etc.)
 
 import { RewriteProposal } from '../value-objects/RewriteProposal';
+import { WordAlternative } from '../value-objects/WordAlternative';
 import { NarrativeAnalysis } from '../value-objects/NarrativeAnalysis';
 import { StylisticDNA } from '../value-objects/StylisticDNA';
 import { Characters } from '../value-objects/Characters';
@@ -242,6 +243,21 @@ export interface LLMProvider {
     existingFields: Omit<CharacterProfile, 'name'>,
     projectContext: string
   ): Promise<Omit<CharacterProfile, 'name'>>;
+
+  /**
+   * Suggests word alternatives for the given word in its sentence context.
+   * Layer 2 of the contextual thesaurus — AI-powered, scene-effect justified.
+   *
+   * @param word The word to find alternatives for
+   * @param sentence The sentence containing the word (provides context)
+   * @param authorProfile Optional author voice profile from AIContextBuilder
+   * @returns Promise resolving to an array of WordAlternative (3-5 proposals)
+   */
+  suggestAlternatives(
+    word: string,
+    sentence: string,
+    authorProfile?: string
+  ): Promise<WordAlternative[]>;
 
   /**
    * Returns the token usage of the provider's most recent API call,

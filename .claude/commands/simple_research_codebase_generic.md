@@ -10,7 +10,6 @@ Before beginning any setup or responding to user queries, it is essential to rev
 - .claude/philosophie.md — if missing, notify the user.
 - package.json — if missing, notify the user.
 - CLAUDE.md
-- all documentation files in /docs/*
 - all readme files in /src/*
 
 These documents define the philosophical, collaborative, and technical foundations of the project and must be understood before any action is taken.

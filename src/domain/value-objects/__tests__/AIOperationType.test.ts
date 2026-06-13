@@ -25,8 +25,12 @@ describe('AIOperationType', () => {
       expect(AI_OPERATION_TYPES).toContain('character_sheet');
     });
 
-    it('has exactly 12 operation types', () => {
-      expect(AI_OPERATION_TYPES).toHaveLength(12);
+    it('has exactly 13 operation types', () => {
+      expect(AI_OPERATION_TYPES).toHaveLength(13);
+    });
+
+    it('contains suggest_alternatives', () => {
+      expect(AI_OPERATION_TYPES).toContain('suggest_alternatives');
     });
   });
 
@@ -57,6 +61,7 @@ describe('AIOperationType', () => {
       expect(AI_OPERATION_LABELS.rewrite).toBe('Réécriture');
       expect(AI_OPERATION_LABELS.narrative_analysis).toBe('Analyse narrative');
       expect(AI_OPERATION_LABELS.completion).toBe('Autocomplétion');
+      expect(AI_OPERATION_LABELS.suggest_alternatives).toBe('Suggestions de synonymes');
     });
   });
 });

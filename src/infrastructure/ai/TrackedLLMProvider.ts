@@ -23,6 +23,7 @@ import { ChapterSummaries } from '@/domain/value-objects/ChapterSummaries';
 import { ChapterGeneration } from '@/domain/value-objects/ChapterGeneration';
 import { ChapterGenerationTypeKey } from '@/domain/value-objects/ChapterGenerationType';
 import { ChatMessage } from '@/domain/value-objects/ChatMessage';
+import { WordAlternative } from '@/domain/value-objects/WordAlternative';
 
 export interface ExchangeLoggingConfig {
   enabled: boolean;
@@ -370,6 +371,16 @@ export class TrackedLLMProvider implements LLMProvider {
   ): Promise<Omit<CharacterProfile, 'name'>> {
     return this.trackUsage('character_sheet', () =>
       this.wrapped.generateCharacterSheet(characterName, existingFields, projectContext)
+    );
+  }
+
+  async suggestAlternatives(
+    word: string,
+    sentence: string,
+    authorProfile?: string
+  ): Promise<WordAlternative[]> {
+    return this.trackUsage('suggest_alternatives', () =>
+      this.wrapped.suggestAlternatives(word, sentence, authorProfile)
     );
   }
 }
