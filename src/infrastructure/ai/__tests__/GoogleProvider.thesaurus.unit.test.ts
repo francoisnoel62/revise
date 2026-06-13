@@ -15,7 +15,7 @@ vi.mock('@google/genai', () => {
         generateContent: mockGenerateContent,
       };
     },
-    ThinkingLevel: { NONE: 'NONE', LOW: 'LOW' },
+    ThinkingLevel: { NONE: 'NONE', LOW: 'LOW', MINIMAL: 'MINIMAL' },
   };
 });
 
@@ -43,6 +43,9 @@ describe('GoogleProvider.suggestAlternatives', () => {
   const getContents = (): string =>
     mockGenerateContent.mock.calls[0][0].contents as string;
 
+  const getConfig = () =>
+    mockGenerateContent.mock.calls[0][0].config;
+
   it('returns WordAlternative array from valid response', async () => {
     const result = await provider.suggestAlternatives('regarder', 'Elle le regardait depuis la fenêtre.');
 
@@ -51,6 +54,15 @@ describe('GoogleProvider.suggestAlternatives', () => {
     expect(result[0].word).toBe('épier');
     expect(result[0].sceneEffect).toBe('installe une menace silencieuse');
     expect(result[0].register).toBe('courant');
+  });
+
+  it('caps thinking so the JSON output is not truncated', async () => {
+    // Gemini 3 Pro defaults to "high" thinking, which consumes maxOutputTokens
+    // before emitting the JSON and truncates the response mid-string.
+    await provider.suggestAlternatives('regarder', 'Elle le regardait depuis la fenêtre.');
+
+    const config = getConfig();
+    expect(config.thinkingConfig).toEqual({ thinkingLevel: 'MINIMAL' });
   });
 
   it('includes word and sentence in contents', async () => {

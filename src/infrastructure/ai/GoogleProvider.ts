@@ -1541,8 +1541,13 @@ INSTRUCTIONS:
         contents: `${systemPrompt}\n\n---\n\nMot : ${word}\nPhrase de contexte : ${sentence}`,
         config: {
           temperature: 0.7,
-          maxOutputTokens: 1024,
+          maxOutputTokens: 2048,
           responseMimeType: 'application/json',
+          // Gemini 3 Pro defaults to "high" thinking, which consumes the output
+          // budget before emitting the JSON and truncates it mid-string.
+          thinkingConfig: {
+            thinkingLevel: ThinkingLevel.MINIMAL,
+          },
         },
       });
 
