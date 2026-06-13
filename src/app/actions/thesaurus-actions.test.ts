@@ -39,6 +39,7 @@ vi.mock('@/infrastructure/lexical', () => {
     JeuxDeMotsThesaurus: class {
       lookup = mockLookup;
     },
+    createThesaurus: vi.fn(() => ({ lookup: mockLookup })),
   };
 });
 
