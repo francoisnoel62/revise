@@ -1,6 +1,9 @@
 # JDM lexical data cache (validate-jdm-coverage.mjs)
 .jdm-cache/
 
+# Lexique morphology source (build-lexique-index.mjs)
+.lexique-cache/
+
 # Dependencies
 node_modules/
 /.pnp

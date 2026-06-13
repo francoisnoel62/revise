@@ -5,7 +5,7 @@
 
 import { SuggestAlternativesUseCase } from '@/application/use-cases/SuggestAlternativesUseCase';
 import { AIContextBuilder } from '@/application/services/AIContextBuilder';
-import { JeuxDeMotsThesaurus } from '@/infrastructure/lexical';
+import { createThesaurus } from '@/infrastructure/lexical';
 import { getDatabase } from '@/infrastructure/config/database';
 import {
   ActionResult,
@@ -56,7 +56,7 @@ export async function getLexicalAlternativesAction(
 
   return withErrorHandling(async () => {
     const db = await getDatabase();
-    const thesaurus = new JeuxDeMotsThesaurus(db);
+    const thesaurus = createThesaurus(db);
     const layer1 = await thesaurus.lookup(word);
     return { layer1 };
   });
@@ -96,7 +96,7 @@ export async function getAIAlternativesAction(
     const useCase = new SuggestAlternativesUseCase(
       new AIContextBuilder(metadataRepo),
       llmProvider,
-      new JeuxDeMotsThesaurus(db)
+      createThesaurus(db)
     );
 
     const result = await useCase.execute({

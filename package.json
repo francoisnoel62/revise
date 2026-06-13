@@ -23,7 +23,8 @@
     "db:start": "docker compose up -d",
     "db:stop": "docker compose down",
     "db:logs": "docker compose logs -f mongodb",
-    "build:jdm-index": "node --use-system-ca scripts/build-jdm-index.mjs"
+    "build:jdm-index": "node --use-system-ca scripts/build-jdm-index.mjs",
+    "build:lexique-index": "node --use-system-ca scripts/build-lexique-index.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
