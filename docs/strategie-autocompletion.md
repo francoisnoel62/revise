@@ -1,5 +1,5 @@
 <!-- ABOUTME: Décision produit/archi — l'autocomplétion littéraire devient la fonctionnalité IA centrale de Revise. -->
-<!-- ABOUTME: Manuscrit-premier, silence valide, génération longue déclassée ; amende strategie-ia-contexte.md §2.4. -->
+<!-- ABOUTME: Manuscrit-premier, génération longue et métadonnées déclassées ; amende strategie-ia-contexte.md §2.4. -->
 
 # Décision — l'autocomplétion au centre de l'IA de Revise
 
@@ -11,8 +11,8 @@
 
 > **Revise ne finit pas votre chapitre. Il vous tend la prochaine phrase possible.**
 
-L'autocomplétion littéraire — discrète, manuscrit-premier, contrôlable, qui sait parfois ne
-rien proposer — devient la **fonctionnalité IA centrale**. Tout le reste (génération de
+L'autocomplétion littéraire — discrète, manuscrit-premier, contrôlable — devient la
+**fonctionnalité IA centrale**. Tout le reste (génération de
 chapitre, plans, analyses, métadonnées) est secondaire ou outil de diagnostic. La valeur n'est
 pas dans la quantité de texte généré, mais dans la précision d'une aide qui arrive au bon
 moment et reste sous le contrôle total de l'auteur.
@@ -35,12 +35,13 @@ Deux racines :
 
 Chaque décision se rattache à un principe de [philosophie.md](../.claude/philosophie.md).
 
-- **Manuscrit-premier.** Le texte réel est la source de vérité. Les métadonnées dérivées servent
-  l'UI, la navigation, l'inspection et le diagnostic — **pas** de carburant par défaut des
-  prompts d'écriture. *(Préserver la singularité ; transparence.)*
-- **Le silence est valide.** L'IA peut ne rien proposer : une chaîne vide n'est pas une erreur.
-  Une mauvaise suggestion coûte plus à la confiance qu'une absence. *(L'IA suggère, l'auteur
-  décide.)*
+- **Manuscrit-premier.** Le texte réel est la source de vérité. Les métadonnées dérivées sont
+  **déclassées, pas supprimées** : elles servent l'UI, la navigation, l'inspection et le
+  diagnostic — **plus** de carburant par défaut des prompts d'écriture. *(Préserver la
+  singularité ; transparence.)*
+- **Toujours proposer.** Quand l'auteur sollicite la complétion (`Tab`), Revise propose une
+  suite — il ne reste pas muet. La qualité se joue sur la pertinence et la longueur de la
+  suggestion, pas sur le droit de se taire. *(L'IA suggère, l'auteur décide.)*
 - **Déclenchement manuel par défaut.** `Tab` reste le geste. Un auto-déclenchement discret reste
   une option éventuelle, jamais le défaut — pour ne pas polluer l'écriture. *(Pas d'action sans
   décision de l'auteur.)*

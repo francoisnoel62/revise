@@ -20,10 +20,11 @@ Mesurer l'autocomplétion actuelle avant toute modification lourde.
 
 ### 2. Nouveau contrat de prompt
 Réécrire [docs/prompt/autocompletion.md](prompt/autocompletion.md) : demander la **suite
-minimale nécessaire** (pas une suite « créative »), **autoriser le retour vide**, interdire
-d'exposer / résumer / résoudre la scène / introduire du canon / changer de point de vue /
-forcer une belle phrase ; adapter la forme au contexte (mot, phrase, réplique, paragraphe
-court). Retirer la mention `[MÉTADONNÉES]`. Ajouter des tests contractuels de prompt.
+minimale nécessaire** (pas une suite « créative »), interdire d'exposer / résumer / résoudre la
+scène / introduire du canon / changer de point de vue / forcer une belle phrase ; adapter la
+forme au contexte (mot, phrase, réplique, paragraphe court). Revise **propose toujours** une
+suite quand l'auteur la sollicite — pas de retour vide. Retirer la mention `[MÉTADONNÉES]`.
+Ajouter des tests contractuels de prompt.
 
 ### 3. Provider policy basse latence
 Corriger l'héritage *reasoning* d'OpenAI : `OpenAIProvider.getTokenLimitParam()` gonfle le
@@ -47,26 +48,22 @@ explicitement activées**. Sortir les métadonnées dérivées du `buildCompleti
 défaut. Fichiers : nouveau builder + `src/app/api/completion/stream/route.ts` +
 `src/application/services/AIContextBuilder.ts`.
 
-### 6. Silence autorisé de bout en bout
-Une chaîne vide doit traverser prompt → providers → route SSE → UI sans être traitée comme
-une erreur, et sans rien afficher. Mesurer le taux de silence.
-
-### 7. Variantes discrètes
+### 6. Variantes discrètes
 `AutocompleteIntent = 'natural' | 'shorter' | 'tenser' | 'more_concrete' | 'dialogue'` exposé
 comme **action secondaire** quand une suggestion existe — pas de gros menu, l'interface reste
 `Tab` en surface.
 
-### 8. Déclassement de la génération de chapitre
+### 7. Déclassement de la génération de chapitre
 Sortir du flux principal `FloatingGenerationMenu.tsx`, `AIMenuDropdown.tsx`,
-`CommandPalette.tsx`. Conserver routes et use cases (`GenerateChapterUseCase`,
-`chapter-generation-actions.ts`) derrière « expérimental ». Transformer « début de chapitre »
-en « continuer depuis le curseur ». Mesurer l'usage réel avant toute suppression.
+`CommandPalette.tsx`. **Conserver** routes et use cases (`GenerateChapterUseCase`,
+`chapter-generation-actions.ts`) derrière « expérimental » — déclasser, **pas supprimer**.
+Transformer « début de chapitre » en « continuer depuis le curseur ». Mesurer l'usage réel.
 
-### 9. Métadonnées hors du chemin chaud
+### 8. Métadonnées hors du chemin chaud
 Confirmer que le builder dédié (chantier 5) est prioritaire pour la complétion ;
 `AIContextBuilder.buildCompletionContext()` n'est plus le contexte principal d'écriture. Les
-métadonnées restent pour cockpit, diagnostic, recherche/navigation, et si éditées/validées par
-l'auteur.
+métadonnées sont **déclassées, pas supprimées** : elles restent pour cockpit, diagnostic,
+recherche/navigation, et si éditées/validées par l'auteur.
 
 ### (12) Expérimentation A/B — finition
 Comparer : **A** = comportement actuel ; **B** = manuscrit-premier sans métadonnées ;
@@ -91,7 +88,7 @@ Chaque suggestion porte un `suggestionId` généré au déclenchement, qui corr�
 | `triggered` | client | `Tab` pressé, horodatage `t0` |
 | `firstTokenMs` | client | t(premier chunk SSE) − t0 — **latence perçue**, ce qui compte pour l'UX |
 | `completed` | client | durée totale du stream + longueur finale (mots / caractères) |
-| `empty` | client | le modèle n'a rien renvoyé (silence) |
+| `empty` | client | le modèle n'a rien renvoyé — **anomalie** à surveiller (Revise doit toujours proposer) |
 | `accepted_full` | client | 2ᵉ `Tab` (insertion complète) |
 | `rejected_escape` | client | `Escape` |
 | `superseded_typing` | client | l'auteur tape autre chose → suggestion abandonnée |
@@ -119,7 +116,7 @@ Chaque suggestion porte un `suggestionId` généré au déclenchement, qui corr�
 ### Ce que ça débloque
 
 Un tableau **p50 / p95** de latence, et les taux d'**acceptation / acceptation partielle (à
-venir) / rejet / silence / suppression-après-insertion**. C'est la base factuelle de la
+venir) / rejet / suppression-après-insertion**. C'est la base factuelle de la
 décision A/B (Phase 12), et l'arbitre des questions ouvertes de
 [strategie-autocompletion.md](strategie-autocompletion.md) §5.
 
