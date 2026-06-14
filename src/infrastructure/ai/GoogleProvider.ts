@@ -506,6 +506,12 @@ INSTRUCTIONS:
       const result = await this.generateContentTracked(systemPrompt, `TEXTE À ANALYSER:\n\n${fullText}`, {
         temperature: 0.3,
         maxOutputTokens: 8192,
+        // Gemini 3 defaults to "high" thinking, which consumes maxOutputTokens
+        // before emitting the JSON and truncates the (large) character list
+        // mid-string, breaking JSON.parse.
+        thinkingConfig: {
+          thinkingLevel: ThinkingLevel.MINIMAL,
+        },
       });
       const content = result.text;
       if (!content) {
@@ -1111,6 +1117,12 @@ INSTRUCTIONS:
       const result = await this.generateContentTracked(systemPrompt, `TEXTE À ANALYSER:\n\n${fullText}`, {
         temperature: 0.3,
         maxOutputTokens: 4096,
+        // Gemini 3 defaults to "high" thinking, which consumes maxOutputTokens
+        // before emitting the JSON and truncates the per-chapter summaries
+        // mid-string, breaking JSON.parse.
+        thinkingConfig: {
+          thinkingLevel: ThinkingLevel.MINIMAL,
+        },
       });
       const content = result.text;
       if (!content) {
