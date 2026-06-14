@@ -20,6 +20,7 @@ import { useEffect, useCallback } from 'react';
 import { useAutosave } from '@/hooks/useAutosave';
 import { useProjectStore } from '@/store/projectStore';
 import { generateCompletionAction } from '@/app/actions/completion-actions';
+import { sendAutocompleteEvent } from '@/lib/autocompleteTelemetryClient';
 
 // Custom extension for em dash insertion with Ctrl+K
 const EmDashExtension = Extension.create({
@@ -112,6 +113,8 @@ export function TextEditor({
         projectId: projectId || project?.id,
         chapterId: project?.activeChapterId ?? undefined,
         useStreaming: true,
+        telemetryEnabled: true,
+        onEvent: sendAutocompleteEvent,
       }),
     ],
     content: activeContent ? JSON.parse(activeContent) : { type: 'doc', content: [] },

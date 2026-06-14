@@ -4,6 +4,11 @@
 import { Extension, Editor } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
+import {
+  AutocompleteLifecycleTracker,
+  type LifecyclePayload,
+  type DeletionPayload,
+} from './autocompleteTelemetry';
 
 export interface AutocompleteOptions {
   /**
@@ -29,6 +34,14 @@ export interface AutocompleteOptions {
    * Whether autocompletion is enabled
    */
   enabled: boolean;
+  /**
+   * Whether to emit instrumentation events (measurement only, no UX change)
+   */
+  telemetryEnabled?: boolean;
+  /**
+   * Sink for instrumentation events (fire-and-forget)
+   */
+  onEvent?: (payload: LifecyclePayload | DeletionPayload) => void;
 }
 
 export interface AutocompleteStorage {
@@ -37,6 +50,8 @@ export interface AutocompleteStorage {
   abortController: AbortController | null;
   enabled: boolean;
   chapterId?: string;
+  tracker: AutocompleteLifecycleTracker;
+  acceptingInsertion: boolean;
 }
 
 declare module '@tiptap/core' {
@@ -55,6 +70,49 @@ declare module '@tiptap/core' {
 }
 
 const autocompletePluginKey = new PluginKey('autocomplete');
+
+// Window (ms) to watch whether an accepted suggestion is deleted shortly after insertion.
+const DELETION_WATCH_MS = 30000;
+
+/**
+ * Forward a telemetry payload to the sink, respecting the enabled flag. No-op on null.
+ */
+function emitEvent(
+  options: AutocompleteOptions,
+  payload: LifecyclePayload | DeletionPayload | null
+): void {
+  if (payload && options.telemetryEnabled !== false && options.onEvent) {
+    options.onEvent(payload);
+  }
+}
+
+/**
+ * After an accepted suggestion, check once (after a delay) whether the inserted
+ * text was removed; if so, emit a deletion event. Best-effort, never blocks.
+ */
+function scheduleDeletionWatch(
+  editor: Editor,
+  options: AutocompleteOptions,
+  suggestionId: string,
+  insertedText: string,
+  pos: number
+): void {
+  if (!insertedText) return;
+  const acceptedAt = Date.now();
+  globalThis.setTimeout(() => {
+    if (editor.isDestroyed) return;
+    const doc = editor.state.doc;
+    const end = Math.min(doc.content.size, pos + insertedText.length);
+    const after = doc.textBetween(pos, end, '\n', '\n');
+    if (after !== insertedText) {
+      emitEvent(options, {
+        type: 'deletion',
+        suggestionId,
+        deletedAfterMs: Date.now() - acceptedAt,
+      });
+    }
+  }, DELETION_WATCH_MS);
+}
 
 /**
  * Trigger completion request (non-streaming)
@@ -91,6 +149,14 @@ function triggerCompletion(
 
   storage.isLoading = true;
 
+  // Begin instrumentation lifecycle for this suggestion (measurement only)
+  if (options.telemetryEnabled !== false) {
+    storage.tracker.start({
+      projectId: options.projectId,
+      chapterId: storage.chapterId ?? null,
+    });
+  }
+
   // Force view update to show spinner immediately
   editor.view.dispatch(editor.state.tr);
 
@@ -106,6 +172,10 @@ function triggerCompletion(
 
         if (suggestion) {
           storage.suggestion = suggestion;
+          storage.tracker.markFirstToken();
+          storage.tracker.markShown(suggestion);
+        } else {
+          emitEvent(options, storage.tracker.finishEmpty());
         }
         // Force view update to show ghost text or remove spinner
         editor.view.dispatch(editor.state.tr);
@@ -185,6 +255,8 @@ async function streamCompletion(
             }
 
             if (parsed.text) {
+              // First token latency (perceived) — idempotent
+              storage.tracker.markFirstToken();
               accumulated += parsed.text;
               storage.suggestion = accumulated;
 
@@ -200,6 +272,13 @@ async function streamCompletion(
 
     storage.isLoading = false;
     storage.abortController = null;
+
+    // Instrumentation: empty response (silence) vs shown suggestion
+    if (accumulated.trim().length === 0) {
+      emitEvent(options, storage.tracker.finishEmpty());
+    } else {
+      storage.tracker.markShown(accumulated);
+    }
 
     // Force view update to remove spinner
     editor.view.dispatch(editor.state.tr);
@@ -227,6 +306,8 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
       chapterId: undefined,
       useStreaming: true,
       enabled: true,
+      telemetryEnabled: true,
+      onEvent: undefined,
     };
   },
 
@@ -237,6 +318,8 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
       abortController: null,
       enabled: this.options.enabled,
       chapterId: this.options.chapterId,
+      tracker: new AutocompleteLifecycleTracker(),
+      acceptingInsertion: false,
     };
   },
 
@@ -271,8 +354,25 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
           const suggestion = storage.suggestion;
           storage.suggestion = null;
 
+          // Capture instrumentation before mutating the document
+          const payload = storage.tracker.accept();
+          const pos = editor.state.selection.from;
+
           // Insert the suggestion at cursor position
+          storage.acceptingInsertion = true;
           editor.commands.insertContent(suggestion);
+          storage.acceptingInsertion = false;
+
+          emitEvent(this.options, payload);
+          if (payload) {
+            scheduleDeletionWatch(
+              editor,
+              this.options,
+              payload.suggestionId,
+              suggestion,
+              pos
+            );
+          }
 
           return true;
         }
@@ -298,6 +398,7 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
 
         // Cancel current suggestion
         if (storage.suggestion || storage.isLoading) {
+          emitEvent(this.options, storage.tracker.reject());
           storage.suggestion = null;
           storage.isLoading = false;
           return true;
@@ -321,6 +422,18 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
           },
 
           apply(tr, _oldDecorations) {
+            // Instrumentation: the author typed instead of accepting → superseded.
+            // Measurement only; does not alter the suggestion/decoration behavior.
+            if (
+              tr.docChanged &&
+              !extension.storage.acceptingInsertion &&
+              extension.storage.tracker.hasActive()
+            ) {
+              globalThis.queueMicrotask(() => {
+                emitEvent(extension.options, extension.storage.tracker.supersede());
+              });
+            }
+
             const { isLoading, suggestion } = extension.storage;
 
             // Clear decorations if not loading and no suggestion

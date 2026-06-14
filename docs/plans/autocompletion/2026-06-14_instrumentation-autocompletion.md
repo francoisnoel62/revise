@@ -1,5 +1,10 @@
 # Plan d'implémentation — Phase 1 : Instrumentation de l'autocomplétion
 
+> ✅ **Implémenté le 2026-06-14** (sous-phases A→E). Gates locaux verts : `lint` (0 erreur),
+> `typecheck`, suite unitaire (2193 tests), `build`. Le test d'intégration du repo
+> (`MongoDBAutocompleteEventRepository.integration.test.ts`) nécessite MongoDB → exécuté en CI.
+> Reste la **vérification manuelle** (taper/Tab/accept/reject/supprimer, latence perçue).
+
 > Découle de [docs/roadmap-autocompletion.md](../../roadmap-autocompletion.md) (chantier 1) et de
 > [docs/strategie-autocompletion.md](../../strategie-autocompletion.md). Preuves codebase :
 > [docs/research/autocompletion/2026-06-14_21-29-56_ia-manuscrit-premier-autocompletion.md](../../research/autocompletion/2026-06-14_21-29-56_ia-manuscrit-premier-autocompletion.md).

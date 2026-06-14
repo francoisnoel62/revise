@@ -14,6 +14,11 @@ export { WritingGoal, type WritingGoalProperties } from './entities/WritingGoal'
 export { WritingQuota, type QuotaPeriod, type WritingQuotaProperties } from './entities/WritingQuota';
 export { WordCountSnapshot, type WordCountSnapshotProperties } from './entities/WordCountSnapshot';
 export { AIUsageRecord, type AIUsageRecordProperties } from './entities/AIUsageRecord';
+export {
+  AutocompleteEvent,
+  type AutocompleteEventProperties,
+  type CreateAutocompleteEventProps,
+} from './entities/AutocompleteEvent';
 export { ProjectTask, type ProjectTaskProperties } from './entities/ProjectTask';
 export { Character, type CharacterProperties } from './entities/Character';
 export {
@@ -67,6 +72,11 @@ export {
   isValidAIOperationType,
 } from './value-objects/AIOperationType';
 export {
+  type AutocompleteOutcome,
+  AUTOCOMPLETE_OUTCOMES,
+  isValidAutocompleteOutcome,
+} from './value-objects/AutocompleteOutcome';
+export {
   type TaskStatus,
   TASK_STATUSES,
   TASK_STATUS_LABELS,
@@ -98,6 +108,10 @@ export type { CorrectionHistoryRepository } from './interfaces/CorrectionHistory
 export type { ContentConverter } from './interfaces/ContentConverter';
 export type { WritingGoalRepository } from './interfaces/WritingGoalRepository';
 export type { AIUsageRepository, UsageStats, DailyUsage } from './interfaces/AIUsageRepository';
+export type {
+  AutocompleteEventRepository,
+  AutocompleteStats,
+} from './interfaces/AutocompleteEventRepository';
 export type { ProjectTaskRepository, TaskFilters, TaskSortOptions } from './interfaces/ProjectTaskRepository';
 export type { CharacterRepository } from './interfaces/CharacterRepository';
 export type {

@@ -35,6 +35,8 @@ import { MongoDBWritingGoalRepository } from '@/infrastructure/persistence/Mongo
 import { MongoDBWordCountSnapshotRepository } from '@/infrastructure/persistence/MongoDBWordCountSnapshotRepository';
 import { MongoDBWritingQuotaRepository } from '@/infrastructure/persistence/MongoDBWritingQuotaRepository';
 import { MongoDBUsageRepository } from '@/infrastructure/persistence/MongoDBUsageRepository';
+import { MongoDBAutocompleteEventRepository } from '@/infrastructure/persistence/MongoDBAutocompleteEventRepository';
+import { AutocompleteEventRepository } from '@/domain/interfaces/AutocompleteEventRepository';
 import { MongoDBExchangeRepository } from '@/infrastructure/persistence/MongoDBExchangeRepository';
 import { getFieldEncryption } from '@/infrastructure/security/FieldEncryption';
 import { MongoDBModelPricingRepository } from '@/infrastructure/persistence/MongoDBModelPricingRepository';
@@ -237,6 +239,20 @@ export async function getAIUsageRepository(): Promise<AIUsageRepository> {
     aiUsageRepoInstance = new MongoDBUsageRepository(db);
   }
   return aiUsageRepoInstance;
+}
+
+/**
+ * Get the autocomplete event repository (instrumentation; one record per suggestion).
+ */
+let autocompleteEventRepoInstance: MongoDBAutocompleteEventRepository | null = null;
+
+export async function getAutocompleteEventRepository(): Promise<AutocompleteEventRepository> {
+  if (!autocompleteEventRepoInstance) {
+    const db = await getDatabase();
+    autocompleteEventRepoInstance = new MongoDBAutocompleteEventRepository(db);
+    await autocompleteEventRepoInstance.ensureIndexes();
+  }
+  return autocompleteEventRepoInstance;
 }
 
 /**
