@@ -54,7 +54,17 @@ comme **action secondaire** quand une suggestion existe — pas de gros menu, l'
 `Tab` en surface.
 
 ### 7. Déclassement de la génération de chapitre
-Sortir du flux principal `FloatingGenerationMenu.tsx`, `AIMenuDropdown.tsx`,
+**Préalable — découpler le rate-limit du chapitre des métadonnées.** Aujourd'hui la génération
+emprunte le limiter des métadonnées via une convention de clé `chapter-${type}`
+(`chapter-generation-actions.ts:57-68` → `canGenerateMetadata` / `recordMetadataGeneration`,
+même `Map` et cooldown 30 s dans `rate-limiter.ts:67-127`). Lui donner son propre limiter
+(`canGenerateChapter` / `recordChapterGeneration`, ou un limiter générique à namespace + cooldown
+propre) pour pouvoir régler/retirer la génération sans toucher aux métadonnées. Test TDD verrouillant
+l'invariant « générer un chapitre n'affecte pas le cooldown d'une analyse de métadonnée ».
+*Note : la télémétrie persistée est déjà distincte (`AIUsageRecord`, opération `chapter_generation`) —
+c'est elle, pas le compteur en mémoire du limiter, qui sert à mesurer l'usage réel.*
+
+Puis : sortir du flux principal `FloatingGenerationMenu.tsx`, `AIMenuDropdown.tsx`,
 `CommandPalette.tsx`. **Conserver** routes et use cases (`GenerateChapterUseCase`,
 `chapter-generation-actions.ts`) derrière « expérimental » — déclasser, **pas supprimer**.
 Transformer « début de chapitre » en « continuer depuis le curseur ». Mesurer l'usage réel.
