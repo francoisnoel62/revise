@@ -5,6 +5,12 @@
 
 > Statut : adoptée le 2026-06-02. Découle de [.claude/philosophie.md](../.claude/philosophie.md) (binding).
 > Ce document fixe le cap ; les chantiers concrets se planifient en TDD au fil de l'eau.
+>
+> ⚠️ **Révisé le 2026-06-14** par [strategie-autocompletion.md](strategie-autocompletion.md) :
+> l'autocomplétion devient la fonctionnalité IA centrale, et le **§2.4 (positionnement de la
+> génération de chapitre comme cœur de productivité) est reclassé** — la génération longue est
+> déclassée (« expérimental »). Le reste de ce document (contexte intentionnel, research docs,
+> « l'édition de l'auteur est la vérité ») reste valable.
 
 ## 1. Vision
 
