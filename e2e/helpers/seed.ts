@@ -48,6 +48,35 @@ export const TEST_AUTOCOMPLETE_CHAPTER_CONTENT = JSON.stringify({
   }],
 });
 
+function autocompleteEvent(
+  suffix: string,
+  outcome: string,
+  overrides: Record<string, unknown> = {}
+): Record<string, unknown> {
+  const now = new Date();
+  return {
+    _id: new ObjectId(),
+    ownerId: TEST_USER_ID,
+    projectId: TEST_AUTOCOMPLETE_PROJECT_ID,
+    chapterId: TEST_AUTOCOMPLETE_CHAPTER_ID,
+    suggestionId: `e2e-autocomplete-${suffix}`,
+    providerType: null,
+    model: null,
+    triggeredAt: now,
+    firstTokenMs: outcome === 'empty' ? null : 200,
+    totalMs: 800,
+    suggestionLengthChars: outcome === 'empty' ? 0 : 30,
+    suggestionLengthWords: outcome === 'empty' ? 0 : 6,
+    acceptedChars: outcome === 'accepted_full' ? 30 : 0,
+    acceptedWords: outcome === 'accepted_full' ? 6 : 0,
+    intent: 'natural',
+    outcome,
+    deletedAfterMs: null,
+    createdAt: now,
+    ...overrides,
+  };
+}
+
 // ── Hash computation (même logique que extractProjectFullText + hashText) ─────
 
 function extractTipTapText(json: unknown): string {
@@ -227,6 +256,40 @@ export async function seedAll(): Promise<void> {
     },
     { upsert: true }
   );
+
+  // 6. Autocomplete telemetry fixtures for cockpit usage metrics.
+  await db.collection('autocompleteEvents').deleteMany({
+    ownerId: TEST_USER_ID,
+    projectId: TEST_AUTOCOMPLETE_PROJECT_ID,
+  });
+  await db.collection('autocompleteEvents').insertMany([
+    autocompleteEvent('accepted-1', 'accepted_full', {
+      firstTokenMs: 100,
+      totalMs: 500,
+    }),
+    autocompleteEvent('accepted-2', 'accepted_full', {
+      firstTokenMs: 200,
+      totalMs: 700,
+      deletedAfterMs: 4200,
+    }),
+    autocompleteEvent('partial-1', 'accepted_partial', {
+      firstTokenMs: 300,
+      totalMs: 900,
+      acceptedChars: 12,
+      acceptedWords: 2,
+    }),
+    autocompleteEvent('rejected-1', 'rejected_escape', {
+      firstTokenMs: 400,
+      totalMs: 1100,
+    }),
+    autocompleteEvent('superseded-1', 'superseded_typing', {
+      firstTokenMs: 500,
+      totalMs: 1300,
+    }),
+    autocompleteEvent('empty-1', 'empty', {
+      totalMs: 300,
+    }),
+  ]);
 
   await client.close();
 }

@@ -12,6 +12,7 @@ export { MilestoneMetricsCard } from './MilestoneMetricsCard';
 export { ActivityChart } from './ActivityChart';
 export { TodayPaceCard } from './TodayPaceCard';
 export { UsageStatsCard } from './UsageStatsCard';
+export { AutocompleteStatsCard } from './AutocompleteStatsCard';
 export { UsageByOperationChart } from './UsageByOperationChart';
 export { DailyUsageChart } from './DailyUsageChart';
 export { TaskForm } from './TaskForm';
