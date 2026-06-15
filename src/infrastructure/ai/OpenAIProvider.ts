@@ -4,6 +4,7 @@
 import OpenAI from 'openai';
 import { LLMProvider, ConnectionTestResult, TokenUsage, ExchangeContent } from '@/domain/interfaces/LLMProvider';
 import { PromptRepository } from '@/domain/interfaces/PromptRepository';
+import { AUTOCOMPLETE_POLICY } from '@/domain/value-objects/AIOperationPolicy';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
 import { NarrativeAnalysis } from '@/domain/value-objects/NarrativeAnalysis';
 import { StylisticDNA } from '@/domain/value-objects/StylisticDNA';
@@ -1455,8 +1456,11 @@ INSTRUCTIONS FINALES:
     try {
       const isReasoning = this.isReasoningModel();
       const completion = await this.createChatCompletion(systemPrompt, userPrompt, {
-        ...(isReasoning ? {} : { temperature: 0.7 }),
-        ...this.getTokenLimitParam(256), // Short completions
+        // Low-latency completion policy: low temperature, strict tiny budget, no reasoning inflation.
+        ...(isReasoning ? {} : { temperature: AUTOCOMPLETE_POLICY.temperature }),
+        ...(isReasoning
+          ? { max_completion_tokens: AUTOCOMPLETE_POLICY.outputBudgetTokens }
+          : { max_tokens: AUTOCOMPLETE_POLICY.outputBudgetTokens }),
       });
       const content = completion.choices[0]?.message?.content;
       if (!content) {
@@ -1515,8 +1519,10 @@ INSTRUCTIONS FINALES:
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
-      ...(isReasoning ? {} : { temperature: 0.7 }),
-      ...this.getTokenLimitParam(256),
+      ...(isReasoning ? {} : { temperature: AUTOCOMPLETE_POLICY.temperature }),
+      ...(isReasoning
+        ? { max_completion_tokens: AUTOCOMPLETE_POLICY.outputBudgetTokens }
+        : { max_tokens: AUTOCOMPLETE_POLICY.outputBudgetTokens }),
       stream: true,
       stream_options: { include_usage: true },
     });

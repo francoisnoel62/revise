@@ -4,6 +4,7 @@
 import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import { LLMProvider, ConnectionTestResult, TokenUsage, ExchangeContent } from '@/domain/interfaces/LLMProvider';
 import { PromptRepository } from '@/domain/interfaces/PromptRepository';
+import { AUTOCOMPLETE_POLICY } from '@/domain/value-objects/AIOperationPolicy';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
 import { NarrativeAnalysis } from '@/domain/value-objects/NarrativeAnalysis';
 import { StylisticDNA } from '@/domain/value-objects/StylisticDNA';
@@ -1308,8 +1309,8 @@ INSTRUCTIONS FINALES:
       // Use low thinking level for autocomplete (reduces latency from 17+ seconds to ~1 second)
       // Gemini 3 Pro defaults to "high" thinking which causes very long delays
       const result = await this.generateContentTracked(systemPrompt, userPrompt, {
-        temperature: 0.7,
-        maxOutputTokens: 256,
+        temperature: AUTOCOMPLETE_POLICY.temperature,
+        maxOutputTokens: AUTOCOMPLETE_POLICY.outputBudgetTokens,
         thinkingConfig: {
           thinkingLevel: ThinkingLevel.MINIMAL,
         },
@@ -1370,8 +1371,8 @@ INSTRUCTIONS FINALES:
       model: this.modelName,
       contents: `${systemPrompt}\n\n---\n\n${userPrompt}`,
       config: {
-        temperature: 0.7,
-        maxOutputTokens: 256,
+        temperature: AUTOCOMPLETE_POLICY.temperature,
+        maxOutputTokens: AUTOCOMPLETE_POLICY.outputBudgetTokens,
         thinkingConfig: {
           thinkingLevel: ThinkingLevel.MINIMAL,
         },

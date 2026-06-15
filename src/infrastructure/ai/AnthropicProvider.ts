@@ -5,6 +5,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { MessageCreateParamsNonStreaming } from '@anthropic-ai/sdk/resources/messages/messages';
 import { LLMProvider, ConnectionTestResult, TokenUsage, ExchangeContent } from '@/domain/interfaces/LLMProvider';
 import { PromptRepository } from '@/domain/interfaces/PromptRepository';
+import { AUTOCOMPLETE_POLICY } from '@/domain/value-objects/AIOperationPolicy';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
 import { NarrativeAnalysis } from '@/domain/value-objects/NarrativeAnalysis';
 import { StylisticDNA } from '@/domain/value-objects/StylisticDNA';
@@ -1437,7 +1438,8 @@ INSTRUCTIONS FINALES:
       const params = this.buildApiParams({
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }],
-        baseMaxTokens: 256,
+        baseMaxTokens: AUTOCOMPLETE_POLICY.outputBudgetTokens,
+        temperature: AUTOCOMPLETE_POLICY.temperature, // Low temperature for continuity
         thinkingBudget: 0, // No thinking for autocompletion (latency critical)
       });
 
@@ -1491,7 +1493,8 @@ INSTRUCTIONS FINALES:
 
     const stream = this.client.messages.stream({
       model: this.model,
-      max_tokens: 256,
+      max_tokens: AUTOCOMPLETE_POLICY.outputBudgetTokens,
+      temperature: AUTOCOMPLETE_POLICY.temperature,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
     });

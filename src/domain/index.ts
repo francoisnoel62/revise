@@ -77,6 +77,10 @@ export {
   isValidAutocompleteOutcome,
 } from './value-objects/AutocompleteOutcome';
 export {
+  type AIOperationPolicy,
+  AUTOCOMPLETE_POLICY,
+} from './value-objects/AIOperationPolicy';
+export {
   type TaskStatus,
   TASK_STATUSES,
   TASK_STATUS_LABELS,

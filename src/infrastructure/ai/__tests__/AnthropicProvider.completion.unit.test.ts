@@ -4,6 +4,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AnthropicProvider } from '../AnthropicProvider';
 import type { PromptRepository } from '@/domain/interfaces/PromptRepository';
+import { AUTOCOMPLETE_POLICY } from '@/domain/value-objects/AIOperationPolicy';
 import Anthropic from '@anthropic-ai/sdk';
 
 vi.mock('@anthropic-ai/sdk', () => {
@@ -58,5 +59,18 @@ describe('AnthropicProvider.generateCompletion — context injection', () => {
   it('should not append anything for an empty projectContext', async () => {
     await provider.generateCompletion('text before', undefined, '');
     expect(getSystemPrompt()).toBe('Base completion prompt');
+  });
+
+  it('applies the low-latency completion policy (low temperature, tiny budget)', async () => {
+    await provider.generateCompletion('text before');
+    const params = mockClient.messages.create.mock.calls[0][0];
+    expect(params.temperature).toBe(AUTOCOMPLETE_POLICY.temperature);
+    expect(params.max_tokens).toBe(AUTOCOMPLETE_POLICY.outputBudgetTokens);
+  });
+
+  it('does not enable thinking on completion', async () => {
+    await provider.generateCompletion('text before');
+    const params = mockClient.messages.create.mock.calls[0][0];
+    expect(params.thinking).toBeUndefined();
   });
 });

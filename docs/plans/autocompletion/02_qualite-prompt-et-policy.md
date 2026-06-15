@@ -1,5 +1,10 @@
 # Plan 2 — Contrat de prompt + policy providers basse latence (chantiers 2 & 3)
 
+> ✅ **Implémenté le 2026-06-15.** Prompt réécrit (sans `[MÉTADONNÉES]`, interdits explicites,
+> « suite minimale », toujours proposer) + VO `AUTOCOMPLETE_POLICY` (temp 0.3, budget 256, no-reasoning)
+> appliquée dans les 3 providers (OpenAI : fin de l'inflation à 16000 ; Anthropic : température 0.3
+> au lieu du défaut 1.0 ; Google : 0.3). Gates verts : lint, typecheck, 2204 tests, build.
+
 > Série : [00_index.md](00_index.md). Prérequis conseillé : plan 1 (instrumentation) déployé pour
 > mesurer l'effet (latence 1er token, taux d'acceptation) avant/après. Méthode : TDD.
 
