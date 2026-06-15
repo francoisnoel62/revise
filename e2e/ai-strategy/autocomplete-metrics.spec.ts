@@ -14,11 +14,13 @@ test.describe('Cockpit — métriques d’autocomplétion', () => {
     await expect(card).toBeVisible({ timeout: 15_000 });
 
     await expect(card.getByText('Autocomplétion')).toBeVisible();
-    await expect(card.getByText('Suggestions')).toBeVisible();
-    await expect(card.getByText('6')).toBeVisible();
-    await expect(card.getByText(/33\s*%/)).toBeVisible();
-    await expect(card.getByText(/17\s*%/)).toBeVisible();
-    await expect(card.getByText(/50\s*%/)).toBeVisible();
+    await expect(card.getByText('Suggestions', { exact: true })).toBeVisible();
+    await expect(card.locator('.text-2xl.font-bold')).toHaveText([
+      '6',
+      /33\s*%/,
+      /17\s*%/,
+      /50\s*%/,
+    ]);
     await expect(card.getByText('300 ms')).toBeVisible();
     await expect(card.getByText('480 ms')).toBeVisible();
     await expect(card.getByText('Réponses vides')).toBeVisible();
