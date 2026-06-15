@@ -130,9 +130,14 @@ async function triggerSuggestion(page: Page, expectedGhostText: string) {
   await page.keyboard.press('Tab');
   const ghost = page.locator('.autocomplete-ghost');
   await expect(ghost).toContainText(expectedGhostText, { timeout: 10_000 });
-  await expect(page.locator('.autocomplete-hint')).toContainText(
-    'Ctrl/Cmd+. variante'
-  );
+  const hint = page.locator('.autocomplete-hint');
+  await expect(hint).toContainText('Tab');
+  await expect(hint).toContainText('accepter');
+  await expect(hint).toContainText('Echap');
+  await expect(hint).toContainText('ignorer');
+  await expect(hint).toContainText('Ctrl/Cmd+->');
+  await expect(hint).toContainText('mot');
+  await expect(page.locator('.autocomplete-variant-row')).toHaveCount(0);
   return ghost;
 }
 
@@ -260,7 +265,8 @@ test.describe.serial('Autocomplétion littéraire — E2E éditeur', () => {
     await expect(page.locator('.autocomplete-ghost')).toContainText('attendit', {
       timeout: 10_000,
     });
-    await expect(page.locator('.autocomplete-hint')).toContainText('plus bref');
+    await expect(page.locator('.autocomplete-variant-row')).toBeVisible();
+    await expect(page.locator('.autocomplete-variant-active')).toHaveText('Plus bref');
     expect(routes.completionBodies).toHaveLength(2);
     expect(routes.completionBodies[0].intent).toBe('natural');
     expect(routes.completionBodies[1].intent).toBe('shorter');

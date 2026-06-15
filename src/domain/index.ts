@@ -120,6 +120,7 @@ export type { WritingGoalRepository } from './interfaces/WritingGoalRepository';
 export type { AIUsageRepository, UsageStats, DailyUsage } from './interfaces/AIUsageRepository';
 export type {
   AutocompleteEventRepository,
+  AutocompleteProviderModelStats,
   AutocompleteStats,
 } from './interfaces/AutocompleteEventRepository';
 export type { ProjectTaskRepository, TaskFilters, TaskSortOptions } from './interfaces/ProjectTaskRepository';

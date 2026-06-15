@@ -70,6 +70,16 @@ describe('MongoDBAutocompleteEventRepository — intégration MongoDB réel', ()
     expect(stats.acceptanceRate).toBeCloseTo(1 / 3);
     // firstTokenMs values present: 100, 300 (empty excluded) → p50 = 200
     expect(stats.firstTokenMsP50).toBeCloseTo(200);
+    expect(stats.byProviderModel).toEqual([
+      {
+        providerType: 'anthropic',
+        model: 'claude-sonnet-4-5',
+        total: 3,
+        acceptanceRate: 1 / 3,
+        firstTokenMsP50: 200,
+        firstTokenMsP95: 290,
+      },
+    ]);
   });
 
   it('computes the partial-acceptance rate', async () => {

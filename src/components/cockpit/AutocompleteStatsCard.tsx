@@ -14,6 +14,12 @@ interface AutocompleteStatsCardProps {
   projectId: string;
 }
 
+const PROVIDER_LABELS: Record<string, string> = {
+  anthropic: 'Anthropic',
+  openai: 'OpenAI',
+  google: 'Google',
+};
+
 function formatPercent(rate: number): string {
   return new Intl.NumberFormat('fr-FR', {
     style: 'percent',
@@ -23,6 +29,15 @@ function formatPercent(rate: number): string {
 
 function formatMs(ms: number | null): string {
   return ms === null ? '—' : `${Math.round(ms)} ms`;
+}
+
+function formatProvider(providerType: string | null): string {
+  if (!providerType) return 'Provider inconnu';
+  return PROVIDER_LABELS[providerType] ?? providerType;
+}
+
+function formatModel(model: string | null): string {
+  return model ?? 'Modele inconnu';
 }
 
 function AutocompleteStatsCardSkeleton() {
@@ -107,6 +122,7 @@ export function AutocompleteStatsCard({ projectId }: AutocompleteStatsCardProps)
   }
 
   const rejected = stats.byOutcome.rejected_escape + stats.byOutcome.superseded_typing;
+  const providerModels = stats.byProviderModel.slice(0, 3);
 
   return (
     <Card className="h-full" data-testid="autocomplete-stats-card">
@@ -164,6 +180,34 @@ export function AutocompleteStatsCard({ projectId }: AutocompleteStatsCardProps)
               <span>Réponses vides</span>
               <span className="font-medium text-foreground">{stats.byOutcome.empty}</span>
             </div>
+          </div>
+        </div>
+
+        <div className="rounded-md border p-3 text-sm">
+          <div className="font-medium">Provider / modele</div>
+          <div className="mt-2 space-y-2">
+            {providerModels.map((entry) => (
+              <div
+                key={`${entry.providerType ?? 'unknown'}-${entry.model ?? 'unknown'}`}
+                className="flex items-start justify-between gap-3"
+              >
+                <div>
+                  <div className="font-medium">
+                    {formatProvider(entry.providerType)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {formatModel(entry.model)}
+                  </div>
+                </div>
+                <div className="text-right text-xs text-muted-foreground">
+                  <div>
+                    <span className="font-medium text-foreground">{entry.total}</span>{' '}
+                    suggestions
+                  </div>
+                  <div>{formatPercent(entry.acceptanceRate)} acceptees</div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </CardContent>

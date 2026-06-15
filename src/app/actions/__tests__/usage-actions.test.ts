@@ -32,6 +32,16 @@ describe('getProjectAutocompleteStatsAction', () => {
       superseded_typing: 0,
       empty: 0,
     },
+    byProviderModel: [
+      {
+        providerType: 'anthropic',
+        model: 'claude-sonnet-4-5',
+        total: 1,
+        acceptanceRate: 1,
+        firstTokenMsP50: 120,
+        firstTokenMsP95: 120,
+      },
+    ],
     acceptanceRate: 1,
     partialAcceptanceRate: 0,
     postInsertionDeletionRate: 0,

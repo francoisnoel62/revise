@@ -4,6 +4,7 @@
 import { Db } from 'mongodb';
 import {
   AutocompleteEventRepository,
+  AutocompleteProviderModelStats,
   AutocompleteStats,
 } from '@/domain/interfaces/AutocompleteEventRepository';
 import { AutocompleteEvent } from '@/domain/entities/AutocompleteEvent';
@@ -17,6 +18,14 @@ import {
 } from './autocomplete-event-serializer';
 
 const COLLECTION_NAME = 'autocompleteEvents';
+
+interface ProviderModelAccumulator {
+  providerType: string | null;
+  model: string | null;
+  total: number;
+  accepted: number;
+  firstTokenValues: number[];
+}
 
 /**
  * Linear-interpolation percentile, computed in JS to stay independent of the
@@ -81,7 +90,14 @@ export class MongoDBAutocompleteEventRepository
 
     const docs = await this.collection()
       .find(filter, {
-        projection: { outcome: 1, firstTokenMs: 1, totalMs: 1, deletedAfterMs: 1 },
+        projection: {
+          outcome: 1,
+          firstTokenMs: 1,
+          totalMs: 1,
+          deletedAfterMs: 1,
+          providerType: 1,
+          model: 1,
+        },
       })
       .toArray();
 
@@ -91,6 +107,7 @@ export class MongoDBAutocompleteEventRepository
 
     const firstTokenValues: number[] = [];
     const totalValues: number[] = [];
+    const providerModels = new Map<string, ProviderModelAccumulator>();
     let acceptedDeleted = 0;
 
     for (const doc of docs) {
@@ -100,6 +117,23 @@ export class MongoDBAutocompleteEventRepository
       if (doc.outcome === 'accepted_full' && typeof doc.deletedAfterMs === 'number') {
         acceptedDeleted += 1;
       }
+
+      const providerType = typeof doc.providerType === 'string' ? doc.providerType : null;
+      const model = typeof doc.model === 'string' ? doc.model : null;
+      const key = `${providerType ?? '__unknown_provider__'}\u0000${model ?? '__unknown_model__'}`;
+      const providerModel = providerModels.get(key) ?? {
+        providerType,
+        model,
+        total: 0,
+        accepted: 0,
+        firstTokenValues: [],
+      };
+      providerModel.total += 1;
+      if (doc.outcome === 'accepted_full') providerModel.accepted += 1;
+      if (typeof doc.firstTokenMs === 'number') {
+        providerModel.firstTokenValues.push(doc.firstTokenMs);
+      }
+      providerModels.set(key, providerModel);
     }
 
     const total = docs.length;
@@ -108,6 +142,7 @@ export class MongoDBAutocompleteEventRepository
     return {
       total,
       byOutcome,
+      byProviderModel: this.toProviderModelStats(providerModels),
       acceptanceRate: total === 0 ? 0 : accepted / total,
       partialAcceptanceRate: total === 0 ? 0 : byOutcome.accepted_partial / total,
       postInsertionDeletionRate: accepted === 0 ? 0 : acceptedDeleted / accepted,
@@ -119,5 +154,25 @@ export class MongoDBAutocompleteEventRepository
 
   async deleteAllByOwner(ownerId: string): Promise<void> {
     await this.collection().deleteMany({ ownerId });
+  }
+
+  private toProviderModelStats(
+    providerModels: Map<string, ProviderModelAccumulator>
+  ): AutocompleteProviderModelStats[] {
+    return [...providerModels.values()]
+      .map((entry) => ({
+        providerType: entry.providerType,
+        model: entry.model,
+        total: entry.total,
+        acceptanceRate: entry.total === 0 ? 0 : entry.accepted / entry.total,
+        firstTokenMsP50: percentile(entry.firstTokenValues, 0.5),
+        firstTokenMsP95: percentile(entry.firstTokenValues, 0.95),
+      }))
+      .sort((a, b) => {
+        if (b.total !== a.total) return b.total - a.total;
+        const aLabel = `${a.providerType ?? ''} ${a.model ?? ''}`;
+        const bLabel = `${b.providerType ?? ''} ${b.model ?? ''}`;
+        return aLabel.localeCompare(bLabel);
+      });
   }
 }

@@ -7,12 +7,22 @@ import { AutocompleteOutcome } from '../value-objects/AutocompleteOutcome';
 export interface AutocompleteStats {
   total: number;
   byOutcome: Record<AutocompleteOutcome, number>;
+  byProviderModel: AutocompleteProviderModelStats[];
   acceptanceRate: number; // accepted_full / total
   partialAcceptanceRate: number; // accepted_partial / total
   postInsertionDeletionRate: number; // accepted then deleted / accepted_full
   firstTokenMsP50: number | null;
   firstTokenMsP95: number | null;
   totalMsP50: number | null;
+}
+
+export interface AutocompleteProviderModelStats {
+  providerType: string | null;
+  model: string | null;
+  total: number;
+  acceptanceRate: number;
+  firstTokenMsP50: number | null;
+  firstTokenMsP95: number | null;
 }
 
 export interface AutocompleteEventRepository {

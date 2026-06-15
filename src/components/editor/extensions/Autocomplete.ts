@@ -14,7 +14,11 @@ import {
   type AutocompleteIntent,
   nextAutocompleteIntent,
 } from '@/domain/value-objects/AutocompleteIntent';
-import { autocompleteShortcutHint } from './autocompleteHint';
+import {
+  autocompleteShortcutHints,
+  autocompleteVariantHints,
+  shouldShowAutocompleteVariantHint,
+} from './autocompleteHint';
 
 export interface AutocompleteOptions {
   /**
@@ -91,6 +95,50 @@ function emitEvent(
   if (payload && options.telemetryEnabled !== false && options.onEvent) {
     options.onEvent(payload);
   }
+}
+
+function createAutocompleteHint(intent: AutocompleteIntent): HTMLElement {
+  const hint = document.createElement('span');
+  hint.className = 'autocomplete-hint';
+  hint.setAttribute('aria-hidden', 'true');
+
+  const shortcutRow = document.createElement('span');
+  shortcutRow.className = 'autocomplete-hint-row';
+
+  for (const item of autocompleteShortcutHints()) {
+    const shortcut = document.createElement('span');
+    shortcut.className = 'autocomplete-hint-item';
+
+    const keys = document.createElement('span');
+    keys.className = 'autocomplete-kbd';
+    keys.textContent = item.keys;
+
+    const label = document.createElement('span');
+    label.textContent = item.label;
+
+    shortcut.append(keys, label);
+    shortcutRow.append(shortcut);
+  }
+
+  hint.append(shortcutRow);
+
+  if (shouldShowAutocompleteVariantHint(intent)) {
+    const variantRow = document.createElement('span');
+    variantRow.className = 'autocomplete-hint-row autocomplete-variant-row';
+
+    for (const item of autocompleteVariantHints(intent)) {
+      const variant = document.createElement('span');
+      variant.className = item.active
+        ? 'autocomplete-variant autocomplete-variant-active'
+        : 'autocomplete-variant';
+      variant.textContent = item.label;
+      variantRow.append(variant);
+    }
+
+    hint.append(variantRow);
+  }
+
+  return hint;
 }
 
 /**
@@ -550,25 +598,13 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
                 const span = document.createElement('span');
                 span.className = 'autocomplete-ghost';
                 span.textContent = suggestion;
-                span.style.color = '#9ca3af';
-                span.style.fontStyle = 'italic';
-                span.style.pointerEvents = 'none';
                 return span;
               }, { side: 0 }); // side: 0 means before spinner
 
               decorations.push(ghostWidget);
 
               const hintWidget = Decoration.widget(pos, () => {
-                const span = document.createElement('span');
-                span.className = 'autocomplete-hint';
-                span.textContent = autocompleteShortcutHint(extension.storage.currentIntent);
-                span.style.color = '#9ca3af';
-                span.style.fontSize = '0.72em';
-                span.style.fontStyle = 'normal';
-                span.style.marginLeft = '0.75rem';
-                span.style.pointerEvents = 'none';
-                span.style.whiteSpace = 'nowrap';
-                return span;
+                return createAutocompleteHint(extension.storage.currentIntent);
               }, { side: 2 });
 
               decorations.push(hintWidget);

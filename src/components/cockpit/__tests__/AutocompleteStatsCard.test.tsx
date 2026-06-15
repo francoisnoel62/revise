@@ -24,6 +24,24 @@ const statsWithData: ActionResult<AutocompleteStats> = {
       superseded_typing: 1,
       empty: 1,
     },
+    byProviderModel: [
+      {
+        providerType: 'anthropic',
+        model: 'claude-sonnet-4-5',
+        total: 4,
+        acceptanceRate: 0.5,
+        firstTokenMsP50: 250,
+        firstTokenMsP95: 390,
+      },
+      {
+        providerType: 'openai',
+        model: 'gpt-4o-mini',
+        total: 2,
+        acceptanceRate: 0,
+        firstTokenMsP50: 450,
+        firstTokenMsP95: 495,
+      },
+    ],
     acceptanceRate: 2 / 6,
     partialAcceptanceRate: 1 / 6,
     postInsertionDeletionRate: 1 / 2,
@@ -44,6 +62,7 @@ const emptyStats: ActionResult<AutocompleteStats> = {
       superseded_typing: 0,
       empty: 0,
     },
+    byProviderModel: [],
     acceptanceRate: 0,
     partialAcceptanceRate: 0,
     postInsertionDeletionRate: 0,
@@ -89,6 +108,11 @@ describe('AutocompleteStatsCard', () => {
     expect(screen.getByText('Supprimées')).toBeInTheDocument();
     expect(screen.getByText('300 ms')).toBeInTheDocument();
     expect(screen.getByText('480 ms')).toBeInTheDocument();
+    expect(screen.getByText('Provider / modele')).toBeInTheDocument();
+    expect(screen.getByText('Anthropic')).toBeInTheDocument();
+    expect(screen.getByText('claude-sonnet-4-5')).toBeInTheDocument();
+    expect(screen.getByText('OpenAI')).toBeInTheDocument();
+    expect(screen.getByText('gpt-4o-mini')).toBeInTheDocument();
     expect(screen.getByText('Réponses vides')).toBeInTheDocument();
   });
 
