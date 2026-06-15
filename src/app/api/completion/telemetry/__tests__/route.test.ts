@@ -12,8 +12,13 @@ vi.mock('@/app/actions/utils', () => ({
   getAutocompleteEventRepo: vi.fn(),
 }));
 
+vi.mock('@/app/actions/rate-limiter', () => ({
+  consumeTelemetryQuota: vi.fn(),
+}));
+
 import { auth } from '@/infrastructure/auth/auth-config';
 import { getAutocompleteEventRepo } from '@/app/actions/utils';
+import { consumeTelemetryQuota } from '@/app/actions/rate-limiter';
 import { POST } from '../route';
 
 const makeRequest = (body: unknown) =>
@@ -48,6 +53,7 @@ describe('POST /api/completion/telemetry', () => {
     vi.clearAllMocks();
     repo = { save: vi.fn().mockResolvedValue(undefined), markDeletedAfterInsert: vi.fn().mockResolvedValue(undefined) };
     vi.mocked(getAutocompleteEventRepo).mockResolvedValue(repo as never);
+    vi.mocked(consumeTelemetryQuota).mockReturnValue({ allowed: true });
   });
 
   it('returns 401 when not authenticated', async () => {
@@ -109,5 +115,29 @@ describe('POST /api/completion/telemetry', () => {
     vi.mocked(auth).mockResolvedValue({ user: { id: 'user-1' } } as never);
     const res = await POST(makeRequest({ type: 'bogus' }));
     expect(res.status).toBe(400);
+  });
+
+  it('returns 429 and skips persistence when the quota is exhausted', async () => {
+    vi.mocked(auth).mockResolvedValue({ user: { id: 'user-1' } } as never);
+    vi.mocked(consumeTelemetryQuota).mockReturnValue({
+      allowed: false,
+      retryAfterSeconds: 12,
+    });
+
+    const res = await POST(makeRequest(lifecycleBody()));
+
+    expect(res.status).toBe(429);
+    expect(res.headers.get('Retry-After')).toBe('12');
+    expect(repo.save).not.toHaveBeenCalled();
+  });
+
+  it('enforces the quota before the body is parsed', async () => {
+    vi.mocked(auth).mockResolvedValue({ user: { id: 'user-1' } } as never);
+    vi.mocked(consumeTelemetryQuota).mockReturnValue({ allowed: false });
+
+    const res = await POST(makeRequest({ type: 'deletion', suggestionId: 's', deletedAfterMs: 1 }));
+
+    expect(res.status).toBe(429);
+    expect(repo.markDeletedAfterInsert).not.toHaveBeenCalled();
   });
 });

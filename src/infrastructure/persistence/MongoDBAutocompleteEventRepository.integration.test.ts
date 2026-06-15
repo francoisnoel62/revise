@@ -1,7 +1,7 @@
 // ABOUTME: Integration tests for MongoDBAutocompleteEventRepository against a real MongoDB
 // ABOUTME: Verifies persistence, stats, post-insertion deletion patch, and owner isolation — no mocks
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { ObjectId } from 'mongodb';
 import type { Db } from 'mongodb';
@@ -120,6 +120,31 @@ describe('MongoDBAutocompleteEventRepository — intégration MongoDB réel', ()
 
     const stats = await repository.getStatsByProject(ownerId, 'project-1');
     expect(stats.total).toBe(0);
+  });
+
+  it('keeps counts exact even when the latency sample is capped, and warns', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const cappedRepo = new MongoDBAutocompleteEventRepository(db, { maxLatencySamples: 1 });
+
+    await cappedRepo.save(buildEvent(ownerId, { outcome: 'accepted_full', firstTokenMs: 100, totalMs: 500 }));
+    await cappedRepo.save(buildEvent(ownerId, { outcome: 'rejected_escape', firstTokenMs: 300, totalMs: 900 }));
+    await cappedRepo.save(buildEvent(ownerId, { outcome: 'accepted_partial', firstTokenMs: 200, totalMs: 700, acceptedChars: 5, acceptedWords: 1 }));
+
+    const stats = await cappedRepo.getStatsByProject(ownerId, 'project-1');
+
+    // Counts come from server-side aggregation → exact, independent of the cap.
+    expect(stats.total).toBe(3);
+    expect(stats.byOutcome.accepted_full).toBe(1);
+    expect(stats.byOutcome.rejected_escape).toBe(1);
+    expect(stats.byOutcome.accepted_partial).toBe(1);
+    expect(stats.acceptanceRate).toBeCloseTo(1 / 3);
+    expect(stats.partialAcceptanceRate).toBeCloseTo(1 / 3);
+    // Percentiles still computed from the (capped) recent sample.
+    expect(stats.firstTokenMsP50).not.toBeNull();
+    // No silent truncation — capping is logged.
+    expect(warn).toHaveBeenCalled();
+
+    warn.mockRestore();
   });
 
   it('creates the expected indexes', async () => {

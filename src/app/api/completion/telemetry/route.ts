@@ -5,6 +5,7 @@ import { NextRequest } from 'next/server';
 import { ObjectId } from 'mongodb';
 import { auth } from '@/infrastructure/auth/auth-config';
 import { getAutocompleteEventRepo } from '@/app/actions/utils';
+import { consumeTelemetryQuota } from '@/app/actions/rate-limiter';
 import { AutocompleteEvent } from '@/domain/entities/AutocompleteEvent';
 import {
   isValidAutocompleteOutcome,
@@ -49,6 +50,18 @@ export async function POST(request: NextRequest) {
     return new Response('Unauthorized', { status: 401 });
   }
   const ownerId = session.user.id;
+
+  // Cap ingestion volume per user before doing any work — telemetry is
+  // best-effort and must never become an abuse vector against storage.
+  const quota = consumeTelemetryQuota(ownerId);
+  if (!quota.allowed) {
+    return new Response('Too Many Requests', {
+      status: 429,
+      headers: quota.retryAfterSeconds
+        ? { 'Retry-After': String(quota.retryAfterSeconds) }
+        : undefined,
+    });
+  }
 
   let body: TelemetryPayload;
   try {
