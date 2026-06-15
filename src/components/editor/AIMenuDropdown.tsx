@@ -31,6 +31,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { SafeProvider } from '@/app/actions/provider-actions';
 import { CHAPTER_GENERATION_TYPES, ChapterGenerationTypeKey } from '@/domain';
+import { LONG_FORM_GENERATION_ENABLED } from '@/lib/ai-feature-flags';
 
 interface AIMenuDropdownProps {
   // Writing actions
@@ -168,8 +169,8 @@ export function AIMenuDropdown({
           {rewriteLoading && <Loader2 className="h-3 w-3 animate-spin ml-auto" />}
         </DropdownMenuItem>
 
-        {/* Generation options - visible when chapter is empty */}
-        {isChapterEmpty && (
+        {/* Long-form generation is deprecated from the primary writing UI. */}
+        {LONG_FORM_GENERATION_ENABLED && isChapterEmpty && (
           <>
             {generationOptions.map((option) => {
               const Icon = option.icon;

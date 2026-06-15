@@ -2,9 +2,10 @@
 // ABOUTME: Verifies keyboard shortcuts and command execution
 
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
-import { render, fireEvent } from '@testing-library/react';
+import { render, fireEvent, screen } from '@testing-library/react';
 import { CommandPalette } from './CommandPalette';
 import { SafeProvider } from '@/app/actions/provider-actions';
+import { CHAPTER_GENERATION_TYPES } from '@/domain';
 
 // Mock ResizeObserver for cmdk
 class MockResizeObserver {
@@ -152,5 +153,25 @@ describe('CommandPalette', () => {
 
     // Component should render without error
     expect(container).toBeDefined();
+  });
+
+  it('does not show long-form generation commands by default', () => {
+    render(
+      <CommandPalette
+        {...defaultProps}
+        open={true}
+        isChapterEmpty={true}
+      />
+    );
+
+    expect(
+      screen.queryByText(CHAPTER_GENERATION_TYPES['chapter-beginning'].name)
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(CHAPTER_GENERATION_TYPES['chapter-full'].name)
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(CHAPTER_GENERATION_TYPES['chapter-outline'].name)
+    ).not.toBeInTheDocument();
   });
 });

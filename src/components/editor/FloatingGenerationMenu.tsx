@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { generateChapterAction } from '@/app/actions/chapter-generation-actions';
 import { CHAPTER_GENERATION_TYPES, ChapterGenerationTypeKey } from '@/domain';
+import { LONG_FORM_GENERATION_ENABLED } from '@/lib/ai-feature-flags';
 
 interface FloatingGenerationMenuProps {
   editor: Editor | null;
@@ -28,8 +29,10 @@ export function FloatingGenerationMenu({
   const [activeType, setActiveType] = useState<ChapterGenerationTypeKey | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Hide if AI features are disabled or not visible
-  if (!showAIFeatures || !isVisible || !editor) return null;
+  // Long-form generation is deprecated from the primary writing UI.
+  if (!LONG_FORM_GENERATION_ENABLED || !showAIFeatures || !isVisible || !editor) {
+    return null;
+  }
 
   const handleGenerate = async (generationType: ChapterGenerationTypeKey) => {
     setIsGenerating(true);

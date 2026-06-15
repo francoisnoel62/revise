@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
 import path from 'path';
+import { encryptApiKey } from '../../src/infrastructure/encryption/crypto';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
@@ -21,6 +22,7 @@ export const TEST_PROJECT_ID = 'e2e-strategy-project-001';
 export const TEST_CHAPTER_ID = 'e2e-strategy-chapter-001';
 export const TEST_AUTOCOMPLETE_PROJECT_ID = 'e2e-autocomplete-project-001';
 export const TEST_AUTOCOMPLETE_CHAPTER_ID = 'e2e-autocomplete-chapter-001';
+export const TEST_PROVIDER_ID = 'e2e-provider-autocomplete-001';
 export const TEST_META_STALE_ID = 'e2e-strategy-meta-stale';
 export const TEST_META_FRESH_ID = 'e2e-strategy-meta-fresh';
 // Fixed 24-char hex ObjectId for the seeded research document
@@ -165,13 +167,35 @@ export async function seedAll(): Promise<void> {
         metadata: { wordCount: 8, characterCount: 64, lastEdited: past },
       }],
       activeChapterId: TEST_AUTOCOMPLETE_CHAPTER_ID,
-      providerId: null,
+      providerId: TEST_PROVIDER_ID,
       createdAt: past,
       updatedAt: now,
       isPublished: false,
       shareToken: null,
       publishedAt: null,
       publishedChapterIds: null,
+    },
+    { upsert: true }
+  );
+
+  // 2c. Valid provider fixture so AI UI controls are visible in E2E tests.
+  // The fake key is encrypted because the provider repository decrypts on list.
+  const encryptedProviderKey = encryptApiKey('sk-e2e-fake-provider-key');
+  await db.collection('providers').replaceOne(
+    { _id: TEST_PROVIDER_ID } as object,
+    {
+      _id: TEST_PROVIDER_ID,
+      ownerId: TEST_USER_ID,
+      name: 'Provider E2E',
+      type: 'openai',
+      encryptedApiKey: encryptedProviderKey.encryptedData,
+      encryptionIV: encryptedProviderKey.iv,
+      authTag: encryptedProviderKey.authTag,
+      model: 'gpt-4o-mini',
+      isValid: true,
+      lastTested: now,
+      createdAt: past,
+      updatedAt: now,
     },
     { upsert: true }
   );
@@ -304,6 +328,7 @@ export async function cleanupAll(): Promise<void> {
   await Promise.all([
     db.collection('users').deleteOne({ _id: TEST_USER_ID } as object),
     db.collection('projects').deleteMany({ ownerId: TEST_USER_ID }),
+    db.collection('providers').deleteMany({ ownerId: TEST_USER_ID }),
     db.collection('project_metadata').deleteMany({ ownerId: TEST_USER_ID }),
     db.collection('researchDocuments').deleteMany({ ownerId: TEST_USER_ID }),
     db.collection('autocompleteEvents').deleteMany({ ownerId: TEST_USER_ID }),
