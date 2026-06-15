@@ -14,6 +14,7 @@ import {
   type AutocompleteIntent,
   nextAutocompleteIntent,
 } from '@/domain/value-objects/AutocompleteIntent';
+import { autocompleteShortcutHint } from './autocompleteHint';
 
 export interface AutocompleteOptions {
   /**
@@ -556,6 +557,21 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
               }, { side: 0 }); // side: 0 means before spinner
 
               decorations.push(ghostWidget);
+
+              const hintWidget = Decoration.widget(pos, () => {
+                const span = document.createElement('span');
+                span.className = 'autocomplete-hint';
+                span.textContent = autocompleteShortcutHint(extension.storage.currentIntent);
+                span.style.color = '#9ca3af';
+                span.style.fontSize = '0.72em';
+                span.style.fontStyle = 'normal';
+                span.style.marginLeft = '0.75rem';
+                span.style.pointerEvents = 'none';
+                span.style.whiteSpace = 'nowrap';
+                return span;
+              }, { side: 2 });
+
+              decorations.push(hintWidget);
             }
 
             return DecorationSet.create(tr.doc, decorations);

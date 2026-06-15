@@ -130,6 +130,9 @@ async function triggerSuggestion(page: Page, expectedGhostText: string) {
   await page.keyboard.press('Tab');
   const ghost = page.locator('.autocomplete-ghost');
   await expect(ghost).toContainText(expectedGhostText, { timeout: 10_000 });
+  await expect(page.locator('.autocomplete-hint')).toContainText(
+    'Ctrl/Cmd+. variante'
+  );
   return ghost;
 }
 
@@ -257,6 +260,7 @@ test.describe.serial('Autocomplétion littéraire — E2E éditeur', () => {
     await expect(page.locator('.autocomplete-ghost')).toContainText('attendit', {
       timeout: 10_000,
     });
+    await expect(page.locator('.autocomplete-hint')).toContainText('plus bref');
     expect(routes.completionBodies).toHaveLength(2);
     expect(routes.completionBodies[0].intent).toBe('natural');
     expect(routes.completionBodies[1].intent).toBe('shorter');
