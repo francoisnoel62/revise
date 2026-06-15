@@ -19,6 +19,8 @@ export const TEST_USER_EMAIL = 'e2e-strategy@revise.test';
 export const TEST_USER_PASSWORD = 'TestE2E2025!';
 export const TEST_PROJECT_ID = 'e2e-strategy-project-001';
 export const TEST_CHAPTER_ID = 'e2e-strategy-chapter-001';
+export const TEST_AUTOCOMPLETE_PROJECT_ID = 'e2e-autocomplete-project-001';
+export const TEST_AUTOCOMPLETE_CHAPTER_ID = 'e2e-autocomplete-chapter-001';
 export const TEST_META_STALE_ID = 'e2e-strategy-meta-stale';
 export const TEST_META_FRESH_ID = 'e2e-strategy-meta-fresh';
 // Fixed 24-char hex ObjectId for the seeded research document
@@ -33,6 +35,16 @@ export const TEST_CHAPTER_CONTENT = JSON.stringify({
   content: [{
     type: 'paragraph',
     content: [{ type: 'text', text: TEST_CHAPTER_TEXT }],
+  }],
+});
+
+export const TEST_AUTOCOMPLETE_CHAPTER_TITLE = 'Chapitre Autocomplétion';
+export const TEST_AUTOCOMPLETE_CHAPTER_TEXT = 'Éliane Vaucresson leva les yeux vers l’horloge arrêtée et';
+export const TEST_AUTOCOMPLETE_CHAPTER_CONTENT = JSON.stringify({
+  type: 'doc',
+  content: [{
+    type: 'paragraph',
+    content: [{ type: 'text', text: TEST_AUTOCOMPLETE_CHAPTER_TEXT }],
   }],
 });
 
@@ -97,6 +109,33 @@ export async function seedAll(): Promise<void> {
         metadata: { wordCount: 9, characterCount: 51, lastEdited: past },
       }],
       activeChapterId: TEST_CHAPTER_ID,
+      providerId: null,
+      createdAt: past,
+      updatedAt: now,
+      isPublished: false,
+      shareToken: null,
+      publishedAt: null,
+      publishedChapterIds: null,
+    },
+    { upsert: true }
+  );
+
+  // 2b. Separate project for autocomplete E2E tests. It is intentionally isolated from
+  // the AI-strategy project because those tests edit their own manuscript in parallel.
+  await db.collection('projects').replaceOne(
+    { _id: TEST_AUTOCOMPLETE_PROJECT_ID } as object,
+    {
+      _id: TEST_AUTOCOMPLETE_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      title: 'Projet Test Autocomplétion',
+      chapters: [{
+        id: TEST_AUTOCOMPLETE_CHAPTER_ID,
+        title: TEST_AUTOCOMPLETE_CHAPTER_TITLE,
+        content: TEST_AUTOCOMPLETE_CHAPTER_CONTENT,
+        order: 0,
+        metadata: { wordCount: 8, characterCount: 64, lastEdited: past },
+      }],
+      activeChapterId: TEST_AUTOCOMPLETE_CHAPTER_ID,
       providerId: null,
       createdAt: past,
       updatedAt: now,
@@ -204,6 +243,7 @@ export async function cleanupAll(): Promise<void> {
     db.collection('projects').deleteMany({ ownerId: TEST_USER_ID }),
     db.collection('project_metadata').deleteMany({ ownerId: TEST_USER_ID }),
     db.collection('researchDocuments').deleteMany({ ownerId: TEST_USER_ID }),
+    db.collection('autocompleteEvents').deleteMany({ ownerId: TEST_USER_ID }),
   ]);
 
   await client.close();

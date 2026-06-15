@@ -455,7 +455,7 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
         // Accept the next fragment (up to the next strong punctuation).
         return acceptSegment(editor, this.storage, this.options, nextFragment);
       },
-      Escape: () => {
+      Escape: ({ editor }) => {
         const { storage } = this;
 
         // Cancel ongoing request
@@ -469,6 +469,7 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
           emitEvent(this.options, storage.tracker.reject());
           storage.suggestion = null;
           storage.isLoading = false;
+          editor.view.dispatch(editor.state.tr);
           return true;
         }
         return false;
