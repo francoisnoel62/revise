@@ -17,7 +17,7 @@ import {
   getTrackedLLMProviderById,
   withErrorHandling,
 } from './utils';
-import { canGenerateMetadata, recordMetadataGeneration } from './rate-limiter';
+import { canGenerateChapter, recordChapterGeneration } from './rate-limiter';
 
 /**
  * Result of chapter generation.
@@ -54,8 +54,8 @@ export async function generateChapterAction(
     };
   }
 
-  // 3. Rate limit check (using same rate limiter as metadata)
-  const rateCheck = canGenerateMetadata(auth.userId, `chapter-${generationType}`);
+  // 3. Rate limit check (chapter generation has its own namespace)
+  const rateCheck = canGenerateChapter(auth.userId, generationType);
   if (!rateCheck.allowed) {
     return {
       success: false,
@@ -65,7 +65,7 @@ export async function generateChapterAction(
 
   return withErrorHandling(async () => {
     // 4. Record generation attempt
-    recordMetadataGeneration(auth.userId, `chapter-${generationType}`);
+    recordChapterGeneration(auth.userId, generationType);
 
     // 5. Get LLM provider with usage tracking
     const llmProvider = providerId
