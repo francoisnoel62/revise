@@ -23,6 +23,8 @@ interface LifecyclePayload {
   totalMs: number;
   lengthChars: number;
   lengthWords: number;
+  acceptedChars?: number;
+  acceptedWords?: number;
   outcome: string;
 }
 
@@ -97,6 +99,8 @@ export async function POST(request: NextRequest) {
         totalMs: body.totalMs,
         suggestionLengthChars: body.lengthChars,
         suggestionLengthWords: body.lengthWords,
+        acceptedChars: isNonNegativeNumber(body.acceptedChars) ? body.acceptedChars : 0,
+        acceptedWords: isNonNegativeNumber(body.acceptedWords) ? body.acceptedWords : 0,
         outcome: body.outcome as AutocompleteOutcome,
         deletedAfterMs: null,
       });

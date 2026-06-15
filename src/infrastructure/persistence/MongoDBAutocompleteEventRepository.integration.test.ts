@@ -29,6 +29,8 @@ function buildEvent(
     totalMs: 800,
     suggestionLengthChars: 30,
     suggestionLengthWords: 6,
+    acceptedChars: 30,
+    acceptedWords: 6,
     outcome: 'accepted_full',
     deletedAfterMs: null,
     ...overrides,
@@ -67,6 +69,17 @@ describe('MongoDBAutocompleteEventRepository — intégration MongoDB réel', ()
     expect(stats.acceptanceRate).toBeCloseTo(1 / 3);
     // firstTokenMs values present: 100, 300 (empty excluded) → p50 = 200
     expect(stats.firstTokenMsP50).toBeCloseTo(200);
+  });
+
+  it('computes the partial-acceptance rate', async () => {
+    await repository.save(buildEvent(ownerId, { outcome: 'accepted_full' }));
+    await repository.save(
+      buildEvent(ownerId, { outcome: 'accepted_partial', acceptedChars: 12, acceptedWords: 2 })
+    );
+
+    const stats = await repository.getStatsByProject(ownerId, 'project-1');
+    expect(stats.byOutcome.accepted_partial).toBe(1);
+    expect(stats.partialAcceptanceRate).toBeCloseTo(0.5);
   });
 
   it('patches an accepted suggestion as deleted after insertion and reflects it in the rate', async () => {

@@ -109,6 +109,7 @@ export class MongoDBAutocompleteEventRepository
       total,
       byOutcome,
       acceptanceRate: total === 0 ? 0 : accepted / total,
+      partialAcceptanceRate: total === 0 ? 0 : byOutcome.accepted_partial / total,
       postInsertionDeletionRate: accepted === 0 ? 0 : acceptedDeleted / accepted,
       firstTokenMsP50: percentile(firstTokenValues, 0.5),
       firstTokenMsP95: percentile(firstTokenValues, 0.95),

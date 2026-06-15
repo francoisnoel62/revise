@@ -1,5 +1,10 @@
 # Plan 3 — Acceptation partielle (chantier 4)
 
+> ✅ **Implémenté le 2026-06-15.** `Ctrl+→` accepte le mot suivant, `Alt+→` le fragment suivant
+> (reste en ghost text), `Tab` tout, `Esc` rejette. Découpage pur testé (`suggestionSegments.ts`).
+> Instrumentation : outcome `accepted_partial` + `acceptedChars/acceptedWords` persistés + taux
+> d'acceptation partielle dans les stats. Gates verts : lint, typecheck, 2216 tests, build.
+
 > Série : [00_index.md](00_index.md). Plus gros gain produit perçu. Méthode : TDD.
 > Synergie plan 1 : ajouter un outcome `accepted_partial` à l'instrumentation.
 

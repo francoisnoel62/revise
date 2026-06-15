@@ -60,6 +60,35 @@ describe('AutocompleteLifecycleTracker', () => {
     expect(supersede.supersede()!.outcome).toBe('superseded_typing');
   });
 
+  it('reports accepted length on a full acceptance', () => {
+    const tracker = new AutocompleteLifecycleTracker({ now: makeClock([0, 50, 900]), genId: () => 'f' });
+    tracker.start(ctx);
+    tracker.markShown('bonjour le monde');
+    const payload = tracker.accept()!;
+    expect(payload.outcome).toBe('accepted_full');
+    expect(payload.acceptedChars).toBe('bonjour le monde'.length);
+    expect(payload.acceptedWords).toBe(3);
+  });
+
+  it('becomes accepted_partial (with accepted length) when some is kept then rejected', () => {
+    const tracker = new AutocompleteLifecycleTracker({ now: makeClock([0, 50, 200, 900]), genId: () => 'p' });
+    tracker.start(ctx);
+    tracker.markShown('bonjour le monde');
+    tracker.recordPartialAccept('bonjour ');
+    const payload = tracker.reject()!;
+    expect(payload.outcome).toBe('accepted_partial');
+    expect(payload.acceptedChars).toBe('bonjour '.length);
+    expect(payload.acceptedWords).toBe(1);
+  });
+
+  it('becomes accepted_partial when some is kept then superseded by typing', () => {
+    const tracker = new AutocompleteLifecycleTracker({ now: makeClock([0, 50, 200, 900]), genId: () => 'p2' });
+    tracker.start(ctx);
+    tracker.markShown('bonjour le monde');
+    tracker.recordPartialAccept('bonjour ');
+    expect(tracker.supersede()!.outcome).toBe('accepted_partial');
+  });
+
   it('returns null and stays idle when there is no projectId', () => {
     const tracker = new AutocompleteLifecycleTracker({ genId: () => 'x' });
     const id = tracker.start({ projectId: undefined, chapterId: null });

@@ -21,6 +21,8 @@ export interface AutocompleteEventDocument {
   totalMs: number;
   suggestionLengthChars: number;
   suggestionLengthWords: number;
+  acceptedChars: number;
+  acceptedWords: number;
   outcome: AutocompleteOutcome;
   deletedAfterMs: number | null;
   createdAt: Date;
@@ -42,6 +44,8 @@ export function serializeAutocompleteEvent(
     totalMs: event.getTotalMs(),
     suggestionLengthChars: event.getSuggestionLengthChars(),
     suggestionLengthWords: event.getSuggestionLengthWords(),
+    acceptedChars: event.getAcceptedChars(),
+    acceptedWords: event.getAcceptedWords(),
     outcome: event.getOutcome(),
     deletedAfterMs: event.getDeletedAfterMs(),
     createdAt: event.getCreatedAt(),
@@ -64,6 +68,8 @@ export function deserializeAutocompleteEvent(
     totalMs: doc.totalMs,
     suggestionLengthChars: doc.suggestionLengthChars,
     suggestionLengthWords: doc.suggestionLengthWords,
+    acceptedChars: doc.acceptedChars ?? 0,
+    acceptedWords: doc.acceptedWords ?? 0,
     outcome: doc.outcome,
     deletedAfterMs: doc.deletedAfterMs ?? null,
     createdAt: doc.createdAt,

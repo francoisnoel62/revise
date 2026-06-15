@@ -33,6 +33,8 @@ const lifecycleBody = (overrides: Record<string, unknown> = {}) => ({
   totalMs: 900,
   lengthChars: 42,
   lengthWords: 8,
+  acceptedChars: 42,
+  acceptedWords: 8,
   outcome: 'accepted_full',
   ...overrides,
 });
@@ -65,6 +67,7 @@ describe('POST /api/completion/telemetry', () => {
     expect(saved.getSuggestionId()).toBe('sugg-1');
     expect(saved.getOutcome()).toBe('accepted_full');
     expect(saved.getFirstTokenMs()).toBe(220);
+    expect(saved.getAcceptedChars()).toBe(42);
   });
 
   it('forces firstTokenMs to null for an empty outcome', async () => {

@@ -13,6 +13,8 @@ export interface LifecyclePayload {
   totalMs: number;
   lengthChars: number;
   lengthWords: number;
+  acceptedChars: number;
+  acceptedWords: number;
   outcome: AutocompleteOutcome;
 }
 
@@ -36,6 +38,9 @@ interface ActiveState {
   firstTokenMs: number | null;
   lengthChars: number;
   lengthWords: number;
+  acceptedChars: number;
+  acceptedWords: number;
+  partialAccepted: boolean;
 }
 
 function countWords(text: string): number {
@@ -80,6 +85,9 @@ export class AutocompleteLifecycleTracker {
       firstTokenMs: null,
       lengthChars: 0,
       lengthWords: 0,
+      acceptedChars: 0,
+      acceptedWords: 0,
+      partialAccepted: false,
     };
     return suggestionId;
   }
@@ -99,51 +107,73 @@ export class AutocompleteLifecycleTracker {
     }
   }
 
+  /** Accumulate a partially-accepted slice (word or fragment); non-terminal. */
+  recordPartialAccept(takenText: string): void {
+    if (this.active) {
+      this.active.acceptedChars += takenText.length;
+      this.active.acceptedWords += countWords(takenText);
+      this.active.partialAccepted = true;
+    }
+  }
+
   hasActive(): boolean {
     return this.active !== null;
   }
 
   finishEmpty(): LifecyclePayload | null {
     if (!this.active) return null;
-    const payload = this.build('empty', { forceEmpty: true });
+    const payload = this.build('empty');
     this.active = null;
     return payload;
   }
 
+  /** The whole (remaining) suggestion was inserted → full acceptance. */
   accept(): LifecyclePayload | null {
     return this.terminate('accepted_full');
   }
 
+  /** Escape: partial if some slices were kept, otherwise an outright rejection. */
   reject(): LifecyclePayload | null {
-    return this.terminate('rejected_escape');
+    if (!this.active) return null;
+    return this.terminate(this.active.partialAccepted ? 'accepted_partial' : 'rejected_escape');
   }
 
+  /** Typing instead of accepting: partial if some slices were kept, else superseded. */
   supersede(): LifecyclePayload | null {
-    return this.terminate('superseded_typing');
+    if (!this.active) return null;
+    return this.terminate(this.active.partialAccepted ? 'accepted_partial' : 'superseded_typing');
   }
 
   private terminate(outcome: AutocompleteOutcome): LifecyclePayload | null {
     if (!this.active) return null;
-    const payload = this.build(outcome, { forceEmpty: false });
+    const payload = this.build(outcome);
     this.active = null;
     return payload;
   }
 
-  private build(
-    outcome: AutocompleteOutcome,
-    opts: { forceEmpty: boolean }
-  ): LifecyclePayload {
+  private build(outcome: AutocompleteOutcome): LifecyclePayload {
     const a = this.active!;
+    let acceptedChars = 0;
+    let acceptedWords = 0;
+    if (outcome === 'accepted_full') {
+      acceptedChars = a.lengthChars;
+      acceptedWords = a.lengthWords;
+    } else if (outcome === 'accepted_partial') {
+      acceptedChars = a.acceptedChars;
+      acceptedWords = a.acceptedWords;
+    }
     return {
       type: 'lifecycle',
       suggestionId: a.suggestionId,
       projectId: a.projectId,
       chapterId: a.chapterId,
       triggeredAtIso: a.triggeredAtIso,
-      firstTokenMs: opts.forceEmpty ? null : a.firstTokenMs,
+      firstTokenMs: outcome === 'empty' ? null : a.firstTokenMs,
       totalMs: this.now() - a.t0,
-      lengthChars: opts.forceEmpty ? 0 : a.lengthChars,
-      lengthWords: opts.forceEmpty ? 0 : a.lengthWords,
+      lengthChars: outcome === 'empty' ? 0 : a.lengthChars,
+      lengthWords: outcome === 'empty' ? 0 : a.lengthWords,
+      acceptedChars,
+      acceptedWords,
       outcome,
     };
   }

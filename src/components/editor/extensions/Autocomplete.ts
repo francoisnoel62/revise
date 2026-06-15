@@ -9,6 +9,7 @@ import {
   type LifecyclePayload,
   type DeletionPayload,
 } from './autocompleteTelemetry';
+import { nextWord, nextFragment } from './suggestionSegments';
 
 export interface AutocompleteOptions {
   /**
@@ -84,6 +85,40 @@ function emitEvent(
   if (payload && options.telemetryEnabled !== false && options.onEvent) {
     options.onEvent(payload);
   }
+}
+
+/**
+ * Accept the next segment (word or fragment) of the current suggestion, keeping the rest
+ * as ghost text. Records the partial acceptance; if nothing remains, the lifecycle is complete.
+ */
+function acceptSegment(
+  editor: Editor,
+  storage: AutocompleteStorage,
+  options: AutocompleteOptions,
+  splitter: (s: string) => { take: string; rest: string }
+): boolean {
+  if (!storage.enabled || !storage.suggestion) {
+    return false;
+  }
+  const { take, rest } = splitter(storage.suggestion);
+  if (!take) {
+    return false;
+  }
+
+  storage.acceptingInsertion = true;
+  editor.commands.insertContent(take);
+  storage.acceptingInsertion = false;
+
+  storage.tracker.recordPartialAccept(take);
+  storage.suggestion = rest || null;
+
+  if (!storage.suggestion) {
+    // Whole suggestion consumed piecewise → full acceptance.
+    emitEvent(options, storage.tracker.accept());
+  } else {
+    editor.view.dispatch(editor.state.tr);
+  }
+  return true;
 }
 
 /**
@@ -386,6 +421,14 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
         triggerCompletion(editor, storage, this.options);
 
         return true;
+      },
+      'Mod-ArrowRight': ({ editor }) => {
+        // Accept the next word, keep the rest as ghost text.
+        return acceptSegment(editor, this.storage, this.options, nextWord);
+      },
+      'Alt-ArrowRight': ({ editor }) => {
+        // Accept the next fragment (up to the next strong punctuation).
+        return acceptSegment(editor, this.storage, this.options, nextFragment);
       },
       Escape: () => {
         const { storage } = this;

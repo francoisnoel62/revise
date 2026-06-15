@@ -8,6 +8,7 @@ export interface AutocompleteStats {
   total: number;
   byOutcome: Record<AutocompleteOutcome, number>;
   acceptanceRate: number; // accepted_full / total
+  partialAcceptanceRate: number; // accepted_partial / total
   postInsertionDeletionRate: number; // accepted then deleted / accepted_full
   firstTokenMsP50: number | null;
   firstTokenMsP95: number | null;

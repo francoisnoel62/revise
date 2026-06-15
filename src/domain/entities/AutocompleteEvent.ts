@@ -1,5 +1,5 @@
 // ABOUTME: AutocompleteEvent entity — one record summarizing the lifecycle of a single suggestion
-// ABOUTME: Captures perceived latency, duration, length and terminal outcome for instrumentation
+// ABOUTME: Captures perceived latency, duration, length, accepted length and terminal outcome
 
 import {
   AutocompleteOutcome,
@@ -19,6 +19,8 @@ export interface AutocompleteEventProperties {
   totalMs: number;
   suggestionLengthChars: number;
   suggestionLengthWords: number;
+  acceptedChars: number;
+  acceptedWords: number;
   outcome: AutocompleteOutcome;
   deletedAfterMs: number | null;
   createdAt: Date;
@@ -39,6 +41,8 @@ export class AutocompleteEvent {
   private readonly totalMs: number;
   private readonly suggestionLengthChars: number;
   private readonly suggestionLengthWords: number;
+  private readonly acceptedChars: number;
+  private readonly acceptedWords: number;
   private readonly outcome: AutocompleteOutcome;
   private readonly deletedAfterMs: number | null;
   private readonly createdAt: Date;
@@ -58,6 +62,8 @@ export class AutocompleteEvent {
     this.totalMs = props.totalMs;
     this.suggestionLengthChars = props.suggestionLengthChars;
     this.suggestionLengthWords = props.suggestionLengthWords;
+    this.acceptedChars = props.acceptedChars;
+    this.acceptedWords = props.acceptedWords;
     this.outcome = props.outcome;
     this.deletedAfterMs = props.deletedAfterMs;
     this.createdAt = props.createdAt;
@@ -74,6 +80,8 @@ export class AutocompleteEvent {
     this.requireNonNegativeOrNull(props.firstTokenMs, 'firstTokenMs');
     this.requireNonNegative(props.suggestionLengthChars, 'suggestionLengthChars');
     this.requireNonNegative(props.suggestionLengthWords, 'suggestionLengthWords');
+    this.requireNonNegative(props.acceptedChars, 'acceptedChars');
+    this.requireNonNegative(props.acceptedWords, 'acceptedWords');
     this.requireNonNegativeOrNull(props.deletedAfterMs, 'deletedAfterMs');
     if (props.outcome === 'empty' && props.firstTokenMs !== null) {
       throw new Error('firstTokenMs must be null when outcome is empty');
@@ -135,6 +143,12 @@ export class AutocompleteEvent {
   }
   getSuggestionLengthWords(): number {
     return this.suggestionLengthWords;
+  }
+  getAcceptedChars(): number {
+    return this.acceptedChars;
+  }
+  getAcceptedWords(): number {
+    return this.acceptedWords;
   }
   getOutcome(): AutocompleteOutcome {
     return this.outcome;

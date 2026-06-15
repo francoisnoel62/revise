@@ -23,6 +23,8 @@ function baseProps(
     totalMs: 900,
     suggestionLengthChars: 42,
     suggestionLengthWords: 8,
+    acceptedChars: 42,
+    acceptedWords: 8,
     outcome: 'accepted_full',
     deletedAfterMs: null,
     ...overrides,
@@ -68,8 +70,18 @@ describe('AutocompleteEvent', () => {
     ).toThrow(/Invalid outcome/);
   });
 
+  it('supports a partial-acceptance outcome with accepted length', () => {
+    const event = AutocompleteEvent.create(
+      baseProps({ outcome: 'accepted_partial', acceptedChars: 10, acceptedWords: 2 })
+    );
+    expect(event.getOutcome()).toBe('accepted_partial');
+    expect(event.getAcceptedChars()).toBe(10);
+    expect(event.getAcceptedWords()).toBe(2);
+  });
+
   it('rejects negative durations and lengths', () => {
     expect(() => AutocompleteEvent.create(baseProps({ totalMs: -1 }))).toThrow(/totalMs/);
+    expect(() => AutocompleteEvent.create(baseProps({ acceptedChars: -1 }))).toThrow(/acceptedChars/);
     expect(() => AutocompleteEvent.create(baseProps({ firstTokenMs: -5 }))).toThrow(
       /firstTokenMs/
     );

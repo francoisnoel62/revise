@@ -1,8 +1,9 @@
 // ABOUTME: Issue terminale d'une suggestion d'autocomplétion (pour l'instrumentation).
-// ABOUTME: accepted_full | rejected_escape | superseded_typing | empty.
+// ABOUTME: accepted_full | accepted_partial | rejected_escape | superseded_typing | empty.
 
 export const AUTOCOMPLETE_OUTCOMES = [
   'accepted_full',
+  'accepted_partial',
   'rejected_escape',
   'superseded_typing',
   'empty',
