@@ -17,6 +17,8 @@ export interface LifecyclePayload {
   acceptedChars: number;
   acceptedWords: number;
   intent: AutocompleteIntent;
+  providerType: string | null;
+  model: string | null;
   outcome: AutocompleteOutcome;
 }
 
@@ -45,6 +47,8 @@ interface ActiveState {
   acceptedChars: number;
   acceptedWords: number;
   partialAccepted: boolean;
+  providerType: string | null;
+  model: string | null;
 }
 
 function countWords(text: string): number {
@@ -93,8 +97,18 @@ export class AutocompleteLifecycleTracker {
       acceptedChars: 0,
       acceptedWords: 0,
       partialAccepted: false,
+      providerType: null,
+      model: null,
     };
     return suggestionId;
+  }
+
+  /** Attach provider metadata reported by the streaming route. */
+  setProviderMetadata(providerType: string | null, model: string | null): void {
+    if (this.active) {
+      this.active.providerType = providerType;
+      this.active.model = model;
+    }
   }
 
   /** Record perceived latency on the first streamed token (idempotent). */
@@ -180,6 +194,8 @@ export class AutocompleteLifecycleTracker {
       acceptedChars,
       acceptedWords,
       intent: a.intent,
+      providerType: a.providerType,
+      model: a.model,
       outcome,
     };
   }

@@ -27,6 +27,8 @@ interface LifecyclePayload {
   acceptedChars?: number;
   acceptedWords?: number;
   intent?: string;
+  providerType?: string | null;
+  model?: string | null;
   outcome: string;
 }
 
@@ -93,9 +95,8 @@ export async function POST(request: NextRequest) {
         projectId: body.projectId,
         chapterId: body.chapterId ?? null,
         suggestionId: body.suggestionId,
-        // Provider/model enrichment is deferred (Phase 1: client-side, no extra lookup).
-        providerType: null,
-        model: null,
+        providerType: typeof body.providerType === 'string' ? body.providerType : null,
+        model: typeof body.model === 'string' ? body.model : null,
         triggeredAt,
         firstTokenMs: body.outcome === 'empty' ? null : body.firstTokenMs,
         totalMs: body.totalMs,

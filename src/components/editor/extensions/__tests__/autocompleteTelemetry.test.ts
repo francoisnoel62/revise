@@ -36,6 +36,22 @@ describe('AutocompleteLifecycleTracker', () => {
     expect(payload!.projectId).toBe('proj-1');
   });
 
+  it('attaches provider metadata when the stream reports it', () => {
+    const tracker = new AutocompleteLifecycleTracker({
+      now: makeClock([0, 100, 500]),
+      genId: () => 'sugg-provider',
+    });
+
+    tracker.start(ctx);
+    tracker.setProviderMetadata('anthropic', 'claude-sonnet-4-5');
+    tracker.markFirstToken();
+    tracker.markShown('suite');
+    const payload = tracker.accept();
+
+    expect(payload!.providerType).toBe('anthropic');
+    expect(payload!.model).toBe('claude-sonnet-4-5');
+  });
+
   it('produces an empty payload with null latency and zero length', () => {
     const tracker = new AutocompleteLifecycleTracker({
       now: makeClock([0, 400]),

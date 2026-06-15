@@ -35,6 +35,8 @@ const lifecycleBody = (overrides: Record<string, unknown> = {}) => ({
   lengthWords: 8,
   acceptedChars: 42,
   acceptedWords: 8,
+  providerType: 'anthropic',
+  model: 'claude-sonnet-4-5',
   outcome: 'accepted_full',
   ...overrides,
 });
@@ -68,6 +70,8 @@ describe('POST /api/completion/telemetry', () => {
     expect(saved.getOutcome()).toBe('accepted_full');
     expect(saved.getFirstTokenMs()).toBe(220);
     expect(saved.getAcceptedChars()).toBe(42);
+    expect(saved.getProviderType()).toBe('anthropic');
+    expect(saved.getModel()).toBe('claude-sonnet-4-5');
   });
 
   it('forces firstTokenMs to null for an empty outcome', async () => {

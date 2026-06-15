@@ -47,7 +47,11 @@ async function setupAutocompleteRoutes(
     const suggestion = suggestions.shift() ?? ' une suite de test.';
     const midpoint = Math.max(1, Math.floor(suggestion.length / 2));
     const chunks = [suggestion.slice(0, midpoint), suggestion.slice(midpoint)];
-    const body = chunks
+    const body = `data: ${JSON.stringify({
+      type: 'metadata',
+      providerType: 'anthropic',
+      model: 'claude-sonnet-4-5',
+    })}\n\n` + chunks
       .map((text) => `data: ${JSON.stringify({ text })}\n\n`)
       .join('') + 'data: [DONE]\n\n';
 
@@ -162,6 +166,8 @@ test.describe.serial('Autocomplétion littéraire — E2E éditeur', () => {
 
     const body = await telemetry;
     expect(body.projectId).toBe(TEST_AUTOCOMPLETE_PROJECT_ID);
+    expect(body.providerType).toBe('anthropic');
+    expect(body.model).toBe('claude-sonnet-4-5');
     expect(body.lengthChars).toBeGreaterThan(0);
     expect(body.acceptedChars).toBe(body.lengthChars);
     expect(body.firstTokenMs).not.toBeNull();

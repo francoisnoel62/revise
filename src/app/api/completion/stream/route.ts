@@ -79,6 +79,9 @@ export async function POST(request: NextRequest) {
     return new Response('No AI provider configured', { status: 400 });
   }
 
+  const selectedProviderType = selectedProvider.getType();
+  const selectedProviderModel = selectedProvider.getModel();
+
   // 4. Build a manuscript-first completion context (current chapter + author intent).
   // Derived metadata is kept OUT of the writing hot path (opt-in only). Built fresh so
   // the live chapter text is never stale.
@@ -101,6 +104,16 @@ export async function POST(request: NextRequest) {
     async start(controller) {
       try {
         console.log('[Autocomplete] Starting stream...');
+        controller.enqueue(
+          encoder.encode(
+            `data: ${JSON.stringify({
+              type: 'metadata',
+              providerType: selectedProviderType,
+              model: selectedProviderModel,
+            })}\n\n`
+          )
+        );
+
         const generator = llmProvider.generateCompletionStream(
           textBeforeCursor,
           textAfterCursor,

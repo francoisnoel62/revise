@@ -296,6 +296,14 @@ async function streamCompletion(
               throw new Error(parsed.error);
             }
 
+            if (parsed.type === 'metadata') {
+              storage.tracker.setProviderMetadata(
+                typeof parsed.providerType === 'string' ? parsed.providerType : null,
+                typeof parsed.model === 'string' ? parsed.model : null
+              );
+              continue;
+            }
+
             if (parsed.text) {
               // First token latency (perceived) — idempotent
               storage.tracker.markFirstToken();

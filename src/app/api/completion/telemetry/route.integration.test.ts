@@ -38,6 +38,8 @@ function lifecyclePayload(ownerSuffix: string, overrides: Record<string, unknown
     acceptedChars: 34,
     acceptedWords: 6,
     intent: 'natural',
+    providerType: 'anthropic',
+    model: 'claude-sonnet-4-5',
     outcome: 'accepted_full',
     ...overrides,
   };
@@ -82,6 +84,8 @@ describe('POST /api/completion/telemetry — integration MongoDB', () => {
       acceptedChars: 34,
       acceptedWords: 6,
       intent: 'natural',
+      providerType: 'anthropic',
+      model: 'claude-sonnet-4-5',
       outcome: 'accepted_full',
       deletedAfterMs: null,
     });
