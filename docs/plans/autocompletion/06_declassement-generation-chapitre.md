@@ -1,5 +1,12 @@
 # Plan 6 — Déclassement de la génération de chapitre (chantier 7)
 
+> ✅ **Implémenté le 2026-06-15.** Rate-limit chapitre découplé des métadonnées
+> (`canGenerateChapter`/`recordChapterGeneration` + `Map` et cooldown dédiés, `rate-limiter.ts`) ;
+> génération longue retirée du flux principal derrière le drapeau `LONG_FORM_GENERATION_ENABLED`
+> (off par défaut, `src/lib/ai-feature-flags.ts`) dans `FloatingGenerationMenu`, `AIMenuDropdown` et
+> `CommandPalette` ; routes et use cases conservés. Mesure d'usage assurée par la télémétrie existante
+> `chapter_generation`. Gates verts : lint, typecheck, suite unitaire, build.
+
 > Série : [00_index.md](00_index.md). **Déclasser, pas supprimer.** Mesurer l'usage réel avant toute
 > suppression. Méthode : TDD.
 
