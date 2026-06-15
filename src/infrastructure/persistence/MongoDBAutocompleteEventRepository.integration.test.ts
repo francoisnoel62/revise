@@ -31,6 +31,7 @@ function buildEvent(
     suggestionLengthWords: 6,
     acceptedChars: 30,
     acceptedWords: 6,
+    intent: 'natural',
     outcome: 'accepted_full',
     deletedAfterMs: null,
     ...overrides,

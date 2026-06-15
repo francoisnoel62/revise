@@ -2,6 +2,7 @@
 // ABOUTME: Produces telemetry payloads (no network, no TipTap) so it is unit-testable
 
 import type { AutocompleteOutcome } from '@/domain/value-objects/AutocompleteOutcome';
+import type { AutocompleteIntent } from '@/domain/value-objects/AutocompleteIntent';
 
 export interface LifecyclePayload {
   type: 'lifecycle';
@@ -15,6 +16,7 @@ export interface LifecyclePayload {
   lengthWords: number;
   acceptedChars: number;
   acceptedWords: number;
+  intent: AutocompleteIntent;
   outcome: AutocompleteOutcome;
 }
 
@@ -27,12 +29,14 @@ export interface DeletionPayload {
 export interface StartContext {
   projectId?: string;
   chapterId: string | null;
+  intent: AutocompleteIntent;
 }
 
 interface ActiveState {
   suggestionId: string;
   projectId: string;
   chapterId: string | null;
+  intent: AutocompleteIntent;
   t0: number;
   triggeredAtIso: string;
   firstTokenMs: number | null;
@@ -80,6 +84,7 @@ export class AutocompleteLifecycleTracker {
       suggestionId,
       projectId: ctx.projectId,
       chapterId: ctx.chapterId,
+      intent: ctx.intent,
       t0,
       triggeredAtIso: new Date(t0).toISOString(),
       firstTokenMs: null,
@@ -174,6 +179,7 @@ export class AutocompleteLifecycleTracker {
       lengthWords: outcome === 'empty' ? 0 : a.lengthWords,
       acceptedChars,
       acceptedWords,
+      intent: a.intent,
       outcome,
     };
   }

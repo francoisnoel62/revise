@@ -11,6 +11,8 @@ import {
 import { getTrackedLLMProviderById } from '@/app/actions/utils';
 import { AIContextBuilder } from '@/application/services/AIContextBuilder';
 import { AutocompleteContextBuilder } from '@/application/services/AutocompleteContextBuilder';
+import { intentDirective } from '@/application/services/autocompleteIntents';
+import { isValidAutocompleteIntent } from '@/domain/value-objects/AutocompleteIntent';
 
 export const runtime = 'nodejs';
 
@@ -19,6 +21,7 @@ interface CompletionRequest {
   textBeforeCursor: string;
   textAfterCursor?: string;
   chapterId?: string;
+  intent?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -39,6 +42,8 @@ export async function POST(request: NextRequest) {
   }
 
   const { projectId, textBeforeCursor, textAfterCursor, chapterId } = body;
+  const intent =
+    body.intent && isValidAutocompleteIntent(body.intent) ? body.intent : 'natural';
 
   if (!projectId || !textBeforeCursor) {
     return new Response('Missing required fields', { status: 400 });
@@ -81,11 +86,13 @@ export async function POST(request: NextRequest) {
   const researchRepo = await getResearchDocumentRepository();
   const aiContextBuilder = new AIContextBuilder(metadataRepo, researchRepo);
   const autocompleteContext = new AutocompleteContextBuilder(projectRepo, aiContextBuilder);
-  const projectContext = await autocompleteContext.buildContext({
+  const baseContext = await autocompleteContext.buildContext({
     ownerId: userId,
     projectId,
     chapterId,
   });
+  // Prepend the (optional) intent directive so it sits near the top of the context.
+  const projectContext = intentDirective(intent) + baseContext;
 
   // 5. Create streaming response
   const encoder = new TextEncoder();

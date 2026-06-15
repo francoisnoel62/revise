@@ -10,6 +10,7 @@ import {
   isValidAutocompleteOutcome,
   type AutocompleteOutcome,
 } from '@/domain/value-objects/AutocompleteOutcome';
+import { isValidAutocompleteIntent } from '@/domain/value-objects/AutocompleteIntent';
 
 export const runtime = 'nodejs';
 
@@ -25,6 +26,7 @@ interface LifecyclePayload {
   lengthWords: number;
   acceptedChars?: number;
   acceptedWords?: number;
+  intent?: string;
   outcome: string;
 }
 
@@ -101,6 +103,8 @@ export async function POST(request: NextRequest) {
         suggestionLengthWords: body.lengthWords,
         acceptedChars: isNonNegativeNumber(body.acceptedChars) ? body.acceptedChars : 0,
         acceptedWords: isNonNegativeNumber(body.acceptedWords) ? body.acceptedWords : 0,
+        intent:
+          body.intent && isValidAutocompleteIntent(body.intent) ? body.intent : null,
         outcome: body.outcome as AutocompleteOutcome,
         deletedAfterMs: null,
       });

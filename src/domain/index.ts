@@ -81,6 +81,12 @@ export {
   AUTOCOMPLETE_POLICY,
 } from './value-objects/AIOperationPolicy';
 export {
+  type AutocompleteIntent,
+  AUTOCOMPLETE_INTENTS,
+  isValidAutocompleteIntent,
+  nextAutocompleteIntent,
+} from './value-objects/AutocompleteIntent';
+export {
   type TaskStatus,
   TASK_STATUSES,
   TASK_STATUS_LABELS,

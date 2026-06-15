@@ -9,7 +9,7 @@ function makeClock(times: number[]): () => number {
   return () => times[Math.min(i++, times.length - 1)];
 }
 
-const ctx = { projectId: 'proj-1', chapterId: 'chap-1' };
+const ctx = { projectId: 'proj-1', chapterId: 'chap-1', intent: 'natural' as const };
 
 describe('AutocompleteLifecycleTracker', () => {
   it('produces an accepted_full payload with latency, duration and length', () => {
@@ -19,13 +19,14 @@ describe('AutocompleteLifecycleTracker', () => {
       genId: () => 'sugg-1',
     });
 
-    const id = tracker.start(ctx);
+    const id = tracker.start({ ...ctx, intent: 'tenser' });
     tracker.markFirstToken();
     tracker.markShown('bonjour le monde');
     const payload = tracker.accept();
 
     expect(id).toBe('sugg-1');
     expect(payload).not.toBeNull();
+    expect(payload!.intent).toBe('tenser');
     expect(payload!.outcome).toBe('accepted_full');
     expect(payload!.firstTokenMs).toBe(200);
     expect(payload!.totalMs).toBe(900);
@@ -91,7 +92,7 @@ describe('AutocompleteLifecycleTracker', () => {
 
   it('returns null and stays idle when there is no projectId', () => {
     const tracker = new AutocompleteLifecycleTracker({ genId: () => 'x' });
-    const id = tracker.start({ projectId: undefined, chapterId: null });
+    const id = tracker.start({ projectId: undefined, chapterId: null, intent: 'natural' });
     expect(id).toBeNull();
     expect(tracker.hasActive()).toBe(false);
     expect(tracker.accept()).toBeNull();

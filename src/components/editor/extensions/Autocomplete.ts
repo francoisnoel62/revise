@@ -10,6 +10,10 @@ import {
   type DeletionPayload,
 } from './autocompleteTelemetry';
 import { nextWord, nextFragment } from './suggestionSegments';
+import {
+  type AutocompleteIntent,
+  nextAutocompleteIntent,
+} from '@/domain/value-objects/AutocompleteIntent';
 
 export interface AutocompleteOptions {
   /**
@@ -53,6 +57,7 @@ export interface AutocompleteStorage {
   chapterId?: string;
   tracker: AutocompleteLifecycleTracker;
   acceptingInsertion: boolean;
+  currentIntent: AutocompleteIntent;
 }
 
 declare module '@tiptap/core' {
@@ -189,6 +194,7 @@ function triggerCompletion(
     storage.tracker.start({
       projectId: options.projectId,
       chapterId: storage.chapterId ?? null,
+      intent: storage.currentIntent,
     });
   }
 
@@ -248,6 +254,7 @@ async function streamCompletion(
         textBeforeCursor: textBefore,
         textAfterCursor: textAfter,
         chapterId: storage.chapterId,
+        intent: storage.currentIntent,
       }),
       signal: abortController.signal,
     });
@@ -355,6 +362,7 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
       chapterId: this.options.chapterId,
       tracker: new AutocompleteLifecycleTracker(),
       acceptingInsertion: false,
+      currentIntent: 'natural',
     };
   },
 
@@ -417,9 +425,26 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
           return true;
         }
 
-        // Trigger completion request
+        // A fresh trigger starts from the natural intent.
+        storage.currentIntent = 'natural';
         triggerCompletion(editor, storage, this.options);
 
+        return true;
+      },
+      'Mod-.': ({ editor }) => {
+        // Discreet "regenerate with another flavor": cycle the intent and re-request.
+        const { storage } = this;
+        if (!storage.enabled || (!storage.suggestion && !storage.isLoading)) {
+          return false;
+        }
+        storage.currentIntent = nextAutocompleteIntent(storage.currentIntent);
+        if (storage.abortController) {
+          storage.abortController.abort();
+          storage.abortController = null;
+        }
+        storage.suggestion = null;
+        storage.isLoading = false;
+        triggerCompletion(editor, storage, this.options);
         return true;
       },
       'Mod-ArrowRight': ({ editor }) => {

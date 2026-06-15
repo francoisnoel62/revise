@@ -1,10 +1,14 @@
 // ABOUTME: AutocompleteEvent entity — one record summarizing the lifecycle of a single suggestion
-// ABOUTME: Captures perceived latency, duration, length, accepted length and terminal outcome
+// ABOUTME: Captures latency, duration, length, accepted length, requested intent and outcome
 
 import {
   AutocompleteOutcome,
   isValidAutocompleteOutcome,
 } from '../value-objects/AutocompleteOutcome';
+import {
+  AutocompleteIntent,
+  isValidAutocompleteIntent,
+} from '../value-objects/AutocompleteIntent';
 
 export interface AutocompleteEventProperties {
   id: string;
@@ -21,6 +25,7 @@ export interface AutocompleteEventProperties {
   suggestionLengthWords: number;
   acceptedChars: number;
   acceptedWords: number;
+  intent: AutocompleteIntent | null;
   outcome: AutocompleteOutcome;
   deletedAfterMs: number | null;
   createdAt: Date;
@@ -43,6 +48,7 @@ export class AutocompleteEvent {
   private readonly suggestionLengthWords: number;
   private readonly acceptedChars: number;
   private readonly acceptedWords: number;
+  private readonly intent: AutocompleteIntent | null;
   private readonly outcome: AutocompleteOutcome;
   private readonly deletedAfterMs: number | null;
   private readonly createdAt: Date;
@@ -64,6 +70,7 @@ export class AutocompleteEvent {
     this.suggestionLengthWords = props.suggestionLengthWords;
     this.acceptedChars = props.acceptedChars;
     this.acceptedWords = props.acceptedWords;
+    this.intent = props.intent;
     this.outcome = props.outcome;
     this.deletedAfterMs = props.deletedAfterMs;
     this.createdAt = props.createdAt;
@@ -75,6 +82,9 @@ export class AutocompleteEvent {
     }
     if (!isValidAutocompleteOutcome(props.outcome)) {
       throw new Error(`Invalid outcome: ${props.outcome}`);
+    }
+    if (props.intent !== null && !isValidAutocompleteIntent(props.intent)) {
+      throw new Error(`Invalid intent: ${props.intent}`);
     }
     this.requireNonNegative(props.totalMs, 'totalMs');
     this.requireNonNegativeOrNull(props.firstTokenMs, 'firstTokenMs');
@@ -149,6 +159,9 @@ export class AutocompleteEvent {
   }
   getAcceptedWords(): number {
     return this.acceptedWords;
+  }
+  getIntent(): AutocompleteIntent | null {
+    return this.intent;
   }
   getOutcome(): AutocompleteOutcome {
     return this.outcome;

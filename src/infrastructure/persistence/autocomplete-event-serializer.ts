@@ -6,6 +6,7 @@ import {
   AutocompleteEventProperties,
 } from '@/domain/entities/AutocompleteEvent';
 import { AutocompleteOutcome } from '@/domain/value-objects/AutocompleteOutcome';
+import { AutocompleteIntent } from '@/domain/value-objects/AutocompleteIntent';
 import { ObjectId } from 'mongodb';
 
 export interface AutocompleteEventDocument {
@@ -23,6 +24,7 @@ export interface AutocompleteEventDocument {
   suggestionLengthWords: number;
   acceptedChars: number;
   acceptedWords: number;
+  intent: AutocompleteIntent | null;
   outcome: AutocompleteOutcome;
   deletedAfterMs: number | null;
   createdAt: Date;
@@ -46,6 +48,7 @@ export function serializeAutocompleteEvent(
     suggestionLengthWords: event.getSuggestionLengthWords(),
     acceptedChars: event.getAcceptedChars(),
     acceptedWords: event.getAcceptedWords(),
+    intent: event.getIntent(),
     outcome: event.getOutcome(),
     deletedAfterMs: event.getDeletedAfterMs(),
     createdAt: event.getCreatedAt(),
@@ -70,6 +73,7 @@ export function deserializeAutocompleteEvent(
     suggestionLengthWords: doc.suggestionLengthWords,
     acceptedChars: doc.acceptedChars ?? 0,
     acceptedWords: doc.acceptedWords ?? 0,
+    intent: doc.intent ?? null,
     outcome: doc.outcome,
     deletedAfterMs: doc.deletedAfterMs ?? null,
     createdAt: doc.createdAt,

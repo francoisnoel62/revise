@@ -25,6 +25,7 @@ function baseProps(
     suggestionLengthWords: 8,
     acceptedChars: 42,
     acceptedWords: 8,
+    intent: 'natural',
     outcome: 'accepted_full',
     deletedAfterMs: null,
     ...overrides,
