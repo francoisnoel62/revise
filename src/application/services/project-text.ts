@@ -32,6 +32,18 @@ export function extractProjectFullText(chapters: ChapterLike[]): string {
   return parts.join('\n\n---\n\n');
 }
 
+/**
+ * Extract the plain text of a single chapter (no title). Returns '' if the
+ * content is not valid TipTap JSON.
+ */
+export function extractChapterText(chapter: ChapterLike): string {
+  try {
+    return extractTextFromTipTapJSON(JSON.parse(chapter.getContent()));
+  } catch {
+    return '';
+  }
+}
+
 function extractTextFromTipTapJSON(json: unknown): string {
   if (!json || typeof json !== 'object') return '';
 

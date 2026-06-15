@@ -1,5 +1,15 @@
 # Plan 4 — Contexte manuscrit-premier (chantiers 5 & 8)
 
+> ✅ **Implémenté le 2026-06-15.** Nouveau `AutocompleteContextBuilder` : texte du **chapitre en
+> cours** d'abord + intention auteur (research docs) ; **métadonnées dérivées hors du chemin chaud**
+> (opt-in `includeMetadata` uniquement). La route SSE l'utilise (contexte construit frais, plus de
+> `MetadataCache` pour la complétion) ; fenêtre locale élargie (1000/200). `buildResearchContext`
+> exposé sur `AIContextBuilder` ; `extractChapterText` ajouté. Gates verts : lint, typecheck,
+> 2223 tests, build.
+>
+> Limite assumée : « passages pertinents du manuscrit » hors chapitre courant non implémentés
+> (pas d'embeddings) — chapitre courant + intention auteur seulement, comme prévu.
+
 > Série : [00_index.md](00_index.md). Cœur de la stratégie manuscrit-premier. Prérequis du plan 7
 > (variantes B/C de l'A/B). Méthode : TDD.
 

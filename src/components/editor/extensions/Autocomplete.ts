@@ -166,13 +166,13 @@ function triggerCompletion(
   const { selection, doc } = state;
   const pos = selection.from;
 
-  // Get text content before cursor (up to 500 chars for context)
-  const textBefore = doc.textBetween(Math.max(0, pos - 500), pos, '\n', '\n');
+  // Get text content before cursor (immediate local window; chapter context is added server-side)
+  const textBefore = doc.textBetween(Math.max(0, pos - 1000), pos, '\n', '\n');
 
-  // Get text content after cursor (up to 100 chars for context)
+  // Get text content after cursor
   const textAfter = doc.textBetween(
     pos,
-    Math.min(doc.content.size, pos + 100),
+    Math.min(doc.content.size, pos + 200),
     '\n',
     '\n'
   );

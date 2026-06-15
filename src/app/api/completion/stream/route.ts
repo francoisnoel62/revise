@@ -9,8 +9,8 @@ import {
   getResearchDocumentRepository,
 } from '@/infrastructure/config/providers';
 import { getTrackedLLMProviderById } from '@/app/actions/utils';
-import { metadataCache } from '@/infrastructure/cache/MetadataCache';
 import { AIContextBuilder } from '@/application/services/AIContextBuilder';
+import { AutocompleteContextBuilder } from '@/application/services/AutocompleteContextBuilder';
 
 export const runtime = 'nodejs';
 
@@ -74,16 +74,18 @@ export async function POST(request: NextRequest) {
     return new Response('No AI provider configured', { status: 400 });
   }
 
-  // 4. Build completion context block (with caching, keyed by chapter)
-  let projectContext = metadataCache.get(userId, projectId, chapterId);
-
-  if (projectContext === null) {
-    const metadataRepo = await getMetadataRepository();
-    const researchRepo = await getResearchDocumentRepository();
-    const builder = new AIContextBuilder(metadataRepo, researchRepo);
-    projectContext = await builder.buildCompletionContext(userId, projectId, chapterId);
-    metadataCache.set(userId, projectId, projectContext, chapterId);
-  }
+  // 4. Build a manuscript-first completion context (current chapter + author intent).
+  // Derived metadata is kept OUT of the writing hot path (opt-in only). Built fresh so
+  // the live chapter text is never stale.
+  const metadataRepo = await getMetadataRepository();
+  const researchRepo = await getResearchDocumentRepository();
+  const aiContextBuilder = new AIContextBuilder(metadataRepo, researchRepo);
+  const autocompleteContext = new AutocompleteContextBuilder(projectRepo, aiContextBuilder);
+  const projectContext = await autocompleteContext.buildContext({
+    ownerId: userId,
+    projectId,
+    chapterId,
+  });
 
   // 5. Create streaming response
   const encoder = new TextEncoder();
