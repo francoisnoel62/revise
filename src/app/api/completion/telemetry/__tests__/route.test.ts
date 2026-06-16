@@ -76,6 +76,17 @@ describe('POST /api/completion/telemetry', () => {
     expect(saved.getAcceptedChars()).toBe(42);
     expect(saved.getProviderType()).toBe('anthropic');
     expect(saved.getModel()).toBe('claude-sonnet-4-5');
+    expect(saved.getTriggerSource()).toBe('manual');
+  });
+
+  it('persists a prefetch trigger source', async () => {
+    vi.mocked(auth).mockResolvedValue({ user: { id: 'user-1' } } as never);
+
+    const res = await POST(makeRequest(lifecycleBody({ triggerSource: 'prefetch' })));
+
+    expect(res.status).toBe(204);
+    const saved = repo.save.mock.calls[0][0];
+    expect(saved.getTriggerSource()).toBe('prefetch');
   });
 
   it('forces firstTokenMs to null for an empty outcome', async () => {

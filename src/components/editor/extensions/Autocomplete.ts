@@ -23,6 +23,15 @@ import {
 } from './autocompleteHint';
 import type { SuggestionLength, AudaceLevel } from '@/domain/value-objects/AutocompletePreferences';
 
+export type AutocompleteRunState =
+  | 'idle'
+  | 'waiting'
+  | 'prefetching'
+  | 'ready'
+  | 'visible'
+  | 'accepting'
+  | 'rejected';
+
 export interface AutocompleteOptions {
   onComplete: (
     textBeforeCursor: string,
@@ -37,14 +46,23 @@ export interface AutocompleteOptions {
   suggestionLength?: SuggestionLength;
   audace?: AudaceLevel;
   partialAcceptance?: boolean;
+  smartPrefetch?: boolean;
 }
 
 export interface AutocompleteStorage {
   suggestion: string | null;
   isLoading: boolean;
+  isPrefetching: boolean;
+  runState: AutocompleteRunState;
   abortController: AbortController | null;
   enabled: boolean;
+  projectId?: string;
   chapterId?: string;
+  suggestionLength?: SuggestionLength;
+  audace?: AudaceLevel;
+  partialAcceptance: boolean;
+  smartPrefetch: boolean;
+  onEvent?: (payload: LifecyclePayload | DeletionPayload) => void;
   tracker: AutocompleteLifecycleTracker;
   acceptingInsertion: boolean;
   currentIntent: AutocompleteIntent;
@@ -60,6 +78,19 @@ declare module '@tiptap/core' {
     autocomplete: {
       setAutocompleteEnabled: (enabled: boolean) => ReturnType;
       setAutocompleteChapterId: (chapterId?: string) => ReturnType;
+      setAutocompleteRuntimeOptions: (
+        options: Partial<Pick<
+          AutocompleteStorage,
+          | 'enabled'
+          | 'projectId'
+          | 'chapterId'
+          | 'suggestionLength'
+          | 'audace'
+          | 'partialAcceptance'
+          | 'smartPrefetch'
+          | 'onEvent'
+        >>
+      ) => ReturnType;
     };
   }
 }
@@ -67,18 +98,32 @@ declare module '@tiptap/core' {
 const autocompletePluginKey = new PluginKey('autocomplete');
 
 const DELETION_WATCH_MS = 30000;
+const PREFETCH_IDLE_MS = 10000;
 
 /** Returns true if text ends with a sentence-boundary character. */
 export function endsWithSentenceBoundary(text: string): boolean {
   return /[.!?…]\s*$/.test(text.trimEnd());
 }
 
+export function shouldTriggerSmartPrefetch(
+  textBefore: string,
+  textAfter: string = ''
+): boolean {
+  const trimmedBefore = textBefore.trim();
+  if (trimmedBefore.length < 40) return false;
+  if (/[\p{L}\p{N}]$/u.test(textBefore) && /^[\p{L}\p{N}]/u.test(textAfter)) {
+    return false;
+  }
+  return true;
+}
+
 function emitEvent(
   options: AutocompleteOptions,
+  storage: AutocompleteStorage,
   payload: LifecyclePayload | DeletionPayload | null
 ): void {
-  if (payload && options.telemetryEnabled !== false && options.onEvent) {
-    options.onEvent(payload);
+  if (payload && options.telemetryEnabled !== false && storage.onEvent) {
+    storage.onEvent(payload);
   }
 }
 
@@ -143,7 +188,7 @@ function acceptSegment(
   options: AutocompleteOptions,
   splitter: (s: string) => { take: string; rest: string }
 ): boolean {
-  if (!storage.enabled || !storage.suggestion || options.partialAcceptance === false) {
+  if (!storage.enabled || !storage.suggestion || storage.partialAcceptance === false) {
     return false;
   }
   const { take, rest } = splitter(storage.suggestion);
@@ -157,7 +202,7 @@ function acceptSegment(
   storage.suggestion = rest || null;
 
   if (!storage.suggestion) {
-    emitEvent(options, storage.tracker.accept());
+    emitEvent(options, storage, storage.tracker.accept());
   } else {
     editor.view.dispatch(editor.state.tr);
   }
@@ -166,6 +211,7 @@ function acceptSegment(
 
 function scheduleDeletionWatch(
   editor: Editor,
+  storage: AutocompleteStorage,
   options: AutocompleteOptions,
   suggestionId: string,
   insertedText: string,
@@ -179,7 +225,7 @@ function scheduleDeletionWatch(
     const end = Math.min(doc.content.size, pos + insertedText.length);
     const after = doc.textBetween(pos, end, '\n', '\n');
     if (after !== insertedText) {
-      emitEvent(options, {
+      emitEvent(options, storage, {
         type: 'deletion',
         suggestionId,
         deletedAfterMs: Date.now() - acceptedAt,
@@ -214,19 +260,25 @@ function triggerCompletion(
   const { textBefore, textAfter } = buildContext(editor);
   if (!textBefore.trim()) return;
 
+  storage.prefetchAbortController?.abort();
+  storage.prefetchAbortController = null;
+  storage.prefetchedSuggestion = null;
+  storage.isPrefetching = false;
   storage.isLoading = true;
+  storage.runState = 'visible';
 
   if (options.telemetryEnabled !== false) {
     storage.tracker.start({
-      projectId: options.projectId,
+      projectId: storage.projectId,
       chapterId: storage.chapterId ?? null,
       intent: storage.currentIntent,
+      triggerSource: 'manual',
     });
   }
 
   editor.view.dispatch(editor.state.tr);
 
-  if (options.useStreaming && options.projectId) {
+  if (options.useStreaming && storage.projectId) {
     streamCompletion(editor, storage, options, textBefore, textAfter, false);
   } else {
     options
@@ -235,15 +287,18 @@ function triggerCompletion(
         storage.isLoading = false;
         if (suggestion) {
           storage.suggestion = suggestion;
+          storage.runState = 'visible';
           storage.tracker.markFirstToken();
           storage.tracker.markShown(suggestion);
         } else {
-          emitEvent(options, storage.tracker.finishEmpty());
+          storage.runState = 'idle';
+          emitEvent(options, storage, storage.tracker.finishEmpty());
         }
         editor.view.dispatch(editor.state.tr);
       })
       .catch(() => {
         storage.isLoading = false;
+        storage.runState = 'idle';
         editor.view.dispatch(editor.state.tr);
       });
   }
@@ -254,26 +309,96 @@ function triggerPrefetch(
   storage: AutocompleteStorage,
   options: AutocompleteOptions
 ): void {
-  if (storage.isLoading || storage.prefetchedSuggestion || storage.suggestion) return;
+  if (
+    !storage.enabled ||
+    !storage.smartPrefetch ||
+    storage.isLoading ||
+    storage.isPrefetching ||
+    storage.prefetchedSuggestion ||
+    storage.suggestion
+  ) return;
 
   const { textBefore, textAfter } = buildContext(editor);
   if (!textBefore.trim()) return;
 
-  if (options.useStreaming && options.projectId) {
+  storage.isPrefetching = true;
+  storage.runState = 'prefetching';
+  editor.view.dispatch(editor.state.tr);
+
+  if (options.useStreaming && storage.projectId) {
     streamCompletion(editor, storage, options, textBefore, textAfter, true);
   } else {
     options
       .onComplete(textBefore, textAfter)
       .then((suggestion) => {
+        storage.isPrefetching = false;
         if (suggestion) {
           storage.prefetchedSuggestion = suggestion;
-          editor.view.dispatch(editor.state.tr);
+          storage.runState = 'ready';
+        } else {
+          storage.runState = 'idle';
         }
+        editor.view.dispatch(editor.state.tr);
       })
       .catch(() => {
+        storage.isPrefetching = false;
+        storage.runState = 'idle';
+        editor.view.dispatch(editor.state.tr);
         // Silent failure — prefetch is best-effort
       });
   }
+}
+
+function scheduleSmartPrefetchTimer(
+  editor: Editor,
+  storage: AutocompleteStorage,
+  options: AutocompleteOptions
+): void {
+  globalThis.clearTimeout(storage.idleTimerHandle ?? undefined);
+  storage.idleTimerHandle = null;
+
+  if (
+    !storage.enabled ||
+    !storage.smartPrefetch ||
+    storage.suggestion ||
+    storage.isLoading ||
+    storage.isPrefetching
+  ) {
+    if (!storage.suggestion && !storage.isLoading && !storage.isPrefetching) {
+      storage.runState = 'idle';
+    }
+    return;
+  }
+
+  storage.runState = 'waiting';
+  storage.idleTimerHandle = globalThis.setTimeout(() => {
+    const { state } = editor;
+    if (!state.selection.empty) return;
+    const pos = state.selection.from;
+    const textBefore = state.doc.textBetween(
+      Math.max(0, pos - 500),
+      pos,
+      '\n',
+      '\n'
+    );
+    const textAfter = state.doc.textBetween(
+      pos,
+      Math.min(state.doc.content.size, pos + 1),
+      '\n',
+      '\n'
+    );
+    if (
+      shouldTriggerSmartPrefetch(textBefore, textAfter) &&
+      !storage.suggestion &&
+      storage.enabled &&
+      storage.smartPrefetch
+    ) {
+      triggerPrefetch(editor, storage, options);
+    } else if (!storage.suggestion && !storage.prefetchedSuggestion) {
+      storage.runState = 'idle';
+      editor.view.dispatch(editor.state.tr);
+    }
+  }, PREFETCH_IDLE_MS);
 }
 
 function regenerateWithIntent(
@@ -310,13 +435,13 @@ async function streamCompletion(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        projectId: options.projectId,
+        projectId: storage.projectId,
         textBeforeCursor: textBefore,
         textAfterCursor: textAfter,
         chapterId: storage.chapterId,
         intent: storage.currentIntent,
-        suggestionLength: options.suggestionLength,
-        audace: options.audace,
+        suggestionLength: storage.suggestionLength,
+        audace: storage.audace,
       }),
       signal: abortController.signal,
     });
@@ -357,12 +482,10 @@ async function streamCompletion(
             if (parsed.text) {
               if (!isPrefetch) storage.tracker.markFirstToken();
               accumulated += parsed.text;
-              if (isPrefetch) {
-                storage.prefetchedSuggestion = accumulated;
-              } else {
+              if (!isPrefetch) {
                 storage.suggestion = accumulated;
+                editor.view.dispatch(editor.state.tr);
               }
-              editor.view.dispatch(editor.state.tr);
             }
           } catch {
             // Ignore parse errors for partial chunks
@@ -372,13 +495,18 @@ async function streamCompletion(
     }
 
     if (isPrefetch) {
+      storage.isPrefetching = false;
       storage.prefetchAbortController = null;
+      storage.prefetchedSuggestion = accumulated.trim().length > 0 ? accumulated : null;
+      storage.runState = accumulated.trim().length > 0 ? 'ready' : 'idle';
     } else {
       storage.isLoading = false;
       storage.abortController = null;
       if (accumulated.trim().length === 0) {
-        emitEvent(options, storage.tracker.finishEmpty());
+        storage.runState = 'idle';
+        emitEvent(options, storage, storage.tracker.finishEmpty());
       } else {
+        storage.runState = 'visible';
         storage.tracker.markShown(accumulated);
       }
     }
@@ -386,9 +514,13 @@ async function streamCompletion(
     editor.view.dispatch(editor.state.tr);
   } catch (error) {
     if (isPrefetch) {
+      storage.isPrefetching = false;
+      storage.runState = 'idle';
       storage.prefetchAbortController = null;
+      editor.view.dispatch(editor.state.tr);
     } else {
       storage.isLoading = false;
+      storage.runState = 'idle';
       storage.abortController = null;
       editor.view.dispatch(editor.state.tr);
     }
@@ -413,6 +545,7 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
       suggestionLength: undefined,
       audace: undefined,
       partialAcceptance: true,
+      smartPrefetch: true,
     };
   },
 
@@ -420,9 +553,17 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
     return {
       suggestion: null,
       isLoading: false,
+      isPrefetching: false,
+      runState: 'idle',
       abortController: null,
       enabled: this.options.enabled,
+      projectId: this.options.projectId,
       chapterId: this.options.chapterId,
+      suggestionLength: this.options.suggestionLength,
+      audace: this.options.audace,
+      partialAcceptance: this.options.partialAcceptance ?? true,
+      smartPrefetch: this.options.smartPrefetch ?? true,
+      onEvent: this.options.onEvent,
       tracker: new AutocompleteLifecycleTracker(),
       acceptingInsertion: false,
       currentIntent: 'natural',
@@ -446,6 +587,31 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
         (chapterId?: string) =>
         () => {
           this.storage.chapterId = chapterId;
+          return true;
+        },
+      setAutocompleteRuntimeOptions:
+        (runtimeOptions) =>
+        ({ editor }) => {
+          const previousChapterId = this.storage.chapterId;
+          const previousProjectId = this.storage.projectId;
+          Object.assign(this.storage, runtimeOptions);
+          if (
+            runtimeOptions.enabled === false ||
+            runtimeOptions.smartPrefetch === false ||
+            ('chapterId' in runtimeOptions && runtimeOptions.chapterId !== previousChapterId) ||
+            ('projectId' in runtimeOptions && runtimeOptions.projectId !== previousProjectId)
+          ) {
+            globalThis.clearTimeout(this.storage.idleTimerHandle ?? undefined);
+            this.storage.idleTimerHandle = null;
+            this.storage.prefetchAbortController?.abort();
+            this.storage.prefetchAbortController = null;
+            this.storage.prefetchedSuggestion = null;
+            this.storage.isPrefetching = false;
+            if (!this.storage.suggestion && !this.storage.isLoading) {
+              this.storage.runState = 'idle';
+            }
+            editor.view.dispatch(editor.state.tr);
+          }
           return true;
         },
     };
@@ -482,11 +648,13 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
         if (storage.prefetchedSuggestion) {
           storage.suggestion = storage.prefetchedSuggestion;
           storage.prefetchedSuggestion = null;
+          storage.runState = 'visible';
           if (this.options.telemetryEnabled !== false) {
             storage.tracker.start({
-              projectId: this.options.projectId,
+              projectId: storage.projectId,
               chapterId: storage.chapterId ?? null,
               intent: storage.currentIntent,
+              triggerSource: 'prefetch',
             });
             storage.tracker.markFirstToken();
             storage.tracker.markShown(storage.suggestion);
@@ -499,14 +667,16 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
         if (storage.suggestion) {
           const suggestion = storage.suggestion;
           storage.suggestion = null;
+          storage.runState = 'accepting';
           const payload = storage.tracker.accept();
           const pos = editor.state.selection.from;
           storage.acceptingInsertion = true;
           editor.commands.insertContent(suggestion);
           storage.acceptingInsertion = false;
-          emitEvent(this.options, payload);
+          storage.runState = 'idle';
+          emitEvent(this.options, storage, payload);
           if (payload) {
-            scheduleDeletionWatch(editor, this.options, payload.suggestionId, suggestion, pos);
+            scheduleDeletionWatch(editor, storage, this.options, payload.suggestionId, suggestion, pos);
           }
           return true;
         }
@@ -546,31 +716,32 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
         storage.prefetchAbortController?.abort();
         storage.prefetchAbortController = null;
 
-        const hadSuggestion = !!(
-          storage.suggestion ||
-          storage.isLoading ||
-          storage.prefetchedSuggestion
-        );
+        const hadVisibleSuggestion = !!(storage.suggestion || storage.isLoading);
 
         if (storage.suggestion || storage.isLoading) {
-          emitEvent(this.options, storage.tracker.reject());
+          emitEvent(this.options, storage, storage.tracker.reject());
         }
 
         storage.suggestion = null;
         storage.isLoading = false;
+        storage.isPrefetching = false;
         storage.prefetchedSuggestion = null;
 
-        if (hadSuggestion) {
+        if (hadVisibleSuggestion) {
           storage.rejectionHintVisible = true;
+          storage.runState = 'rejected';
           globalThis.clearTimeout(storage.rejectionHintTimerHandle ?? undefined);
           storage.rejectionHintTimerHandle = globalThis.setTimeout(() => {
             storage.rejectionHintVisible = false;
+            storage.runState = 'idle';
             editor.view.dispatch(editor.state.tr);
           }, 4000);
           editor.view.dispatch(editor.state.tr);
           return true;
         }
 
+        storage.runState = 'idle';
+        editor.view.dispatch(editor.state.tr);
         return false;
       },
     };
@@ -596,7 +767,7 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
               // Supersede telemetry when the author types instead of accepting
               if (!storage.acceptingInsertion && storage.tracker.hasActive()) {
                 globalThis.queueMicrotask(() => {
-                  emitEvent(extension.options, storage.tracker.supersede());
+                  emitEvent(extension.options, storage, storage.tracker.supersede());
                 });
               }
 
@@ -604,39 +775,36 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
               storage.prefetchedSuggestion = null;
               storage.prefetchAbortController?.abort();
               storage.prefetchAbortController = null;
+              storage.isPrefetching = false;
               if (storage.rejectionHintVisible) {
                 storage.rejectionHintVisible = false;
               }
 
-              // Reset idle timer — only doc changes restart the 10s countdown
-              globalThis.clearTimeout(storage.idleTimerHandle ?? undefined);
-              storage.idleTimerHandle = globalThis.setTimeout(() => {
-                const { state } = extension.editor;
-                const pos = state.selection.from;
-                const textBefore = state.doc.textBetween(
-                  Math.max(0, pos - 500),
-                  pos,
-                  '\n',
-                  '\n'
-                );
-                if (
-                  endsWithSentenceBoundary(textBefore) &&
-                  !storage.suggestion &&
-                  storage.enabled
-                ) {
-                  triggerPrefetch(extension.editor, storage, extension.options);
-                }
-              }, 10000);
+              scheduleSmartPrefetchTimer(extension.editor, storage, extension.options);
             } else if (tr.selectionSet) {
               // Cursor moved without typing → prefetch context is stale
               storage.prefetchedSuggestion = null;
               storage.prefetchAbortController?.abort();
               storage.prefetchAbortController = null;
+              storage.isPrefetching = false;
+              scheduleSmartPrefetchTimer(extension.editor, storage, extension.options);
             }
 
-            const { isLoading, suggestion, prefetchedSuggestion, rejectionHintVisible } = storage;
+            const {
+              isLoading,
+              isPrefetching,
+              suggestion,
+              prefetchedSuggestion,
+              rejectionHintVisible,
+            } = storage;
 
-            if (!isLoading && !suggestion && !prefetchedSuggestion && !rejectionHintVisible) {
+            if (
+              !isLoading &&
+              !isPrefetching &&
+              !suggestion &&
+              !prefetchedSuggestion &&
+              !rejectionHintVisible
+            ) {
               return DecorationSet.empty;
             }
 
@@ -661,6 +829,28 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
               );
             }
 
+            if ((isPrefetching || prefetchedSuggestion) && !suggestion) {
+              decorations.push(
+                Decoration.widget(pos, () => {
+                  const typing = document.createElement('span');
+                  typing.className = prefetchedSuggestion
+                    ? 'autocomplete-prefetch-typing autocomplete-prefetch-ready'
+                    : 'autocomplete-prefetch-typing';
+                  typing.setAttribute('aria-hidden', 'true');
+                  for (let index = 0; index < 3; index += 1) {
+                    const dot = document.createElement('span');
+                    typing.appendChild(dot);
+                  }
+                  if (prefetchedSuggestion) {
+                    const key = document.createElement('kbd');
+                    key.textContent = 'Tab';
+                    typing.appendChild(key);
+                  }
+                  return typing;
+                }, { side: 1 })
+              );
+            }
+
             if (suggestion) {
               decorations.push(
                 Decoration.widget(pos, () => {
@@ -678,15 +868,15 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
             }
 
             if (rejectionHintVisible && !suggestion) {
-              const projectId = extension.options.projectId;
+              const projectId = extension.storage.projectId;
               decorations.push(
                 Decoration.widget(pos, () => {
                   const span = document.createElement('span');
-                  span.className = 'autocomplete-rejection-hint';
-                  span.textContent = 'Rejeté · ';
+                  span.className = 'autocomplete-hint autocomplete-hint-compact autocomplete-rejection-hint';
+                  span.textContent = 'Ignoré · ';
                   if (projectId) {
                     const link = document.createElement('a');
-                    link.textContent = 'Préférences →';
+                    link.textContent = 'Ajuster';
                     link.href = `/project/${projectId}/cockpit/settings#autocomplete`;
                     span.appendChild(link);
                   }

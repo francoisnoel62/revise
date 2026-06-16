@@ -2,7 +2,7 @@
 // ABOUTME: Focuses on the pure endsWithSentenceBoundary helper and storage transitions
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { endsWithSentenceBoundary } from './Autocomplete';
+import { endsWithSentenceBoundary, shouldTriggerSmartPrefetch } from './Autocomplete';
 
 describe('endsWithSentenceBoundary', () => {
   it('matches a period at the end', () => {
@@ -39,6 +39,45 @@ describe('endsWithSentenceBoundary', () => {
 
   it('does not match a colon', () => {
     expect(endsWithSentenceBoundary('Note:')).toBe(false);
+  });
+});
+
+describe('shouldTriggerSmartPrefetch', () => {
+  it('allows a pause after a sentence boundary with enough context', () => {
+    expect(
+      shouldTriggerSmartPrefetch(
+        'Elle regarda la porte longtemps, sans oser avancer. '
+      )
+    ).toBe(true);
+  });
+
+  it('allows a pause after whitespace with enough context', () => {
+    expect(
+      shouldTriggerSmartPrefetch(
+        'Elle regarda la porte longtemps, sans oser avancer '
+      )
+    ).toBe(true);
+  });
+
+  it('allows a pause after a normal word at the cursor', () => {
+    expect(
+      shouldTriggerSmartPrefetch(
+        'Elle regarda la porte longtemps, sans oser avancer'
+      )
+    ).toBe(true);
+  });
+
+  it('rejects very short context', () => {
+    expect(shouldTriggerSmartPrefetch('Trop court. ')).toBe(false);
+  });
+
+  it('rejects a cursor in the middle of a word', () => {
+    expect(
+      shouldTriggerSmartPrefetch(
+        'Elle regarda la porte longtemps, sans oser avan',
+        'cer.'
+      )
+    ).toBe(false);
   });
 });
 

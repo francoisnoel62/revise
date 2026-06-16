@@ -4,6 +4,7 @@
 import {
   AutocompleteEvent,
   AutocompleteEventProperties,
+  AutocompleteTriggerSource,
 } from '@/domain/entities/AutocompleteEvent';
 import { AutocompleteOutcome } from '@/domain/value-objects/AutocompleteOutcome';
 import { AutocompleteIntent } from '@/domain/value-objects/AutocompleteIntent';
@@ -25,6 +26,7 @@ export interface AutocompleteEventDocument {
   acceptedChars: number;
   acceptedWords: number;
   intent: AutocompleteIntent | null;
+  triggerSource?: AutocompleteTriggerSource;
   outcome: AutocompleteOutcome;
   deletedAfterMs: number | null;
   canonFactsCount: number | null;
@@ -50,6 +52,7 @@ export function serializeAutocompleteEvent(
     acceptedChars: event.getAcceptedChars(),
     acceptedWords: event.getAcceptedWords(),
     intent: event.getIntent(),
+    triggerSource: event.getTriggerSource(),
     outcome: event.getOutcome(),
     deletedAfterMs: event.getDeletedAfterMs(),
     canonFactsCount: event.getCanonFactsCount(),
@@ -76,6 +79,7 @@ export function deserializeAutocompleteEvent(
     acceptedChars: doc.acceptedChars ?? 0,
     acceptedWords: doc.acceptedWords ?? 0,
     intent: doc.intent ?? null,
+    triggerSource: doc.triggerSource ?? 'manual',
     outcome: doc.outcome,
     deletedAfterMs: doc.deletedAfterMs ?? null,
     canonFactsCount: doc.canonFactsCount ?? null,

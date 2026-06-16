@@ -136,6 +136,24 @@ export function AutocompletePreferencesCard({
           </div>
         </div>
 
+        {/* Smart prefetch */}
+        <div className="flex items-center justify-between">
+          <div>
+            <Label htmlFor="ac-prefetch" className="cursor-pointer">
+              Préchargement discret
+            </Label>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Prépare une suggestion après une pause, sans l&apos;afficher avant Tab
+            </p>
+          </div>
+          <Switch
+            id="ac-prefetch"
+            checked={prefs.smartPrefetch}
+            onCheckedChange={(checked) => set('smartPrefetch', checked)}
+            disabled={!prefs.enabled}
+          />
+        </div>
+
         {/* Partial acceptance */}
         <div className="flex items-center justify-between">
           <div>

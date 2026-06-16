@@ -4,6 +4,8 @@
 import type { AutocompleteOutcome } from '@/domain/value-objects/AutocompleteOutcome';
 import type { AutocompleteIntent } from '@/domain/value-objects/AutocompleteIntent';
 
+export type AutocompleteTriggerSource = 'manual' | 'prefetch';
+
 export interface LifecyclePayload {
   type: 'lifecycle';
   suggestionId: string;
@@ -20,6 +22,7 @@ export interface LifecyclePayload {
   providerType: string | null;
   model: string | null;
   canonFactsCount: number | null;
+  triggerSource: AutocompleteTriggerSource;
   outcome: AutocompleteOutcome;
 }
 
@@ -33,6 +36,7 @@ export interface StartContext {
   projectId?: string;
   chapterId: string | null;
   intent: AutocompleteIntent;
+  triggerSource?: AutocompleteTriggerSource;
 }
 
 interface ActiveState {
@@ -51,6 +55,7 @@ interface ActiveState {
   providerType: string | null;
   model: string | null;
   canonFactsCount: number | null;
+  triggerSource: AutocompleteTriggerSource;
 }
 
 function countWords(text: string): number {
@@ -102,6 +107,7 @@ export class AutocompleteLifecycleTracker {
       providerType: null,
       model: null,
       canonFactsCount: null,
+      triggerSource: ctx.triggerSource ?? 'manual',
     };
     return suggestionId;
   }
@@ -205,6 +211,7 @@ export class AutocompleteLifecycleTracker {
       providerType: a.providerType,
       model: a.model,
       canonFactsCount: a.canonFactsCount,
+      triggerSource: a.triggerSource,
       outcome,
     };
   }

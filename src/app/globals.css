@@ -221,6 +221,14 @@
   flex-shrink: 0;
 }
 
+.autocomplete-hint-compact {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.7rem;
+}
+
 .autocomplete-kbd {
   display: inline-flex;
   align-items: center;
@@ -416,6 +424,11 @@
   50%       { opacity: 0.6;  transform: scale(1.3); }
 }
 
+@keyframes autocomplete-typing-dot {
+  0%, 80%, 100% { opacity: 0.35; transform: translateY(0); }
+  40%           { opacity: 0.9;  transform: translateY(-3px); }
+}
+
 .autocomplete-dot {
   position: absolute;
   width: 6px;
@@ -434,24 +447,70 @@
   }
 }
 
-.autocomplete-dot[data-state="loading"]    { opacity: 0.3; animation: autocomplete-breathe 2s ease-in-out infinite; }
-.autocomplete-dot[data-state="prefetched"] { opacity: 0.5; animation: autocomplete-breathe 3s ease-in-out infinite; }
-.autocomplete-dot[data-state="shown"]      { opacity: 0.7; }
+.autocomplete-dot[data-state="prefetching"] { opacity: 0.3; animation: autocomplete-breathe 2s ease-in-out infinite; }
+.autocomplete-dot[data-state="ready"]       { opacity: 0.55; animation: autocomplete-breathe 3s ease-in-out infinite; }
+.autocomplete-dot[data-state="visible"]     { opacity: 0.7; }
+
+.autocomplete-prefetch-typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1875rem;
+  margin-left: 0.25rem;
+  padding: 0.1875rem 0.375rem;
+  vertical-align: middle;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.autocomplete-prefetch-typing span {
+  width: 0.25rem;
+  height: 0.25rem;
+  border-radius: 50%;
+  background: var(--muted-foreground);
+  animation: autocomplete-typing-dot 1.2s ease-in-out infinite;
+}
+
+.autocomplete-prefetch-typing span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.autocomplete-prefetch-typing span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.autocomplete-prefetch-ready {
+  background: var(--popover);
+  box-shadow: 0 1px 2px oklch(0 0 0 / 0.08);
+}
+
+.autocomplete-prefetch-ready span {
+  animation: none;
+  opacity: 0.55;
+}
+
+.autocomplete-prefetch-ready kbd {
+  margin-left: 0.25rem;
+  padding: 0.0625rem 0.3125rem;
+  color: var(--foreground);
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
 
 /* Rejection hint displayed inline after Escape */
 .autocomplete-rejection-hint {
-  display: inline-flex;
-  align-items: center;
-  gap: .25rem;
-  margin-left: .5rem;
-  padding: .125rem .375rem;
-  color: var(--muted-foreground);
-  font-size: .7rem;
   pointer-events: auto;
 }
 
 .autocomplete-rejection-hint a {
   color: var(--muted-foreground);
-  text-decoration: underline;
+  text-decoration: none;
   cursor: pointer;
+  font-weight: 600;
 }

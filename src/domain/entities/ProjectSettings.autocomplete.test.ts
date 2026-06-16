@@ -43,6 +43,7 @@ describe('ProjectSettings.updateAutocompletePreferences', () => {
     expect(prefs.audace).toBe('bold');
     expect(prefs.enabled).toBe(DEFAULT_AUTOCOMPLETE_PREFERENCES.enabled);
     expect(prefs.suggestionLength).toBe(DEFAULT_AUTOCOMPLETE_PREFERENCES.suggestionLength);
+    expect(prefs.smartPrefetch).toBe(DEFAULT_AUTOCOMPLETE_PREFERENCES.smartPrefetch);
     expect(prefs.learnFromRejections).toBe(DEFAULT_AUTOCOMPLETE_PREFERENCES.learnFromRejections);
     expect(prefs.partialAcceptance).toBe(DEFAULT_AUTOCOMPLETE_PREFERENCES.partialAcceptance);
   });
@@ -51,12 +52,14 @@ describe('ProjectSettings.updateAutocompletePreferences', () => {
     const settings = createSettings();
     const updated = settings.updateAutocompletePreferences({
       enabled: false,
+      smartPrefetch: false,
       suggestionLength: 'long',
       learnFromRejections: true,
     });
 
     const prefs = updated.getAutocompletePreferences();
     expect(prefs.enabled).toBe(false);
+    expect(prefs.smartPrefetch).toBe(false);
     expect(prefs.suggestionLength).toBe('long');
     expect(prefs.learnFromRejections).toBe(true);
     expect(prefs.audace).toBe(DEFAULT_AUTOCOMPLETE_PREFERENCES.audace);
@@ -71,12 +74,14 @@ describe('ProjectSettings.updateAutocompletePreferences', () => {
   it('round-trips through toProperties()', () => {
     const settings = createSettings().updateAutocompletePreferences({
       audace: 'prudent',
+      smartPrefetch: false,
       partialAcceptance: false,
     });
 
     const reconstructed = ProjectSettings.reconstruct(settings.toProperties());
     const prefs = reconstructed.getAutocompletePreferences();
     expect(prefs.audace).toBe('prudent');
+    expect(prefs.smartPrefetch).toBe(false);
     expect(prefs.partialAcceptance).toBe(false);
     expect(prefs.enabled).toBe(true);
   });

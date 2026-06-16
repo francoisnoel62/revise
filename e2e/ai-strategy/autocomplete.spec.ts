@@ -135,7 +135,8 @@ async function triggerSuggestion(page: Page, expectedGhostText: string) {
   await expect(hint).toContainText('accepter');
   await expect(hint).toContainText('Echap');
   await expect(hint).toContainText('ignorer');
-  await expect(hint).toContainText('Ctrl/Cmd+->');
+  await expect(hint).toContainText('Ctrl/Cmd');
+  await expect(hint).toContainText('→');
   await expect(hint).toContainText('mot');
   await expect(page.locator('.autocomplete-variant-row')).toHaveCount(0);
   return ghost;

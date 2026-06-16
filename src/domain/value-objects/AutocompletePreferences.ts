@@ -6,6 +6,7 @@ export type AudaceLevel = 'prudent' | 'balanced' | 'bold';
 
 export interface AutocompletePreferences {
   enabled: boolean;
+  smartPrefetch: boolean;
   suggestionLength: SuggestionLength;
   audace: AudaceLevel;
   learnFromRejections: boolean;
@@ -14,6 +15,7 @@ export interface AutocompletePreferences {
 
 export const DEFAULT_AUTOCOMPLETE_PREFERENCES: AutocompletePreferences = {
   enabled: true,
+  smartPrefetch: true,
   suggestionLength: 'medium',
   audace: 'balanced',
   learnFromRejections: false,

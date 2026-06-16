@@ -10,6 +10,8 @@ import {
   isValidAutocompleteIntent,
 } from '../value-objects/AutocompleteIntent';
 
+export type AutocompleteTriggerSource = 'manual' | 'prefetch';
+
 export interface AutocompleteEventProperties {
   id: string;
   ownerId: string;
@@ -26,6 +28,7 @@ export interface AutocompleteEventProperties {
   acceptedChars: number;
   acceptedWords: number;
   intent: AutocompleteIntent | null;
+  triggerSource?: AutocompleteTriggerSource;
   outcome: AutocompleteOutcome;
   deletedAfterMs: number | null;
   canonFactsCount: number | null;
@@ -50,6 +53,7 @@ export class AutocompleteEvent {
   private readonly acceptedChars: number;
   private readonly acceptedWords: number;
   private readonly intent: AutocompleteIntent | null;
+  private readonly triggerSource: AutocompleteTriggerSource;
   private readonly outcome: AutocompleteOutcome;
   private readonly deletedAfterMs: number | null;
   private readonly canonFactsCount: number | null;
@@ -73,6 +77,7 @@ export class AutocompleteEvent {
     this.acceptedChars = props.acceptedChars;
     this.acceptedWords = props.acceptedWords;
     this.intent = props.intent;
+    this.triggerSource = props.triggerSource ?? 'manual';
     this.outcome = props.outcome;
     this.deletedAfterMs = props.deletedAfterMs;
     this.canonFactsCount = props.canonFactsCount;
@@ -88,6 +93,13 @@ export class AutocompleteEvent {
     }
     if (props.intent !== null && !isValidAutocompleteIntent(props.intent)) {
       throw new Error(`Invalid intent: ${props.intent}`);
+    }
+    if (
+      props.triggerSource !== undefined &&
+      props.triggerSource !== 'manual' &&
+      props.triggerSource !== 'prefetch'
+    ) {
+      throw new Error(`Invalid triggerSource: ${props.triggerSource}`);
     }
     this.requireNonNegative(props.totalMs, 'totalMs');
     this.requireNonNegativeOrNull(props.firstTokenMs, 'firstTokenMs');
@@ -166,6 +178,9 @@ export class AutocompleteEvent {
   }
   getIntent(): AutocompleteIntent | null {
     return this.intent;
+  }
+  getTriggerSource(): AutocompleteTriggerSource {
+    return this.triggerSource;
   }
   getOutcome(): AutocompleteOutcome {
     return this.outcome;

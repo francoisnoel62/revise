@@ -41,6 +41,7 @@ export interface ProjectSettingsDocument {
   autocompleteAudace?: string;
   autocompleteLearnFromRejections?: boolean;
   autocompletePartialAcceptance?: boolean;
+  autocompleteSmartPrefetch?: boolean;
 }
 
 export function serializeProjectSettings(
@@ -76,6 +77,7 @@ export function serializeProjectSettings(
     autocompleteAudace: props.autocompleteAudace,
     autocompleteLearnFromRejections: props.autocompleteLearnFromRejections,
     autocompletePartialAcceptance: props.autocompletePartialAcceptance,
+    autocompleteSmartPrefetch: props.autocompleteSmartPrefetch,
   };
 }
 
@@ -113,6 +115,7 @@ export function deserializeProjectSettings(doc: ProjectSettingsDocument): Projec
     autocompleteAudace: doc.autocompleteAudace as AudaceLevel | undefined,
     autocompleteLearnFromRejections: doc.autocompleteLearnFromRejections,
     autocompletePartialAcceptance: doc.autocompletePartialAcceptance,
+    autocompleteSmartPrefetch: doc.autocompleteSmartPrefetch,
   };
 
   return ProjectSettings.reconstruct(props);

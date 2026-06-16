@@ -30,6 +30,7 @@ interface LifecyclePayload {
   providerType?: string | null;
   model?: string | null;
   canonFactsCount?: number | null;
+  triggerSource?: 'manual' | 'prefetch';
   outcome: string;
 }
 
@@ -136,6 +137,7 @@ export async function POST(request: NextRequest) {
         acceptedWords: isNonNegativeNumber(body.acceptedWords) ? body.acceptedWords : 0,
         intent:
           body.intent && isValidAutocompleteIntent(body.intent) ? body.intent : null,
+        triggerSource: body.triggerSource === 'prefetch' ? 'prefetch' : 'manual',
         outcome: body.outcome as AutocompleteOutcome,
         deletedAfterMs: null,
         canonFactsCount: isNonNegativeNumber(body.canonFactsCount)

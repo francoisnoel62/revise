@@ -127,6 +127,7 @@ export function TextEditor({
         suggestionLength: autocompletePreferences?.suggestionLength,
         audace: autocompletePreferences?.audace,
         partialAcceptance: autocompletePreferences?.partialAcceptance ?? true,
+        smartPrefetch: autocompletePreferences?.smartPrefetch ?? true,
       }),
     ],
     content: activeContent ? JSON.parse(activeContent) : { type: 'doc', content: [] },
@@ -146,13 +147,15 @@ export function TextEditor({
       if (!storage) return;
 
       const next: AutocompleteDotState =
-        storage.isLoading
-          ? 'loading'
-          : storage.prefetchedSuggestion
-            ? 'prefetched'
-            : storage.suggestion
-              ? 'shown'
-              : 'idle';
+        storage.runState === 'prefetching'
+          ? 'prefetching'
+          : storage.runState === 'ready'
+            ? 'ready'
+            : storage.runState === 'visible' || storage.suggestion || storage.isLoading
+              ? 'visible'
+              : storage.runState === 'waiting'
+                ? 'waiting'
+                : 'idle';
 
       if (next !== dotStateRef.current) {
         dotStateRef.current = next;
@@ -192,8 +195,24 @@ export function TextEditor({
   // Update autocomplete extension when enabled state changes
   useEffect(() => {
     if (!editor) return;
-    editor.commands.setAutocompleteEnabled(autocompleteEnabled);
-  }, [editor, autocompleteEnabled]);
+    editor.commands.setAutocompleteRuntimeOptions({
+      enabled: autocompleteEnabled,
+      projectId: projectId || project?.id,
+      chapterId: project?.activeChapterId ?? undefined,
+      suggestionLength: autocompletePreferences?.suggestionLength,
+      audace: autocompletePreferences?.audace,
+      partialAcceptance: autocompletePreferences?.partialAcceptance ?? true,
+      smartPrefetch: autocompletePreferences?.smartPrefetch ?? true,
+      onEvent: autocompletePreferences?.learnFromRejections !== false ? sendAutocompleteEvent : undefined,
+    });
+  }, [
+    editor,
+    autocompleteEnabled,
+    projectId,
+    project?.id,
+    project?.activeChapterId,
+    autocompletePreferences,
+  ]);
 
   // Keep autocomplete aware of the current chapter (for chapter-linked research context)
   useEffect(() => {

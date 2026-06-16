@@ -34,6 +34,18 @@ describe('AutocompleteLifecycleTracker', () => {
     expect(payload!.lengthWords).toBe(3);
     expect(payload!.suggestionId).toBe('sugg-1');
     expect(payload!.projectId).toBe('proj-1');
+    expect(payload!.triggerSource).toBe('manual');
+  });
+
+  it('keeps prefetch as the trigger source when provided', () => {
+    const tracker = new AutocompleteLifecycleTracker({
+      now: makeClock([0, 100]),
+      genId: () => 'prefetched',
+    });
+
+    tracker.start({ ...ctx, triggerSource: 'prefetch' });
+    tracker.markShown('suite');
+    expect(tracker.accept()!.triggerSource).toBe('prefetch');
   });
 
   it('attaches provider metadata when the stream reports it', () => {

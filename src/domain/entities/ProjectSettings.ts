@@ -34,6 +34,7 @@ export interface ProjectSettingsProperties {
   autocompleteAudace?: AudaceLevel;
   autocompleteLearnFromRejections?: boolean;
   autocompletePartialAcceptance?: boolean;
+  autocompleteSmartPrefetch?: boolean;
 }
 
 export class ProjectSettings {
@@ -59,6 +60,7 @@ export class ProjectSettings {
   private autocompleteAudace?: AudaceLevel;
   private autocompleteLearnFromRejections?: boolean;
   private autocompletePartialAcceptance?: boolean;
+  private autocompleteSmartPrefetch?: boolean;
 
   private constructor(props: ProjectSettingsProperties) {
     this.validate(props);
@@ -85,6 +87,7 @@ export class ProjectSettings {
     this.autocompleteAudace = props.autocompleteAudace;
     this.autocompleteLearnFromRejections = props.autocompleteLearnFromRejections;
     this.autocompletePartialAcceptance = props.autocompletePartialAcceptance;
+    this.autocompleteSmartPrefetch = props.autocompleteSmartPrefetch;
   }
 
   private validate(props: ProjectSettingsProperties): void {
@@ -307,6 +310,7 @@ export class ProjectSettings {
   getAutocompletePreferences(): AutocompletePreferences {
     return {
       enabled: this.autocompleteEnabled ?? DEFAULT_AUTOCOMPLETE_PREFERENCES.enabled,
+      smartPrefetch: this.autocompleteSmartPrefetch ?? DEFAULT_AUTOCOMPLETE_PREFERENCES.smartPrefetch,
       suggestionLength: this.autocompleteSuggestionLength ?? DEFAULT_AUTOCOMPLETE_PREFERENCES.suggestionLength,
       audace: this.autocompleteAudace ?? DEFAULT_AUTOCOMPLETE_PREFERENCES.audace,
       learnFromRejections: this.autocompleteLearnFromRejections ?? DEFAULT_AUTOCOMPLETE_PREFERENCES.learnFromRejections,
@@ -322,6 +326,7 @@ export class ProjectSettings {
       autocompleteAudace: prefs.audace ?? this.autocompleteAudace,
       autocompleteLearnFromRejections: prefs.learnFromRejections ?? this.autocompleteLearnFromRejections,
       autocompletePartialAcceptance: prefs.partialAcceptance ?? this.autocompletePartialAcceptance,
+      autocompleteSmartPrefetch: prefs.smartPrefetch ?? this.autocompleteSmartPrefetch,
       updatedAt: new Date(),
     });
   }
@@ -350,6 +355,7 @@ export class ProjectSettings {
       autocompleteAudace: this.autocompleteAudace,
       autocompleteLearnFromRejections: this.autocompleteLearnFromRejections,
       autocompletePartialAcceptance: this.autocompletePartialAcceptance,
+      autocompleteSmartPrefetch: this.autocompleteSmartPrefetch,
     };
   }
 }

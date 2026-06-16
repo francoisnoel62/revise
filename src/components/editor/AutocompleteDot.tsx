@@ -3,17 +3,17 @@
 
 'use client';
 
-export type AutocompleteDotState = 'idle' | 'loading' | 'prefetched' | 'shown';
+export type AutocompleteDotState = 'idle' | 'waiting' | 'prefetching' | 'ready' | 'visible';
 
 interface AutocompleteDotProps {
   state: AutocompleteDotState;
 }
 
 export function AutocompleteDot({ state }: AutocompleteDotProps) {
-  if (state === 'idle') return null;
+  if (state === 'idle' || state === 'waiting') return null;
   return (
     <div
-      className="autocomplete-dot hidden sm:block"
+      className="autocomplete-dot"
       data-state={state}
       aria-hidden="true"
     />

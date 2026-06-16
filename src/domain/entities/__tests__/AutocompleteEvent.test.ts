@@ -39,7 +39,13 @@ describe('AutocompleteEvent', () => {
     expect(event.getSuggestionId()).toBe('sugg-1');
     expect(event.getOutcome()).toBe('accepted_full');
     expect(event.getFirstTokenMs()).toBe(220);
+    expect(event.getTriggerSource()).toBe('manual');
     expect(event.getCreatedAt()).toBeInstanceOf(Date);
+  });
+
+  it('stores a prefetch trigger source', () => {
+    const event = AutocompleteEvent.create(baseProps({ triggerSource: 'prefetch' }));
+    expect(event.getTriggerSource()).toBe('prefetch');
   });
 
   it('accepts null chapterId / provider / model / firstTokenMs / deletedAfterMs', () => {
@@ -70,6 +76,12 @@ describe('AutocompleteEvent', () => {
     expect(() =>
       AutocompleteEvent.create(baseProps({ outcome: 'nope' as never }))
     ).toThrow(/Invalid outcome/);
+  });
+
+  it('rejects an invalid trigger source', () => {
+    expect(() =>
+      AutocompleteEvent.create(baseProps({ triggerSource: 'hover' as never }))
+    ).toThrow(/Invalid triggerSource/);
   });
 
   it('supports a partial-acceptance outcome with accepted length', () => {
