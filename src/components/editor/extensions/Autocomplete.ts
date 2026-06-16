@@ -12,6 +12,8 @@ import {
 import { nextWord, nextFragment } from './suggestionSegments';
 import {
   type AutocompleteIntent,
+  AUTOCOMPLETE_INTENTS,
+  autocompleteIntentByNumber,
   nextAutocompleteIntent,
 } from '@/domain/value-objects/AutocompleteIntent';
 import {
@@ -131,7 +133,15 @@ function createAutocompleteHint(intent: AutocompleteIntent): HTMLElement {
       variant.className = item.active
         ? 'autocomplete-variant autocomplete-variant-active'
         : 'autocomplete-variant';
-      variant.textContent = item.label;
+
+      const number = document.createElement('span');
+      number.className = 'autocomplete-variant-number';
+      number.textContent = String(item.number);
+
+      const label = document.createElement('span');
+      label.textContent = item.label;
+
+      variant.append(number, label);
       variantRow.append(variant);
     }
 
@@ -278,6 +288,26 @@ function triggerCompletion(
         editor.view.dispatch(editor.state.tr);
       });
   }
+}
+
+/**
+ * Discreetly re-request a completion under a chosen intent: abort any in-flight
+ * request, drop the current ghost text, then trigger a fresh completion.
+ */
+function regenerateWithIntent(
+  editor: Editor,
+  storage: AutocompleteStorage,
+  options: AutocompleteOptions,
+  intent: AutocompleteIntent
+): void {
+  storage.currentIntent = intent;
+  if (storage.abortController) {
+    storage.abortController.abort();
+    storage.abortController = null;
+  }
+  storage.suggestion = null;
+  storage.isLoading = false;
+  triggerCompletion(editor, storage, options);
 }
 
 /**
@@ -444,7 +474,29 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
   },
 
   addKeyboardShortcuts() {
+    // Ctrl/Cmd+1..5 pick a variant directly (the number shown in the hint),
+    // so the author can jump to a flavor without cycling through the others.
+    const numberShortcuts: Record<
+      string,
+      (props: { editor: Editor }) => boolean
+    > = {};
+    for (let n = 1; n <= AUTOCOMPLETE_INTENTS.length; n++) {
+      numberShortcuts[`Mod-${n}`] = ({ editor }) => {
+        const { storage } = this;
+        if (!storage.enabled || (!storage.suggestion && !storage.isLoading)) {
+          return false;
+        }
+        const intent = autocompleteIntentByNumber(n);
+        if (!intent) {
+          return false;
+        }
+        regenerateWithIntent(editor, storage, this.options, intent);
+        return true;
+      };
+    }
+
     return {
+      ...numberShortcuts,
       Tab: ({ editor }) => {
         const { storage } = this;
 
@@ -491,20 +543,18 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
 
         return true;
       },
-      'Mod-.': ({ editor }) => {
+      'Mod-+': ({ editor }) => {
         // Discreet "regenerate with another flavor": cycle the intent and re-request.
         const { storage } = this;
         if (!storage.enabled || (!storage.suggestion && !storage.isLoading)) {
           return false;
         }
-        storage.currentIntent = nextAutocompleteIntent(storage.currentIntent);
-        if (storage.abortController) {
-          storage.abortController.abort();
-          storage.abortController = null;
-        }
-        storage.suggestion = null;
-        storage.isLoading = false;
-        triggerCompletion(editor, storage, this.options);
+        regenerateWithIntent(
+          editor,
+          storage,
+          this.options,
+          nextAutocompleteIntent(storage.currentIntent)
+        );
         return true;
       },
       'Mod-ArrowRight': ({ editor }) => {

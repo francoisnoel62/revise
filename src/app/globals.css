@@ -249,6 +249,27 @@
   font-weight: 600;
 }
 
+.autocomplete-variant-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1rem;
+  height: 1rem;
+  margin-right: 0.25rem;
+  padding: 0 0.1875rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+  color: rgb(100 116 139);
+  background: rgb(241 245 249);
+  border-radius: 0.1875rem;
+}
+
+.autocomplete-variant-active .autocomplete-variant-number {
+  color: rgb(255 255 255);
+  background: rgb(71 85 105);
+}
+
 /* Font families */
 .tiptap [data-font-family="Georgia"] {
   font-family: Georgia, serif;

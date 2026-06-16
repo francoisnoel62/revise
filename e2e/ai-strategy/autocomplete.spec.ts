@@ -252,7 +252,7 @@ test.describe.serial('Autocomplétion littéraire — E2E éditeur', () => {
     expect(body.acceptedWords).toBeGreaterThan(0);
   });
 
-  test('régénère une variante discrète avec Mod-. et envoie intent=shorter', async ({ page }) => {
+  test('régénère une variante discrète avec Mod-+ et envoie intent=shorter', async ({ page }) => {
     const routes = await setupAutocompleteRoutes(page, [
       ' observa longuement la poussière suspendue.',
       ' attendit.',
@@ -260,16 +260,35 @@ test.describe.serial('Autocomplétion littéraire — E2E éditeur', () => {
     await resetEditorText(page);
 
     await triggerSuggestion(page, 'poussière suspendue');
-    await page.keyboard.press('Control+Period');
+    await page.keyboard.press('Control+Shift+Equal');
 
     await expect(page.locator('.autocomplete-ghost')).toContainText('attendit', {
       timeout: 10_000,
     });
     await expect(page.locator('.autocomplete-variant-row')).toBeVisible();
-    await expect(page.locator('.autocomplete-variant-active')).toHaveText('Plus bref');
+    await expect(page.locator('.autocomplete-variant-active')).toContainText('Plus bref');
     expect(routes.completionBodies).toHaveLength(2);
     expect(routes.completionBodies[0].intent).toBe('natural');
     expect(routes.completionBodies[1].intent).toBe('shorter');
+  });
+
+  test('sélectionne une variante par son numéro (Mod-3) et envoie intent=tenser', async ({ page }) => {
+    const routes = await setupAutocompleteRoutes(page, [
+      ' observa longuement la poussière suspendue.',
+      ' la porte claqua.',
+    ]);
+    await resetEditorText(page);
+
+    await triggerSuggestion(page, 'poussière suspendue');
+    await page.keyboard.press('Control+3');
+
+    await expect(page.locator('.autocomplete-ghost')).toContainText('porte claqua', {
+      timeout: 10_000,
+    });
+    await expect(page.locator('.autocomplete-variant-active')).toContainText('Plus tendu');
+    expect(routes.completionBodies).toHaveLength(2);
+    expect(routes.completionBodies[0].intent).toBe('natural');
+    expect(routes.completionBodies[1].intent).toBe('tenser');
   });
 
   test('n’appelle pas le stream quand il n’y a aucun texte avant le curseur', async ({ page }) => {

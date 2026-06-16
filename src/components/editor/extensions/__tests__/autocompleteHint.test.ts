@@ -19,13 +19,13 @@ describe('autocomplete hint helpers', () => {
     ]);
   });
 
-  it('marks only the active variant', () => {
+  it('numbers each variant and marks only the active one', () => {
     expect(autocompleteVariantHints('shorter')).toEqual([
-      { intent: 'natural', label: 'Autre', active: false },
-      { intent: 'shorter', label: 'Plus bref', active: true },
-      { intent: 'tenser', label: 'Plus tendu', active: false },
-      { intent: 'more_concrete', label: 'Plus concret', active: false },
-      { intent: 'dialogue', label: 'Dialogue', active: false },
+      { intent: 'natural', number: 1, label: 'Naturel', active: false },
+      { intent: 'shorter', number: 2, label: 'Plus bref', active: true },
+      { intent: 'tenser', number: 3, label: 'Plus tendu', active: false },
+      { intent: 'more_concrete', number: 4, label: 'Plus concret', active: false },
+      { intent: 'dialogue', number: 5, label: 'Dialogue', active: false },
     ]);
   });
 

@@ -2,7 +2,8 @@
 
 > ✅ **Implémenté le 2026-06-15.** VO `AutocompleteIntent` (natural/shorter/tenser/more_concrete/
 > dialogue) + directive serveur (`intentDirective`, injectée dans le contexte, providers inchangés).
-> Raccourci discret `Mod-.` cycle l'intention et régénère en place ; un `Tab` neuf revient à
+> Raccourci discret `Mod-+` cycle l'intention et régénère en place ; `Mod-1..5` sélectionne
+> directement une variante par son numéro (affiché dans le hint) ; un `Tab` neuf revient à
 > `natural`. L'intention est transmise au stream et **persistée** sur `AutocompleteEvent` (mesure
 > « quelle intention est acceptée »). Gates verts : lint, typecheck, 2228 tests, build.
 

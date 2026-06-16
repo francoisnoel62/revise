@@ -18,6 +18,8 @@ export interface AutocompleteShortcutHintItem {
 
 export interface AutocompleteVariantHintItem {
   intent: AutocompleteIntent;
+  /** 1-based number used to select this variant directly (Ctrl/Cmd+number). */
+  number: number;
   label: string;
   active: boolean;
 }
@@ -44,9 +46,10 @@ export function autocompleteShortcutHints(): AutocompleteShortcutHintItem[] {
 export function autocompleteVariantHints(
   activeIntent: AutocompleteIntent
 ): AutocompleteVariantHintItem[] {
-  return AUTOCOMPLETE_VARIANT_ORDER.map((intent) => ({
+  return AUTOCOMPLETE_VARIANT_ORDER.map((intent, index) => ({
     intent,
-    label: intent === 'natural' ? 'Autre' : AUTOCOMPLETE_INTENT_LABELS[intent],
+    number: index + 1,
+    label: AUTOCOMPLETE_INTENT_LABELS[intent],
     active: intent === activeIntent,
   }));
 }
