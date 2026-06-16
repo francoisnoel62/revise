@@ -165,7 +165,7 @@ export async function deleteCanonFactAction(
 export async function generateCanonFactsAction(
   projectId: string,
   providerId: string
-): Promise<ActionResult<{ factCount: number }>> {
+): Promise<ActionResult<{ factCount: number; characterCount: number }>> {
   const auth = await getAuthenticatedUserId();
   if ('error' in auth) return auth.error;
 
@@ -207,7 +207,7 @@ export async function generateCanonFactsAction(
     );
 
     const result = await useCase.execute({ ownerId: auth.userId, projectId });
-    return { factCount: result.factCount };
+    return { factCount: result.factCount, characterCount: result.characterCount };
   });
 }
 

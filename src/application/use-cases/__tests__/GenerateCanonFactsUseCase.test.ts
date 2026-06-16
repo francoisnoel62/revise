@@ -64,6 +64,7 @@ describe('GenerateCanonFactsUseCase', () => {
     const result = await build().execute({ ownerId: 'o1', projectId: 'p1' });
 
     expect(result.factCount).toBe(1);
+    expect(result.characterCount).toBe(2);
     const [ownerId, projectId, facts] = canonRepo.replaceDerived.mock.calls[0];
     expect(ownerId).toBe('o1');
     expect(projectId).toBe('p1');
@@ -104,6 +105,8 @@ describe('GenerateCanonFactsUseCase', () => {
     const result = await build().execute({ ownerId: 'o1', projectId: 'p1' });
 
     expect(result.factCount).toBe(0);
+    // The caller can tell "0 facts because no cast" apart from "0 facts extracted".
+    expect(result.characterCount).toBe(0);
     expect(llm.generateCanonFacts).not.toHaveBeenCalled();
     expect(canonRepo.replaceDerived).toHaveBeenCalledWith('o1', 'p1', []);
   });

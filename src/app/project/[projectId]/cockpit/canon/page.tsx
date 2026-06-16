@@ -79,6 +79,7 @@ export default function CockpitCanonPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isStale, setIsStale] = useState(false);
   const [selectedProviderId, setSelectedProviderId] = useState<string>('');
@@ -151,11 +152,21 @@ export default function CockpitCanonPage() {
     }
     setIsGenerating(true);
     setActionError(null);
+    setActionNotice(null);
 
     const result = await generateCanonFactsAction(projectId, selectedProviderId);
     if (!result.success) {
       setActionError(result.error);
     } else {
+      // A fast, empty result is almost always "this project has no characters
+      // yet" — surface that instead of silently showing an empty canon.
+      if (result.data.factCount === 0) {
+        setActionNotice(
+          result.data.characterCount === 0
+            ? "Ce projet n'a aucun personnage. Générez d'abord les personnages (cockpit Personnages) avant d'extraire le canon."
+            : "Aucun fait n'a pu être extrait du manuscrit pour les personnages connus."
+        );
+      }
       await loadData();
     }
     setIsGenerating(false);
@@ -320,6 +331,13 @@ export default function CockpitCanonPage() {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{actionError}</AlertDescription>
+        </Alert>
+      )}
+
+      {actionNotice && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{actionNotice}</AlertDescription>
         </Alert>
       )}
 

@@ -20,6 +20,13 @@ export interface GenerateCanonFactsInput {
 export interface GenerateCanonFactsResult {
   facts: CanonFact[];
   factCount: number;
+  /**
+   * Number of known characters considered for extraction. Lets the caller tell
+   * "0 facts because the project has no cast" apart from "0 facts extracted from
+   * the text" — the former needs a "create characters first" hint, not a silent
+   * empty result.
+   */
+  characterCount: number;
 }
 
 export class GenerateCanonFactsUseCase {
@@ -62,7 +69,7 @@ export class GenerateCanonFactsUseCase {
     // No known cast → nothing to extract; clear derived facts and return.
     if (knownNames.length === 0) {
       await this.canonFactRepository.replaceDerived(input.ownerId, input.projectId, []);
-      return { facts: [], factCount: 0 };
+      return { facts: [], factCount: 0, characterCount: 0 };
     }
 
     const contentHash = hashText(fullText);
@@ -93,6 +100,6 @@ export class GenerateCanonFactsUseCase {
 
     await this.canonFactRepository.replaceDerived(input.ownerId, input.projectId, facts);
 
-    return { facts, factCount: facts.length };
+    return { facts, factCount: facts.length, characterCount: knownNames.length };
   }
 }
