@@ -27,6 +27,8 @@ export const TEST_META_STALE_ID = 'e2e-strategy-meta-stale';
 export const TEST_META_FRESH_ID = 'e2e-strategy-meta-fresh';
 // Fixed 24-char hex ObjectId for the seeded research document
 export const TEST_RESEARCH_DOC_ID = '6475a8f3c1234567890abcde';
+// Fixed 24-char hex ObjectId for the autocomplete project settings
+export const TEST_AUTOCOMPLETE_SETTINGS_ID = '6475a8f3c1234567890abcdf';
 
 // ── Chapter content seedé ─────────────────────────────────────────────────────
 
@@ -200,6 +202,33 @@ export async function seedAll(): Promise<void> {
     { upsert: true }
   );
 
+  // 2d. Project settings for the autocomplete project. learnFromRejections must be true
+  // so the editor wires the telemetry sender (onEvent); the default is false, which would
+  // silence all lifecycle telemetry the autocomplete E2E tests assert on.
+  await db.collection('project_settings').replaceOne(
+    { _id: new ObjectId(TEST_AUTOCOMPLETE_SETTINGS_ID) },
+    {
+      _id: new ObjectId(TEST_AUTOCOMPLETE_SETTINGS_ID),
+      projectId: TEST_AUTOCOMPLETE_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      title: 'Projet Test Autocomplétion',
+      summary: '',
+      genre: '',
+      synopsis: '',
+      contributors: [],
+      relatedWorks: [],
+      createdAt: past,
+      updatedAt: now,
+      autocompleteEnabled: true,
+      autocompleteSuggestionLength: 'medium',
+      autocompleteAudace: 'balanced',
+      autocompleteLearnFromRejections: true,
+      autocompletePartialAcceptance: true,
+      autocompleteSmartPrefetch: true,
+    },
+    { upsert: true }
+  );
+
   // 3. Research document (sentinelle unique pour vérifier l'injection de contexte)
   const researchDocId = new ObjectId(TEST_RESEARCH_DOC_ID);
   await db.collection('researchDocuments').replaceOne(
@@ -330,6 +359,7 @@ export async function cleanupAll(): Promise<void> {
     db.collection('projects').deleteMany({ ownerId: TEST_USER_ID }),
     db.collection('providers').deleteMany({ ownerId: TEST_USER_ID }),
     db.collection('project_metadata').deleteMany({ ownerId: TEST_USER_ID }),
+    db.collection('project_settings').deleteMany({ ownerId: TEST_USER_ID }),
     db.collection('researchDocuments').deleteMany({ ownerId: TEST_USER_ID }),
     db.collection('autocompleteEvents').deleteMany({ ownerId: TEST_USER_ID }),
   ]);
