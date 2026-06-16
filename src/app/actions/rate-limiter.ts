@@ -175,65 +175,7 @@ export function recordChapterGeneration(userId: string, generationType: string):
   userLimits.set(generationType, Date.now());
 }
 
-// ---------------------------------------------------------------------------
-// Canon-fact generation rate limiting (independent namespace + cooldown).
-// ---------------------------------------------------------------------------
-
-const canonFactsGenerationLimits = new Map<string, Map<string, number>>();
-const CANON_FACTS_COOLDOWN_MS = 30000; // 30 seconds per project
-
-/**
- * Check if a user can (re)generate canon facts for a project now.
- *
- * The cooldown is scoped per project so generating facts on one project does not
- * block generation on the user's other projects.
- *
- * @param userId The user ID to check
- * @param projectId The project whose canon facts would be (re)generated
- * @returns Object with allowed flag and optional wait time
- */
-export function canGenerateCanonFacts(
-  userId: string,
-  projectId: string
-): {
-  allowed: boolean;
-  waitSeconds?: number;
-} {
-  const userLimits = canonFactsGenerationLimits.get(userId);
-  if (!userLimits) {
-    return { allowed: true };
-  }
-
-  const lastGeneration = userLimits.get(projectId);
-  if (!lastGeneration) {
-    return { allowed: true };
-  }
-
-  const elapsed = Date.now() - lastGeneration;
-  if (elapsed < CANON_FACTS_COOLDOWN_MS) {
-    const waitSeconds = Math.ceil((CANON_FACTS_COOLDOWN_MS - elapsed) / 1000);
-    return { allowed: false, waitSeconds };
-  }
-
-  return { allowed: true };
-}
-
-/**
- * Record a canon-fact generation attempt.
- *
- * @param userId The user ID performing the generation
- * @param projectId The project whose canon facts were generated
- */
-export function recordCanonFactsGeneration(userId: string, projectId: string): void {
-  let userLimits = canonFactsGenerationLimits.get(userId);
-  if (!userLimits) {
-    userLimits = new Map();
-    canonFactsGenerationLimits.set(userId, userLimits);
-  }
-
-  userLimits.set(projectId, Date.now());
-}
-
-// Telemetry ingestion is rate-limited via the shared RateLimitRepository (see
-// the telemetry route): an in-memory limiter is useless on serverless because
-// each instance counts alone and resets on cold start.
+// Canon-fact generation is rate-limited via the shared RateLimitRepository (see
+// generateCanonFactsAction), as is telemetry ingestion (see the telemetry
+// route): an in-memory limiter is useless on serverless because each instance
+// counts alone and resets on cold start.

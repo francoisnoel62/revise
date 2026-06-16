@@ -11,6 +11,8 @@ vi.mock('../utils', async () => {
     getRepository: vi.fn(),
     getCanonFactRepo: vi.fn(),
     getIdGenerator: vi.fn(),
+    getRateLimitRepo: vi.fn(),
+    getTrackedLLMProviderById: vi.fn(),
   };
 });
 
@@ -19,8 +21,13 @@ import {
   getRepository,
   getCanonFactRepo,
   getIdGenerator,
+  getRateLimitRepo,
+  getTrackedLLMProviderById,
 } from '../utils';
-import { createCanonFactAction } from '../canon-actions';
+import {
+  createCanonFactAction,
+  generateCanonFactsAction,
+} from '../canon-actions';
 
 describe('createCanonFactAction — ownership guard', () => {
   beforeEach(() => {
@@ -65,5 +72,44 @@ describe('createCanonFactAction — ownership guard', () => {
 
     expect(result.success).toBe(true);
     expect(save).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('generateCanonFactsAction — rate limiting', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(getAuthenticatedUserId).mockResolvedValue({ userId: 'user-1' });
+  });
+
+  it('blocks generation and skips the LLM when the per-project quota is exceeded', async () => {
+    vi.mocked(getRateLimitRepo).mockResolvedValue({
+      consumeFixedWindow: vi
+        .fn()
+        .mockResolvedValue({ allowed: false, retryAfterSeconds: 17 }),
+    } as never);
+
+    const result = await generateCanonFactsAction('project-1', 'provider-1');
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toContain('17');
+    }
+    // The expensive LLM provider must never be constructed when blocked.
+    expect(getTrackedLLMProviderById).not.toHaveBeenCalled();
+  });
+
+  it('scopes the quota key per user and project', async () => {
+    const consumeFixedWindow = vi
+      .fn()
+      .mockResolvedValue({ allowed: false, retryAfterSeconds: 5 });
+    vi.mocked(getRateLimitRepo).mockResolvedValue({ consumeFixedWindow } as never);
+
+    await generateCanonFactsAction('project-42', 'provider-1');
+
+    expect(consumeFixedWindow).toHaveBeenCalledWith(
+      'canon-facts:user-1:project-42',
+      expect.any(Number),
+      expect.any(Number)
+    );
   });
 });

@@ -10,14 +10,20 @@ import {
   getCanonFactRepo,
   getCharacterRepo,
   getIdGenerator,
+  getRateLimitRepo,
   getTrackedLLMProviderById,
   withErrorHandling,
 } from './utils';
 import { CanonFact } from '@/domain/entities/CanonFact';
 import { GenerateCanonFactsUseCase } from '@/application/use-cases/GenerateCanonFactsUseCase';
-import { canGenerateCanonFacts, recordCanonFactsGeneration } from './rate-limiter';
 import { extractProjectFullText } from '@/application/services/project-text';
 import { hashText } from '@/application/utils/text-hash';
+
+// Canon-fact (re)generation is an expensive LLM operation; throttle it per
+// project so one project's generation never blocks another's (see the per-user
+// regression this replaced) while still preventing rapid re-runs of the same one.
+const CANON_FACTS_WINDOW_MS = 30_000; // 30 seconds
+const CANON_FACTS_MAX_PER_WINDOW = 1;
 
 export interface SerializedCanonFact {
   id: string;
@@ -163,12 +169,26 @@ export async function generateCanonFactsAction(
   const auth = await getAuthenticatedUserId();
   if ('error' in auth) return auth.error;
 
-  const rateCheck = canGenerateCanonFacts(auth.userId, projectId);
-  if (!rateCheck.allowed) {
-    return {
-      success: false,
-      error: `Veuillez attendre ${rateCheck.waitSeconds}s avant de régénérer le canon.`,
-    };
+  // Cooldown scoped per (user, project), backed by the shared store so it holds
+  // across serverless instances (an in-memory counter resets on cold start and
+  // counts per-instance). One generation per 30s window per project. If the
+  // limiter store is unavailable we fail OPEN: a counter outage must not lock an
+  // author out of (re)building their canon.
+  try {
+    const rateLimitRepo = await getRateLimitRepo();
+    const quota = await rateLimitRepo.consumeFixedWindow(
+      `canon-facts:${auth.userId}:${projectId}`,
+      CANON_FACTS_WINDOW_MS,
+      CANON_FACTS_MAX_PER_WINDOW
+    );
+    if (!quota.allowed) {
+      return {
+        success: false,
+        error: `Veuillez attendre ${quota.retryAfterSeconds ?? 30}s avant de régénérer le canon.`,
+      };
+    }
+  } catch (error) {
+    console.error('[Canon facts] rate-limit check failed:', error);
   }
 
   return withErrorHandling(async () => {
@@ -187,7 +207,6 @@ export async function generateCanonFactsAction(
     );
 
     const result = await useCase.execute({ ownerId: auth.userId, projectId });
-    recordCanonFactsGeneration(auth.userId, projectId);
     return { factCount: result.factCount };
   });
 }
