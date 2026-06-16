@@ -39,6 +39,52 @@ export interface StartContext {
   triggerSource?: AutocompleteTriggerSource;
 }
 
+/**
+ * Snapshot of a completed-but-not-yet-promoted prefetch. Held outside the main
+ * tracker so a discarded prefetch can be reported as wasted LLM spend without
+ * interfering with the lifecycle of a suggestion the author actually sees.
+ */
+export interface PrefetchTelemetryRecord {
+  suggestionId: string;
+  projectId: string;
+  chapterId: string | null;
+  intent: AutocompleteIntent;
+  triggeredAtIso: string;
+  startedAtMs: number;
+  firstTokenMs: number | null;
+  lengthChars: number;
+  lengthWords: number;
+  providerType: string | null;
+  model: string | null;
+  canonFactsCount: number | null;
+}
+
+/** Build the terminal payload for a prefetch that was ready but never promoted. */
+export function buildPrefetchDiscardedPayload(
+  record: PrefetchTelemetryRecord,
+  now: number
+): LifecyclePayload {
+  return {
+    type: 'lifecycle',
+    suggestionId: record.suggestionId,
+    projectId: record.projectId,
+    chapterId: record.chapterId,
+    triggeredAtIso: record.triggeredAtIso,
+    firstTokenMs: record.firstTokenMs,
+    totalMs: Math.max(0, now - record.startedAtMs),
+    lengthChars: record.lengthChars,
+    lengthWords: record.lengthWords,
+    acceptedChars: 0,
+    acceptedWords: 0,
+    intent: record.intent,
+    providerType: record.providerType,
+    model: record.model,
+    canonFactsCount: record.canonFactsCount,
+    triggerSource: 'prefetch',
+    outcome: 'prefetch_discarded',
+  };
+}
+
 interface ActiveState {
   suggestionId: string;
   projectId: string;

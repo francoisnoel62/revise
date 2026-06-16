@@ -15,6 +15,7 @@ describe('AutocompleteOutcome', () => {
       'rejected_escape',
       'superseded_typing',
       'empty',
+      'prefetch_discarded',
     ]);
   });
 
@@ -24,6 +25,7 @@ describe('AutocompleteOutcome', () => {
     expect(isValidAutocompleteOutcome('rejected_escape')).toBe(true);
     expect(isValidAutocompleteOutcome('superseded_typing')).toBe(true);
     expect(isValidAutocompleteOutcome('empty')).toBe(true);
+    expect(isValidAutocompleteOutcome('prefetch_discarded')).toBe(true);
   });
 
   it('rejects invalid outcomes', () => {

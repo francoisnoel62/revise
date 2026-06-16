@@ -27,6 +27,8 @@ Pure business logic with no framework dependencies.
 - `WritingGoal` - Writing goal with target word count, deadline, progress (Phase 6)
 - `AIUsageRecord` - AI usage tracking with operation type, tokens, cost (Phase 6)
 - `AIExchange` - Captured content of one AI exchange (system prompt, input, raw output) for the transparency ledger; stored separately from `AIUsageRecord`, encrypted at rest, opt-in, with retention/TTL purge. See [transparency-ledger.md](transparency-ledger.md)
+- `AutocompleteEvent` - Full lifecycle of one autocomplete suggestion (triggered → displayed → accepted/rejected/expired); carries provider, model, latency, outcome, and session identifiers for telemetry (Phase 10.0)
+- `CanonFact` - Established fact extracted from the manuscript (character, location, relation, event); tracks source (`derived` | `authored`), validity, and the chapter it was extracted from; author can validate or invalidate (Phase 10.0)
 - `ChapterAnalysis` - Complete chapter analysis result with issues, repetitions, statistics (Phase 7)
 - `CharacterConversation` - Persisted conversation between the author and a character persona; owns an ordered list of `ChatMessage` value objects (Phase 9.0)
 - `TextDocument` - Legacy single document (Phase 1)
@@ -49,11 +51,17 @@ Pure business logic with no framework dependencies.
 - `StyleRigor` - Analysis strictness level (strict, balanced, light) (Phase 7)
 - `ChatMessage` - Single message in a character conversation with role (`author` | `character`), content, and timestamp (Phase 9.0)
 - `ModelPricing` - Maintained pricing table (€/million tokens) for all supported models; computes euro cost per call discounting cached tokens; cost is snapshot at usage time (Phase 9.0)
+- `AutocompletePreferences` - 6 per-project autocomplete settings: `enabled`, `suggestionLength` (short/medium/long), `audace` (prudent/balanced/bold), `smartPrefetch`, `partialAcceptance`, `learnFromRejections`; stored on `ProjectSettings` (Phase 10.0)
+- `AutocompleteIntent` - Detected intention of the writing context (`dialogue`, `description`, `action`, `introspection`, `other`); drives variant generation (Phase 10.0)
+- `AutocompleteOutcome` - Result of a suggestion (`accepted_full`, `accepted_partial`, `rejected`, `expired`, `ignored`) (Phase 10.0)
+- `CanonFacts` - Typed collection of `CanonFact` items (Phase 10.0)
+- `CanonFactSource` - Enum for fact provenance: `derived` (LLM-extracted) | `authored` (manually added) (Phase 10.0)
+- `AIOperationPolicy` - Maps `AIOperationType` to provider selection policy (fast vs standard models); autocomplete always uses fast models (Phase 10.0)
 
 **Interfaces**:
 - `DocumentParser` - Parse documents to entities
 - `DocumentExporter` - Export entities to documents
-- `LLMProvider` - AI rewriting + 7 metadata analysis methods + chapter generation + completion + `chatStream` (character persona streaming) + `generateCharacterSheet` (Phase 3.6, 4.1, 9.0); generation/rewrite/completion methods receive ready-to-inject context strings (`projectContext` / `authorProfile`) rather than typed metadata (Phase 8.0); optional `getLastTokenUsage()` exposes input/output/cached token counts after any call (Phase 9.0)
+- `LLMProvider` - AI rewriting + 7 metadata analysis methods + chapter generation + completion + `chatStream` (character persona streaming) + `generateCharacterSheet` (Phase 3.6, 4.1, 9.0); generation/rewrite/completion methods receive ready-to-inject context strings (`projectContext` / `authorProfile`) rather than typed metadata (Phase 8.0); optional `getLastTokenUsage()` exposes input/output/cached token counts after any call (Phase 9.0); `generateCompletionStream` now accepts `intent`, `suggestionLength`, `audace` for preference-driven prompting (Phase 10.0)
 - `ProjectRepository` - Persistence abstraction with multi-tenant support
 - `ProviderRepository` - Provider storage with encryption (Phase 3.5)
 - `MetadataRepository` - Metadata storage with multi-tenant isolation (Phase 3.6)
@@ -72,6 +80,9 @@ Pure business logic with no framework dependencies.
 - `CharacterConversationRepository` - Conversation persistence scoped by `ownerId` (Phase 9.0)
 - `BlobStorage` - Blob storage abstraction for images (Phase 6)
 - `RateLimiter` - Rate limiting abstraction for registration protection (Phase 6.1)
+- `AutocompleteEventRepository` - Persist and query autocomplete telemetry events; aggregates by period/provider/outcome (Phase 10.0)
+- `CanonFactRepository` - CRUD for canon facts with `replaceDerived()` for atomic bulk update (Phase 10.0)
+- `RateLimitRepository` - Generic persistent sliding-window rate limiting (replaces in-memory for canon generation and telemetry ingestion) (Phase 10.0)
 - `CaptchaVerifier` - CAPTCHA verification abstraction (Phase 6.1)
 - `AuthProvider` - Authentication service abstraction
 - `EmailService` - Email notification service (Phase 3.8)
@@ -127,17 +138,21 @@ Use cases orchestrating domain logic.
 - **CRUD**: `CreateMetadata`, `LoadMetadata`, `ListMetadata`, `UpdateMetadataContent`, `UpdateMetadataTitle`, `DeleteMetadata`
 - **Generation**: `GenerateNarrativeAnalysis`, `GenerateCharacters`, `GeneratePlot`, `GenerateStylisticDNA`, `GenerateWorldbuilding`, `GenerateChapterSummaries`, `GenerateSynthesis` (all with intelligent caching)
 
-**AI Generation Use Cases** (Phase 4.1):
+**AI Generation Use Cases** (Phase 4.1, 10.0):
 - `GenerateChapterUseCase` - Generate chapter content from metadata context
 - `GenerateCompletionUseCase` - Generate autocompletion suggestions
+- `GenerateCanonFactsUseCase` - Extract canon facts from manuscript via LLM, atomically replace derived facts, enforces per-project cooldown (Phase 10.0)
 
 **Character Chat Use Cases** (Phase 9.0):
 - `ChatWithCharacterUseCase` - Streaming use case; builds the character persona via `AIContextBuilder.buildCharacterPersona`, hydrates/creates the conversation, streams reply via `LLMProvider.chatStream`, persists the accumulated reply. Returns an `AsyncIterableIterator` of text chunks. History capped at 20 messages.
 - `GenerateCharacterSheetUseCase` - Loads character + manuscript + metadata; calls `LLMProvider.generateCharacterSheet`; returns 8 filled-in character fields without persisting (author decides what to keep)
 
-**AI Context Strategy** (Phase 8.0):
+**AI Context Strategy** (Phase 8.0, 10.0):
 - `AIContextBuilder` (service) - Centralized metadata → prompt projection; produces ready-to-inject
   context blocks (completion / chapter / rewrite / character persona), applies "author edit wins", projects research docs by locality
+- `AutocompleteContextBuilder` (service) - Builds cursor-anchored local window for completions; injects relevant canon facts when `CANON_CONTEXT_ENABLED`; replaces chapter-tail context (Phase 10.0)
+- `autocompleteIntents` (service) - Translates detected `AutocompleteIntent` into a prompt directive string (Phase 10.0)
+- `canonEntities` (service) - Selects and formats canon facts relevant to the current context (Phase 10.0)
 - `CheckMetadataFreshnessUseCase` - Read-only staleness check (manuscript hash vs stored metadata hash); never regenerates
 - `extractProjectFullText` (`services/project-text.ts`) - Canonical project text extraction shared by generation and freshness check
 - `text-hash` (`utils/text-hash.ts`) - SHA-256 content hashing (moved from Infrastructure to respect layer boundaries)
@@ -180,8 +195,8 @@ External service implementations.
 
 **AI**:
 - `OpenAIProvider` - GPT-4o-mini/GPT-5 + 7 analysis types + generation + completion + `chatStream` + `generateCharacterSheet`; captures token usage (input/output/cached) including streaming via `stream_options.include_usage` (Phase 3.6, 4.1, 8.0, 9.0)
-- `AnthropicProvider` - Claude + 7 analysis types + generation + `chatStream` + `generateCharacterSheet`; captures token usage via `message_start`/`message_delta` events for streaming (Phase 3.6, 4.1, 8.0, 9.0)
-- `GoogleProvider` - Gemini + analysis + generation + `chatStream` + `generateCharacterSheet`; captures token usage via `usageMetadata` chunks; rewrites inject the author profile (Phase 8.0, 9.0)
+- `AnthropicProvider` - Claude + 7 analysis types + generation + `chatStream` + `generateCharacterSheet`; captures token usage via `message_start`/`message_delta` events for streaming; `generateCompletionStream` now accepts `intent`/`suggestionLength`/`audace` (Phase 3.6, 4.1, 8.0, 9.0, 10.0)
+- `GoogleProvider` - Gemini + analysis + generation + `chatStream` + `generateCharacterSheet`; captures token usage via `usageMetadata` chunks; rewrites inject the author profile; updated for preference-driven completion (Phase 8.0, 9.0, 10.0)
 - `LLMProviderFactoryImpl` - Factory for creating LLM providers (Phase 3.5)
 - `TrackedLLMProvider` - LLM provider wrapper that tracks AI usage; pulls `getLastTokenUsage()` and `ModelPricing` cost onto the saved `AIUsageRecord` (Phase 6, 8.0, 9.0)
 - `AnalysisLLMClient` - AI client for spelling, grammar, punctuation, and style analysis (Phase 7)
@@ -209,7 +224,7 @@ External service implementations.
 - Middleware for route protection
 - User approval workflow integration (Phase 3.8)
 
-**Persistence** (Phase 3, 3.5, 3.6, 3.7, 4.0, 5.0, 6, 7):
+**Persistence** (Phase 3, 3.5, 3.6, 3.7, 4.0, 5.0, 6, 7, 10.0):
 - `MongoDBProjectRepository` - MongoDB Atlas persistence with multi-tenant isolation, `findPublishedByToken()` (Phase 5.0)
 - `MongoDBProviderRepository` - Provider storage with encrypted credentials (Phase 3.5)
 - `MongoDBMetadataRepository` - Metadata storage with multi-tenant isolation (Phase 3.6)
@@ -225,6 +240,9 @@ External service implementations.
 - `MongoDBWritingGoalRepository` - Writing goal storage (Phase 6)
 - `MongoDBUsageRepository` - AI usage statistics with aggregation; stores `costEur` and `cachedInputTokens` (Phase 6, 9.0)
 - `MongoDBCharacterConversationRepository` - Conversation storage with multi-tenant isolation (Phase 9.0)
+- `MongoDBAutocompleteEventRepository` - Telemetry event persistence with aggregation by period/provider/outcome; TTL index for automatic purge (Phase 10.0)
+- `MongoDBCanonFactRepository` - Canon fact persistence with `replaceDerived()` atomic bulk replace (Phase 10.0)
+- `MongoDBRateLimitRepository` - Persistent sliding-window rate limiting for canon generation cooldown and telemetry ingestion (Phase 10.0)
 - `InMemoryProjectRepository` - Ephemeral storage (testing/legacy)
 - All repositories support `deleteAllByOwner()` for RGPD compliance (Phase 3.11)
 - Serialization utilities for all entity types
@@ -235,6 +253,8 @@ External service implementations.
 **Security** (Phase 6.1):
 - `HCaptchaVerifier` - hCaptcha verification for bot protection
 - `InMemoryRateLimiter` - Rate limiting with sliding window (5 requests/IP/hour)
+- `canon-facts-parsing` - Parses raw LLM output into `CanonFact[]`; tolerant to partial/malformed responses (Phase 10.0)
+- `infrastructure/config/providers.ts` - Centralised model-per-operation configuration; fast models (Flash, Haiku) for autocomplete, standard for analysis (Phase 10.0)
 
 **Prompts** (Phase 3.6, 4.1):
 - `FilePromptRepository` - Load AI prompts from markdown files in `/docs/prompt/`
@@ -266,15 +286,18 @@ React components and UI.
 - `cgu/page.tsx` - Terms of use (Phase 3.11)
 - `cgv/page.tsx` - Terms of sale (Phase 3.11)
 - `read/[projectId]/[token]/page.tsx` - Public reader for published projects (Phase 5.0)
-- `project/[projectId]/cockpit/*` - Cockpit pages (overview, characters, metadata, objectives, research, settings, tasks, usage) (Phase 6)
+- `project/[projectId]/cockpit/*` - Cockpit pages (overview, characters, metadata, objectives, research, settings, tasks, usage, canon) (Phase 6, 10.0)
+- `project/[projectId]/cockpit/canon/page.tsx` - Canon ledger: list extracted facts, validate/invalidate, trigger regeneration (Phase 10.0)
 - `api/approve/route.ts` - User approval endpoint (Phase 3.8)
-- `api/completion/stream/route.ts` - Autocompletion SSE endpoint (Phase 4.1)
+- `api/completion/stream/route.ts` - Autocompletion SSE endpoint; accepts `intent`/`suggestionLength`/`audace`; injects preference directives + canon context (Phase 4.1, 10.0)
+- `api/completion/telemetry/route.ts` - Receives autocomplete lifecycle events from the client; sliding-window rate-limited (Phase 10.0)
+- `api/completion/telemetry/stats/route.ts` - Returns aggregated autocomplete metrics per project (acceptance rate, latency by provider) (Phase 10.0)
 - `api/character-chat/stream/route.ts` - Character chat SSE endpoint; emits a `meta` event (conversationId) then streams character reply chunks (Phase 9.0)
 
 **Components**:
 - **Auth**: `UserMenu` - User profile dropdown with sign-out and provider access
 - **Dashboard**: `CreateProjectDialog`, `ProjectCard`, `EmptyState`, `NoProvidersAlert`
-- **Editor**: `TextEditor` (TipTap + CharacterCount + Autocomplete + IndentHeading), `FormattingToolbar` (with undo/redo buttons)
+- **Editor**: `TextEditor` (TipTap + CharacterCount + Autocomplete + IndentHeading), `FormattingToolbar` (with undo/redo buttons); `AutocompleteDot` (breathing dot indicator for prefetched suggestions); `autocompleteHint`, `autocompleteTelemetry`, `suggestionSegments` extension helpers (Phase 10.0)
 - **Navigation**: `ChaptersSheet` - Chapter navigation with drag & drop
 - **Proposals**: `ProposalsSheet`, `LoadingOverlay` (author quotes, Phase 3.7)
 - **Providers**: `ProvidersDialog`, `ProviderForm`, `ProviderCard`
@@ -286,7 +309,7 @@ React components and UI.
 - **AI Menu**: `AIMenuDropdown`, `CommandPalette` (Ctrl+Shift+I) (Phase 4.1+)
 - **Navigation**: `ProjectSettingsMenu` - Dropdown in the editor header for quick access to all cockpit sections (Phase 9.0)
 - **Publishing**: `PublishDialog` (with chapter selection), `PublicReader` (with cover image) (Phase 5.0, 6.1)
-- **Cockpit**: `CockpitSidebar`, `StatCard`, `ProgressCard`, `QuickActionsCard`, `QuickActionButton` (Phase 6)
+- **Cockpit**: `CockpitSidebar`, `StatCard`, `ProgressCard`, `QuickActionsCard`, `QuickActionButton` (Phase 6); `AutocompletePreferencesCard` (6 per-project autocomplete settings), `AutocompleteStatsCard` (telemetry metrics dashboard) (Phase 10.0)
 - **Characters**: `CharacterCard` (with Chat button opening CharacterChatSheet), `CharacterForm` (with Auto-fill button), `CharacterChatSheet` (streaming chat sheet) (Phase 6, 9.0)
 - **Tasks**: `TaskForm`, `TaskRow`, `TaskSummaryCard` (Phase 6)
 - **Goals**: `GoalCard`, `GoalForm` (Phase 6)
@@ -319,7 +342,8 @@ React components and UI.
 - `character-actions` - Character CRUD + sync (→ Character Use Cases, Phase 6)
 - `character-conversation-actions` - Create, list, load, delete conversations (→ CharacterConversation, Phase 9.0)
 - `research-document-actions` - Research document CRUD (→ ResearchDocument Use Cases, Phase 6)
-- `project-settings-actions` - Project settings CRUD (→ ProjectSettings Use Cases, Phase 6)
+- `project-settings-actions` - Project settings CRUD including autocomplete preferences (→ ProjectSettings Use Cases, Phase 6, 10.0)
+- `canon-actions` - Generate, list, validate, invalidate, and delete canon facts (→ GenerateCanonFactsUseCase, Phase 10.0)
 - `analysis-actions` - Chapter analysis operations (→ Analysis Use Cases, Phase 7)
 
 **Dependency Injection** (`utils.ts`):
@@ -342,6 +366,9 @@ React components and UI.
 - `getUsageRepo()` - AI usage repository (Phase 6)
 - `getBlobStorage()` - Blob storage for images (Phase 6)
 - `getCharacterConversationRepo()` - Character conversation repository (Phase 9.0)
+- `getAutocompleteEventRepo()` - Autocomplete event telemetry repository (Phase 10.0)
+- `getCanonFactRepo()` - Canon fact repository (Phase 10.0)
+- `getRateLimitRepo()` - Persistent rate limit repository (Phase 10.0)
 
 **Hooks**:
 - `useAutosave` - Auto-save hook with 1-second debounce

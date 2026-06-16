@@ -56,6 +56,83 @@ For current features and roadmap, see [README.md](README.md).
 
 ---
 
+## Phase 10.0 — Autocomplétion littéraire (Unreleased)
+
+Refonte stratégique : l'autocomplétion devient la fonctionnalité IA centrale de Revise.
+Principe directeur : *Revise ne finit pas votre chapitre. Il vous tend la prochaine phrase possible.*
+
+### Décisions produit
+- **Manuscrit-premier** : le texte réel est la source de vérité ; les métadonnées dérivées sont déclassées des prompts d'écriture
+- **Génération longue déclassée** : chapitre complet / début cachés derrière le flag `LONG_FORM_GENERATION_ENABLED`
+- **Toujours proposer** : quand l'auteur fait `Tab`, Revise répond — jamais muet
+
+### Domain Layer
+- **`AutocompleteEvent` entity** — cycle de vie complet d'une suggestion (triggered, displayed, accepted, rejected, expired) avec durée et outcome ; base de la télémétrie
+- **`CanonFact` entity** — fait établi du roman (personnage, lieu, relation, événement) extrait du manuscrit ; source traçable (`derived` | `authored`) ; validable/invalidable par l'auteur
+- **`ProjectSettings` étendu** — `getAutocompletePreferences()` expose les 6 préférences par projet (`enabled`, `suggestionLength`, `audace`, `smartPrefetch`, `partialAcceptance`, `learnFromRejections`)
+- **`AutocompletePreferences` value object** — 6 préférences avec valeurs par défaut
+- **`AutocompleteIntent` value object** — intention détectée du contexte (`dialogue`, `description`, `action`, `introspection`, `other`)
+- **`AutocompleteOutcome` value object** — résultat d'une suggestion (`accepted_full`, `accepted_partial`, `rejected`, `expired`, `ignored`)
+- **`CanonFacts` / `CanonFactSource` value objects** — collection de faits + enum de source
+- **`AIOperationPolicy` value object** — policy de latence par opération (préfère modèles rapides pour l'autocomplétion)
+- **`AIOperationType` étendu** — ajout de `canon_generation`
+- **`AutocompleteEventRepository` interface** — persist + query des événements de télémétrie par projet/session/période
+- **`CanonFactRepository` interface** — CRUD des faits canon avec `replaceDerived()` pour mise à jour atomique
+- **`RateLimitRepository` interface** — sliding-window rate limiting générique (remplace `InMemoryRateLimiter` pour les usages persistés)
+
+### Application Layer
+- **`GenerateCanonFactsUseCase`** — extrait les faits canon d'un manuscrit via LLM, remplace les faits `derived` existants, respecte un cooldown par projet
+- **`AutocompleteContextBuilder` service** — construit le contexte d'autocomplétion (fenêtre locale curseur-ancrée + faits canon) ; remplace l'envoi du tail de chapitre
+- **`autocompleteIntents` service** — traduit l'intention détectée en directive de prompt
+- **`canonEntities` service** — sélectionne les faits canon pertinents pour le contexte
+- **`extractProjectFullText` étendu** — expose la longueur du texte pour le cooldown
+- **`UpdateProjectSettingsUseCase` étendu** — persiste les préférences d'autocomplétion
+- **`DeleteUserAccountUseCase` étendu** — cascade sur `AutocompleteEventRepository` et `CanonFactRepository`
+
+### Infrastructure Layer
+- **`MongoDBAutocompleteEventRepository`** — persist des événements de télémétrie avec agrégation par période/provider/outcome ; index TTL pour purge automatique
+- **`MongoDBCanonFactRepository`** — persist des faits canon avec `replaceDerived()` transactionnel
+- **`MongoDBRateLimitRepository`** — sliding-window rate limiting persisté (remplace in-memory)
+- **Providers étendus** (`AnthropicProvider`, `GoogleProvider`, `OpenAIProvider`) — `generateCompletionStream` accepte désormais `intent`, `suggestionLength`, `audace` ; modèles basse latence sélectionnés par `AIOperationPolicy`
+- **`TrackedLLMProvider` étendu** — trace les appels d'autocomplétion avec le type d'opération
+- **`canon-facts-parsing`** — parse la réponse LLM brute en `CanonFact[]` (tolérant aux formats partiels)
+- **`FilePromptRepository` étendu** — charge `docs/prompt/metadata/canon-facts.md`
+- **`infrastructure/config/providers.ts`** — configuration centralisée des modèles par opération (fast vs standard)
+- **`ai-feature-flags.ts`** — `CANON_CONTEXT_ENABLED`, `LONG_FORM_GENERATION_ENABLED`
+
+### Interface Layer
+
+**Éditeur**
+- **`Autocomplete.ts` (extension TipTap) refontée** — prefetch silencieux (timer 10s), gestion des variantes, acceptation partielle mot/fragment, hints raccourcis, mise à jour dynamique des préférences à chaud
+- **`AutocompleteDot` component** — point animé indiquant qu'une suggestion est déjà prête en arrière-plan
+- **`autocompleteHint.ts`** — rendu des hints raccourcis sous la suggestion (Tab / → / 1-2-3)
+- **`autocompleteTelemetry.ts`** — client de télémétrie intégré à l'extension ; envoie les événements de cycle de vie
+- **`suggestionSegments.ts`** — découpe la suggestion en segments pour l'acceptation mot à mot
+- **`TextEditor.tsx` étendu** — charge et applique les `AutocompletePreferences` du projet ; mise à jour dynamique sans rechargement
+
+**API**
+- **`/api/completion/stream` étendu** — accepte `intent`, `suggestionLength`, `audace` ; injecte les directives correspondantes dans le prompt ; injecte les faits canon quand `CANON_CONTEXT_ENABLED`
+- **`/api/completion/telemetry`** — reçoit les événements de cycle de vie du client ; sliding-window rate limit pour éviter les abus
+- **`/api/completion/telemetry/stats`** — agrégats de télémétrie par projet (taux d'acceptation, latence p50/p95 par provider)
+
+**Cockpit**
+- **`/cockpit/canon/page.tsx`** — registre canon : liste des faits extraits, validation/invalidation par l'auteur, déclenchement manuel de la regénération
+- **`/cockpit/settings/page.tsx` étendu** — `AutocompletePreferencesCard` : 6 réglages persistés par projet (longueur, audace, prefetch, acceptation partielle, apprentissage)
+- **`AutocompleteStatsCard` component** — métriques d'autocomplétion (suggestions proposées/acceptées/rejetées, taux par provider) dans la page usage
+- **`CockpitSidebar` étendu** — entrée Canon dans la navigation
+
+**Server Actions**
+- **`canon-actions`** — generate, list, validate, invalidate, delete canon facts
+- **`usage-actions` étendu** — expose les stats de télémétrie d'autocomplétion
+- **`project-settings-actions` étendu** — persist les préférences d'autocomplétion
+
+**E2E**
+- **`e2e/ai-strategy/autocomplete.spec.ts`** — suite complète : déclenchement, acceptation totale/partielle, rejet, variantes, prefetch
+- **`e2e/ai-strategy/autocomplete-metrics.spec.ts`** — vérifie l'affichage des métriques dans le cockpit
+- **`e2e/ai-strategy/long-form-generation-deprecated.spec.ts`** — vérifie que la génération longue est cachée derrière le flag
+
+---
+
 ## Unreleased
 
 ### Fixed

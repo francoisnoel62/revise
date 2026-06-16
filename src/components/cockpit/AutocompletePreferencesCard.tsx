@@ -143,7 +143,9 @@ export function AutocompletePreferencesCard({
               Préchargement discret
             </Label>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Prépare une suggestion après une pause, sans l&apos;afficher avant Tab
+              Après une pause, votre texte est envoyé à l&apos;IA en arrière-plan pour
+              préparer une suggestion. Rien ne s&apos;affiche tant que vous n&apos;appuyez
+              pas sur Tab.
             </p>
           </div>
           <Switch
@@ -176,10 +178,11 @@ export function AutocompletePreferencesCard({
         <div className="flex items-center justify-between">
           <div>
             <Label htmlFor="ac-learn" className="cursor-pointer">
-              Apprendre des rejets
+              Partager mes statistiques d&apos;usage
             </Label>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Opt-in — aucune donnée partagée sans votre accord
+              Collecte anonyme (longueurs, acceptations, latence — jamais votre texte)
+              pour améliorer l&apos;autocomplétion. Désactivé par défaut.
             </p>
           </div>
           <Switch

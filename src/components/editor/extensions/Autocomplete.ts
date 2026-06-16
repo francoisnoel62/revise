@@ -6,8 +6,10 @@ import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import {
   AutocompleteLifecycleTracker,
+  buildPrefetchDiscardedPayload,
   type LifecyclePayload,
   type DeletionPayload,
+  type PrefetchTelemetryRecord,
 } from './autocompleteTelemetry';
 import { nextWord, nextFragment } from './suggestionSegments';
 import {
@@ -68,6 +70,7 @@ export interface AutocompleteStorage {
   currentIntent: AutocompleteIntent;
   prefetchedSuggestion: string | null;
   prefetchAbortController: AbortController | null;
+  prefetchTelemetry: PrefetchTelemetryRecord | null;
   idleTimerHandle: ReturnType<typeof globalThis.setTimeout> | null;
   rejectionHintVisible: boolean;
   rejectionHintTimerHandle: ReturnType<typeof globalThis.setTimeout> | null;
@@ -111,9 +114,14 @@ export function shouldTriggerSmartPrefetch(
 ): boolean {
   const trimmedBefore = textBefore.trim();
   if (trimmedBefore.length < 40) return false;
+  // Never fire mid-word.
   if (/[\p{L}\p{N}]$/u.test(textBefore) && /^[\p{L}\p{N}]/u.test(textAfter)) {
     return false;
   }
+  // Only fire at a natural stop — the author just finished a sentence — instead
+  // of on every short pause mid-clause. Most mid-clause prefetches are discarded
+  // by the next keystroke, so this cuts wasted (billed) LLM calls.
+  if (!endsWithSentenceBoundary(textBefore)) return false;
   return true;
 }
 
@@ -125,6 +133,34 @@ function emitEvent(
   if (payload && options.telemetryEnabled !== false && storage.onEvent) {
     storage.onEvent(payload);
   }
+}
+
+function countWords(text: string): number {
+  const trimmed = text.trim();
+  return trimmed.length === 0 ? 0 : trimmed.split(/\s+/).length;
+}
+
+function generateSuggestionId(): string {
+  return typeof globalThis.crypto !== 'undefined' && 'randomUUID' in globalThis.crypto
+    ? globalThis.crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+/**
+ * A prefetch that became ready but is now being thrown away (typing, cursor
+ * move, Escape, disable) is a billed LLM call the author never used. Report it
+ * once as `prefetch_discarded`, then drop the record. In-flight prefetches
+ * (lengthChars still 0) are not counted — only fully generated, wasted ones.
+ */
+export function flushDiscardedPrefetch(
+  options: AutocompleteOptions,
+  storage: AutocompleteStorage
+): void {
+  const record = storage.prefetchTelemetry;
+  if (record && record.lengthChars > 0) {
+    emitEvent(options, storage, buildPrefetchDiscardedPayload(record, Date.now()));
+  }
+  storage.prefetchTelemetry = null;
 }
 
 function createAutocompleteHint(intent: AutocompleteIntent): HTMLElement {
@@ -323,6 +359,23 @@ function triggerPrefetch(
 
   storage.isPrefetching = true;
   storage.runState = 'prefetching';
+  storage.prefetchTelemetry =
+    options.telemetryEnabled !== false && storage.projectId
+      ? {
+          suggestionId: generateSuggestionId(),
+          projectId: storage.projectId,
+          chapterId: storage.chapterId ?? null,
+          intent: storage.currentIntent,
+          triggeredAtIso: new Date().toISOString(),
+          startedAtMs: Date.now(),
+          firstTokenMs: null,
+          lengthChars: 0,
+          lengthWords: 0,
+          providerType: null,
+          model: null,
+          canonFactsCount: null,
+        }
+      : null;
   editor.view.dispatch(editor.state.tr);
 
   if (options.useStreaming && storage.projectId) {
@@ -331,18 +384,27 @@ function triggerPrefetch(
     options
       .onComplete(textBefore, textAfter)
       .then((suggestion) => {
+        // The author may have typed/moved while we awaited — that path already
+        // aborted and cleared the prefetch, so don't resurrect a stale one.
+        if (!storage.isPrefetching) return;
         storage.isPrefetching = false;
         if (suggestion) {
           storage.prefetchedSuggestion = suggestion;
           storage.runState = 'ready';
+          if (storage.prefetchTelemetry) {
+            storage.prefetchTelemetry.lengthChars = suggestion.length;
+            storage.prefetchTelemetry.lengthWords = countWords(suggestion);
+          }
         } else {
           storage.runState = 'idle';
+          storage.prefetchTelemetry = null;
         }
         editor.view.dispatch(editor.state.tr);
       })
       .catch(() => {
         storage.isPrefetching = false;
         storage.runState = 'idle';
+        storage.prefetchTelemetry = null;
         editor.view.dispatch(editor.state.tr);
         // Silent failure — prefetch is best-effort
       });
@@ -442,6 +504,7 @@ async function streamCompletion(
         intent: storage.currentIntent,
         suggestionLength: storage.suggestionLength,
         audace: storage.audace,
+        isPrefetch,
       }),
       signal: abortController.signal,
     });
@@ -470,17 +533,32 @@ async function streamCompletion(
             const parsed = JSON.parse(data);
             if (parsed.error) throw new Error(parsed.error);
 
-            if (!isPrefetch && parsed.type === 'metadata') {
-              storage.tracker.setProviderMetadata(
-                typeof parsed.providerType === 'string' ? parsed.providerType : null,
-                typeof parsed.model === 'string' ? parsed.model : null,
-                typeof parsed.canonFactsCount === 'number' ? parsed.canonFactsCount : null
-              );
+            if (parsed.type === 'metadata') {
+              const providerType =
+                typeof parsed.providerType === 'string' ? parsed.providerType : null;
+              const model = typeof parsed.model === 'string' ? parsed.model : null;
+              const canonFactsCount =
+                typeof parsed.canonFactsCount === 'number' ? parsed.canonFactsCount : null;
+              if (!isPrefetch) {
+                storage.tracker.setProviderMetadata(providerType, model, canonFactsCount);
+              } else if (storage.prefetchTelemetry) {
+                storage.prefetchTelemetry.providerType = providerType;
+                storage.prefetchTelemetry.model = model;
+                storage.prefetchTelemetry.canonFactsCount = canonFactsCount;
+              }
               continue;
             }
 
             if (parsed.text) {
-              if (!isPrefetch) storage.tracker.markFirstToken();
+              if (!isPrefetch) {
+                storage.tracker.markFirstToken();
+              } else if (
+                storage.prefetchTelemetry &&
+                storage.prefetchTelemetry.firstTokenMs === null
+              ) {
+                storage.prefetchTelemetry.firstTokenMs =
+                  Date.now() - storage.prefetchTelemetry.startedAtMs;
+              }
               accumulated += parsed.text;
               if (!isPrefetch) {
                 storage.suggestion = accumulated;
@@ -497,8 +575,17 @@ async function streamCompletion(
     if (isPrefetch) {
       storage.isPrefetching = false;
       storage.prefetchAbortController = null;
-      storage.prefetchedSuggestion = accumulated.trim().length > 0 ? accumulated : null;
-      storage.runState = accumulated.trim().length > 0 ? 'ready' : 'idle';
+      const trimmed = accumulated.trim();
+      const ready = trimmed.length > 0;
+      storage.prefetchedSuggestion = ready ? trimmed : null;
+      storage.runState = ready ? 'ready' : 'idle';
+      if (ready && storage.prefetchTelemetry) {
+        storage.prefetchTelemetry.lengthChars = trimmed.length;
+        storage.prefetchTelemetry.lengthWords = countWords(trimmed);
+      } else {
+        // Empty completion — nothing was generated, so nothing was wasted.
+        storage.prefetchTelemetry = null;
+      }
     } else {
       storage.isLoading = false;
       storage.abortController = null;
@@ -517,6 +604,8 @@ async function streamCompletion(
       storage.isPrefetching = false;
       storage.runState = 'idle';
       storage.prefetchAbortController = null;
+      // Aborted/failed before it was usable — not counted as wasted spend.
+      storage.prefetchTelemetry = null;
       editor.view.dispatch(editor.state.tr);
     } else {
       storage.isLoading = false;
@@ -569,6 +658,7 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
       currentIntent: 'natural',
       prefetchedSuggestion: null,
       prefetchAbortController: null,
+      prefetchTelemetry: null,
       idleTimerHandle: null,
       rejectionHintVisible: false,
       rejectionHintTimerHandle: null,
@@ -605,6 +695,7 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
             this.storage.idleTimerHandle = null;
             this.storage.prefetchAbortController?.abort();
             this.storage.prefetchAbortController = null;
+            flushDiscardedPrefetch(this.options, this.storage);
             this.storage.prefetchedSuggestion = null;
             this.storage.isPrefetching = false;
             if (!this.storage.suggestion && !this.storage.isLoading) {
@@ -649,6 +740,8 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
           storage.suggestion = storage.prefetchedSuggestion;
           storage.prefetchedSuggestion = null;
           storage.runState = 'visible';
+          // Promoted, not wasted — its lifecycle is now tracked normally below.
+          storage.prefetchTelemetry = null;
           if (this.options.telemetryEnabled !== false) {
             storage.tracker.start({
               projectId: storage.projectId,
@@ -715,6 +808,7 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
         storage.abortController = null;
         storage.prefetchAbortController?.abort();
         storage.prefetchAbortController = null;
+        flushDiscardedPrefetch(this.options, storage);
 
         const hadVisibleSuggestion = !!(storage.suggestion || storage.isLoading);
 
@@ -771,7 +865,9 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
                 });
               }
 
-              // Stale prefetch + dismiss rejection hint on new typing
+              // Stale prefetch + dismiss rejection hint on new typing. A ready
+              // prefetch thrown away here is wasted LLM spend → record it.
+              flushDiscardedPrefetch(extension.options, storage);
               storage.prefetchedSuggestion = null;
               storage.prefetchAbortController?.abort();
               storage.prefetchAbortController = null;
@@ -783,6 +879,7 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
               scheduleSmartPrefetchTimer(extension.editor, storage, extension.options);
             } else if (tr.selectionSet) {
               // Cursor moved without typing → prefetch context is stale
+              flushDiscardedPrefetch(extension.options, storage);
               storage.prefetchedSuggestion = null;
               storage.prefetchAbortController?.abort();
               storage.prefetchAbortController = null;

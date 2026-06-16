@@ -10,12 +10,20 @@ import {
   getCharacterRepository,
   getCanonFactRepository,
 } from '@/infrastructure/config/providers';
-import { getTrackedLLMProviderById } from '@/app/actions/utils';
+import { getTrackedLLMProviderById, getRateLimitRepo } from '@/app/actions/utils';
 import { AIContextBuilder } from '@/application/services/AIContextBuilder';
 import { AutocompleteContextBuilder } from '@/application/services/AutocompleteContextBuilder';
 import { intentDirective } from '@/application/services/autocompleteIntents';
+import {
+  lengthDirective,
+  audaceDirective,
+} from '@/application/services/autocompletePreferenceDirectives';
 import { detectEntities } from '@/application/services/canonEntities';
 import { isValidAutocompleteIntent } from '@/domain/value-objects/AutocompleteIntent';
+import {
+  isValidSuggestionLength,
+  isValidAudaceLevel,
+} from '@/domain/value-objects/AutocompletePreferences';
 import { CANON_CONTEXT_ENABLED } from '@/lib/ai-feature-flags';
 
 export const runtime = 'nodejs';
@@ -26,7 +34,25 @@ interface CompletionRequest {
   textAfterCursor?: string;
   chapterId?: string;
   intent?: string;
+  suggestionLength?: string;
+  audace?: string;
+  isPrefetch?: boolean;
 }
+
+// Each completion is a billed LLM call; smart prefetch can fire one on every
+// idle pause, so cap per-user volume across a rolling window. Backed by a shared
+// store so the limit holds across serverless instances. Prefetch (speculative,
+// background) gets its OWN smaller bucket so a chatty prefetch can never starve
+// the budget for the completions the author actually asked for with Tab.
+const COMPLETION_WINDOW_MS = 60_000; // 1 minute
+const COMPLETION_MAX_PER_WINDOW = 60; // ~1 manual completion/second sustained
+const PREFETCH_MAX_PER_WINDOW = 20; // speculative; capped well below manual
+
+// The client sends a bounded cursor window (~3000/400 chars); reject anything
+// far beyond that before doing any work, so a malformed or hostile client
+// cannot inflate the prompt — and the bill — at will.
+const MAX_BEFORE_CHARS = 8000;
+const MAX_AFTER_CHARS = 2000;
 
 export async function POST(request: NextRequest) {
   // 1. Authenticate using Auth.js
@@ -48,12 +74,46 @@ export async function POST(request: NextRequest) {
   const { projectId, textBeforeCursor, textAfterCursor, chapterId } = body;
   const intent =
     body.intent && isValidAutocompleteIntent(body.intent) ? body.intent : 'natural';
+  const suggestionLength = isValidSuggestionLength(body.suggestionLength)
+    ? body.suggestionLength
+    : undefined;
+  const audace = isValidAudaceLevel(body.audace) ? body.audace : undefined;
+  const isPrefetch = body.isPrefetch === true;
 
   if (!projectId || !textBeforeCursor) {
     return new Response('Missing required fields', { status: 400 });
   }
 
-  // 3. Get LLM provider via composition root
+  if (
+    textBeforeCursor.length > MAX_BEFORE_CHARS ||
+    (textAfterCursor?.length ?? 0) > MAX_AFTER_CHARS
+  ) {
+    return new Response('Payload too large', { status: 413 });
+  }
+
+  // 3. Cap per-user volume before any billed work. Prefetch and manual draw from
+  // separate buckets so speculative calls can't exhaust the manual budget. Fail
+  // OPEN on a store outage: completion must never break mid-sentence.
+  try {
+    const rateLimitRepo = await getRateLimitRepo();
+    const quota = await rateLimitRepo.consumeFixedWindow(
+      isPrefetch ? `prefetch:${userId}` : `completion:${userId}`,
+      COMPLETION_WINDOW_MS,
+      isPrefetch ? PREFETCH_MAX_PER_WINDOW : COMPLETION_MAX_PER_WINDOW
+    );
+    if (!quota.allowed) {
+      return new Response('Too Many Requests', {
+        status: 429,
+        headers: quota.retryAfterSeconds
+          ? { 'Retry-After': String(quota.retryAfterSeconds) }
+          : undefined,
+      });
+    }
+  } catch (error) {
+    console.error('[Autocomplete] rate-limit check failed:', error);
+  }
+
+  // 4. Get LLM provider via composition root
   const providerRepo = await getProviderRepository();
   const { getProjectRepository } = await import('@/infrastructure/config/providers');
   const projectRepo = await getProjectRepository();
@@ -85,7 +145,7 @@ export async function POST(request: NextRequest) {
   const selectedProviderType = selectedProvider.getType();
   const selectedProviderModel = selectedProvider.getModel();
 
-  // 4. Build the long-range completion context (author intent + optional canon).
+  // 5. Build the long-range completion context (author intent + optional canon).
   // The local scene is already carried by the cursor window (textBeforeCursor); derived
   // metadata is kept OUT of the writing hot path (opt-in only).
   const metadataRepo = await getMetadataRepository();
@@ -121,10 +181,15 @@ export async function POST(request: NextRequest) {
       entities,
       chapterIndex,
     });
-  // Prepend the (optional) intent directive so it sits near the top of the context.
-  const projectContext = intentDirective(intent) + baseContext;
+  // Prepend the (optional) intent + preference directives so they sit near the
+  // top of the context (author intent, requested length, requested audace).
+  const projectContext =
+    intentDirective(intent) +
+    lengthDirective(suggestionLength) +
+    audaceDirective(audace) +
+    baseContext;
 
-  // 5. Create streaming response
+  // 6. Create streaming response
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({

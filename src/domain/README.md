@@ -2,7 +2,7 @@
 
 Pure business logic with zero framework dependencies.
 
-**Status**: ✅ Phase 9.0 Complete (see [README.md](../../README.md) for test statistics)
+**Status**: ✅ Phase 10.0 Complete (see [README.md](../../README.md) for test statistics)
 
 ## Rules:
 - No imports from Next.js, React, or any external frameworks
@@ -12,7 +12,7 @@ Pure business logic with zero framework dependencies.
 
 ## Contents:
 
-### Entities (✅ Phase 7 Enhanced)
+### Entities (✅ Phase 10.0 Enhanced)
 
 #### `CorrectionHistory` ⭐ NEW (Phase 3.7)
 **Purpose**: Represents an AI rewrite history entry with proposals
@@ -195,8 +195,8 @@ Pure business logic with zero framework dependencies.
 
 ---
 
-#### `ProjectSettings` ⭐ NEW (Phase 6)
-**Purpose**: Represents project-level settings and metadata
+#### `ProjectSettings` ⭐ ENHANCED (Phase 6, 10.0)
+**Purpose**: Represents project-level settings and metadata; now also owns per-project autocomplete preferences
 
 **Responsibilities**:
 - Manages project configuration (genre, themes)
@@ -210,10 +210,11 @@ Pure business logic with zero framework dependencies.
 - `getId()`, `getProjectId()`, `getGenre()`, `getThemes()`
 - `getNarrationSettings()`, `getContributors()`, `getRelatedWorks()`
 - `getCoverImageUrl()`, `getCreatedAt()`, `getUpdatedAt()`
+- `getAutocompletePreferences()` - Returns `AutocompletePreferences` with defaults applied ⭐ Phase 10.0
 - `update(updates)` - Returns new instance with updates
 - `static create(id, projectId, ...)` - Factory method
 
-**Tests**: 20+ tests covering entity creation and updates
+**Tests**: 20+ tests covering entity creation, updates, and autocomplete preference access
 
 ---
 
@@ -362,6 +363,42 @@ Pure business logic with zero framework dependencies.
 
 ---
 
+#### `AutocompleteEvent` ⭐ NEW (Phase 10.0)
+**Purpose**: Records the full lifecycle of one autocomplete suggestion for telemetry
+
+**Responsibilities**:
+- Tracks suggestion state transitions (triggered → displayed → accepted/rejected/expired)
+- Stores provider, model, latency (ms to first token), session and project identifiers
+- Carries `AutocompleteOutcome` for aggregation
+
+**Key Methods**:
+- `getId()`, `getProjectId()`, `getSessionId()`, `getProvider()`, `getModel()`
+- `getLatencyMs()`, `getOutcome()`, `getCreatedAt()`
+- `static create(id, projectId, ...)` - Factory method
+
+**Tests**: 20+ tests covering state transitions and validation
+
+---
+
+#### `CanonFact` ⭐ NEW (Phase 10.0)
+**Purpose**: An established fact extracted from the manuscript, used to ground autocomplete suggestions
+
+**Responsibilities**:
+- Stores fact type (character, location, relation, event), content, and source chapter
+- Tracks provenance (`derived` = LLM-extracted | `authored` = manually added)
+- Tracks validity status (valid / invalid) — author can invalidate incorrect facts
+- Immutable updates with new instances
+
+**Key Methods**:
+- `getId()`, `getProjectId()`, `getType()`, `getContent()`, `getSource()`
+- `isValid()`, `invalidate()` / `validate()` - Returns new instance
+- `getChapterId()`, `getCreatedAt()`, `getUpdatedAt()`
+- `static create(id, projectId, ...)` - Factory method
+
+**Tests**: 20+ tests covering creation, validation, and source tracking
+
+---
+
 #### `TextDocument` (Phase 1 - Legacy)
 **Purpose**: Represents a single document with content and metadata
 
@@ -376,7 +413,7 @@ Pure business logic with zero framework dependencies.
 
 ---
 
-### Value Objects (✅ Phase 7 Enhanced)
+### Value Objects (✅ Phase 10.0 Enhanced)
 
 #### `TextSelection`
 **Purpose**: Immutable representation of selected text range
@@ -555,15 +592,65 @@ Pure business logic with zero framework dependencies.
 
 ---
 
-#### `AIOperationType` ⭐ NEW (Phase 6)
+#### `AIOperationType` ⭐ ENHANCED (Phase 6, 10.0)
 **Purpose**: Enum value object for AI operation types
 
 **Responsibilities**:
 - Type-safe operation type enumeration
 - Validation of operation types
-- Supports: rewrite, generate, complete, analyze
+- Supports: rewrite, generate, complete, analyze, **canon_generation** ⭐ Phase 10.0
 
 **Tests**: 5+ tests for validation rules
+
+---
+
+#### `AutocompletePreferences` ⭐ NEW (Phase 10.0)
+**Purpose**: Per-project autocomplete configuration with 6 settings and defaults
+
+**Properties**:
+- `enabled` (boolean, default: true)
+- `suggestionLength` ('short' | 'medium' | 'long', default: 'medium')
+- `audace` ('prudent' | 'balanced' | 'bold', default: 'balanced')
+- `smartPrefetch` (boolean, default: true)
+- `partialAcceptance` (boolean, default: true)
+- `learnFromRejections` (boolean, default: false)
+
+---
+
+#### `AutocompleteIntent` ⭐ NEW (Phase 10.0)
+**Purpose**: Detected writing intention of the current context, used to select suggestion variant
+
+**Supports**: `dialogue`, `description`, `action`, `introspection`, `other`
+
+**Tests**: 10+ tests covering classification logic
+
+---
+
+#### `AutocompleteOutcome` ⭐ NEW (Phase 10.0)
+**Purpose**: Result of a suggestion interaction for telemetry aggregation
+
+**Supports**: `accepted_full`, `accepted_partial`, `rejected`, `expired`, `ignored`
+
+**Tests**: 5+ tests for validation rules
+
+---
+
+#### `CanonFacts` / `CanonFactSource` ⭐ NEW (Phase 10.0)
+**Purpose**: Typed collection of canon facts + provenance enum (`derived` | `authored`)
+
+**Tests**: Covered in CanonFact entity tests
+
+---
+
+#### `AIOperationPolicy` ⭐ NEW (Phase 10.0)
+**Purpose**: Maps each `AIOperationType` to a model selection policy (fast vs standard)
+
+**Responsibilities**:
+- Autocomplete always uses fast models (Flash, Haiku)
+- Analysis / generation use standard models
+- Immutable lookup table
+
+**Tests**: 5+ tests for policy resolution
 
 ---
 
@@ -613,7 +700,7 @@ Pure business logic with zero framework dependencies.
 
 ---
 
-### Interfaces (✅ Phase 7 Enhanced)
+### Interfaces (✅ Phase 10.0 Enhanced)
 
 #### `LLMProvider` ⭐ ENHANCED (Phase 3.6, 9.0)
 **Contract**: AI text generation and analysis service
@@ -949,6 +1036,43 @@ Pure business logic with zero framework dependencies.
 
 ---
 
+#### `AutocompleteEventRepository` ⭐ NEW (Phase 10.0)
+**Contract**: Autocomplete telemetry event persistence and aggregation
+
+**Methods**:
+- `save(event)` → `Promise<void>`
+- `findByProject(projectId, filters?)` → `Promise<AutocompleteEvent[]>`
+- `getAggregatedStats(projectId, dateRange?)` → `Promise<AutocompleteStats>`
+
+**Implementation**: `MongoDBAutocompleteEventRepository`
+
+---
+
+#### `CanonFactRepository` ⭐ NEW (Phase 10.0)
+**Contract**: Canon fact persistence with atomic bulk replace
+
+**Methods**:
+- `create(ownerId, fact)` → `Promise<CanonFact>`
+- `findByProjectId(ownerId, projectId)` → `Promise<CanonFact[]>`
+- `update(ownerId, fact)` → `Promise<CanonFact>`
+- `delete(ownerId, factId)` → `Promise<void>`
+- `replaceDerived(ownerId, projectId, facts)` → `Promise<void>` — atomically replaces all `derived` facts
+
+**Implementation**: `MongoDBCanonFactRepository`
+
+---
+
+#### `RateLimitRepository` ⭐ NEW (Phase 10.0)
+**Contract**: Generic persistent sliding-window rate limiting
+
+**Methods**:
+- `isAllowed(key, windowMs, maxRequests)` → `Promise<boolean>`
+- `record(key)` → `Promise<void>`
+
+**Implementation**: `MongoDBRateLimitRepository`
+
+---
+
 #### `BlobStorage` ⭐ NEW (Phase 6)
 **Contract**: Blob storage abstraction for images
 
@@ -1028,6 +1152,11 @@ All domain logic has near-perfect test coverage with isolated unit tests:
 - CharacterConversation: 10+ tests (creation, message appending, validation) ⭐ NEW (Phase 9.0)
 - ChatMessage: 10+ tests (creation, role constraints) ⭐ NEW (Phase 9.0)
 - ModelPricing: 20+ tests (cost computation, cached-token discounting) ⭐ NEW (Phase 9.0)
+- AutocompleteEvent: 20+ tests (state transitions, validation) ⭐ NEW (Phase 10.0)
+- CanonFact: 20+ tests (creation, validation/invalidation, source tracking) ⭐ NEW (Phase 10.0)
+- AutocompletePreferences: covered by ProjectSettings tests ⭐ NEW (Phase 10.0)
+- AutocompleteIntent, AutocompleteOutcome: 15+ tests (validation, classification) ⭐ NEW (Phase 10.0)
+- CanonFacts, CanonFactSource, AIOperationPolicy: 10+ tests ⭐ NEW (Phase 10.0)
 - ChapterAnalysis: 30+ tests (entity, filtering, statistics) ⭐ NEW (Phase 7)
 - AnalysisHistory: 20+ tests (entity creation, validation) ⭐ NEW (Phase 7)
 - AnalysisCategory, AnalysisSeverity: 10+ tests (validation) ⭐ NEW (Phase 7)

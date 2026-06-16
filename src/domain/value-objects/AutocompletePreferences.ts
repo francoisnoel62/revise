@@ -21,3 +21,14 @@ export const DEFAULT_AUTOCOMPLETE_PREFERENCES: AutocompletePreferences = {
   learnFromRejections: false,
   partialAcceptance: true,
 };
+
+const SUGGESTION_LENGTHS: readonly SuggestionLength[] = ['short', 'medium', 'long'];
+const AUDACE_LEVELS: readonly AudaceLevel[] = ['prudent', 'balanced', 'bold'];
+
+export function isValidSuggestionLength(value: unknown): value is SuggestionLength {
+  return typeof value === 'string' && (SUGGESTION_LENGTHS as readonly string[]).includes(value);
+}
+
+export function isValidAudaceLevel(value: unknown): value is AudaceLevel {
+  return typeof value === 'string' && (AUDACE_LEVELS as readonly string[]).includes(value);
+}

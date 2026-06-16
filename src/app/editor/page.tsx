@@ -91,12 +91,15 @@ function EditorContent() {
     DEFAULT_AUTOCOMPLETE_PREFERENCES
   );
 
-  // Load per-project autocomplete preferences when project is known
+  // Load per-project autocomplete preferences when project is known. The toolbar
+  // toggle is the single effective on/off for the session, seeded from the saved
+  // preference so it can never misrepresent the persisted state.
   useEffect(() => {
     if (!project?.id) return;
     loadProjectSettingsAction(project.id).then((result) => {
       if (result.success && result.settings) {
         setAutocompletePrefs(result.settings.autocompletePreferences);
+        setAutocompleteEnabled(result.settings.autocompletePreferences.enabled);
       }
     });
   }, [project?.id]);
@@ -632,7 +635,7 @@ function EditorContent() {
             <TextEditor
               onSelectionChange={handleSelectionChange}
               onEditorReady={(editorInstance) => setEditor(editorInstance)}
-              autocompleteEnabled={autocompleteEnabled && autocompletePrefs.enabled}
+              autocompleteEnabled={autocompleteEnabled}
               autocompletePreferences={autocompletePrefs}
             />
             {/* Thesaurus palette — opens on right-click of a word in the editor */}

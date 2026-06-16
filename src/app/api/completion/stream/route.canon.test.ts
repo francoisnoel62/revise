@@ -20,7 +20,10 @@ vi.mock('@/infrastructure/config/providers', () => ({
   getCanonFactRepository: vi.fn(),
 }));
 
-vi.mock('@/app/actions/utils', () => ({ getTrackedLLMProviderById: vi.fn() }));
+vi.mock('@/app/actions/utils', () => ({
+  getTrackedLLMProviderById: vi.fn(),
+  getRateLimitRepo: vi.fn(),
+}));
 
 import { auth } from '@/infrastructure/auth/auth-config';
 import {
@@ -31,7 +34,7 @@ import {
   getCharacterRepository,
   getCanonFactRepository,
 } from '@/infrastructure/config/providers';
-import { getTrackedLLMProviderById } from '@/app/actions/utils';
+import { getTrackedLLMProviderById, getRateLimitRepo } from '@/app/actions/utils';
 import { POST } from './route';
 
 function request(body: unknown) {
@@ -62,6 +65,9 @@ describe('POST /api/completion/stream — canon enabled', () => {
     capturedContext = undefined;
 
     vi.mocked(auth).mockResolvedValue({ user: { id: 'user-1' } } as never);
+    vi.mocked(getRateLimitRepo).mockResolvedValue({
+      consumeFixedWindow: vi.fn().mockResolvedValue({ allowed: true }),
+    } as never);
     vi.mocked(getMetadataRepository).mockResolvedValue({} as never);
     vi.mocked(getResearchDocumentRepository).mockResolvedValue({
       findByProjectId: vi.fn().mockResolvedValue([]),

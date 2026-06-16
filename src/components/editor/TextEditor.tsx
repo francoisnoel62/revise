@@ -232,6 +232,15 @@ export function TextEditor({
   return (
     <div className="w-full bg-slate-50 relative">
       <AutocompleteDot state={dotState} />
+      {/* Spoken counterpart of the (aria-hidden) dot: tells screen-reader users a
+          suggestion is waiting and how to act on it. */}
+      <div className="sr-only" role="status" aria-live="polite">
+        {dotState === 'ready'
+          ? 'Suggestion prête. Appuyez sur Tab pour l’afficher.'
+          : dotState === 'visible'
+            ? 'Suggestion affichée. Appuyez sur Tab pour l’accepter.'
+            : ''}
+      </div>
       <EditorContent editor={editor} />
     </div>
   );

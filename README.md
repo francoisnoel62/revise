@@ -98,7 +98,7 @@ Pas de chat. Pas d'explications. Pas de friction. Vous restez dans votre flow.
 - **Auto-save** : Vers MongoDB, debounce 1 seconde
 - **Historique des corrections** : Retrouvez toutes vos réécritures par chapitre
 - **Génération de texte IA** : Générez le début d'un chapitre vide avec contexte du projet
-- **Autocomplétion IA** : Appuyez sur Tab pour compléter vos phrases (streaming temps réel)
+- **Autocomplétion IA** : Appuyez sur Tab pour déclencher une suggestion (streaming temps réel) ; `→` accepte un mot, `Tab` accepte tout, `Échap` rejette ; point animé quand une suggestion est déjà prête en arrière-plan ; variantes navigables au clavier ; préférences par projet (longueur, audace, prefetch)
 - **Partage public** : Partagez votre projet via un lien unique en lecture seule
 - **Temps de lecture** : Affichage du temps de lecture estimé par chapitre
 - **Image de couverture** : Uploadez une image de couverture pour vos projets
@@ -302,7 +302,9 @@ graph LR
 | Tiret cadratin (—) | `Ctrl/⌘ + K` |
 | Annuler | `Ctrl/⌘ + Z` |
 | Rétablir | `Ctrl/⌘ + Shift + Z` |
-| Autocomplétion | `Tab` (trigger), `Tab` (accepter) |
+| Autocomplétion — déclencher / accepter tout | `Tab` |
+| Autocomplétion — accepter un mot | `→` (flèche droite) |
+| Autocomplétion — ignorer | `Échap` |
 | Palette de commandes IA | `Ctrl/⌘ + Shift + I` |
 
 ---
@@ -314,8 +316,8 @@ Clean Architecture stricte avec séparation par couches :
 ```
 src/
 ├── domain/           # Logique métier pure (zéro dépendance)
-│   ├── entities/     # Chapter, Project, Provider, User, ProjectMetadata, CorrectionHistory, BlogArticle, ContactMessage, Character, CharacterConversation, ProjectSettings, ProjectTask, ResearchDocument, WritingGoal, AIUsageRecord
-│   ├── value-objects/# TextSelection, RewriteProposal, MetadataType, TaskPriority, TaskStatus, Contributor, RelatedWork, NarrationSettings, AIOperationType, ChatMessage, ModelPricing...
+│   ├── entities/     # Chapter, Project, Provider, User, ProjectMetadata, CorrectionHistory, BlogArticle, ContactMessage, Character, CharacterConversation, ProjectSettings, ProjectTask, ResearchDocument, WritingGoal, AIUsageRecord, AutocompleteEvent, CanonFact
+│   ├── value-objects/# TextSelection, RewriteProposal, MetadataType, TaskPriority, TaskStatus, Contributor, RelatedWork, NarrationSettings, AIOperationType, ChatMessage, ModelPricing, AutocompletePreferences, AutocompleteIntent, AutocompleteOutcome, CanonFacts...
 │   └── interfaces/   # Contrats repositories & services
 │
 ├── application/      # Use cases orchestrant le domaine
@@ -323,7 +325,7 @@ src/
 │
 ├── infrastructure/   # Implémentations externes
 │   ├── ai/           # Providers OpenAI, Anthropic, TrackedLLMProvider
-│   ├── persistence/  # Repositories MongoDB (15 repositories)
+│   ├── persistence/  # Repositories MongoDB (18 repositories)
 │   ├── storage/      # Vercel Blob Storage
 │   ├── email/        # Service email Resend
 │   └── document/     # Import/export DOCX/PDF
@@ -384,6 +386,7 @@ npm run test:e2e          # Tests end-to-end (Playwright)
 - [x] Phase 7.0 : Vérification de chapitre (orthographe, grammaire, ponctuation, style, répétitions)
 - [x] Phase 8.0 : Stratégie de contexte IA — l'IA écrit à partir des métadonnées et documents de recherche de l'auteur, avec la règle « l'édition de l'auteur l'emporte » et un indicateur de péremption des analyses
 - [x] Phase 9.0 : Chat avec les personnages (streaming SSE, historique persisté) + fiche personnage auto-générée + suivi des coûts IA (€) avec calcul par token + menu cockpit dans l'éditeur
+- [x] Phase 10.0 : Refonte autocomplétion — manuscrit-premier, acceptation partielle (mot / tout), variantes par intention, prefetch silencieux + breathing dot, préférences par projet, télémétrie de qualité, registre canon (cohérence long roman), génération longue déclassée
 
 ### 🔜 En cours
 

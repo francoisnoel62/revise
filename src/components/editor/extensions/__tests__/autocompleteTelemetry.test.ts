@@ -2,7 +2,11 @@
 // ABOUTME: Verifies timings, lengths and terminal outcomes with an injected clock
 
 import { describe, it, expect } from 'vitest';
-import { AutocompleteLifecycleTracker } from '../autocompleteTelemetry';
+import {
+  AutocompleteLifecycleTracker,
+  buildPrefetchDiscardedPayload,
+  type PrefetchTelemetryRecord,
+} from '../autocompleteTelemetry';
 
 function makeClock(times: number[]): () => number {
   let i = 0;
@@ -154,5 +158,47 @@ describe('AutocompleteLifecycleTracker', () => {
     expect(tracker.accept()).not.toBeNull();
     expect(tracker.accept()).toBeNull();
     expect(tracker.hasActive()).toBe(false);
+  });
+});
+
+describe('buildPrefetchDiscardedPayload', () => {
+  const record: PrefetchTelemetryRecord = {
+    suggestionId: 'pf-1',
+    projectId: 'proj-1',
+    chapterId: 'chap-1',
+    intent: 'natural',
+    triggeredAtIso: '2026-06-16T10:00:00.000Z',
+    startedAtMs: 1000,
+    firstTokenMs: 250,
+    lengthChars: 12,
+    lengthWords: 2,
+    providerType: 'anthropic',
+    model: 'claude-sonnet-4-5',
+    canonFactsCount: 1,
+  };
+
+  it('marks the outcome as prefetch_discarded with prefetch trigger source', () => {
+    const payload = buildPrefetchDiscardedPayload(record, 1700);
+    expect(payload.outcome).toBe('prefetch_discarded');
+    expect(payload.triggerSource).toBe('prefetch');
+  });
+
+  it('computes totalMs from startedAtMs to now and keeps zero accepted length', () => {
+    const payload = buildPrefetchDiscardedPayload(record, 1700);
+    expect(payload.totalMs).toBe(700);
+    expect(payload.acceptedChars).toBe(0);
+    expect(payload.acceptedWords).toBe(0);
+  });
+
+  it('carries the generated length and provider metadata', () => {
+    const payload = buildPrefetchDiscardedPayload(record, 1700);
+    expect(payload.lengthChars).toBe(12);
+    expect(payload.providerType).toBe('anthropic');
+    expect(payload.canonFactsCount).toBe(1);
+  });
+
+  it('never produces a negative duration', () => {
+    const payload = buildPrefetchDiscardedPayload(record, 500);
+    expect(payload.totalMs).toBe(0);
   });
 });

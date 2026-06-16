@@ -17,7 +17,9 @@ const shortcuts: [string, string][] = [
   ['Tiret cadratin (—)', 'Ctrl/⌘ + K'],
   ['Annuler', 'Ctrl/⌘ + Z'],
   ['Rétablir', 'Ctrl/⌘ + Shift + Z'],
-  ['Autocomplétion', 'Tab (déclencher), Tab (accepter)'],
+  ['Autocomplétion — déclencher / accepter tout', 'Tab'],
+  ['Autocomplétion — accepter un mot', '→ (flèche droite)'],
+  ['Autocomplétion — ignorer', 'Échap'],
   ['Palette de commandes IA', 'Ctrl/⌘ + Shift + I'],
 ];
 

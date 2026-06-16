@@ -1,8 +1,15 @@
-// ABOUTME: Unit tests for the Autocomplete extension's prefetch and idle-timer logic
-// ABOUTME: Focuses on the pure endsWithSentenceBoundary helper and storage transitions
+// ABOUTME: Unit tests for the Autocomplete extension's pure prefetch helpers
+// ABOUTME: Covers the sentence-boundary gate, the trigger predicate, and discarded-prefetch accounting
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { endsWithSentenceBoundary, shouldTriggerSmartPrefetch } from './Autocomplete';
+import { describe, it, expect, vi } from 'vitest';
+import {
+  endsWithSentenceBoundary,
+  shouldTriggerSmartPrefetch,
+  flushDiscardedPrefetch,
+  type AutocompleteOptions,
+  type AutocompleteStorage,
+} from './Autocomplete';
+import type { PrefetchTelemetryRecord } from './autocompleteTelemetry';
 
 describe('endsWithSentenceBoundary', () => {
   it('matches a period at the end', () => {
@@ -43,35 +50,25 @@ describe('endsWithSentenceBoundary', () => {
 });
 
 describe('shouldTriggerSmartPrefetch', () => {
-  it('allows a pause after a sentence boundary with enough context', () => {
-    expect(
-      shouldTriggerSmartPrefetch(
-        'Elle regarda la porte longtemps, sans oser avancer. '
-      )
-    ).toBe(true);
+  const longSentence = 'Elle regarda la porte longtemps, sans oser avancer';
+
+  it('fires at a completed sentence with enough context', () => {
+    expect(shouldTriggerSmartPrefetch(`${longSentence}. `)).toBe(true);
   });
 
-  it('allows a pause after whitespace with enough context', () => {
-    expect(
-      shouldTriggerSmartPrefetch(
-        'Elle regarda la porte longtemps, sans oser avancer '
-      )
-    ).toBe(true);
+  it('does not fire on a pause mid-clause (no sentence boundary)', () => {
+    expect(shouldTriggerSmartPrefetch(`${longSentence} `)).toBe(false);
   });
 
-  it('allows a pause after a normal word at the cursor', () => {
-    expect(
-      shouldTriggerSmartPrefetch(
-        'Elle regarda la porte longtemps, sans oser avancer'
-      )
-    ).toBe(true);
+  it('does not fire right after a word with no boundary', () => {
+    expect(shouldTriggerSmartPrefetch(longSentence)).toBe(false);
   });
 
-  it('rejects very short context', () => {
+  it('rejects too-short context even after a boundary', () => {
     expect(shouldTriggerSmartPrefetch('Trop court. ')).toBe(false);
   });
 
-  it('rejects a cursor in the middle of a word', () => {
+  it('does not fire when the cursor is in the middle of a word', () => {
     expect(
       shouldTriggerSmartPrefetch(
         'Elle regarda la porte longtemps, sans oser avan',
@@ -81,29 +78,70 @@ describe('shouldTriggerSmartPrefetch', () => {
   });
 });
 
-describe('idle timer behavior (using fake timers)', () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
+describe('flushDiscardedPrefetch', () => {
+  const readyRecord = (): PrefetchTelemetryRecord => ({
+    suggestionId: 'pf-1',
+    projectId: 'proj-1',
+    chapterId: 'chap-1',
+    intent: 'natural',
+    triggeredAtIso: '2026-06-16T10:00:00.000Z',
+    startedAtMs: 1000,
+    firstTokenMs: 200,
+    lengthChars: 12,
+    lengthWords: 2,
+    providerType: 'anthropic',
+    model: 'claude-sonnet-4-5',
+    canonFactsCount: 0,
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
+  function makeStorage(record: PrefetchTelemetryRecord | null) {
+    const onEvent = vi.fn();
+    const storage = { prefetchTelemetry: record, onEvent } as unknown as AutocompleteStorage;
+    return { storage, onEvent };
+  }
+
+  const options = { telemetryEnabled: true } as unknown as AutocompleteOptions;
+
+  it('emits a prefetch_discarded event for a ready prefetch and clears it', () => {
+    const { storage, onEvent } = makeStorage(readyRecord());
+
+    flushDiscardedPrefetch(options, storage);
+
+    expect(onEvent).toHaveBeenCalledTimes(1);
+    expect(onEvent.mock.calls[0][0]).toMatchObject({
+      type: 'lifecycle',
+      outcome: 'prefetch_discarded',
+      triggerSource: 'prefetch',
+      suggestionId: 'pf-1',
+    });
+    expect(storage.prefetchTelemetry).toBeNull();
   });
 
-  it('fires callback after 10 seconds', () => {
-    const callback = vi.fn();
-    setTimeout(callback, 10000);
-    vi.advanceTimersByTime(9999);
-    expect(callback).not.toHaveBeenCalled();
-    vi.advanceTimersByTime(1);
-    expect(callback).toHaveBeenCalledOnce();
+  it('does not emit for an in-flight prefetch (nothing generated yet) but still clears', () => {
+    const { storage, onEvent } = makeStorage({ ...readyRecord(), lengthChars: 0, lengthWords: 0 });
+
+    flushDiscardedPrefetch(options, storage);
+
+    expect(onEvent).not.toHaveBeenCalled();
+    expect(storage.prefetchTelemetry).toBeNull();
   });
 
-  it('clearTimeout prevents callback from firing', () => {
-    const callback = vi.fn();
-    const handle = setTimeout(callback, 10000);
-    clearTimeout(handle);
-    vi.advanceTimersByTime(10000);
-    expect(callback).not.toHaveBeenCalled();
+  it('does not emit when telemetry is disabled', () => {
+    const { storage, onEvent } = makeStorage(readyRecord());
+    const disabled = { telemetryEnabled: false } as unknown as AutocompleteOptions;
+
+    flushDiscardedPrefetch(disabled, storage);
+
+    expect(onEvent).not.toHaveBeenCalled();
+    expect(storage.prefetchTelemetry).toBeNull();
+  });
+
+  it('is a no-op when there is no prefetch record', () => {
+    const { storage, onEvent } = makeStorage(null);
+
+    flushDiscardedPrefetch(options, storage);
+
+    expect(onEvent).not.toHaveBeenCalled();
+    expect(storage.prefetchTelemetry).toBeNull();
   });
 });

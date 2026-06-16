@@ -451,6 +451,18 @@
 .autocomplete-dot[data-state="ready"]       { opacity: 0.55; animation: autocomplete-breathe 3s ease-in-out infinite; }
 .autocomplete-dot[data-state="visible"]     { opacity: 0.7; }
 
+/* Honour the OS "reduce motion" setting: keep the indicators visible, drop the
+   pulsing/bouncing that can trigger discomfort (WCAG 2.3.3). */
+@media (prefers-reduced-motion: reduce) {
+  .autocomplete-dot,
+  .autocomplete-prefetch-typing span {
+    animation: none;
+  }
+  .autocomplete-spinner svg {
+    animation: none !important;
+  }
+}
+
 .autocomplete-prefetch-typing {
   display: inline-flex;
   align-items: center;
