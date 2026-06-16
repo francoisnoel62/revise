@@ -66,7 +66,6 @@ export default function CockpitCanonPage() {
 
   const [facts, setFacts] = useState<SerializedCanonFact[]>([]);
   const [providers, setProviders] = useState<SafeProvider[]>([]);
-  const [projectProviderId, setProjectProviderId] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -99,8 +98,6 @@ export default function CockpitCanonPage() {
         setLoadError(projectResult.error);
         return;
       }
-      setProjectProviderId(projectResult.data.providerId || undefined);
-
       const [factsResult, providersResult, freshnessResult] = await Promise.all([
         listCanonFactsAction(projectId),
         listProvidersAction(),
