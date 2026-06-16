@@ -4,6 +4,12 @@
 import { Contributor } from '../value-objects/Contributor';
 import { RelatedWork } from '../value-objects/RelatedWork';
 import { PointOfView, NarrationTense, TargetAudience } from '../value-objects/NarrationSettings';
+import {
+  AutocompletePreferences,
+  SuggestionLength,
+  AudaceLevel,
+  DEFAULT_AUTOCOMPLETE_PREFERENCES,
+} from '../value-objects/AutocompletePreferences';
 
 export interface ProjectSettingsProperties {
   id: string;
@@ -23,6 +29,11 @@ export interface ProjectSettingsProperties {
   relatedWorks: RelatedWork[];
   createdAt: Date;
   updatedAt: Date;
+  autocompleteEnabled?: boolean;
+  autocompleteSuggestionLength?: SuggestionLength;
+  autocompleteAudace?: AudaceLevel;
+  autocompleteLearnFromRejections?: boolean;
+  autocompletePartialAcceptance?: boolean;
 }
 
 export class ProjectSettings {
@@ -43,6 +54,11 @@ export class ProjectSettings {
   private relatedWorks: RelatedWork[];
   private readonly createdAt: Date;
   private updatedAt: Date;
+  private autocompleteEnabled?: boolean;
+  private autocompleteSuggestionLength?: SuggestionLength;
+  private autocompleteAudace?: AudaceLevel;
+  private autocompleteLearnFromRejections?: boolean;
+  private autocompletePartialAcceptance?: boolean;
 
   private constructor(props: ProjectSettingsProperties) {
     this.validate(props);
@@ -64,6 +80,11 @@ export class ProjectSettings {
     this.relatedWorks = [...props.relatedWorks];
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
+    this.autocompleteEnabled = props.autocompleteEnabled;
+    this.autocompleteSuggestionLength = props.autocompleteSuggestionLength;
+    this.autocompleteAudace = props.autocompleteAudace;
+    this.autocompleteLearnFromRejections = props.autocompleteLearnFromRejections;
+    this.autocompletePartialAcceptance = props.autocompletePartialAcceptance;
   }
 
   private validate(props: ProjectSettingsProperties): void {
@@ -283,6 +304,28 @@ export class ProjectSettings {
     });
   }
 
+  getAutocompletePreferences(): AutocompletePreferences {
+    return {
+      enabled: this.autocompleteEnabled ?? DEFAULT_AUTOCOMPLETE_PREFERENCES.enabled,
+      suggestionLength: this.autocompleteSuggestionLength ?? DEFAULT_AUTOCOMPLETE_PREFERENCES.suggestionLength,
+      audace: this.autocompleteAudace ?? DEFAULT_AUTOCOMPLETE_PREFERENCES.audace,
+      learnFromRejections: this.autocompleteLearnFromRejections ?? DEFAULT_AUTOCOMPLETE_PREFERENCES.learnFromRejections,
+      partialAcceptance: this.autocompletePartialAcceptance ?? DEFAULT_AUTOCOMPLETE_PREFERENCES.partialAcceptance,
+    };
+  }
+
+  updateAutocompletePreferences(prefs: Partial<AutocompletePreferences>): ProjectSettings {
+    return new ProjectSettings({
+      ...this.toProperties(),
+      autocompleteEnabled: prefs.enabled ?? this.autocompleteEnabled,
+      autocompleteSuggestionLength: prefs.suggestionLength ?? this.autocompleteSuggestionLength,
+      autocompleteAudace: prefs.audace ?? this.autocompleteAudace,
+      autocompleteLearnFromRejections: prefs.learnFromRejections ?? this.autocompleteLearnFromRejections,
+      autocompletePartialAcceptance: prefs.partialAcceptance ?? this.autocompletePartialAcceptance,
+      updatedAt: new Date(),
+    });
+  }
+
   toProperties(): ProjectSettingsProperties {
     return {
       id: this.id,
@@ -302,6 +345,11 @@ export class ProjectSettings {
       relatedWorks: [...this.relatedWorks],
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
+      autocompleteEnabled: this.autocompleteEnabled,
+      autocompleteSuggestionLength: this.autocompleteSuggestionLength,
+      autocompleteAudace: this.autocompleteAudace,
+      autocompleteLearnFromRejections: this.autocompleteLearnFromRejections,
+      autocompletePartialAcceptance: this.autocompletePartialAcceptance,
     };
   }
 }

@@ -26,6 +26,11 @@ import { updateProjectProviderAction } from '@/app/actions/project-actions';
 import { generateChapterAction } from '@/app/actions/chapter-generation-actions';
 import { CorrectionHistoryDialog } from '@/components/history/CorrectionHistoryDialog';
 import { FloatingGenerationMenu } from '@/components/editor/FloatingGenerationMenu';
+import { loadProjectSettingsAction } from '@/app/actions/project-settings-actions';
+import {
+  AutocompletePreferences,
+  DEFAULT_AUTOCOMPLETE_PREFERENCES,
+} from '@/domain/value-objects/AutocompletePreferences';
 import { ThesaurusPalette } from '@/components/editor/ThesaurusPalette';
 import { PublishDialog } from '@/components/publish/PublishDialog';
 import { CommandPalette } from '@/components/editor/CommandPalette';
@@ -82,6 +87,19 @@ function EditorContent() {
 
   // Autocomplete state
   const [autocompleteEnabled, setAutocompleteEnabled] = useState(true);
+  const [autocompletePrefs, setAutocompletePrefs] = useState<AutocompletePreferences>(
+    DEFAULT_AUTOCOMPLETE_PREFERENCES
+  );
+
+  // Load per-project autocomplete preferences when project is known
+  useEffect(() => {
+    if (!project?.id) return;
+    loadProjectSettingsAction(project.id).then((result) => {
+      if (result.success && result.settings) {
+        setAutocompletePrefs(result.settings.autocompletePreferences);
+      }
+    });
+  }, [project?.id]);
 
   // Generation state (for AI menu dropdown)
   const [generationLoading, setGenerationLoading] = useState(false);
@@ -614,7 +632,8 @@ function EditorContent() {
             <TextEditor
               onSelectionChange={handleSelectionChange}
               onEditorReady={(editorInstance) => setEditor(editorInstance)}
-              autocompleteEnabled={autocompleteEnabled}
+              autocompleteEnabled={autocompleteEnabled && autocompletePrefs.enabled}
+              autocompletePreferences={autocompletePrefs}
             />
             {/* Thesaurus palette — opens on right-click of a word in the editor */}
             <ThesaurusPalette
