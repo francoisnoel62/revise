@@ -179,20 +179,32 @@ export function recordChapterGeneration(userId: string, generationType: string):
 // Canon-fact generation rate limiting (independent namespace + cooldown).
 // ---------------------------------------------------------------------------
 
-const canonFactsGenerationLimits = new Map<string, number>();
-const CANON_FACTS_COOLDOWN_MS = 30000; // 30 seconds per user
+const canonFactsGenerationLimits = new Map<string, Map<string, number>>();
+const CANON_FACTS_COOLDOWN_MS = 30000; // 30 seconds per project
 
 /**
  * Check if a user can (re)generate canon facts for a project now.
  *
+ * The cooldown is scoped per project so generating facts on one project does not
+ * block generation on the user's other projects.
+ *
  * @param userId The user ID to check
+ * @param projectId The project whose canon facts would be (re)generated
  * @returns Object with allowed flag and optional wait time
  */
-export function canGenerateCanonFacts(userId: string): {
+export function canGenerateCanonFacts(
+  userId: string,
+  projectId: string
+): {
   allowed: boolean;
   waitSeconds?: number;
 } {
-  const lastGeneration = canonFactsGenerationLimits.get(userId);
+  const userLimits = canonFactsGenerationLimits.get(userId);
+  if (!userLimits) {
+    return { allowed: true };
+  }
+
+  const lastGeneration = userLimits.get(projectId);
   if (!lastGeneration) {
     return { allowed: true };
   }
@@ -210,9 +222,16 @@ export function canGenerateCanonFacts(userId: string): {
  * Record a canon-fact generation attempt.
  *
  * @param userId The user ID performing the generation
+ * @param projectId The project whose canon facts were generated
  */
-export function recordCanonFactsGeneration(userId: string): void {
-  canonFactsGenerationLimits.set(userId, Date.now());
+export function recordCanonFactsGeneration(userId: string, projectId: string): void {
+  let userLimits = canonFactsGenerationLimits.get(userId);
+  if (!userLimits) {
+    userLimits = new Map();
+    canonFactsGenerationLimits.set(userId, userLimits);
+  }
+
+  userLimits.set(projectId, Date.now());
 }
 
 // Telemetry ingestion is rate-limited via the shared RateLimitRepository (see

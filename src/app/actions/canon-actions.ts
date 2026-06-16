@@ -163,7 +163,7 @@ export async function generateCanonFactsAction(
   const auth = await getAuthenticatedUserId();
   if ('error' in auth) return auth.error;
 
-  const rateCheck = canGenerateCanonFacts(auth.userId);
+  const rateCheck = canGenerateCanonFacts(auth.userId, projectId);
   if (!rateCheck.allowed) {
     return {
       success: false,
@@ -187,7 +187,7 @@ export async function generateCanonFactsAction(
     );
 
     const result = await useCase.execute({ ownerId: auth.userId, projectId });
-    recordCanonFactsGeneration(auth.userId);
+    recordCanonFactsGeneration(auth.userId, projectId);
     return { factCount: result.factCount };
   });
 }

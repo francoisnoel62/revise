@@ -39,18 +39,35 @@ describe('generation rate limiters', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-06-15T10:00:00Z'));
     const userId = 'canon-user-1';
+    const projectId = 'canon-project-1';
 
-    expect(canGenerateCanonFacts(userId).allowed).toBe(true);
+    expect(canGenerateCanonFacts(userId, projectId).allowed).toBe(true);
 
-    recordCanonFactsGeneration(userId);
+    recordCanonFactsGeneration(userId, projectId);
 
-    expect(canGenerateCanonFacts(userId)).toEqual({ allowed: false, waitSeconds: 30 });
+    expect(canGenerateCanonFacts(userId, projectId)).toEqual({
+      allowed: false,
+      waitSeconds: 30,
+    });
     // Generating canon facts does not affect metadata or chapter cooldowns.
     expect(canGenerateMetadata(userId, 'characters').allowed).toBe(true);
     expect(canGenerateChapter(userId, 'chapter-full').allowed).toBe(true);
 
     vi.advanceTimersByTime(30_000);
-    expect(canGenerateCanonFacts(userId).allowed).toBe(true);
+    expect(canGenerateCanonFacts(userId, projectId).allowed).toBe(true);
+  });
+
+  it('rate limits canon-fact generation independently per project', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-15T10:00:00Z'));
+    const userId = 'canon-user-2';
+
+    recordCanonFactsGeneration(userId, 'project-a');
+
+    // The just-generated project is on cooldown...
+    expect(canGenerateCanonFacts(userId, 'project-a').allowed).toBe(false);
+    // ...but other projects of the same user are not blocked.
+    expect(canGenerateCanonFacts(userId, 'project-b').allowed).toBe(true);
   });
 
   it('rate limits chapter generation independently by type', () => {
