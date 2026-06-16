@@ -24,6 +24,7 @@ import {
   FileText,
   Sparkles,
   Database,
+  BookMarked,
 } from 'lucide-react';
 
 interface CockpitSidebarProps {
@@ -40,6 +41,7 @@ const navigationItems = [
       { title: 'Utilisation IA', icon: Sparkles, href: '/usage' },
       { title: 'Paramètres', icon: Settings, href: '/settings' },
       { title: 'Métadonnées', icon: Database, href: '/metadata' },
+      { title: 'Canon', icon: BookMarked, href: '/canon' },
     ],
   },
   {

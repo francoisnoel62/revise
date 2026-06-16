@@ -35,6 +35,12 @@ import { MongoDBWritingGoalRepository } from '@/infrastructure/persistence/Mongo
 import { MongoDBWordCountSnapshotRepository } from '@/infrastructure/persistence/MongoDBWordCountSnapshotRepository';
 import { MongoDBWritingQuotaRepository } from '@/infrastructure/persistence/MongoDBWritingQuotaRepository';
 import { MongoDBUsageRepository } from '@/infrastructure/persistence/MongoDBUsageRepository';
+import { MongoDBAutocompleteEventRepository } from '@/infrastructure/persistence/MongoDBAutocompleteEventRepository';
+import { AutocompleteEventRepository } from '@/domain/interfaces/AutocompleteEventRepository';
+import { MongoDBCanonFactRepository } from '@/infrastructure/persistence/MongoDBCanonFactRepository';
+import { CanonFactRepository } from '@/domain/interfaces/CanonFactRepository';
+import { MongoDBRateLimitRepository } from '@/infrastructure/persistence/MongoDBRateLimitRepository';
+import { RateLimitRepository } from '@/domain/interfaces/RateLimitRepository';
 import { MongoDBExchangeRepository } from '@/infrastructure/persistence/MongoDBExchangeRepository';
 import { getFieldEncryption } from '@/infrastructure/security/FieldEncryption';
 import { MongoDBModelPricingRepository } from '@/infrastructure/persistence/MongoDBModelPricingRepository';
@@ -237,6 +243,48 @@ export async function getAIUsageRepository(): Promise<AIUsageRepository> {
     aiUsageRepoInstance = new MongoDBUsageRepository(db);
   }
   return aiUsageRepoInstance;
+}
+
+/**
+ * Get the autocomplete event repository (instrumentation; one record per suggestion).
+ */
+let autocompleteEventRepoInstance: MongoDBAutocompleteEventRepository | null = null;
+
+export async function getAutocompleteEventRepository(): Promise<AutocompleteEventRepository> {
+  if (!autocompleteEventRepoInstance) {
+    const db = await getDatabase();
+    autocompleteEventRepoInstance = new MongoDBAutocompleteEventRepository(db);
+    await autocompleteEventRepoInstance.ensureIndexes();
+  }
+  return autocompleteEventRepoInstance;
+}
+
+/**
+ * Get the canon-fact repository (the canon ledger; atomic manuscript facts).
+ */
+let canonFactRepoInstance: MongoDBCanonFactRepository | null = null;
+
+export async function getCanonFactRepository(): Promise<CanonFactRepository> {
+  if (!canonFactRepoInstance) {
+    const db = await getDatabase();
+    canonFactRepoInstance = new MongoDBCanonFactRepository(db);
+    await canonFactRepoInstance.ensureIndexes();
+  }
+  return canonFactRepoInstance;
+}
+
+/**
+ * Get the rate-limit repository (shared fixed-window counters across instances).
+ */
+let rateLimitRepoInstance: MongoDBRateLimitRepository | null = null;
+
+export async function getRateLimitRepository(): Promise<RateLimitRepository> {
+  if (!rateLimitRepoInstance) {
+    const db = await getDatabase();
+    rateLimitRepoInstance = new MongoDBRateLimitRepository(db);
+    await rateLimitRepoInstance.ensureIndexes();
+  }
+  return rateLimitRepoInstance;
 }
 
 /**

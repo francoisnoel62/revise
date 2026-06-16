@@ -14,6 +14,16 @@ export { WritingGoal, type WritingGoalProperties } from './entities/WritingGoal'
 export { WritingQuota, type QuotaPeriod, type WritingQuotaProperties } from './entities/WritingQuota';
 export { WordCountSnapshot, type WordCountSnapshotProperties } from './entities/WordCountSnapshot';
 export { AIUsageRecord, type AIUsageRecordProperties } from './entities/AIUsageRecord';
+export {
+  AutocompleteEvent,
+  type AutocompleteEventProperties,
+  type CreateAutocompleteEventProps,
+} from './entities/AutocompleteEvent';
+export {
+  CanonFact,
+  type CanonFactProperties,
+  type CreateCanonFactProps,
+} from './entities/CanonFact';
 export { ProjectTask, type ProjectTaskProperties } from './entities/ProjectTask';
 export { Character, type CharacterProperties } from './entities/Character';
 export {
@@ -67,6 +77,31 @@ export {
   isValidAIOperationType,
 } from './value-objects/AIOperationType';
 export {
+  type CanonFactSource,
+  CANON_FACT_SOURCES,
+  isValidCanonFactSource,
+} from './value-objects/CanonFactSource';
+export {
+  type CanonFacts,
+  type ExtractedCanonFact,
+  isValidExtractedCanonFact,
+} from './value-objects/CanonFacts';
+export {
+  type AutocompleteOutcome,
+  AUTOCOMPLETE_OUTCOMES,
+  isValidAutocompleteOutcome,
+} from './value-objects/AutocompleteOutcome';
+export {
+  type AIOperationPolicy,
+  AUTOCOMPLETE_POLICY,
+} from './value-objects/AIOperationPolicy';
+export {
+  type AutocompleteIntent,
+  AUTOCOMPLETE_INTENTS,
+  isValidAutocompleteIntent,
+  nextAutocompleteIntent,
+} from './value-objects/AutocompleteIntent';
+export {
   type TaskStatus,
   TASK_STATUSES,
   TASK_STATUS_LABELS,
@@ -98,6 +133,12 @@ export type { CorrectionHistoryRepository } from './interfaces/CorrectionHistory
 export type { ContentConverter } from './interfaces/ContentConverter';
 export type { WritingGoalRepository } from './interfaces/WritingGoalRepository';
 export type { AIUsageRepository, UsageStats, DailyUsage } from './interfaces/AIUsageRepository';
+export type {
+  AutocompleteEventRepository,
+  AutocompleteProviderModelStats,
+  AutocompleteStats,
+} from './interfaces/AutocompleteEventRepository';
+export type { CanonFactRepository } from './interfaces/CanonFactRepository';
 export type { ProjectTaskRepository, TaskFilters, TaskSortOptions } from './interfaces/ProjectTaskRepository';
 export type { CharacterRepository } from './interfaces/CharacterRepository';
 export type {

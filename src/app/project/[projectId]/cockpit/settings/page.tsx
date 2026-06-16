@@ -12,6 +12,7 @@ import {
 } from '@/app/actions/project-settings-actions';
 import { loadProjectAction } from '@/app/actions/project-actions';
 import { ProjectSettingsForm } from '@/components/cockpit/ProjectSettingsForm';
+import { AutocompletePreferencesCard } from '@/components/cockpit/AutocompletePreferencesCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
@@ -123,6 +124,11 @@ export default function SettingsPage() {
       <ProjectSettingsForm
         projectId={projectId}
         initialSettings={settings}
+      />
+
+      <AutocompletePreferencesCard
+        projectId={projectId}
+        initialPreferences={settings.autocompletePreferences}
       />
     </div>
   );

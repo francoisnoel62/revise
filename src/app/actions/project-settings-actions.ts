@@ -13,6 +13,7 @@ import { ProjectSettings } from '@/domain/entities/ProjectSettings';
 import { Contributor } from '@/domain/value-objects/Contributor';
 import { RelatedWork } from '@/domain/value-objects/RelatedWork';
 import { PointOfView, NarrationTense, TargetAudience } from '@/domain/value-objects/NarrationSettings';
+import { AutocompletePreferences } from '@/domain/value-objects/AutocompletePreferences';
 
 export interface SerializedProjectSettings {
   id: string;
@@ -31,6 +32,7 @@ export interface SerializedProjectSettings {
   relatedWorks: RelatedWork[];
   createdAt: string;
   updatedAt: string;
+  autocompletePreferences: AutocompletePreferences;
 }
 
 function serializeProjectSettings(settings: ProjectSettings): SerializedProjectSettings {
@@ -51,6 +53,7 @@ function serializeProjectSettings(settings: ProjectSettings): SerializedProjectS
     relatedWorks: settings.getRelatedWorks(),
     createdAt: settings.getCreatedAt().toISOString(),
     updatedAt: settings.getUpdatedAt().toISOString(),
+    autocompletePreferences: settings.getAutocompletePreferences(),
   };
 }
 

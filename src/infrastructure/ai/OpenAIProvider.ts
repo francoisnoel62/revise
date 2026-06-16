@@ -4,6 +4,7 @@
 import OpenAI from 'openai';
 import { LLMProvider, ConnectionTestResult, TokenUsage, ExchangeContent } from '@/domain/interfaces/LLMProvider';
 import { PromptRepository } from '@/domain/interfaces/PromptRepository';
+import { AUTOCOMPLETE_POLICY } from '@/domain/value-objects/AIOperationPolicy';
 import { RewriteProposal } from '@/domain/value-objects/RewriteProposal';
 import { NarrativeAnalysis } from '@/domain/value-objects/NarrativeAnalysis';
 import { StylisticDNA } from '@/domain/value-objects/StylisticDNA';
@@ -12,6 +13,11 @@ import { Plot } from '@/domain/value-objects/Plot';
 import { Worldbuilding } from '@/domain/value-objects/Worldbuilding';
 import { Synthesis } from '@/domain/value-objects/Synthesis';
 import { ChapterSummaries } from '@/domain/value-objects/ChapterSummaries';
+import { CanonFacts } from '@/domain/value-objects/CanonFacts';
+import {
+  buildCanonFactsUserMessage,
+  parseCanonFactsJson,
+} from './canon-facts-parsing';
 import { ChapterGeneration } from '@/domain/value-objects/ChapterGeneration';
 import { ChapterGenerationTypeKey } from '@/domain/value-objects/ChapterGenerationType';
 import { ChatMessage } from '@/domain/value-objects/ChatMessage';
@@ -1267,6 +1273,34 @@ INSTRUCTIONS:
     }
   }
 
+  async generateCanonFacts(
+    fullText: string,
+    characterNames: string[]
+  ): Promise<CanonFacts> {
+    const systemPrompt = await this.promptRepository.getCanonFactsPrompt();
+    const userPrompt = buildCanonFactsUserMessage(fullText, characterNames);
+
+    try {
+      const isReasoning = this.isReasoningModel();
+      const completion = await this.createChatCompletion(systemPrompt, userPrompt, {
+        ...this.getResponseFormatParam(),
+        ...(isReasoning ? {} : { temperature: 0.2 }),
+        ...this.getTokenLimitParam(4096),
+      });
+      const content = completion.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('Empty response from OpenAI');
+      }
+
+      return parseCanonFactsJson(content);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error during canon facts generation');
+    }
+  }
+
   private enhanceChapterSummariesPromptForOpenAI(basePrompt: string): string {
     return `${basePrompt}
 
@@ -1455,8 +1489,11 @@ INSTRUCTIONS FINALES:
     try {
       const isReasoning = this.isReasoningModel();
       const completion = await this.createChatCompletion(systemPrompt, userPrompt, {
-        ...(isReasoning ? {} : { temperature: 0.7 }),
-        ...this.getTokenLimitParam(256), // Short completions
+        // Low-latency completion policy: low temperature, strict tiny budget, no reasoning inflation.
+        ...(isReasoning ? {} : { temperature: AUTOCOMPLETE_POLICY.temperature }),
+        ...(isReasoning
+          ? { max_completion_tokens: AUTOCOMPLETE_POLICY.outputBudgetTokens }
+          : { max_tokens: AUTOCOMPLETE_POLICY.outputBudgetTokens }),
       });
       const content = completion.choices[0]?.message?.content;
       if (!content) {
@@ -1515,8 +1552,10 @@ INSTRUCTIONS FINALES:
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
-      ...(isReasoning ? {} : { temperature: 0.7 }),
-      ...this.getTokenLimitParam(256),
+      ...(isReasoning ? {} : { temperature: AUTOCOMPLETE_POLICY.temperature }),
+      ...(isReasoning
+        ? { max_completion_tokens: AUTOCOMPLETE_POLICY.outputBudgetTokens }
+        : { max_tokens: AUTOCOMPLETE_POLICY.outputBudgetTokens }),
       stream: true,
       stream_options: { include_usage: true },
     });

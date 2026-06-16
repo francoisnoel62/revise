@@ -64,6 +64,10 @@ class MockLLMProvider implements LLMProvider {
     return {} as import('@/domain/value-objects/ChapterSummaries').ChapterSummaries;
   }
 
+  async generateCanonFacts(_fullText: string, _characterNames: string[]) {
+    return { facts: [] } as import('@/domain/value-objects/CanonFacts').CanonFacts;
+  }
+
   async generateChapter(_fullText: string, _generationType: import('@/domain/value-objects/ChapterGenerationType').ChapterGenerationTypeKey) {
     return {} as import('@/domain/value-objects/ChapterGeneration').ChapterGeneration;
   }

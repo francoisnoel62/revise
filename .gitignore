@@ -117,3 +117,4 @@ test-results/
 
 # Playwright reports
 /playwright-report/*
+.aider*

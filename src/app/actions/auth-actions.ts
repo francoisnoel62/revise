@@ -29,6 +29,8 @@ import {
   getProjectTaskRepo,
   getAIUsageRepo,
   getAIExchangeRepo,
+  getAutocompleteEventRepo,
+  getCanonFactRepo,
 } from './utils';
 import { getRateLimiter } from '@/infrastructure/security/InMemoryRateLimiter';
 import { getHCaptchaVerifier } from '@/infrastructure/security/HCaptchaVerifier';
@@ -191,6 +193,8 @@ export async function deleteAccountAction(
     // The exchange repository needs the encryption key; if it is unavailable
     // there is no captured content to purge, so deletion proceeds without it.
     const aiExchangeRepo = await getAIExchangeRepo().catch(() => undefined);
+    const autocompleteEventRepo = await getAutocompleteEventRepo();
+    const canonFactRepo = await getCanonFactRepo();
 
     // Execute deletion
     const useCase = new DeleteUserAccountUseCase(
@@ -206,7 +210,9 @@ export async function deleteAccountAction(
       characterRepo,
       projectTaskRepo,
       aiUsageRepo,
-      aiExchangeRepo
+      aiExchangeRepo,
+      autocompleteEventRepo,
+      canonFactRepo
     );
 
     const result = await useCase.execute({

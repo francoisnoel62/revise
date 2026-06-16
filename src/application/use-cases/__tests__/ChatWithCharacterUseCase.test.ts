@@ -1,11 +1,16 @@
 // ABOUTME: Unit tests for ChatWithCharacterUseCase
 // ABOUTME: Validates streaming, conversation lifecycle, history truncation, and persistence
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mocked } from 'vitest';
 import { ChatWithCharacterUseCase, ChatWithCharacterInput } from '../ChatWithCharacterUseCase';
 import { Character } from '../../../domain/entities/Character';
 import { CharacterConversation } from '../../../domain/entities/CharacterConversation';
 import { ChatMessage } from '../../../domain/value-objects/ChatMessage';
+import type { CharacterRepository } from '../../../domain/interfaces/CharacterRepository';
+import type { CharacterConversationRepository } from '../../../domain/interfaces/CharacterConversationRepository';
+import type { LLMProvider } from '../../../domain/interfaces/LLMProvider';
+import type { AIContextBuilder } from '../../services/AIContextBuilder';
+import type { IdGenerator } from '../../../domain/interfaces/IdGenerator';
 
 const makeCharacter = () => Character.create('char-1', 'proj-1', 'user-1', 'Élise');
 const makeConversation = (id = 'conv-1') =>
@@ -25,11 +30,11 @@ const makeInput = (overrides: Partial<ChatWithCharacterInput> = {}): ChatWithCha
 });
 
 describe('ChatWithCharacterUseCase', () => {
-  let characterRepo: any;
-  let conversationRepo: any;
-  let llmProvider: any;
-  let contextBuilder: any;
-  let idGenerator: any;
+  let characterRepo: Mocked<CharacterRepository>;
+  let conversationRepo: Mocked<CharacterConversationRepository>;
+  let llmProvider: Mocked<LLMProvider>;
+  let contextBuilder: Mocked<AIContextBuilder>;
+  let idGenerator: Mocked<IdGenerator>;
   let useCase: ChatWithCharacterUseCase;
 
   beforeEach(() => {
@@ -42,7 +47,7 @@ describe('ChatWithCharacterUseCase', () => {
       deleteByProjectId: vi.fn(),
       deleteAllByOwner: vi.fn(),
       countByProjectId: vi.fn(),
-    };
+    } as unknown as Mocked<CharacterRepository>;
 
     conversationRepo = {
       create: vi.fn().mockResolvedValue(makeConversation()),
@@ -53,19 +58,19 @@ describe('ChatWithCharacterUseCase', () => {
       deleteByCharacterId: vi.fn(),
       deleteByProjectId: vi.fn(),
       deleteAllByOwner: vi.fn(),
-    };
+    } as unknown as Mocked<CharacterConversationRepository>;
 
     llmProvider = {
       chatStream: vi.fn().mockReturnValue(fakeStream(['Hello ', 'world!'])),
-    };
+    } as unknown as Mocked<LLMProvider>;
 
     contextBuilder = {
       buildCharacterPersona: vi.fn().mockResolvedValue('You are Élise...'),
-    };
+    } as unknown as Mocked<AIContextBuilder>;
 
     idGenerator = {
       generate: vi.fn().mockReturnValue('new-conv-id'),
-    };
+    } as unknown as Mocked<IdGenerator>;
 
     useCase = new ChatWithCharacterUseCase(
       characterRepo,

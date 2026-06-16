@@ -15,11 +15,14 @@ import TextAlign from '@tiptap/extension-text-align';
 import CharacterCount from '@tiptap/extension-character-count';
 import { IndentParagraph } from './extensions/IndentParagraph';
 import { IndentHeading } from './extensions/IndentHeading';
-import { Autocomplete } from './extensions/Autocomplete';
-import { useEffect, useCallback } from 'react';
+import { Autocomplete, AutocompleteStorage } from './extensions/Autocomplete';
+import { AutocompleteDot, AutocompleteDotState } from './AutocompleteDot';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { useAutosave } from '@/hooks/useAutosave';
 import { useProjectStore } from '@/store/projectStore';
 import { generateCompletionAction } from '@/app/actions/completion-actions';
+import { sendAutocompleteEvent } from '@/lib/autocompleteTelemetryClient';
+import type { AutocompletePreferences } from '@/domain/value-objects/AutocompletePreferences';
 
 // Custom extension for em dash insertion with Ctrl+K
 const EmDashExtension = Extension.create({
@@ -41,6 +44,7 @@ interface TextEditorProps {
   placeholder?: string;
   projectId?: string;
   autocompleteEnabled?: boolean;
+  autocompletePreferences?: AutocompletePreferences;
 }
 
 export function TextEditor({
@@ -49,8 +53,14 @@ export function TextEditor({
   placeholder = 'Commencez à écrire ou importez un document...',
   projectId,
   autocompleteEnabled = true,
+  autocompletePreferences,
 }: TextEditorProps) {
   const { activeContent, updateActiveContent, project } = useProjectStore();
+
+  // Dot state: bridges the ProseMirror plugin state to React
+  const [dotState, setDotState] = useState<AutocompleteDotState>('idle');
+  const dotStateRef = useRef<AutocompleteDotState>('idle');
+  const dotTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Handler for autocompletion requests
   const handleAutocomplete = useCallback(
@@ -112,16 +122,46 @@ export function TextEditor({
         projectId: projectId || project?.id,
         chapterId: project?.activeChapterId ?? undefined,
         useStreaming: true,
+        telemetryEnabled: true,
+        onEvent: autocompletePreferences?.learnFromRejections !== false ? sendAutocompleteEvent : undefined,
+        suggestionLength: autocompletePreferences?.suggestionLength,
+        audace: autocompletePreferences?.audace,
+        partialAcceptance: autocompletePreferences?.partialAcceptance ?? true,
+        smartPrefetch: autocompletePreferences?.smartPrefetch ?? true,
       }),
     ],
     content: activeContent ? JSON.parse(activeContent) : { type: 'doc', content: [] },
-    onUpdate: ({ editor }) => {
-      const json = editor.getJSON();
+    onUpdate: ({ editor: e }) => {
+      const json = e.getJSON();
       updateActiveContent(JSON.stringify(json));
     },
-    onSelectionUpdate: ({ editor }) => {
-      const { from, to } = editor.state.selection;
+    onSelectionUpdate: ({ editor: e }) => {
+      const { from, to } = e.state.selection;
       onSelectionChange(from, to);
+    },
+    onTransaction: ({ editor: e }) => {
+      // Bridge autocomplete storage state to React for the dot indicator.
+      // Debounced to avoid excessive re-renders; only fires when state actually changes.
+      // Cast needed because editor.storage conflicts with the DOM Storage type name.
+      const storage = (e.storage as unknown as Record<string, unknown>)['autocomplete'] as AutocompleteStorage | undefined;
+      if (!storage) return;
+
+      const next: AutocompleteDotState =
+        storage.runState === 'prefetching'
+          ? 'prefetching'
+          : storage.runState === 'ready'
+            ? 'ready'
+            : storage.runState === 'visible' || storage.suggestion || storage.isLoading
+              ? 'visible'
+              : storage.runState === 'waiting'
+                ? 'waiting'
+                : 'idle';
+
+      if (next !== dotStateRef.current) {
+        dotStateRef.current = next;
+        if (dotTimerRef.current) clearTimeout(dotTimerRef.current);
+        dotTimerRef.current = setTimeout(() => setDotState(next), 50);
+      }
     },
     editorProps: {
       attributes: {
@@ -155,10 +195,24 @@ export function TextEditor({
   // Update autocomplete extension when enabled state changes
   useEffect(() => {
     if (!editor) return;
-
-    // Use the command to update autocomplete enabled state
-    editor.commands.setAutocompleteEnabled(autocompleteEnabled);
-  }, [editor, autocompleteEnabled]);
+    editor.commands.setAutocompleteRuntimeOptions({
+      enabled: autocompleteEnabled,
+      projectId: projectId || project?.id,
+      chapterId: project?.activeChapterId ?? undefined,
+      suggestionLength: autocompletePreferences?.suggestionLength,
+      audace: autocompletePreferences?.audace,
+      partialAcceptance: autocompletePreferences?.partialAcceptance ?? true,
+      smartPrefetch: autocompletePreferences?.smartPrefetch ?? true,
+      onEvent: autocompletePreferences?.learnFromRejections !== false ? sendAutocompleteEvent : undefined,
+    });
+  }, [
+    editor,
+    autocompleteEnabled,
+    projectId,
+    project?.id,
+    project?.activeChapterId,
+    autocompletePreferences,
+  ]);
 
   // Keep autocomplete aware of the current chapter (for chapter-linked research context)
   useEffect(() => {
@@ -166,10 +220,27 @@ export function TextEditor({
     editor.commands.setAutocompleteChapterId(project?.activeChapterId ?? undefined);
   }, [editor, project?.activeChapterId]);
 
+  // Clean up dot debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (dotTimerRef.current) clearTimeout(dotTimerRef.current);
+    };
+  }, []);
+
   if (!editor) return null;
 
   return (
-    <div className="w-full bg-slate-50">
+    <div className="w-full bg-slate-50 relative">
+      <AutocompleteDot state={dotState} />
+      {/* Spoken counterpart of the (aria-hidden) dot: tells screen-reader users a
+          suggestion is waiting and how to act on it. */}
+      <div className="sr-only" role="status" aria-live="polite">
+        {dotState === 'ready'
+          ? 'Suggestion prête. Appuyez sur Tab pour l’afficher.'
+          : dotState === 'visible'
+            ? 'Suggestion affichée. Appuyez sur Tab pour l’accepter.'
+            : ''}
+      </div>
       <EditorContent editor={editor} />
     </div>
   );

@@ -1,9 +1,13 @@
 // ABOUTME: Unit tests for GenerateCharacterSheetUseCase
 // ABOUTME: Validates character loading, context assembly, LLM delegation, and error cases
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mocked } from 'vitest';
 import { GenerateCharacterSheetUseCase, GenerateCharacterSheetInput } from '../GenerateCharacterSheetUseCase';
 import { Character } from '../../../domain/entities/Character';
+import type { CharacterRepository } from '../../../domain/interfaces/CharacterRepository';
+import type { ProjectRepository } from '../../../domain/interfaces/ProjectRepository';
+import type { MetadataRepository } from '../../../domain/interfaces/MetadataRepository';
+import type { LLMProvider } from '../../../domain/interfaces/LLMProvider';
 
 const makeCharacter = (_overrides: Partial<{ identity: string; appearance: string; psychology: string }> = {}) => {
   const char = Character.create('char-1', 'proj-1', 'user-1', 'Alice');
@@ -30,10 +34,10 @@ const generatedFields = {
 };
 
 describe('GenerateCharacterSheetUseCase', () => {
-  let characterRepo: any;
-  let projectRepo: any;
-  let metadataRepo: any;
-  let llmProvider: any;
+  let characterRepo: Mocked<CharacterRepository>;
+  let projectRepo: Mocked<ProjectRepository>;
+  let metadataRepo: Mocked<MetadataRepository>;
+  let llmProvider: Mocked<LLMProvider>;
   let useCase: GenerateCharacterSheetUseCase;
 
   beforeEach(() => {
@@ -55,19 +59,19 @@ describe('GenerateCharacterSheetUseCase', () => {
       deleteByProjectId: vi.fn(),
       deleteAllByOwner: vi.fn(),
       countByProjectId: vi.fn(),
-    };
+    } as unknown as Mocked<CharacterRepository>;
 
     projectRepo = {
       loadProject: vi.fn().mockResolvedValue(project),
-    };
+    } as unknown as Mocked<ProjectRepository>;
 
     metadataRepo = {
       findByProjectAndType: vi.fn().mockResolvedValue(null),
-    };
+    } as unknown as Mocked<MetadataRepository>;
 
     llmProvider = {
       generateCharacterSheet: vi.fn().mockResolvedValue(generatedFields),
-    };
+    } as unknown as Mocked<LLMProvider>;
 
     useCase = new GenerateCharacterSheetUseCase(
       characterRepo,

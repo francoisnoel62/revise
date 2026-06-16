@@ -20,6 +20,7 @@ import { Plot } from '@/domain/value-objects/Plot';
 import { Worldbuilding } from '@/domain/value-objects/Worldbuilding';
 import { Synthesis } from '@/domain/value-objects/Synthesis';
 import { ChapterSummaries } from '@/domain/value-objects/ChapterSummaries';
+import { CanonFacts } from '@/domain/value-objects/CanonFacts';
 import { ChapterGeneration } from '@/domain/value-objects/ChapterGeneration';
 import { ChapterGenerationTypeKey } from '@/domain/value-objects/ChapterGenerationType';
 import { ChatMessage } from '@/domain/value-objects/ChatMessage';
@@ -296,6 +297,15 @@ export class TrackedLLMProvider implements LLMProvider {
   async generateChapterSummaries(fullText: string): Promise<ChapterSummaries> {
     return this.trackUsage('chapter_summaries', () =>
       this.wrapped.generateChapterSummaries(fullText)
+    );
+  }
+
+  async generateCanonFacts(
+    fullText: string,
+    characterNames: string[]
+  ): Promise<CanonFacts> {
+    return this.trackUsage('canon_facts', () =>
+      this.wrapped.generateCanonFacts(fullText, characterNames)
     );
   }
 

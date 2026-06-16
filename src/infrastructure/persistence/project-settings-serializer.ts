@@ -6,6 +6,7 @@ import { ObjectId } from 'mongodb';
 import { Contributor, ContributorRole } from '@/domain/value-objects/Contributor';
 import { RelatedWork } from '@/domain/value-objects/RelatedWork';
 import { PointOfView, NarrationTense, TargetAudience } from '@/domain/value-objects/NarrationSettings';
+import { SuggestionLength, AudaceLevel } from '@/domain/value-objects/AutocompletePreferences';
 
 export interface ContributorDocument {
   name: string;
@@ -35,11 +36,18 @@ export interface ProjectSettingsDocument {
   relatedWorks: RelatedWorkDocument[];
   createdAt: Date;
   updatedAt: Date;
+  autocompleteEnabled?: boolean;
+  autocompleteSuggestionLength?: string;
+  autocompleteAudace?: string;
+  autocompleteLearnFromRejections?: boolean;
+  autocompletePartialAcceptance?: boolean;
+  autocompleteSmartPrefetch?: boolean;
 }
 
 export function serializeProjectSettings(
   settings: ProjectSettings
 ): Omit<ProjectSettingsDocument, '_id'> & { _id: ObjectId } {
+  const props = settings.toProperties();
   return {
     _id: new ObjectId(settings.getId()),
     projectId: settings.getProjectId(),
@@ -64,6 +72,12 @@ export function serializeProjectSettings(
     })),
     createdAt: settings.getCreatedAt(),
     updatedAt: settings.getUpdatedAt(),
+    autocompleteEnabled: props.autocompleteEnabled,
+    autocompleteSuggestionLength: props.autocompleteSuggestionLength,
+    autocompleteAudace: props.autocompleteAudace,
+    autocompleteLearnFromRejections: props.autocompleteLearnFromRejections,
+    autocompletePartialAcceptance: props.autocompletePartialAcceptance,
+    autocompleteSmartPrefetch: props.autocompleteSmartPrefetch,
   };
 }
 
@@ -96,6 +110,12 @@ export function deserializeProjectSettings(doc: ProjectSettingsDocument): Projec
     relatedWorks,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
+    autocompleteEnabled: doc.autocompleteEnabled,
+    autocompleteSuggestionLength: doc.autocompleteSuggestionLength as SuggestionLength | undefined,
+    autocompleteAudace: doc.autocompleteAudace as AudaceLevel | undefined,
+    autocompleteLearnFromRejections: doc.autocompleteLearnFromRejections,
+    autocompletePartialAcceptance: doc.autocompletePartialAcceptance,
+    autocompleteSmartPrefetch: doc.autocompleteSmartPrefetch,
   };
 
   return ProjectSettings.reconstruct(props);

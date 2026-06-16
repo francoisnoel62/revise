@@ -2,7 +2,7 @@
 // ABOUTME: Must match the extraction used by the metadata generation use cases
 
 import { describe, it, expect } from 'vitest';
-import { extractProjectFullText } from '../project-text';
+import { extractProjectFullText, extractChapterText } from '../project-text';
 
 const chapter = (title: string, text: string) => ({
   getTitle: () => title,
@@ -32,5 +32,15 @@ describe('extractProjectFullText', () => {
 
   it('returns empty string for no chapters', () => {
     expect(extractProjectFullText([])).toBe('');
+  });
+});
+
+describe('extractChapterText', () => {
+  it('extracts the plain text of a single chapter without its title', () => {
+    expect(extractChapterText(chapter('Chapitre 1', 'Bonjour le monde'))).toBe('Bonjour le monde');
+  });
+
+  it('returns empty string for invalid JSON', () => {
+    expect(extractChapterText({ getTitle: () => 'X', getContent: () => 'not json' })).toBe('');
   });
 });

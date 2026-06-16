@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Eye } from 'lucide-react';
 import {
+  AutocompleteStatsCard,
   UsageStatsCard,
   UsageByOperationChart,
   DailyUsageChart,
@@ -35,7 +36,10 @@ export default function UsagePage() {
       </div>
 
       {/* Summary Stats */}
-      <UsageStatsCard projectId={projectId} />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <UsageStatsCard projectId={projectId} />
+        <AutocompleteStatsCard projectId={projectId} />
+      </div>
 
       {/* Charts */}
       <div className="grid gap-6 md:grid-cols-2">

@@ -6,10 +6,12 @@
 import {
   getAuthenticatedUserId,
   getAIUsageRepo,
+  getAutocompleteEventRepo,
   ActionResult,
   withErrorHandling,
 } from './utils';
 import { UsageStats, DailyUsage } from '@/domain/interfaces/AIUsageRepository';
+import { AutocompleteStats } from '@/domain/interfaces/AutocompleteEventRepository';
 
 /**
  * Get usage statistics for a specific project.
@@ -47,6 +49,27 @@ export async function getProjectDailyUsageAction(
   return withErrorHandling(async () => {
     const repo = await getAIUsageRepo();
     return repo.getDailyUsageByProject(auth.userId, projectId, days);
+  });
+}
+
+/**
+ * Get autocomplete lifecycle statistics for a specific project.
+ */
+export async function getProjectAutocompleteStatsAction(
+  projectId: string,
+  options?: {
+    startDate?: Date;
+    endDate?: Date;
+  }
+): Promise<ActionResult<AutocompleteStats>> {
+  const auth = await getAuthenticatedUserId();
+  if ('error' in auth) {
+    return auth.error;
+  }
+
+  return withErrorHandling(async () => {
+    const repo = await getAutocompleteEventRepo();
+    return repo.getStatsByProject(auth.userId, projectId, options);
   });
 }
 

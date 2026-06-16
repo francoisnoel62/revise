@@ -7,10 +7,24 @@ import {
   getProviderRepository,
   getMetadataRepository,
   getResearchDocumentRepository,
+  getCharacterRepository,
+  getCanonFactRepository,
 } from '@/infrastructure/config/providers';
-import { getTrackedLLMProviderById } from '@/app/actions/utils';
-import { metadataCache } from '@/infrastructure/cache/MetadataCache';
+import { getTrackedLLMProviderById, getRateLimitRepo } from '@/app/actions/utils';
 import { AIContextBuilder } from '@/application/services/AIContextBuilder';
+import { AutocompleteContextBuilder } from '@/application/services/AutocompleteContextBuilder';
+import { intentDirective } from '@/application/services/autocompleteIntents';
+import {
+  lengthDirective,
+  audaceDirective,
+} from '@/application/services/autocompletePreferenceDirectives';
+import { detectEntities } from '@/application/services/canonEntities';
+import { isValidAutocompleteIntent } from '@/domain/value-objects/AutocompleteIntent';
+import {
+  isValidSuggestionLength,
+  isValidAudaceLevel,
+} from '@/domain/value-objects/AutocompletePreferences';
+import { CANON_CONTEXT_ENABLED } from '@/lib/ai-feature-flags';
 
 export const runtime = 'nodejs';
 
@@ -19,7 +33,26 @@ interface CompletionRequest {
   textBeforeCursor: string;
   textAfterCursor?: string;
   chapterId?: string;
+  intent?: string;
+  suggestionLength?: string;
+  audace?: string;
+  isPrefetch?: boolean;
 }
+
+// Each completion is a billed LLM call; smart prefetch can fire one on every
+// idle pause, so cap per-user volume across a rolling window. Backed by a shared
+// store so the limit holds across serverless instances. Prefetch (speculative,
+// background) gets its OWN smaller bucket so a chatty prefetch can never starve
+// the budget for the completions the author actually asked for with Tab.
+const COMPLETION_WINDOW_MS = 60_000; // 1 minute
+const COMPLETION_MAX_PER_WINDOW = 60; // ~1 manual completion/second sustained
+const PREFETCH_MAX_PER_WINDOW = 20; // speculative; capped well below manual
+
+// The client sends a bounded cursor window (~3000/400 chars); reject anything
+// far beyond that before doing any work, so a malformed or hostile client
+// cannot inflate the prompt — and the bill — at will.
+const MAX_BEFORE_CHARS = 8000;
+const MAX_AFTER_CHARS = 2000;
 
 export async function POST(request: NextRequest) {
   // 1. Authenticate using Auth.js
@@ -39,12 +72,48 @@ export async function POST(request: NextRequest) {
   }
 
   const { projectId, textBeforeCursor, textAfterCursor, chapterId } = body;
+  const intent =
+    body.intent && isValidAutocompleteIntent(body.intent) ? body.intent : 'natural';
+  const suggestionLength = isValidSuggestionLength(body.suggestionLength)
+    ? body.suggestionLength
+    : undefined;
+  const audace = isValidAudaceLevel(body.audace) ? body.audace : undefined;
+  const isPrefetch = body.isPrefetch === true;
 
   if (!projectId || !textBeforeCursor) {
     return new Response('Missing required fields', { status: 400 });
   }
 
-  // 3. Get LLM provider via composition root
+  if (
+    textBeforeCursor.length > MAX_BEFORE_CHARS ||
+    (textAfterCursor?.length ?? 0) > MAX_AFTER_CHARS
+  ) {
+    return new Response('Payload too large', { status: 413 });
+  }
+
+  // 3. Cap per-user volume before any billed work. Prefetch and manual draw from
+  // separate buckets so speculative calls can't exhaust the manual budget. Fail
+  // OPEN on a store outage: completion must never break mid-sentence.
+  try {
+    const rateLimitRepo = await getRateLimitRepo();
+    const quota = await rateLimitRepo.consumeFixedWindow(
+      isPrefetch ? `prefetch:${userId}` : `completion:${userId}`,
+      COMPLETION_WINDOW_MS,
+      isPrefetch ? PREFETCH_MAX_PER_WINDOW : COMPLETION_MAX_PER_WINDOW
+    );
+    if (!quota.allowed) {
+      return new Response('Too Many Requests', {
+        status: 429,
+        headers: quota.retryAfterSeconds
+          ? { 'Retry-After': String(quota.retryAfterSeconds) }
+          : undefined,
+      });
+    }
+  } catch (error) {
+    console.error('[Autocomplete] rate-limit check failed:', error);
+  }
+
+  // 4. Get LLM provider via composition root
   const providerRepo = await getProviderRepository();
   const { getProjectRepository } = await import('@/infrastructure/config/providers');
   const projectRepo = await getProjectRepository();
@@ -67,55 +136,99 @@ export async function POST(request: NextRequest) {
   let llmProvider;
 
   if (selectedProvider) {
-    console.log('[Autocomplete] Using provider:', selectedProvider.getName(), '(', selectedProvider.getType(), ')', 'model:', selectedProvider.getModel());
     // Tracked provider so autocompletion usage and exchange content are recorded.
     llmProvider = await getTrackedLLMProviderById(userId, selectedProvider.getId(), projectId);
   } else {
     return new Response('No AI provider configured', { status: 400 });
   }
 
-  // 4. Build completion context block (with caching, keyed by chapter)
-  let projectContext = metadataCache.get(userId, projectId, chapterId);
+  const selectedProviderType = selectedProvider.getType();
+  const selectedProviderModel = selectedProvider.getModel();
 
-  if (projectContext === null) {
-    const metadataRepo = await getMetadataRepository();
-    const researchRepo = await getResearchDocumentRepository();
-    const builder = new AIContextBuilder(metadataRepo, researchRepo);
-    projectContext = await builder.buildCompletionContext(userId, projectId, chapterId);
-    metadataCache.set(userId, projectId, projectContext, chapterId);
+  // 5. Build the long-range completion context (author intent + optional canon).
+  // The local scene is already carried by the cursor window (textBeforeCursor); derived
+  // metadata is kept OUT of the writing hot path (opt-in only).
+  const metadataRepo = await getMetadataRepository();
+  const researchRepo = await getResearchDocumentRepository();
+  const aiContextBuilder = new AIContextBuilder(metadataRepo, researchRepo);
+  const canonFactRepo = await getCanonFactRepository();
+  const autocompleteContext = new AutocompleteContextBuilder(
+    aiContextBuilder,
+    canonFactRepo
+  );
+
+  // Resolve local canon context (behind a flag): which known characters appear in
+  // the local window, and the current chapter index for temporal fact selection.
+  let entities: string[] | undefined;
+  let chapterIndex: number | undefined;
+  if (CANON_CONTEXT_ENABLED && chapterId && project) {
+    const chapters = project.getChapters();
+    const idx = chapters.findIndex((c) => c.getId() === chapterId);
+    if (idx >= 0) {
+      chapterIndex = idx;
+      const characterRepo = await getCharacterRepository();
+      const characters = await characterRepo.findByProjectId(userId, projectId);
+      entities = detectEntities(textBeforeCursor, characters.map((c) => c.getName()));
+    }
   }
 
-  // 5. Create streaming response
+  const { context: baseContext, canonFactsCount } =
+    await autocompleteContext.buildContext({
+      ownerId: userId,
+      projectId,
+      chapterId,
+      includeCanon: CANON_CONTEXT_ENABLED,
+      entities,
+      chapterIndex,
+    });
+  // Prepend the (optional) intent + preference directives so they sit near the
+  // top of the context (author intent, requested length, requested audace).
+  const projectContext =
+    intentDirective(intent) +
+    lengthDirective(suggestionLength) +
+    audaceDirective(audace) +
+    baseContext;
+
+  // 6. Create streaming response
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        console.log('[Autocomplete] Starting stream...');
+        controller.enqueue(
+          encoder.encode(
+            `data: ${JSON.stringify({
+              type: 'metadata',
+              providerType: selectedProviderType,
+              model: selectedProviderModel,
+              canonFactsCount,
+            })}\n\n`
+          )
+        );
+
         const generator = llmProvider.generateCompletionStream(
           textBeforeCursor,
           textAfterCursor,
           projectContext
         );
 
-        let chunkCount = 0;
         for await (const chunk of generator) {
-          chunkCount++;
           // Send as Server-Sent Event
           const data = `data: ${JSON.stringify({ text: chunk })}\n\n`;
           controller.enqueue(encoder.encode(data));
         }
-        console.log('[Autocomplete] Stream finished, chunks received:', chunkCount);
 
         // Send done event
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         controller.close();
       } catch (error) {
+        // Log the full detail server-side; never forward provider/internal error
+        // text to the client (it can leak keys, models, or stack details).
         console.error('[Autocomplete] Stream error:', error);
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error';
         controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({ error: errorMessage })}\n\n`)
+          encoder.encode(
+            `data: ${JSON.stringify({ error: 'Erreur lors de la génération.' })}\n\n`
+          )
         );
         controller.close();
       }

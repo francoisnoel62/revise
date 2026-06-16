@@ -99,6 +99,14 @@ export class AIContextBuilder {
     return out;
   }
 
+  /**
+   * Author's intentional context only (research docs), without any derived metadata.
+   * Used by the manuscript-first autocomplete context (metadata out of the hot path).
+   */
+  async buildResearchContext(ownerId: string, projectId: string, chapterId?: string): Promise<string> {
+    return this.projectResearch(ownerId, projectId, { kind: 'completion', chapterId });
+  }
+
   async buildChapterContext(ownerId: string, projectId: string): Promise<string> {
     const resolved = await this.resolve(ownerId, projectId, [
       'narrative-analysis', 'stylistic-dna', 'characters', 'plot', 'worldbuilding', 'chapter-summaries',

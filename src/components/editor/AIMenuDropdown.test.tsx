@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { AIMenuDropdown } from './AIMenuDropdown';
 import { SafeProvider } from '@/app/actions/provider-actions';
+import { CHAPTER_GENERATION_TYPES } from '@/domain';
 
 describe('AIMenuDropdown', () => {
   const mockProviders: SafeProvider[] = [
@@ -109,6 +110,23 @@ describe('AIMenuDropdown', () => {
 
     const button = screen.getByRole('button');
     expect(button).toBeInTheDocument();
+  });
+
+  it('does not show long-form generation actions when chapter is empty', async () => {
+    const user = await import('@testing-library/user-event');
+    render(<AIMenuDropdown {...defaultProps} isChapterEmpty={true} />);
+
+    await user.default.setup().click(screen.getByRole('button'));
+
+    expect(
+      screen.queryByText(CHAPTER_GENERATION_TYPES['chapter-beginning'].name)
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(CHAPTER_GENERATION_TYPES['chapter-full'].name)
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(CHAPTER_GENERATION_TYPES['chapter-outline'].name)
+    ).not.toBeInTheDocument();
   });
 
   it('renders when has selection', () => {

@@ -15,6 +15,9 @@ import {
   getWordCountSnapshotRepository,
   getWritingQuotaRepository,
   getAIUsageRepository as getAIUsageRepositoryFromConfig,
+  getAutocompleteEventRepository as getAutocompleteEventRepositoryFromConfig,
+  getCanonFactRepository as getCanonFactRepositoryFromConfig,
+  getRateLimitRepository as getRateLimitRepositoryFromConfig,
   getAIExchangeRepository as getAIExchangeRepositoryFromConfig,
   getBlogArticleRepository,
   getArticleViewRepository,
@@ -45,6 +48,9 @@ import { WritingGoalRepository } from '@/domain/interfaces/WritingGoalRepository
 import { WordCountSnapshotRepository } from '@/domain/interfaces/WordCountSnapshotRepository';
 import { WritingQuotaRepository } from '@/domain/interfaces/WritingQuotaRepository';
 import { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
+import { AutocompleteEventRepository } from '@/domain/interfaces/AutocompleteEventRepository';
+import { CanonFactRepository } from '@/domain/interfaces/CanonFactRepository';
+import { RateLimitRepository } from '@/domain/interfaces/RateLimitRepository';
 import { AIExchangeRepository } from '@/domain/interfaces/AIExchangeRepository';
 import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository';
 import { ProjectTaskRepository } from '@/domain/interfaces/ProjectTaskRepository';
@@ -203,10 +209,31 @@ export async function getAIUsageRepo(): Promise<AIUsageRepository> {
 }
 
 /**
+ * Get autocomplete event repository instance (instrumentation).
+ */
+export async function getAutocompleteEventRepo(): Promise<AutocompleteEventRepository> {
+  return await getAutocompleteEventRepositoryFromConfig();
+}
+
+/**
+ * Get canon-fact repository instance (the canon ledger).
+ */
+export async function getCanonFactRepo(): Promise<CanonFactRepository> {
+  return await getCanonFactRepositoryFromConfig();
+}
+
+/**
  * Get AI exchange repository instance (captured exchange content).
  */
 export async function getAIExchangeRepo(): Promise<AIExchangeRepository> {
   return await getAIExchangeRepositoryFromConfig();
+}
+
+/**
+ * Get rate-limit repository instance (shared cross-instance counters).
+ */
+export async function getRateLimitRepo(): Promise<RateLimitRepository> {
+  return await getRateLimitRepositoryFromConfig();
 }
 
 /**

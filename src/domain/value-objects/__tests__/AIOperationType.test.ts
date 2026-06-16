@@ -23,10 +23,11 @@ describe('AIOperationType', () => {
       expect(AI_OPERATION_TYPES).toContain('completion');
       expect(AI_OPERATION_TYPES).toContain('character_chat');
       expect(AI_OPERATION_TYPES).toContain('character_sheet');
+      expect(AI_OPERATION_TYPES).toContain('canon_facts');
     });
 
-    it('has exactly 13 operation types', () => {
-      expect(AI_OPERATION_TYPES).toHaveLength(13);
+    it('has exactly 14 operation types', () => {
+      expect(AI_OPERATION_TYPES).toHaveLength(14);
     });
 
     it('contains suggest_alternatives', () => {

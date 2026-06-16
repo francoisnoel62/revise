@@ -19,6 +19,9 @@ import type { WritingGoalRepository } from '@/domain/interfaces/WritingGoalRepos
 import type { CharacterRepository } from '@/domain/interfaces/CharacterRepository';
 import type { ProjectTaskRepository } from '@/domain/interfaces/ProjectTaskRepository';
 import type { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
+import type { AIExchangeRepository } from '@/domain/interfaces/AIExchangeRepository';
+import type { AutocompleteEventRepository } from '@/domain/interfaces/AutocompleteEventRepository';
+import type { CanonFactRepository } from '@/domain/interfaces/CanonFactRepository';
 
 describe('DeleteUserAccountUseCase', () => {
   let mockUserRepository: {
@@ -106,6 +109,10 @@ describe('DeleteUserAccountUseCase', () => {
   });
 
   it('should delete all owned data across every provided repository (RGPD)', async () => {
+    const mockAIExchangeRepository = { deleteAllByOwner: vi.fn().mockResolvedValue(undefined) };
+    const mockAutocompleteEventRepository = { deleteAllByOwner: vi.fn().mockResolvedValue(undefined) };
+    const mockCanonFactRepository = { deleteAllByOwner: vi.fn().mockResolvedValue(undefined) };
+
     const useCase = new DeleteUserAccountUseCase(
       mockUserRepository as unknown as UserRepository,
       mockProjectRepository as unknown as ProjectRepository,
@@ -118,7 +125,10 @@ describe('DeleteUserAccountUseCase', () => {
       mockWritingGoalRepository as unknown as WritingGoalRepository,
       mockCharacterRepository as unknown as CharacterRepository,
       mockProjectTaskRepository as unknown as ProjectTaskRepository,
-      mockAIUsageRepository as unknown as AIUsageRepository
+      mockAIUsageRepository as unknown as AIUsageRepository,
+      mockAIExchangeRepository as unknown as AIExchangeRepository,
+      mockAutocompleteEventRepository as unknown as AutocompleteEventRepository,
+      mockCanonFactRepository as unknown as CanonFactRepository
     );
 
     await useCase.execute({ userId: 'user-1', confirmEmail: 'test@example.com' });
@@ -128,6 +138,9 @@ describe('DeleteUserAccountUseCase', () => {
     expect(mockCharacterRepository.deleteAllByOwner).toHaveBeenCalledWith('user-1');
     expect(mockProjectTaskRepository.deleteAllByOwner).toHaveBeenCalledWith('user-1');
     expect(mockAIUsageRepository.deleteAllByOwner).toHaveBeenCalledWith('user-1');
+    expect(mockAIExchangeRepository.deleteAllByOwner).toHaveBeenCalledWith('user-1');
+    expect(mockAutocompleteEventRepository.deleteAllByOwner).toHaveBeenCalledWith('user-1');
+    expect(mockCanonFactRepository.deleteAllByOwner).toHaveBeenCalledWith('user-1');
   });
 
   it('should throw UserNotFoundError when user does not exist', async () => {

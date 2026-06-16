@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/command';
 import { SafeProvider } from '@/app/actions/provider-actions';
 import { CHAPTER_GENERATION_TYPES, ChapterGenerationTypeKey } from '@/domain';
+import { LONG_FORM_GENERATION_ENABLED } from '@/lib/ai-feature-flags';
 
 interface CommandPaletteProps {
   open: boolean;
@@ -210,8 +211,12 @@ export function CommandPalette({
     });
   });
 
+  const visibleCommands = LONG_FORM_GENERATION_ENABLED
+    ? commands
+    : commands.filter((cmd) => !cmd.id.startsWith('generate-'));
+
   // Filter commands based on search
-  const filteredCommands = commands.filter((cmd) => {
+  const filteredCommands = visibleCommands.filter((cmd) => {
     if (!search) return true;
     const searchLower = search.toLowerCase();
     return (

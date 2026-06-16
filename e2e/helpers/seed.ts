@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
 import path from 'path';
+import { encryptApiKey } from '../../src/infrastructure/encryption/crypto';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
@@ -19,10 +20,15 @@ export const TEST_USER_EMAIL = 'e2e-strategy@revise.test';
 export const TEST_USER_PASSWORD = 'TestE2E2025!';
 export const TEST_PROJECT_ID = 'e2e-strategy-project-001';
 export const TEST_CHAPTER_ID = 'e2e-strategy-chapter-001';
+export const TEST_AUTOCOMPLETE_PROJECT_ID = 'e2e-autocomplete-project-001';
+export const TEST_AUTOCOMPLETE_CHAPTER_ID = 'e2e-autocomplete-chapter-001';
+export const TEST_PROVIDER_ID = 'e2e-provider-autocomplete-001';
 export const TEST_META_STALE_ID = 'e2e-strategy-meta-stale';
 export const TEST_META_FRESH_ID = 'e2e-strategy-meta-fresh';
 // Fixed 24-char hex ObjectId for the seeded research document
 export const TEST_RESEARCH_DOC_ID = '6475a8f3c1234567890abcde';
+// Fixed 24-char hex ObjectId for the autocomplete project settings
+export const TEST_AUTOCOMPLETE_SETTINGS_ID = '6475a8f3c1234567890abcdf';
 
 // ── Chapter content seedé ─────────────────────────────────────────────────────
 
@@ -35,6 +41,45 @@ export const TEST_CHAPTER_CONTENT = JSON.stringify({
     content: [{ type: 'text', text: TEST_CHAPTER_TEXT }],
   }],
 });
+
+export const TEST_AUTOCOMPLETE_CHAPTER_TITLE = 'Chapitre Autocomplétion';
+export const TEST_AUTOCOMPLETE_CHAPTER_TEXT = 'Éliane Vaucresson leva les yeux vers l’horloge arrêtée et';
+export const TEST_AUTOCOMPLETE_CHAPTER_CONTENT = JSON.stringify({
+  type: 'doc',
+  content: [{
+    type: 'paragraph',
+    content: [{ type: 'text', text: TEST_AUTOCOMPLETE_CHAPTER_TEXT }],
+  }],
+});
+
+function autocompleteEvent(
+  suffix: string,
+  outcome: string,
+  overrides: Record<string, unknown> = {}
+): Record<string, unknown> {
+  const now = new Date();
+  return {
+    _id: new ObjectId(),
+    ownerId: TEST_USER_ID,
+    projectId: TEST_AUTOCOMPLETE_PROJECT_ID,
+    chapterId: TEST_AUTOCOMPLETE_CHAPTER_ID,
+    suggestionId: `e2e-autocomplete-${suffix}`,
+    providerType: null,
+    model: null,
+    triggeredAt: now,
+    firstTokenMs: outcome === 'empty' ? null : 200,
+    totalMs: 800,
+    suggestionLengthChars: outcome === 'empty' ? 0 : 30,
+    suggestionLengthWords: outcome === 'empty' ? 0 : 6,
+    acceptedChars: outcome === 'accepted_full' ? 30 : 0,
+    acceptedWords: outcome === 'accepted_full' ? 6 : 0,
+    intent: 'natural',
+    outcome,
+    deletedAfterMs: null,
+    createdAt: now,
+    ...overrides,
+  };
+}
 
 // ── Hash computation (même logique que extractProjectFullText + hashText) ─────
 
@@ -104,6 +149,82 @@ export async function seedAll(): Promise<void> {
       shareToken: null,
       publishedAt: null,
       publishedChapterIds: null,
+    },
+    { upsert: true }
+  );
+
+  // 2b. Separate project for autocomplete E2E tests. It is intentionally isolated from
+  // the AI-strategy project because those tests edit their own manuscript in parallel.
+  await db.collection('projects').replaceOne(
+    { _id: TEST_AUTOCOMPLETE_PROJECT_ID } as object,
+    {
+      _id: TEST_AUTOCOMPLETE_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      title: 'Projet Test Autocomplétion',
+      chapters: [{
+        id: TEST_AUTOCOMPLETE_CHAPTER_ID,
+        title: TEST_AUTOCOMPLETE_CHAPTER_TITLE,
+        content: TEST_AUTOCOMPLETE_CHAPTER_CONTENT,
+        order: 0,
+        metadata: { wordCount: 8, characterCount: 64, lastEdited: past },
+      }],
+      activeChapterId: TEST_AUTOCOMPLETE_CHAPTER_ID,
+      providerId: TEST_PROVIDER_ID,
+      createdAt: past,
+      updatedAt: now,
+      isPublished: false,
+      shareToken: null,
+      publishedAt: null,
+      publishedChapterIds: null,
+    },
+    { upsert: true }
+  );
+
+  // 2c. Valid provider fixture so AI UI controls are visible in E2E tests.
+  // The fake key is encrypted because the provider repository decrypts on list.
+  const encryptedProviderKey = encryptApiKey('sk-e2e-fake-provider-key');
+  await db.collection('providers').replaceOne(
+    { _id: TEST_PROVIDER_ID } as object,
+    {
+      _id: TEST_PROVIDER_ID,
+      ownerId: TEST_USER_ID,
+      name: 'Provider E2E',
+      type: 'openai',
+      encryptedApiKey: encryptedProviderKey.encryptedData,
+      encryptionIV: encryptedProviderKey.iv,
+      authTag: encryptedProviderKey.authTag,
+      model: 'gpt-4o-mini',
+      isValid: true,
+      lastTested: now,
+      createdAt: past,
+      updatedAt: now,
+    },
+    { upsert: true }
+  );
+
+  // 2d. Project settings for the autocomplete project. learnFromRejections must be true
+  // so the editor wires the telemetry sender (onEvent); the default is false, which would
+  // silence all lifecycle telemetry the autocomplete E2E tests assert on.
+  await db.collection('project_settings').replaceOne(
+    { _id: new ObjectId(TEST_AUTOCOMPLETE_SETTINGS_ID) },
+    {
+      _id: new ObjectId(TEST_AUTOCOMPLETE_SETTINGS_ID),
+      projectId: TEST_AUTOCOMPLETE_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      title: 'Projet Test Autocomplétion',
+      summary: '',
+      genre: '',
+      synopsis: '',
+      contributors: [],
+      relatedWorks: [],
+      createdAt: past,
+      updatedAt: now,
+      autocompleteEnabled: true,
+      autocompleteSuggestionLength: 'medium',
+      autocompleteAudace: 'balanced',
+      autocompleteLearnFromRejections: true,
+      autocompletePartialAcceptance: true,
+      autocompleteSmartPrefetch: true,
     },
     { upsert: true }
   );
@@ -189,6 +310,40 @@ export async function seedAll(): Promise<void> {
     { upsert: true }
   );
 
+  // 6. Autocomplete telemetry fixtures for cockpit usage metrics.
+  await db.collection('autocompleteEvents').deleteMany({
+    ownerId: TEST_USER_ID,
+    projectId: TEST_AUTOCOMPLETE_PROJECT_ID,
+  });
+  await db.collection('autocompleteEvents').insertMany([
+    autocompleteEvent('accepted-1', 'accepted_full', {
+      firstTokenMs: 100,
+      totalMs: 500,
+    }),
+    autocompleteEvent('accepted-2', 'accepted_full', {
+      firstTokenMs: 200,
+      totalMs: 700,
+      deletedAfterMs: 4200,
+    }),
+    autocompleteEvent('partial-1', 'accepted_partial', {
+      firstTokenMs: 300,
+      totalMs: 900,
+      acceptedChars: 12,
+      acceptedWords: 2,
+    }),
+    autocompleteEvent('rejected-1', 'rejected_escape', {
+      firstTokenMs: 400,
+      totalMs: 1100,
+    }),
+    autocompleteEvent('superseded-1', 'superseded_typing', {
+      firstTokenMs: 500,
+      totalMs: 1300,
+    }),
+    autocompleteEvent('empty-1', 'empty', {
+      totalMs: 300,
+    }),
+  ]);
+
   await client.close();
 }
 
@@ -202,8 +357,11 @@ export async function cleanupAll(): Promise<void> {
   await Promise.all([
     db.collection('users').deleteOne({ _id: TEST_USER_ID } as object),
     db.collection('projects').deleteMany({ ownerId: TEST_USER_ID }),
+    db.collection('providers').deleteMany({ ownerId: TEST_USER_ID }),
     db.collection('project_metadata').deleteMany({ ownerId: TEST_USER_ID }),
+    db.collection('project_settings').deleteMany({ ownerId: TEST_USER_ID }),
     db.collection('researchDocuments').deleteMany({ ownerId: TEST_USER_ID }),
+    db.collection('autocompleteEvents').deleteMany({ ownerId: TEST_USER_ID }),
   ]);
 
   await client.close();
