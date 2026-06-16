@@ -88,4 +88,94 @@ describe('AutocompleteContextBuilder', () => {
     expect(context).not.toContain('[CHAPITRE EN COURS]');
     expect(repo.loadProject).not.toHaveBeenCalled();
   });
+
+  const makeCanonFact = (entity: string, statement: string, validFromChapter: number) => ({
+    getEntity: () => entity,
+    getStatement: () => statement,
+    getValidFromChapter: () => validFromChapter,
+  });
+
+  it('injects the [CANON] section when opted in with entities and a chapter index', async () => {
+    const repo = makeProjectRepo([makeChapter('chap-1', 'Texte')]);
+    const canonRepo = {
+      findForSelection: vi
+        .fn()
+        .mockResolvedValue([makeCanonFact('Léa', 'est morte', 9)]),
+    };
+    const builder = new AutocompleteContextBuilder(
+      repo,
+      aiContextBuilder,
+      canonRepo as never
+    );
+
+    const context = await builder.buildContext({
+      ownerId: 'o',
+      projectId: 'p',
+      chapterId: 'chap-1',
+      includeCanon: true,
+      entities: ['Léa'],
+      chapterIndex: 11,
+    });
+
+    expect(context).toContain('[CANON]');
+    expect(context).toContain('Léa : est morte (depuis ch.10)');
+    expect(canonRepo.findForSelection).toHaveBeenCalledWith('o', 'p', ['Léa'], 11);
+  });
+
+  it('omits [CANON] when no entities are detected', async () => {
+    const repo = makeProjectRepo([makeChapter('chap-1', 'Texte')]);
+    const canonRepo = { findForSelection: vi.fn().mockResolvedValue([]) };
+    const builder = new AutocompleteContextBuilder(repo, aiContextBuilder, canonRepo as never);
+
+    const context = await builder.buildContext({
+      ownerId: 'o',
+      projectId: 'p',
+      chapterId: 'chap-1',
+      includeCanon: true,
+      entities: [],
+      chapterIndex: 5,
+    });
+
+    expect(context).not.toContain('[CANON]');
+    expect(canonRepo.findForSelection).not.toHaveBeenCalled();
+  });
+
+  it('does not inject canon by default (no includeCanon)', async () => {
+    const repo = makeProjectRepo([makeChapter('chap-1', 'Texte')]);
+    const canonRepo = {
+      findForSelection: vi.fn().mockResolvedValue([makeCanonFact('Léa', 'est morte', 9)]),
+    };
+    const builder = new AutocompleteContextBuilder(repo, aiContextBuilder, canonRepo as never);
+
+    const context = await builder.buildContext({
+      ownerId: 'o',
+      projectId: 'p',
+      chapterId: 'chap-1',
+      entities: ['Léa'],
+      chapterIndex: 11,
+    });
+
+    expect(context).not.toContain('[CANON]');
+    expect(canonRepo.findForSelection).not.toHaveBeenCalled();
+  });
+
+  it('degrades gracefully when canon selection throws', async () => {
+    const repo = makeProjectRepo([makeChapter('chap-1', 'Texte')]);
+    const canonRepo = {
+      findForSelection: vi.fn().mockRejectedValue(new Error('db down')),
+    };
+    const builder = new AutocompleteContextBuilder(repo, aiContextBuilder, canonRepo as never);
+
+    const context = await builder.buildContext({
+      ownerId: 'o',
+      projectId: 'p',
+      chapterId: 'chap-1',
+      includeCanon: true,
+      entities: ['Léa'],
+      chapterIndex: 11,
+    });
+
+    expect(context).not.toContain('[CANON]');
+    expect(context).toContain('[CHAPITRE EN COURS]');
+  });
 });

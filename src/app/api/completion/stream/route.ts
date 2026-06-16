@@ -7,12 +7,16 @@ import {
   getProviderRepository,
   getMetadataRepository,
   getResearchDocumentRepository,
+  getCharacterRepository,
+  getCanonFactRepository,
 } from '@/infrastructure/config/providers';
 import { getTrackedLLMProviderById } from '@/app/actions/utils';
 import { AIContextBuilder } from '@/application/services/AIContextBuilder';
 import { AutocompleteContextBuilder } from '@/application/services/AutocompleteContextBuilder';
 import { intentDirective } from '@/application/services/autocompleteIntents';
+import { detectEntities } from '@/application/services/canonEntities';
 import { isValidAutocompleteIntent } from '@/domain/value-objects/AutocompleteIntent';
+import { CANON_CONTEXT_ENABLED } from '@/lib/ai-feature-flags';
 
 export const runtime = 'nodejs';
 
@@ -88,14 +92,39 @@ export async function POST(request: NextRequest) {
   const metadataRepo = await getMetadataRepository();
   const researchRepo = await getResearchDocumentRepository();
   const aiContextBuilder = new AIContextBuilder(metadataRepo, researchRepo);
-  const autocompleteContext = new AutocompleteContextBuilder(projectRepo, aiContextBuilder);
+  const canonFactRepo = await getCanonFactRepository();
+  const autocompleteContext = new AutocompleteContextBuilder(
+    projectRepo,
+    aiContextBuilder,
+    canonFactRepo
+  );
+
+  // Resolve local canon context (behind a flag): which known characters appear in
+  // the local window, and the current chapter index for temporal fact selection.
+  let entities: string[] | undefined;
+  let chapterIndex: number | undefined;
+  if (CANON_CONTEXT_ENABLED && chapterId && project) {
+    const chapters = project.getChapters();
+    const idx = chapters.findIndex((c) => c.getId() === chapterId);
+    if (idx >= 0) {
+      chapterIndex = idx;
+      const characterRepo = await getCharacterRepository();
+      const characters = await characterRepo.findByProjectId(userId, projectId);
+      entities = detectEntities(textBeforeCursor, characters.map((c) => c.getName()));
+    }
+  }
+
   const baseContext = await autocompleteContext.buildContext({
     ownerId: userId,
     projectId,
     chapterId,
+    includeCanon: CANON_CONTEXT_ENABLED,
+    entities,
+    chapterIndex,
   });
   // Prepend the (optional) intent directive so it sits near the top of the context.
   const projectContext = intentDirective(intent) + baseContext;
+  const canonFactsCount = autocompleteContext.getLastCanonFactsCount();
 
   // 5. Create streaming response
   const encoder = new TextEncoder();
@@ -110,6 +139,7 @@ export async function POST(request: NextRequest) {
               type: 'metadata',
               providerType: selectedProviderType,
               model: selectedProviderModel,
+              canonFactsCount,
             })}\n\n`
           )
         );

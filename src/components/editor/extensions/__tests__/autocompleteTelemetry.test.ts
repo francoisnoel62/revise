@@ -43,13 +43,28 @@ describe('AutocompleteLifecycleTracker', () => {
     });
 
     tracker.start(ctx);
-    tracker.setProviderMetadata('anthropic', 'claude-sonnet-4-5');
+    tracker.setProviderMetadata('anthropic', 'claude-sonnet-4-5', 3);
     tracker.markFirstToken();
     tracker.markShown('suite');
     const payload = tracker.accept();
 
     expect(payload!.providerType).toBe('anthropic');
     expect(payload!.model).toBe('claude-sonnet-4-5');
+    expect(payload!.canonFactsCount).toBe(3);
+  });
+
+  it('defaults canonFactsCount to null when not reported', () => {
+    const tracker = new AutocompleteLifecycleTracker({
+      now: makeClock([0, 100, 500]),
+      genId: () => 'sugg-no-canon',
+    });
+
+    tracker.start(ctx);
+    tracker.setProviderMetadata('anthropic', 'claude-sonnet-4-5');
+    tracker.markShown('suite');
+    const payload = tracker.accept();
+
+    expect(payload!.canonFactsCount).toBeNull();
   });
 
   it('produces an empty payload with null latency and zero length', () => {

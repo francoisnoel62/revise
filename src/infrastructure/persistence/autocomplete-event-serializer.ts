@@ -27,6 +27,7 @@ export interface AutocompleteEventDocument {
   intent: AutocompleteIntent | null;
   outcome: AutocompleteOutcome;
   deletedAfterMs: number | null;
+  canonFactsCount: number | null;
   createdAt: Date;
 }
 
@@ -51,6 +52,7 @@ export function serializeAutocompleteEvent(
     intent: event.getIntent(),
     outcome: event.getOutcome(),
     deletedAfterMs: event.getDeletedAfterMs(),
+    canonFactsCount: event.getCanonFactsCount(),
     createdAt: event.getCreatedAt(),
   };
 }
@@ -76,6 +78,7 @@ export function deserializeAutocompleteEvent(
     intent: doc.intent ?? null,
     outcome: doc.outcome,
     deletedAfterMs: doc.deletedAfterMs ?? null,
+    canonFactsCount: doc.canonFactsCount ?? null,
     createdAt: doc.createdAt,
   };
   return AutocompleteEvent.reconstruct(props);

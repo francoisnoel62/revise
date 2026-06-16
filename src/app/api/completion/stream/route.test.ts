@@ -13,6 +13,8 @@ vi.mock('@/infrastructure/config/providers', () => ({
   getProjectRepository: vi.fn(),
   getMetadataRepository: vi.fn(),
   getResearchDocumentRepository: vi.fn(),
+  getCharacterRepository: vi.fn(),
+  getCanonFactRepository: vi.fn(),
 }));
 
 vi.mock('@/app/actions/utils', () => ({
@@ -25,6 +27,8 @@ import {
   getProjectRepository,
   getMetadataRepository,
   getResearchDocumentRepository,
+  getCharacterRepository,
+  getCanonFactRepository,
 } from '@/infrastructure/config/providers';
 import { getTrackedLLMProviderById } from '@/app/actions/utils';
 import { POST } from './route';
@@ -60,6 +64,12 @@ describe('POST /api/completion/stream', () => {
     vi.mocked(getResearchDocumentRepository).mockResolvedValue({
       findByProjectId: vi.fn().mockResolvedValue([]),
       findByChapterId: vi.fn().mockResolvedValue([]),
+    } as never);
+    vi.mocked(getCanonFactRepository).mockResolvedValue({
+      findForSelection: vi.fn().mockResolvedValue([]),
+    } as never);
+    vi.mocked(getCharacterRepository).mockResolvedValue({
+      findByProjectId: vi.fn().mockResolvedValue([]),
     } as never);
   });
 
@@ -101,7 +111,7 @@ describe('POST /api/completion/stream', () => {
     const body = await readResponse(response);
 
     expect(body).toContain(
-      'data: {"type":"metadata","providerType":"anthropic","model":"claude-sonnet-4-5"}'
+      'data: {"type":"metadata","providerType":"anthropic","model":"claude-sonnet-4-5","canonFactsCount":0}'
     );
     expect(body.indexOf('"type":"metadata"')).toBeLessThan(body.indexOf('"text":" suite"'));
   });

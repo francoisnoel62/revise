@@ -16,6 +16,7 @@ import {
   getWritingQuotaRepository,
   getAIUsageRepository as getAIUsageRepositoryFromConfig,
   getAutocompleteEventRepository as getAutocompleteEventRepositoryFromConfig,
+  getCanonFactRepository as getCanonFactRepositoryFromConfig,
   getAIExchangeRepository as getAIExchangeRepositoryFromConfig,
   getBlogArticleRepository,
   getArticleViewRepository,
@@ -47,6 +48,7 @@ import { WordCountSnapshotRepository } from '@/domain/interfaces/WordCountSnapsh
 import { WritingQuotaRepository } from '@/domain/interfaces/WritingQuotaRepository';
 import { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
 import { AutocompleteEventRepository } from '@/domain/interfaces/AutocompleteEventRepository';
+import { CanonFactRepository } from '@/domain/interfaces/CanonFactRepository';
 import { AIExchangeRepository } from '@/domain/interfaces/AIExchangeRepository';
 import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository';
 import { ProjectTaskRepository } from '@/domain/interfaces/ProjectTaskRepository';
@@ -209,6 +211,13 @@ export async function getAIUsageRepo(): Promise<AIUsageRepository> {
  */
 export async function getAutocompleteEventRepo(): Promise<AutocompleteEventRepository> {
   return await getAutocompleteEventRepositoryFromConfig();
+}
+
+/**
+ * Get canon-fact repository instance (the canon ledger).
+ */
+export async function getCanonFactRepo(): Promise<CanonFactRepository> {
+  return await getCanonFactRepositoryFromConfig();
 }
 
 /**

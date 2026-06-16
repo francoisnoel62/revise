@@ -30,6 +30,7 @@ import {
   getAIUsageRepo,
   getAIExchangeRepo,
   getAutocompleteEventRepo,
+  getCanonFactRepo,
 } from './utils';
 import { getRateLimiter } from '@/infrastructure/security/InMemoryRateLimiter';
 import { getHCaptchaVerifier } from '@/infrastructure/security/HCaptchaVerifier';
@@ -193,6 +194,7 @@ export async function deleteAccountAction(
     // there is no captured content to purge, so deletion proceeds without it.
     const aiExchangeRepo = await getAIExchangeRepo().catch(() => undefined);
     const autocompleteEventRepo = await getAutocompleteEventRepo();
+    const canonFactRepo = await getCanonFactRepo();
 
     // Execute deletion
     const useCase = new DeleteUserAccountUseCase(
@@ -209,7 +211,8 @@ export async function deleteAccountAction(
       projectTaskRepo,
       aiUsageRepo,
       aiExchangeRepo,
-      autocompleteEventRepo
+      autocompleteEventRepo,
+      canonFactRepo
     );
 
     const result = await useCase.execute({

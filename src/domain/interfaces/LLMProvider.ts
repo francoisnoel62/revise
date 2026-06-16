@@ -10,6 +10,7 @@ import { Plot } from '../value-objects/Plot';
 import { Worldbuilding } from '../value-objects/Worldbuilding';
 import { Synthesis } from '../value-objects/Synthesis';
 import { ChapterSummaries } from '../value-objects/ChapterSummaries';
+import { CanonFacts } from '../value-objects/CanonFacts';
 import { ChapterGeneration } from '../value-objects/ChapterGeneration';
 import { ChapterGenerationTypeKey } from '../value-objects/ChapterGenerationType';
 import { ChatMessage } from '../value-objects/ChatMessage';
@@ -114,6 +115,17 @@ export interface LLMProvider {
    * @throws Error if generation fails or API is unavailable
    */
   generateCharacters(fullText: string): Promise<Characters>;
+
+  /**
+   * Extracts established atomic canon facts about the given known characters.
+   * Each fact carries the 0-based chapter index where it becomes true.
+   *
+   * @param fullText The complete manuscript (chapters separated, in order)
+   * @param characterNames The known cast — facts are extracted only for these
+   * @returns Promise resolving to structured CanonFacts
+   * @throws Error if generation fails or API is unavailable
+   */
+  generateCanonFacts(fullText: string, characterNames: string[]): Promise<CanonFacts>;
 
   /**
    * Generates plot analysis for the given text.

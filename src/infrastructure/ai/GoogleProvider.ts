@@ -13,6 +13,11 @@ import { Plot } from '@/domain/value-objects/Plot';
 import { Worldbuilding } from '@/domain/value-objects/Worldbuilding';
 import { Synthesis } from '@/domain/value-objects/Synthesis';
 import { ChapterSummaries } from '@/domain/value-objects/ChapterSummaries';
+import { CanonFacts } from '@/domain/value-objects/CanonFacts';
+import {
+  buildCanonFactsUserMessage,
+  parseCanonFactsJson,
+} from './canon-facts-parsing';
 import { ChapterGeneration } from '@/domain/value-objects/ChapterGeneration';
 import { ChapterGenerationTypeKey } from '@/domain/value-objects/ChapterGenerationType';
 import { ChatMessage } from '@/domain/value-objects/ChatMessage';
@@ -1136,6 +1141,38 @@ INSTRUCTIONS:
         throw error;
       }
       throw new Error('Unknown error during chapter summaries generation');
+    }
+  }
+
+  async generateCanonFacts(
+    fullText: string,
+    characterNames: string[]
+  ): Promise<CanonFacts> {
+    const systemPrompt = await this.promptRepository.getCanonFactsPrompt();
+
+    try {
+      const result = await this.generateContentTracked(
+        systemPrompt,
+        buildCanonFactsUserMessage(fullText, characterNames),
+        {
+          temperature: 0.2,
+          maxOutputTokens: 4096,
+          thinkingConfig: {
+            thinkingLevel: ThinkingLevel.MINIMAL,
+          },
+        }
+      );
+      const content = result.text;
+      if (!content) {
+        throw new Error('Empty response from Google AI');
+      }
+
+      return parseCanonFactsJson(this.extractJson(content));
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error during canon facts generation');
     }
   }
 

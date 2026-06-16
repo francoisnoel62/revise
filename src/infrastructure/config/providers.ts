@@ -37,6 +37,8 @@ import { MongoDBWritingQuotaRepository } from '@/infrastructure/persistence/Mong
 import { MongoDBUsageRepository } from '@/infrastructure/persistence/MongoDBUsageRepository';
 import { MongoDBAutocompleteEventRepository } from '@/infrastructure/persistence/MongoDBAutocompleteEventRepository';
 import { AutocompleteEventRepository } from '@/domain/interfaces/AutocompleteEventRepository';
+import { MongoDBCanonFactRepository } from '@/infrastructure/persistence/MongoDBCanonFactRepository';
+import { CanonFactRepository } from '@/domain/interfaces/CanonFactRepository';
 import { MongoDBExchangeRepository } from '@/infrastructure/persistence/MongoDBExchangeRepository';
 import { getFieldEncryption } from '@/infrastructure/security/FieldEncryption';
 import { MongoDBModelPricingRepository } from '@/infrastructure/persistence/MongoDBModelPricingRepository';
@@ -253,6 +255,20 @@ export async function getAutocompleteEventRepository(): Promise<AutocompleteEven
     await autocompleteEventRepoInstance.ensureIndexes();
   }
   return autocompleteEventRepoInstance;
+}
+
+/**
+ * Get the canon-fact repository (the canon ledger; atomic manuscript facts).
+ */
+let canonFactRepoInstance: MongoDBCanonFactRepository | null = null;
+
+export async function getCanonFactRepository(): Promise<CanonFactRepository> {
+  if (!canonFactRepoInstance) {
+    const db = await getDatabase();
+    canonFactRepoInstance = new MongoDBCanonFactRepository(db);
+    await canonFactRepoInstance.ensureIndexes();
+  }
+  return canonFactRepoInstance;
 }
 
 /**

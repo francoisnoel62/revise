@@ -13,6 +13,11 @@ import { Plot } from '@/domain/value-objects/Plot';
 import { Worldbuilding } from '@/domain/value-objects/Worldbuilding';
 import { Synthesis } from '@/domain/value-objects/Synthesis';
 import { ChapterSummaries } from '@/domain/value-objects/ChapterSummaries';
+import { CanonFacts } from '@/domain/value-objects/CanonFacts';
+import {
+  buildCanonFactsUserMessage,
+  parseCanonFactsJson,
+} from './canon-facts-parsing';
 import { ChapterGeneration } from '@/domain/value-objects/ChapterGeneration';
 import { ChapterGenerationTypeKey } from '@/domain/value-objects/ChapterGenerationType';
 import { ChatMessage } from '@/domain/value-objects/ChatMessage';
@@ -1265,6 +1270,34 @@ INSTRUCTIONS:
         throw error;
       }
       throw new Error('Unknown error during chapter summaries generation');
+    }
+  }
+
+  async generateCanonFacts(
+    fullText: string,
+    characterNames: string[]
+  ): Promise<CanonFacts> {
+    const systemPrompt = await this.promptRepository.getCanonFactsPrompt();
+    const userPrompt = buildCanonFactsUserMessage(fullText, characterNames);
+
+    try {
+      const isReasoning = this.isReasoningModel();
+      const completion = await this.createChatCompletion(systemPrompt, userPrompt, {
+        ...this.getResponseFormatParam(),
+        ...(isReasoning ? {} : { temperature: 0.2 }),
+        ...this.getTokenLimitParam(4096),
+      });
+      const content = completion.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('Empty response from OpenAI');
+      }
+
+      return parseCanonFactsJson(content);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error during canon facts generation');
     }
   }
 

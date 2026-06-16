@@ -4,11 +4,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   canGenerateChapter,
+  canGenerateCanonFacts,
   canGenerateMetadata,
   cleanupChapterGenerationEntries,
   cleanupMetadataGenerationEntries,
   cleanupTelemetryEntries,
   consumeTelemetryQuota,
+  recordCanonFactsGeneration,
   recordChapterGeneration,
   recordMetadataGeneration,
   TELEMETRY_MAX_PER_WINDOW,
@@ -36,6 +38,24 @@ describe('generation rate limiters', () => {
 
     vi.advanceTimersByTime(30_000);
     expect(canGenerateMetadata(userId, 'characters').allowed).toBe(true);
+  });
+
+  it('rate limits canon-fact generation independently from metadata and chapters', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-15T10:00:00Z'));
+    const userId = 'canon-user-1';
+
+    expect(canGenerateCanonFacts(userId).allowed).toBe(true);
+
+    recordCanonFactsGeneration(userId);
+
+    expect(canGenerateCanonFacts(userId)).toEqual({ allowed: false, waitSeconds: 30 });
+    // Generating canon facts does not affect metadata or chapter cooldowns.
+    expect(canGenerateMetadata(userId, 'characters').allowed).toBe(true);
+    expect(canGenerateChapter(userId, 'chapter-full').allowed).toBe(true);
+
+    vi.advanceTimersByTime(30_000);
+    expect(canGenerateCanonFacts(userId).allowed).toBe(true);
   });
 
   it('rate limits chapter generation independently by type', () => {

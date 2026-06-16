@@ -19,6 +19,7 @@ export interface LifecyclePayload {
   intent: AutocompleteIntent;
   providerType: string | null;
   model: string | null;
+  canonFactsCount: number | null;
   outcome: AutocompleteOutcome;
 }
 
@@ -49,6 +50,7 @@ interface ActiveState {
   partialAccepted: boolean;
   providerType: string | null;
   model: string | null;
+  canonFactsCount: number | null;
 }
 
 function countWords(text: string): number {
@@ -99,15 +101,21 @@ export class AutocompleteLifecycleTracker {
       partialAccepted: false,
       providerType: null,
       model: null,
+      canonFactsCount: null,
     };
     return suggestionId;
   }
 
   /** Attach provider metadata reported by the streaming route. */
-  setProviderMetadata(providerType: string | null, model: string | null): void {
+  setProviderMetadata(
+    providerType: string | null,
+    model: string | null,
+    canonFactsCount: number | null = null
+  ): void {
     if (this.active) {
       this.active.providerType = providerType;
       this.active.model = model;
+      this.active.canonFactsCount = canonFactsCount;
     }
   }
 
@@ -196,6 +204,7 @@ export class AutocompleteLifecycleTracker {
       intent: a.intent,
       providerType: a.providerType,
       model: a.model,
+      canonFactsCount: a.canonFactsCount,
       outcome,
     };
   }

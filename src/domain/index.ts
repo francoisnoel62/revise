@@ -19,6 +19,11 @@ export {
   type AutocompleteEventProperties,
   type CreateAutocompleteEventProps,
 } from './entities/AutocompleteEvent';
+export {
+  CanonFact,
+  type CanonFactProperties,
+  type CreateCanonFactProps,
+} from './entities/CanonFact';
 export { ProjectTask, type ProjectTaskProperties } from './entities/ProjectTask';
 export { Character, type CharacterProperties } from './entities/Character';
 export {
@@ -72,6 +77,16 @@ export {
   isValidAIOperationType,
 } from './value-objects/AIOperationType';
 export {
+  type CanonFactSource,
+  CANON_FACT_SOURCES,
+  isValidCanonFactSource,
+} from './value-objects/CanonFactSource';
+export {
+  type CanonFacts,
+  type ExtractedCanonFact,
+  isValidExtractedCanonFact,
+} from './value-objects/CanonFacts';
+export {
   type AutocompleteOutcome,
   AUTOCOMPLETE_OUTCOMES,
   isValidAutocompleteOutcome,
@@ -123,6 +138,7 @@ export type {
   AutocompleteProviderModelStats,
   AutocompleteStats,
 } from './interfaces/AutocompleteEventRepository';
+export type { CanonFactRepository } from './interfaces/CanonFactRepository';
 export type { ProjectTaskRepository, TaskFilters, TaskSortOptions } from './interfaces/ProjectTaskRepository';
 export type { CharacterRepository } from './interfaces/CharacterRepository';
 export type {

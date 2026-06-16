@@ -15,6 +15,7 @@ import { ProjectTaskRepository } from '@/domain/interfaces/ProjectTaskRepository
 import { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
 import { AIExchangeRepository } from '@/domain/interfaces/AIExchangeRepository';
 import { AutocompleteEventRepository } from '@/domain/interfaces/AutocompleteEventRepository';
+import { CanonFactRepository } from '@/domain/interfaces/CanonFactRepository';
 
 export interface DeleteUserAccountInput {
   userId: string;
@@ -58,7 +59,8 @@ export class DeleteUserAccountUseCase {
     private projectTaskRepository?: ProjectTaskRepository,
     private aiUsageRepository?: AIUsageRepository,
     private aiExchangeRepository?: AIExchangeRepository,
-    private autocompleteEventRepository?: AutocompleteEventRepository
+    private autocompleteEventRepository?: AutocompleteEventRepository,
+    private canonFactRepository?: CanonFactRepository
   ) {}
 
   async execute(input: DeleteUserAccountInput): Promise<DeleteUserAccountResult> {
@@ -97,6 +99,7 @@ export class DeleteUserAccountUseCase {
     await this.aiUsageRepository?.deleteAllByOwner(input.userId);
     await this.aiExchangeRepository?.deleteAllByOwner(input.userId);
     await this.autocompleteEventRepository?.deleteAllByOwner(input.userId);
+    await this.canonFactRepository?.deleteAllByOwner(input.userId);
 
     // Delete projects
     const projectsDeleted = await this.projectRepository.deleteAllByOwner(input.userId);

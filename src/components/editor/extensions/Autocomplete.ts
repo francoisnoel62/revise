@@ -348,7 +348,8 @@ async function streamCompletion(
             if (parsed.type === 'metadata') {
               storage.tracker.setProviderMetadata(
                 typeof parsed.providerType === 'string' ? parsed.providerType : null,
-                typeof parsed.model === 'string' ? parsed.model : null
+                typeof parsed.model === 'string' ? parsed.model : null,
+                typeof parsed.canonFactsCount === 'number' ? parsed.canonFactsCount : null
               );
               continue;
             }

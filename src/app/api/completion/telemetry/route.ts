@@ -30,6 +30,7 @@ interface LifecyclePayload {
   intent?: string;
   providerType?: string | null;
   model?: string | null;
+  canonFactsCount?: number | null;
   outcome: string;
 }
 
@@ -121,6 +122,9 @@ export async function POST(request: NextRequest) {
           body.intent && isValidAutocompleteIntent(body.intent) ? body.intent : null,
         outcome: body.outcome as AutocompleteOutcome,
         deletedAfterMs: null,
+        canonFactsCount: isNonNegativeNumber(body.canonFactsCount)
+          ? body.canonFactsCount
+          : null,
       });
       await repo.save(event);
     } catch (error) {

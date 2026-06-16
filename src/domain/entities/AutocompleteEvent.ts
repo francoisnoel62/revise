@@ -28,6 +28,7 @@ export interface AutocompleteEventProperties {
   intent: AutocompleteIntent | null;
   outcome: AutocompleteOutcome;
   deletedAfterMs: number | null;
+  canonFactsCount: number | null;
   createdAt: Date;
 }
 
@@ -51,6 +52,7 @@ export class AutocompleteEvent {
   private readonly intent: AutocompleteIntent | null;
   private readonly outcome: AutocompleteOutcome;
   private readonly deletedAfterMs: number | null;
+  private readonly canonFactsCount: number | null;
   private readonly createdAt: Date;
 
   private constructor(props: AutocompleteEventProperties) {
@@ -73,6 +75,7 @@ export class AutocompleteEvent {
     this.intent = props.intent;
     this.outcome = props.outcome;
     this.deletedAfterMs = props.deletedAfterMs;
+    this.canonFactsCount = props.canonFactsCount;
     this.createdAt = props.createdAt;
   }
 
@@ -93,6 +96,7 @@ export class AutocompleteEvent {
     this.requireNonNegative(props.acceptedChars, 'acceptedChars');
     this.requireNonNegative(props.acceptedWords, 'acceptedWords');
     this.requireNonNegativeOrNull(props.deletedAfterMs, 'deletedAfterMs');
+    this.requireNonNegativeOrNull(props.canonFactsCount, 'canonFactsCount');
     if (props.outcome === 'empty' && props.firstTokenMs !== null) {
       throw new Error('firstTokenMs must be null when outcome is empty');
     }
@@ -168,6 +172,9 @@ export class AutocompleteEvent {
   }
   getDeletedAfterMs(): number | null {
     return this.deletedAfterMs;
+  }
+  getCanonFactsCount(): number | null {
+    return this.canonFactsCount;
   }
   getCreatedAt(): Date {
     return this.createdAt;

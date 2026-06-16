@@ -233,6 +233,46 @@ export function cleanupChapterGenerationEntries(): void {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Canon-fact generation rate limiting (independent namespace + cooldown).
+// ---------------------------------------------------------------------------
+
+const canonFactsGenerationLimits = new Map<string, number>();
+const CANON_FACTS_COOLDOWN_MS = 30000; // 30 seconds per user
+
+/**
+ * Check if a user can (re)generate canon facts for a project now.
+ *
+ * @param userId The user ID to check
+ * @returns Object with allowed flag and optional wait time
+ */
+export function canGenerateCanonFacts(userId: string): {
+  allowed: boolean;
+  waitSeconds?: number;
+} {
+  const lastGeneration = canonFactsGenerationLimits.get(userId);
+  if (!lastGeneration) {
+    return { allowed: true };
+  }
+
+  const elapsed = Date.now() - lastGeneration;
+  if (elapsed < CANON_FACTS_COOLDOWN_MS) {
+    const waitSeconds = Math.ceil((CANON_FACTS_COOLDOWN_MS - elapsed) / 1000);
+    return { allowed: false, waitSeconds };
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Record a canon-fact generation attempt.
+ *
+ * @param userId The user ID performing the generation
+ */
+export function recordCanonFactsGeneration(userId: string): void {
+  canonFactsGenerationLimits.set(userId, Date.now());
+}
+
 /**
  * Sliding-window rate limiting for autocomplete telemetry ingestion.
  *

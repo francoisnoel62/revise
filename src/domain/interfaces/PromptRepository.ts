@@ -65,6 +65,14 @@ export interface PromptRepository {
   getChapterSummariesPrompt(): Promise<string>;
 
   /**
+   * Get the system prompt for canon-fact extraction.
+   * Extracts established atomic facts about known characters with temporal validity.
+   *
+   * @returns The complete canon-facts prompt
+   */
+  getCanonFactsPrompt(): Promise<string>;
+
+  /**
    * Get the system prompt for chapter beginning generation.
    * Generates an opening for a new chapter (10 phrases).
    *

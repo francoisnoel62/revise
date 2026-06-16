@@ -28,6 +28,7 @@ function baseProps(
     intent: 'natural',
     outcome: 'accepted_full',
     deletedAfterMs: null,
+    canonFactsCount: null,
     ...overrides,
   };
 }

@@ -18,6 +18,7 @@ priorité réaliste de la roadmap : instrumenter → améliorer le cœur → dé
 | 5 | [variantes discrètes](05_variantes-discretes.md) | 6 | Intentions implicites (plus bref / tendu / concret / dialogue) |
 | 6 | [déclassement génération chapitre](06_declassement-generation-chapitre.md) | 7 | Sortir la génération longue du flux principal (sans supprimer) |
 | 7 | [expérimentation A/B](07_experimentation-ab.md) | 12 | Comparer stratégies de contexte sur données réelles |
+| 8 | [registre de canon](08_registre-de-canon.md) | — | Faits atomiques par personnage, validité temporelle, injection au prompt |
 
 **Dépendances :** le plan 1 (instrumentation) débloque le plan 7 (A/B) — sans signaux, pas de
 comparaison. Le plan 4 (contexte dédié) est prérequis du plan 7 (variante B/C). Le plan 6 commence

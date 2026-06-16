@@ -71,6 +71,13 @@ export class FilePromptRepository implements PromptRepository {
   }
 
   /**
+   * Read the canon-facts extraction prompt from markdown file.
+   */
+  async getCanonFactsPrompt(): Promise<string> {
+    return this.readPromptFile('canon-facts.md', 'canon facts');
+  }
+
+  /**
    * Read the chapter beginning generation prompt from markdown file.
    */
   async getChapterBeginningPrompt(): Promise<string> {
