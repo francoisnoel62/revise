@@ -12,4 +12,4 @@ export const LONG_FORM_GENERATION_ENABLED = false;
  * Off by default — enabled behind this flag while its effect is measured
  * (see canonFactsCount on AutocompleteEvent). Flip to true to evaluate locally.
  */
-export const CANON_CONTEXT_ENABLED = false;
+export const CANON_CONTEXT_ENABLED = true;
