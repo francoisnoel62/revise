@@ -14,8 +14,8 @@ describe('autocomplete hint helpers', () => {
     expect(autocompleteShortcutHints()).toEqual([
       { keys: 'Tab', label: 'accepter' },
       { keys: 'Echap', label: 'ignorer' },
-      { keys: 'Ctrl/Cmd+->', label: 'mot' },
-      { keys: 'Alt+->', label: 'fragment' },
+      { keys: 'Ctrl/Cmd+→', label: 'mot' },
+      { keys: 'Alt+→', label: 'fragment' },
     ]);
   });
 

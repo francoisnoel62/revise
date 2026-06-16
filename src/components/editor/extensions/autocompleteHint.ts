@@ -27,8 +27,8 @@ export interface AutocompleteVariantHintItem {
 export const AUTOCOMPLETE_SHORTCUT_HINTS: AutocompleteShortcutHintItem[] = [
   { keys: 'Tab', label: 'accepter' },
   { keys: 'Echap', label: 'ignorer' },
-  { keys: 'Ctrl/Cmd+->', label: 'mot' },
-  { keys: 'Alt+->', label: 'fragment' },
+  { keys: 'Ctrl/Cmd+→', label: 'mot' },
+  { keys: 'Alt+→', label: 'fragment' },
 ];
 
 export const AUTOCOMPLETE_VARIANT_ORDER: AutocompleteIntent[] = [

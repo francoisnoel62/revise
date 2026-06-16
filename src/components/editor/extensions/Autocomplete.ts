@@ -636,7 +636,7 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
                 spinner.className = 'autocomplete-spinner';
                 spinner.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;margin-left:2px;animation:spin 1s linear infinite;">
                   <style>@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }</style>
-                  <circle cx="12" cy="12" r="10" stroke="#9ca3af" stroke-width="3" fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"/>
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"/>
                 </svg>`;
                 spinner.style.pointerEvents = 'none';
                 return spinner;
