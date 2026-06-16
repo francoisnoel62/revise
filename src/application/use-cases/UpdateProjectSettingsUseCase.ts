@@ -6,6 +6,7 @@ import { ProjectSettingsRepository } from '@/domain/interfaces/ProjectSettingsRe
 import { Contributor } from '@/domain/value-objects/Contributor';
 import { RelatedWork } from '@/domain/value-objects/RelatedWork';
 import { PointOfView, NarrationTense, TargetAudience } from '@/domain/value-objects/NarrationSettings';
+import { AutocompletePreferences } from '@/domain/value-objects/AutocompletePreferences';
 
 export interface ProjectSettingsUpdates {
   title?: string;
@@ -19,6 +20,7 @@ export interface ProjectSettingsUpdates {
   isbn?: string;
   contributors?: Contributor[];
   relatedWorks?: RelatedWork[];
+  autocompletePreferences?: Partial<AutocompletePreferences>;
 }
 
 export interface UpdateProjectSettingsInput {
@@ -82,6 +84,10 @@ export class UpdateProjectSettingsUseCase {
 
     if ('relatedWorks' in updates) {
       updated = updated.updateRelatedWorks(updates.relatedWorks!);
+    }
+
+    if ('autocompletePreferences' in updates) {
+      updated = updated.updateAutocompletePreferences(updates.autocompletePreferences!);
     }
 
     return this.repository.update(input.userId, updated);

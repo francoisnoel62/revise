@@ -1,5 +1,5 @@
 // ABOUTME: TipTap extension for AI-powered text autocompletion
-// ABOUTME: Shows ghost text suggestions on Tab, accepts with second Tab
+// ABOUTME: Silent prefetch on idle → breathing dot → ghost text on Tab → accept
 
 import { Extension, Editor } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
@@ -21,39 +21,22 @@ import {
   autocompleteVariantHints,
   shouldShowAutocompleteVariantHint,
 } from './autocompleteHint';
+import type { SuggestionLength, AudaceLevel } from '@/domain/value-objects/AutocompletePreferences';
 
 export interface AutocompleteOptions {
-  /**
-   * Function to fetch completion from server (non-streaming)
-   */
   onComplete: (
     textBeforeCursor: string,
     textAfterCursor: string
   ) => Promise<string | null>;
-  /**
-   * Project ID for streaming completions
-   */
   projectId?: string;
-  /**
-   * Current chapter ID — used to inject chapter-linked research docs as context
-   */
   chapterId?: string;
-  /**
-   * Whether to use streaming mode
-   */
   useStreaming: boolean;
-  /**
-   * Whether autocompletion is enabled
-   */
   enabled: boolean;
-  /**
-   * Whether to emit instrumentation events (measurement only, no UX change)
-   */
   telemetryEnabled?: boolean;
-  /**
-   * Sink for instrumentation events (fire-and-forget)
-   */
   onEvent?: (payload: LifecyclePayload | DeletionPayload) => void;
+  suggestionLength?: SuggestionLength;
+  audace?: AudaceLevel;
+  partialAcceptance?: boolean;
 }
 
 export interface AutocompleteStorage {
@@ -65,18 +48,17 @@ export interface AutocompleteStorage {
   tracker: AutocompleteLifecycleTracker;
   acceptingInsertion: boolean;
   currentIntent: AutocompleteIntent;
+  prefetchedSuggestion: string | null;
+  prefetchAbortController: AbortController | null;
+  idleTimerHandle: ReturnType<typeof globalThis.setTimeout> | null;
+  rejectionHintVisible: boolean;
+  rejectionHintTimerHandle: ReturnType<typeof globalThis.setTimeout> | null;
 }
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     autocomplete: {
-      /**
-       * Set whether autocompletion is enabled
-       */
       setAutocompleteEnabled: (enabled: boolean) => ReturnType;
-      /**
-       * Set the current chapter ID (for chapter-linked research context)
-       */
       setAutocompleteChapterId: (chapterId?: string) => ReturnType;
     };
   }
@@ -84,12 +66,13 @@ declare module '@tiptap/core' {
 
 const autocompletePluginKey = new PluginKey('autocomplete');
 
-// Window (ms) to watch whether an accepted suggestion is deleted shortly after insertion.
 const DELETION_WATCH_MS = 30000;
 
-/**
- * Forward a telemetry payload to the sink, respecting the enabled flag. No-op on null.
- */
+/** Returns true if text ends with a sentence-boundary character. */
+export function endsWithSentenceBoundary(text: string): boolean {
+  return /[.!?…]\s*$/.test(text.trimEnd());
+}
+
 function emitEvent(
   options: AutocompleteOptions,
   payload: LifecyclePayload | DeletionPayload | null
@@ -154,23 +137,17 @@ function createAutocompleteHint(intent: AutocompleteIntent): HTMLElement {
   return hint;
 }
 
-/**
- * Accept the next segment (word or fragment) of the current suggestion, keeping the rest
- * as ghost text. Records the partial acceptance; if nothing remains, the lifecycle is complete.
- */
 function acceptSegment(
   editor: Editor,
   storage: AutocompleteStorage,
   options: AutocompleteOptions,
   splitter: (s: string) => { take: string; rest: string }
 ): boolean {
-  if (!storage.enabled || !storage.suggestion) {
+  if (!storage.enabled || !storage.suggestion || options.partialAcceptance === false) {
     return false;
   }
   const { take, rest } = splitter(storage.suggestion);
-  if (!take) {
-    return false;
-  }
+  if (!take) return false;
 
   storage.acceptingInsertion = true;
   editor.commands.insertContent(take);
@@ -180,7 +157,6 @@ function acceptSegment(
   storage.suggestion = rest || null;
 
   if (!storage.suggestion) {
-    // Whole suggestion consumed piecewise → full acceptance.
     emitEvent(options, storage.tracker.accept());
   } else {
     editor.view.dispatch(editor.state.tr);
@@ -188,10 +164,6 @@ function acceptSegment(
   return true;
 }
 
-/**
- * After an accepted suggestion, check once (after a delay) whether the inserted
- * text was removed; if so, emit a deletion event. Best-effort, never blocks.
- */
 function scheduleDeletionWatch(
   editor: Editor,
   options: AutocompleteOptions,
@@ -216,44 +188,34 @@ function scheduleDeletionWatch(
   }, DELETION_WATCH_MS);
 }
 
-/**
- * Trigger completion request (non-streaming)
- */
-function triggerCompletion(
-  editor: Editor,
-  storage: AutocompleteStorage,
-  options: AutocompleteOptions
-): void {
-  if (storage.isLoading) {
-    return;
-  }
-
-  // Get text before and after cursor
+function buildContext(
+  editor: Editor
+): { textBefore: string; textAfter: string } {
   const { state } = editor;
   const { selection, doc } = state;
   const pos = selection.from;
-
-  // Local scene window, anchored on the cursor. Large enough to carry the current
-  // scene so the model continues from what's right before the cursor — not from the
-  // chapter's end (which is downstream of the cursor when writing mid-chapter).
   const textBefore = doc.textBetween(Math.max(0, pos - 3000), pos, '\n', '\n');
-
-  // A short look-ahead lets the model bridge when inserting inside an existing scene.
   const textAfter = doc.textBetween(
     pos,
     Math.min(doc.content.size, pos + 400),
     '\n',
     '\n'
   );
+  return { textBefore, textAfter };
+}
 
-  // Don't trigger if no text before cursor
-  if (!textBefore.trim()) {
-    return;
-  }
+function triggerCompletion(
+  editor: Editor,
+  storage: AutocompleteStorage,
+  options: AutocompleteOptions
+): void {
+  if (storage.isLoading) return;
+
+  const { textBefore, textAfter } = buildContext(editor);
+  if (!textBefore.trim()) return;
 
   storage.isLoading = true;
 
-  // Begin instrumentation lifecycle for this suggestion (measurement only)
   if (options.telemetryEnabled !== false) {
     storage.tracker.start({
       projectId: options.projectId,
@@ -262,19 +224,15 @@ function triggerCompletion(
     });
   }
 
-  // Force view update to show spinner immediately
   editor.view.dispatch(editor.state.tr);
 
   if (options.useStreaming && options.projectId) {
-    // Use streaming mode
-    streamCompletion(editor, storage, options, textBefore, textAfter);
+    streamCompletion(editor, storage, options, textBefore, textAfter, false);
   } else {
-    // Use non-streaming mode
     options
       .onComplete(textBefore, textAfter)
       .then((suggestion) => {
         storage.isLoading = false;
-
         if (suggestion) {
           storage.suggestion = suggestion;
           storage.tracker.markFirstToken();
@@ -282,21 +240,42 @@ function triggerCompletion(
         } else {
           emitEvent(options, storage.tracker.finishEmpty());
         }
-        // Force view update to show ghost text or remove spinner
         editor.view.dispatch(editor.state.tr);
       })
       .catch(() => {
         storage.isLoading = false;
-        // Force view update to remove spinner
         editor.view.dispatch(editor.state.tr);
       });
   }
 }
 
-/**
- * Discreetly re-request a completion under a chosen intent: abort any in-flight
- * request, drop the current ghost text, then trigger a fresh completion.
- */
+function triggerPrefetch(
+  editor: Editor,
+  storage: AutocompleteStorage,
+  options: AutocompleteOptions
+): void {
+  if (storage.isLoading || storage.prefetchedSuggestion || storage.suggestion) return;
+
+  const { textBefore, textAfter } = buildContext(editor);
+  if (!textBefore.trim()) return;
+
+  if (options.useStreaming && options.projectId) {
+    streamCompletion(editor, storage, options, textBefore, textAfter, true);
+  } else {
+    options
+      .onComplete(textBefore, textAfter)
+      .then((suggestion) => {
+        if (suggestion) {
+          storage.prefetchedSuggestion = suggestion;
+          editor.view.dispatch(editor.state.tr);
+        }
+      })
+      .catch(() => {
+        // Silent failure — prefetch is best-effort
+      });
+  }
+}
+
 function regenerateWithIntent(
   editor: Editor,
   storage: AutocompleteStorage,
@@ -304,63 +283,55 @@ function regenerateWithIntent(
   intent: AutocompleteIntent
 ): void {
   storage.currentIntent = intent;
-  if (storage.abortController) {
-    storage.abortController.abort();
-    storage.abortController = null;
-  }
+  storage.abortController?.abort();
+  storage.abortController = null;
   storage.suggestion = null;
   storage.isLoading = false;
   triggerCompletion(editor, storage, options);
 }
 
-/**
- * Stream completion from SSE endpoint
- */
 async function streamCompletion(
   editor: Editor,
   storage: AutocompleteStorage,
   options: AutocompleteOptions,
   textBefore: string,
-  textAfter: string
+  textAfter: string,
+  isPrefetch: boolean
 ): Promise<void> {
-  // Create abort controller for cancellation
   const abortController = new AbortController();
-  storage.abortController = abortController;
+  if (isPrefetch) {
+    storage.prefetchAbortController = abortController;
+  } else {
+    storage.abortController = abortController;
+  }
 
   try {
     const response = await fetch('/api/completion/stream', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         projectId: options.projectId,
         textBeforeCursor: textBefore,
         textAfterCursor: textAfter,
         chapterId: storage.chapterId,
         intent: storage.currentIntent,
+        suggestionLength: options.suggestionLength,
+        audace: options.audace,
       }),
       signal: abortController.signal,
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch completion');
-    }
+    if (!response.ok) throw new Error('Failed to fetch completion');
 
     const reader = response.body?.getReader();
-    if (!reader) {
-      throw new Error('No response body');
-    }
+    if (!reader) throw new Error('No response body');
 
     const decoder = new TextDecoder();
     let accumulated = '';
 
     while (true) {
       const { done, value } = await reader.read();
-
-      if (done) {
-        break;
-      }
+      if (done) break;
 
       const chunk = decoder.decode(value);
       const lines = chunk.split('\n');
@@ -368,19 +339,13 @@ async function streamCompletion(
       for (const line of lines) {
         if (line.startsWith('data: ')) {
           const data = line.slice(6);
-
-          if (data === '[DONE]') {
-            continue;
-          }
+          if (data === '[DONE]') continue;
 
           try {
             const parsed = JSON.parse(data);
+            if (parsed.error) throw new Error(parsed.error);
 
-            if (parsed.error) {
-              throw new Error(parsed.error);
-            }
-
-            if (parsed.type === 'metadata') {
+            if (!isPrefetch && parsed.type === 'metadata') {
               storage.tracker.setProviderMetadata(
                 typeof parsed.providerType === 'string' ? parsed.providerType : null,
                 typeof parsed.model === 'string' ? parsed.model : null,
@@ -390,12 +355,13 @@ async function streamCompletion(
             }
 
             if (parsed.text) {
-              // First token latency (perceived) — idempotent
-              storage.tracker.markFirstToken();
+              if (!isPrefetch) storage.tracker.markFirstToken();
               accumulated += parsed.text;
-              storage.suggestion = accumulated;
-
-              // Force view update to show updated ghost text
+              if (isPrefetch) {
+                storage.prefetchedSuggestion = accumulated;
+              } else {
+                storage.suggestion = accumulated;
+              }
               editor.view.dispatch(editor.state.tr);
             }
           } catch {
@@ -405,26 +371,27 @@ async function streamCompletion(
       }
     }
 
-    storage.isLoading = false;
-    storage.abortController = null;
-
-    // Instrumentation: empty response (silence) vs shown suggestion
-    if (accumulated.trim().length === 0) {
-      emitEvent(options, storage.tracker.finishEmpty());
+    if (isPrefetch) {
+      storage.prefetchAbortController = null;
     } else {
-      storage.tracker.markShown(accumulated);
+      storage.isLoading = false;
+      storage.abortController = null;
+      if (accumulated.trim().length === 0) {
+        emitEvent(options, storage.tracker.finishEmpty());
+      } else {
+        storage.tracker.markShown(accumulated);
+      }
     }
 
-    // Force view update to remove spinner
     editor.view.dispatch(editor.state.tr);
   } catch (error) {
-    storage.isLoading = false;
-    storage.abortController = null;
-
-    // Force view update to remove spinner
-    editor.view.dispatch(editor.state.tr);
-
-    // Don't log abort errors (user cancelled)
+    if (isPrefetch) {
+      storage.prefetchAbortController = null;
+    } else {
+      storage.isLoading = false;
+      storage.abortController = null;
+      editor.view.dispatch(editor.state.tr);
+    }
     if (error instanceof Error && error.name !== 'AbortError') {
       console.error('Completion error:', error);
     }
@@ -443,6 +410,9 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
       enabled: true,
       telemetryEnabled: true,
       onEvent: undefined,
+      suggestionLength: undefined,
+      audace: undefined,
+      partialAcceptance: true,
     };
   },
 
@@ -456,6 +426,11 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
       tracker: new AutocompleteLifecycleTracker(),
       acceptingInsertion: false,
       currentIntent: 'natural',
+      prefetchedSuggestion: null,
+      prefetchAbortController: null,
+      idleTimerHandle: null,
+      rejectionHintVisible: false,
+      rejectionHintTimerHandle: null,
     };
   },
 
@@ -476,23 +451,21 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
     };
   },
 
+  onDestroy() {
+    globalThis.clearTimeout(this.storage.idleTimerHandle ?? undefined);
+    globalThis.clearTimeout(this.storage.rejectionHintTimerHandle ?? undefined);
+    this.storage.abortController?.abort();
+    this.storage.prefetchAbortController?.abort();
+  },
+
   addKeyboardShortcuts() {
-    // Ctrl/Cmd+1..5 pick a variant directly (the number shown in the hint),
-    // so the author can jump to a flavor without cycling through the others.
-    const numberShortcuts: Record<
-      string,
-      (props: { editor: Editor }) => boolean
-    > = {};
+    const numberShortcuts: Record<string, (props: { editor: Editor }) => boolean> = {};
     for (let n = 1; n <= AUTOCOMPLETE_INTENTS.length; n++) {
       numberShortcuts[`Mod-${n}`] = ({ editor }) => {
         const { storage } = this;
-        if (!storage.enabled || (!storage.suggestion && !storage.isLoading)) {
-          return false;
-        }
+        if (!storage.enabled || (!storage.suggestion && !storage.isLoading)) return false;
         const intent = autocompleteIntentByNumber(n);
-        if (!intent) {
-          return false;
-        }
+        if (!intent) return false;
         regenerateWithIntent(editor, storage, this.options, intent);
         return true;
       };
@@ -500,58 +473,54 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
 
     return {
       ...numberShortcuts,
+
       Tab: ({ editor }) => {
         const { storage } = this;
+        if (!storage.enabled) return false;
 
-        if (!storage.enabled) {
-          return false;
+        // Promote silent prefetch to visible ghost text
+        if (storage.prefetchedSuggestion) {
+          storage.suggestion = storage.prefetchedSuggestion;
+          storage.prefetchedSuggestion = null;
+          if (this.options.telemetryEnabled !== false) {
+            storage.tracker.start({
+              projectId: this.options.projectId,
+              chapterId: storage.chapterId ?? null,
+              intent: storage.currentIntent,
+            });
+            storage.tracker.markFirstToken();
+            storage.tracker.markShown(storage.suggestion);
+          }
+          editor.view.dispatch(editor.state.tr);
+          return true;
         }
 
-        // If we have a suggestion, insert it
+        // Accept visible suggestion
         if (storage.suggestion) {
           const suggestion = storage.suggestion;
           storage.suggestion = null;
-
-          // Capture instrumentation before mutating the document
           const payload = storage.tracker.accept();
           const pos = editor.state.selection.from;
-
-          // Insert the suggestion at cursor position
           storage.acceptingInsertion = true;
           editor.commands.insertContent(suggestion);
           storage.acceptingInsertion = false;
-
           emitEvent(this.options, payload);
           if (payload) {
-            scheduleDeletionWatch(
-              editor,
-              this.options,
-              payload.suggestionId,
-              suggestion,
-              pos
-            );
+            scheduleDeletionWatch(editor, this.options, payload.suggestionId, suggestion, pos);
           }
-
           return true;
         }
 
-        // If already loading, do nothing
-        if (storage.isLoading) {
-          return true;
-        }
+        if (storage.isLoading) return true;
 
-        // A fresh trigger starts from the natural intent.
         storage.currentIntent = 'natural';
         triggerCompletion(editor, storage, this.options);
-
         return true;
       },
+
       'Mod-+': ({ editor }) => {
-        // Discreet "regenerate with another flavor": cycle the intent and re-request.
         const { storage } = this;
-        if (!storage.enabled || (!storage.suggestion && !storage.isLoading)) {
-          return false;
-        }
+        if (!storage.enabled || (!storage.suggestion && !storage.isLoading)) return false;
         regenerateWithIntent(
           editor,
           storage,
@@ -560,31 +529,48 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
         );
         return true;
       },
+
       'Mod-ArrowRight': ({ editor }) => {
-        // Accept the next word, keep the rest as ghost text.
         return acceptSegment(editor, this.storage, this.options, nextWord);
       },
+
       'Alt-ArrowRight': ({ editor }) => {
-        // Accept the next fragment (up to the next strong punctuation).
         return acceptSegment(editor, this.storage, this.options, nextFragment);
       },
+
       Escape: ({ editor }) => {
         const { storage } = this;
 
-        // Cancel ongoing request
-        if (storage.abortController) {
-          storage.abortController.abort();
-          storage.abortController = null;
-        }
+        storage.abortController?.abort();
+        storage.abortController = null;
+        storage.prefetchAbortController?.abort();
+        storage.prefetchAbortController = null;
 
-        // Cancel current suggestion
+        const hadSuggestion = !!(
+          storage.suggestion ||
+          storage.isLoading ||
+          storage.prefetchedSuggestion
+        );
+
         if (storage.suggestion || storage.isLoading) {
           emitEvent(this.options, storage.tracker.reject());
-          storage.suggestion = null;
-          storage.isLoading = false;
+        }
+
+        storage.suggestion = null;
+        storage.isLoading = false;
+        storage.prefetchedSuggestion = null;
+
+        if (hadSuggestion) {
+          storage.rejectionHintVisible = true;
+          globalThis.clearTimeout(storage.rejectionHintTimerHandle ?? undefined);
+          storage.rejectionHintTimerHandle = globalThis.setTimeout(() => {
+            storage.rejectionHintVisible = false;
+            editor.view.dispatch(editor.state.tr);
+          }, 4000);
           editor.view.dispatch(editor.state.tr);
           return true;
         }
+
         return false;
       },
     };
@@ -604,66 +590,109 @@ export const Autocomplete = Extension.create<AutocompleteOptions, AutocompleteSt
           },
 
           apply(tr, _oldDecorations) {
-            // Instrumentation: the author typed instead of accepting → superseded.
-            // Measurement only; does not alter the suggestion/decoration behavior.
-            if (
-              tr.docChanged &&
-              !extension.storage.acceptingInsertion &&
-              extension.storage.tracker.hasActive()
-            ) {
-              globalThis.queueMicrotask(() => {
-                emitEvent(extension.options, extension.storage.tracker.supersede());
-              });
+            const storage = extension.storage;
+
+            if (tr.docChanged) {
+              // Supersede telemetry when the author types instead of accepting
+              if (!storage.acceptingInsertion && storage.tracker.hasActive()) {
+                globalThis.queueMicrotask(() => {
+                  emitEvent(extension.options, storage.tracker.supersede());
+                });
+              }
+
+              // Stale prefetch + dismiss rejection hint on new typing
+              storage.prefetchedSuggestion = null;
+              storage.prefetchAbortController?.abort();
+              storage.prefetchAbortController = null;
+              if (storage.rejectionHintVisible) {
+                storage.rejectionHintVisible = false;
+              }
+
+              // Reset idle timer — only doc changes restart the 10s countdown
+              globalThis.clearTimeout(storage.idleTimerHandle ?? undefined);
+              storage.idleTimerHandle = globalThis.setTimeout(() => {
+                const { state } = extension.editor;
+                const pos = state.selection.from;
+                const textBefore = state.doc.textBetween(
+                  Math.max(0, pos - 500),
+                  pos,
+                  '\n',
+                  '\n'
+                );
+                if (
+                  endsWithSentenceBoundary(textBefore) &&
+                  !storage.suggestion &&
+                  storage.enabled
+                ) {
+                  triggerPrefetch(extension.editor, storage, extension.options);
+                }
+              }, 10000);
+            } else if (tr.selectionSet) {
+              // Cursor moved without typing → prefetch context is stale
+              storage.prefetchedSuggestion = null;
+              storage.prefetchAbortController?.abort();
+              storage.prefetchAbortController = null;
             }
 
-            const { isLoading, suggestion } = extension.storage;
+            const { isLoading, suggestion, prefetchedSuggestion, rejectionHintVisible } = storage;
 
-            // Clear decorations if not loading and no suggestion
-            if (!isLoading && !suggestion) {
+            if (!isLoading && !suggestion && !prefetchedSuggestion && !rejectionHintVisible) {
               return DecorationSet.empty;
             }
 
-            // Create decoration at cursor position
             const { selection } = tr;
-            if (!selection.empty) {
-              return DecorationSet.empty;
-            }
+            if (!selection.empty) return DecorationSet.empty;
 
             const pos = selection.from;
             const decorations: Decoration[] = [];
 
-            // Show spinner while loading (before or during streaming)
             if (isLoading) {
-              const spinnerWidget = Decoration.widget(pos, () => {
-                const spinner = document.createElement('span');
-                spinner.className = 'autocomplete-spinner';
-                spinner.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;margin-left:2px;animation:spin 1s linear infinite;">
-                  <style>@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }</style>
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"/>
-                </svg>`;
-                spinner.style.pointerEvents = 'none';
-                return spinner;
-              }, { side: 1 }); // side: 1 means after the ghost text
-
-              decorations.push(spinnerWidget);
+              decorations.push(
+                Decoration.widget(pos, () => {
+                  const spinner = document.createElement('span');
+                  spinner.className = 'autocomplete-spinner';
+                  spinner.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;margin-left:2px;animation:spin 1s linear infinite;">
+                    <style>@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }</style>
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"/>
+                  </svg>`;
+                  spinner.style.pointerEvents = 'none';
+                  return spinner;
+                }, { side: 1 })
+              );
             }
 
-            // Show ghost text if we have a suggestion
             if (suggestion) {
-              const ghostWidget = Decoration.widget(pos, () => {
-                const span = document.createElement('span');
-                span.className = 'autocomplete-ghost';
-                span.textContent = suggestion;
-                return span;
-              }, { side: 0 }); // side: 0 means before spinner
+              decorations.push(
+                Decoration.widget(pos, () => {
+                  const span = document.createElement('span');
+                  span.className = 'autocomplete-ghost';
+                  span.textContent = suggestion;
+                  return span;
+                }, { side: 0 })
+              );
+              decorations.push(
+                Decoration.widget(pos, () => {
+                  return createAutocompleteHint(extension.storage.currentIntent);
+                }, { side: 2 })
+              );
+            }
 
-              decorations.push(ghostWidget);
-
-              const hintWidget = Decoration.widget(pos, () => {
-                return createAutocompleteHint(extension.storage.currentIntent);
-              }, { side: 2 });
-
-              decorations.push(hintWidget);
+            if (rejectionHintVisible && !suggestion) {
+              const projectId = extension.options.projectId;
+              decorations.push(
+                Decoration.widget(pos, () => {
+                  const span = document.createElement('span');
+                  span.className = 'autocomplete-rejection-hint';
+                  span.textContent = 'Rejeté · ';
+                  if (projectId) {
+                    const link = document.createElement('a');
+                    link.textContent = 'Préférences →';
+                    link.href = `/project/${projectId}/cockpit/settings#autocomplete`;
+                    span.appendChild(link);
+                  }
+                  return span;
+                }, { side: 1 })
+              );
             }
 
             return DecorationSet.create(tr.doc, decorations);
