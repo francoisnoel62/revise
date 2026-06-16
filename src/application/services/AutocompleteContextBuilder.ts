@@ -1,11 +1,8 @@
-// ABOUTME: Manuscript-first context builder for autocompletion (the writing hot path)
-// ABOUTME: Real text first (current chapter) + author intent; derived metadata only if opted in
+// ABOUTME: Long-range context builder for autocompletion (the writing hot path)
+// ABOUTME: Author intent (research) + optional canon facts; the local scene comes from the cursor window
 
-import { ProjectRepository } from '../../domain/interfaces/ProjectRepository';
 import { CanonFactRepository } from '../../domain/interfaces/CanonFactRepository';
-import { Project } from '../../domain/entities/Project';
 import { AIContextBuilder } from './AIContextBuilder';
-import { extractChapterText } from './project-text';
 
 export interface AutocompleteContextInput {
   ownerId: string;
@@ -19,12 +16,6 @@ export interface AutocompleteContextInput {
   entities?: string[];
   /** 0-based index of the current chapter (for temporal canon selection). */
   chapterIndex?: number;
-  /**
-   * Project already loaded by the caller. When provided, the builder reuses it
-   * instead of issuing a second loadProject — the completion route is on the
-   * typing hot path and must not query the same project twice per suggestion.
-   */
-  project?: Project;
 }
 
 export interface AutocompleteContextResult {
@@ -34,39 +25,26 @@ export interface AutocompleteContextResult {
   canonFactsCount: number;
 }
 
-// Tail of the current chapter (chars) included as context — nearest the cursor.
-const CHAPTER_TEXT_CAP = 1500;
-
 // Hard ceiling on canon facts injected, so the realtime prompt never bloats.
 const MAX_CANON_FACTS = 20;
 
 export class AutocompleteContextBuilder {
   constructor(
-    private readonly projectRepository: ProjectRepository,
     private readonly aiContextBuilder: AIContextBuilder,
     private readonly canonFactRepository?: CanonFactRepository
   ) {}
 
   /**
-   * Build a manuscript-first context block to prepend to the completion prompt.
-   * Hierarchy: current chapter text → author intent (research) → metadata (opt-in only).
-   * Returns the assembled context and how many canon facts it injected.
+   * Build the long-range context block to prepend to the completion prompt.
+   * The local scene is supplied separately by the cursor window; this adds only
+   * what is too far to fit there: author intent (research) → metadata (opt-in) →
+   * canon facts (opt-in). Returns the assembled context and how many canon facts it injected.
    */
   async buildContext(
     input: AutocompleteContextInput
   ): Promise<AutocompleteContextResult> {
     const parts: string[] = [];
     let canonFactsCount = 0;
-
-    const chapterText = await this.currentChapterText(
-      input.ownerId,
-      input.projectId,
-      input.chapterId,
-      input.project
-    );
-    if (chapterText) {
-      parts.push(`[CHAPITRE EN COURS]\n${chapterText}`);
-    }
 
     if (input.includeCanon) {
       const canon = await this.buildCanonSection(input);
@@ -131,35 +109,5 @@ export class AutocompleteContextBuilder {
     );
 
     return { text: `[CANON]\n${lines.join('\n')}`, count: selected.length };
-  }
-
-  private async currentChapterText(
-    ownerId: string,
-    projectId: string,
-    chapterId?: string,
-    preloadedProject?: Project
-  ): Promise<string> {
-    if (!chapterId) return '';
-
-    let project: Project | null;
-    try {
-      project =
-        preloadedProject ??
-        (await this.projectRepository.loadProject(ownerId, projectId));
-    } catch {
-      return ''; // fail gracefully — completion still works without chapter context
-    }
-    if (!project) return '';
-
-    const chapter = project.getChapters().find((c) => c.getId() === chapterId);
-    if (!chapter) return '';
-
-    const text = extractChapterText(chapter).trim();
-    if (!text) return '';
-
-    // Keep the tail nearest the cursor when the chapter is long.
-    return text.length <= CHAPTER_TEXT_CAP
-      ? text
-      : '…' + text.slice(text.length - CHAPTER_TEXT_CAP);
   }
 }

@@ -220,13 +220,15 @@ function triggerCompletion(
   const { selection, doc } = state;
   const pos = selection.from;
 
-  // Get text content before cursor (immediate local window; chapter context is added server-side)
-  const textBefore = doc.textBetween(Math.max(0, pos - 1000), pos, '\n', '\n');
+  // Local scene window, anchored on the cursor. Large enough to carry the current
+  // scene so the model continues from what's right before the cursor — not from the
+  // chapter's end (which is downstream of the cursor when writing mid-chapter).
+  const textBefore = doc.textBetween(Math.max(0, pos - 3000), pos, '\n', '\n');
 
-  // Get text content after cursor
+  // A short look-ahead lets the model bridge when inserting inside an existing scene.
   const textAfter = doc.textBetween(
     pos,
-    Math.min(doc.content.size, pos + 200),
+    Math.min(doc.content.size, pos + 400),
     '\n',
     '\n'
   );

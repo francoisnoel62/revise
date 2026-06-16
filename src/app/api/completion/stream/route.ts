@@ -85,15 +85,14 @@ export async function POST(request: NextRequest) {
   const selectedProviderType = selectedProvider.getType();
   const selectedProviderModel = selectedProvider.getModel();
 
-  // 4. Build a manuscript-first completion context (current chapter + author intent).
-  // Derived metadata is kept OUT of the writing hot path (opt-in only). Built fresh so
-  // the live chapter text is never stale.
+  // 4. Build the long-range completion context (author intent + optional canon).
+  // The local scene is already carried by the cursor window (textBeforeCursor); derived
+  // metadata is kept OUT of the writing hot path (opt-in only).
   const metadataRepo = await getMetadataRepository();
   const researchRepo = await getResearchDocumentRepository();
   const aiContextBuilder = new AIContextBuilder(metadataRepo, researchRepo);
   const canonFactRepo = await getCanonFactRepository();
   const autocompleteContext = new AutocompleteContextBuilder(
-    projectRepo,
     aiContextBuilder,
     canonFactRepo
   );
@@ -121,8 +120,6 @@ export async function POST(request: NextRequest) {
       includeCanon: CANON_CONTEXT_ENABLED,
       entities,
       chapterIndex,
-      // Reuse the project loaded above — avoid a second DB read on the hot path.
-      project: project ?? undefined,
     });
   // Prepend the (optional) intent directive so it sits near the top of the context.
   const projectContext = intentDirective(intent) + baseContext;
