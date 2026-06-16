@@ -111,14 +111,17 @@ function createAutocompleteHint(intent: AutocompleteIntent): HTMLElement {
     const shortcut = document.createElement('span');
     shortcut.className = 'autocomplete-hint-item';
 
-    const keys = document.createElement('span');
-    keys.className = 'autocomplete-kbd';
-    keys.textContent = item.keys;
+    for (const key of item.keys) {
+      const keys = document.createElement('span');
+      keys.className = 'autocomplete-kbd';
+      keys.textContent = key;
+      shortcut.append(keys);
+    }
 
     const label = document.createElement('span');
     label.textContent = item.label;
 
-    shortcut.append(keys, label);
+    shortcut.append(label);
     shortcutRow.append(shortcut);
   }
 

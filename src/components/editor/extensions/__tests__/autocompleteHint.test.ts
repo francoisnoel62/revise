@@ -12,10 +12,10 @@ import {
 describe('autocomplete hint helpers', () => {
   it('provides the compact shortcut hint items', () => {
     expect(autocompleteShortcutHints()).toEqual([
-      { keys: 'Tab', label: 'accepter' },
-      { keys: 'Echap', label: 'ignorer' },
-      { keys: 'Ctrl/Cmd+→', label: 'mot' },
-      { keys: 'Alt+→', label: 'fragment' },
+      { keys: ['Tab'], label: 'accepter' },
+      { keys: ['Echap'], label: 'ignorer' },
+      { keys: ['Ctrl/Cmd', '→'], label: 'mot' },
+      { keys: ['Alt', '→'], label: 'fragment' },
     ]);
   });
 

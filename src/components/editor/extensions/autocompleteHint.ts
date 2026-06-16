@@ -12,7 +12,8 @@ export const AUTOCOMPLETE_INTENT_LABELS: Record<AutocompleteIntent, string> = {
 };
 
 export interface AutocompleteShortcutHintItem {
-  keys: string;
+  /** Each element renders as a separate kbd badge. */
+  keys: string[];
   label: string;
 }
 
@@ -25,10 +26,10 @@ export interface AutocompleteVariantHintItem {
 }
 
 export const AUTOCOMPLETE_SHORTCUT_HINTS: AutocompleteShortcutHintItem[] = [
-  { keys: 'Tab', label: 'accepter' },
-  { keys: 'Echap', label: 'ignorer' },
-  { keys: 'Ctrl/Cmd+→', label: 'mot' },
-  { keys: 'Alt+→', label: 'fragment' },
+  { keys: ['Tab'], label: 'accepter' },
+  { keys: ['Echap'], label: 'ignorer' },
+  { keys: ['Ctrl/Cmd', '→'], label: 'mot' },
+  { keys: ['Alt', '→'], label: 'fragment' },
 ];
 
 export const AUTOCOMPLETE_VARIANT_ORDER: AutocompleteIntent[] = [
