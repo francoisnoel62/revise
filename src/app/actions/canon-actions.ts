@@ -73,6 +73,13 @@ export async function createCanonFactAction(
   if ('error' in auth) return auth.error;
 
   return withErrorHandling(async () => {
+    // Guard: only write facts to a project the user actually owns. ownerId already
+    // isolates tenants, but this stops a client from seeding its own namespace with
+    // facts under an arbitrary (non-owned) projectId.
+    const projectRepo = await getRepository();
+    const project = await projectRepo.loadProject(auth.userId, projectId);
+    if (!project) throw new Error('Projet introuvable');
+
     const idGen = await getIdGenerator();
     const repo = await getCanonFactRepo();
 

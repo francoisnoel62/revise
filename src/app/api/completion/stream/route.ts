@@ -76,7 +76,6 @@ export async function POST(request: NextRequest) {
   let llmProvider;
 
   if (selectedProvider) {
-    console.log('[Autocomplete] Using provider:', selectedProvider.getName(), '(', selectedProvider.getType(), ')', 'model:', selectedProvider.getModel());
     // Tracked provider so autocompletion usage and exchange content are recorded.
     llmProvider = await getTrackedLLMProviderById(userId, selectedProvider.getId(), projectId);
   } else {
@@ -114,17 +113,19 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const baseContext = await autocompleteContext.buildContext({
-    ownerId: userId,
-    projectId,
-    chapterId,
-    includeCanon: CANON_CONTEXT_ENABLED,
-    entities,
-    chapterIndex,
-  });
+  const { context: baseContext, canonFactsCount } =
+    await autocompleteContext.buildContext({
+      ownerId: userId,
+      projectId,
+      chapterId,
+      includeCanon: CANON_CONTEXT_ENABLED,
+      entities,
+      chapterIndex,
+      // Reuse the project loaded above — avoid a second DB read on the hot path.
+      project: project ?? undefined,
+    });
   // Prepend the (optional) intent directive so it sits near the top of the context.
   const projectContext = intentDirective(intent) + baseContext;
-  const canonFactsCount = autocompleteContext.getLastCanonFactsCount();
 
   // 5. Create streaming response
   const encoder = new TextEncoder();
@@ -132,7 +133,6 @@ export async function POST(request: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        console.log('[Autocomplete] Starting stream...');
         controller.enqueue(
           encoder.encode(
             `data: ${JSON.stringify({
@@ -150,24 +150,23 @@ export async function POST(request: NextRequest) {
           projectContext
         );
 
-        let chunkCount = 0;
         for await (const chunk of generator) {
-          chunkCount++;
           // Send as Server-Sent Event
           const data = `data: ${JSON.stringify({ text: chunk })}\n\n`;
           controller.enqueue(encoder.encode(data));
         }
-        console.log('[Autocomplete] Stream finished, chunks received:', chunkCount);
 
         // Send done event
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         controller.close();
       } catch (error) {
+        // Log the full detail server-side; never forward provider/internal error
+        // text to the client (it can leak keys, models, or stack details).
         console.error('[Autocomplete] Stream error:', error);
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error';
         controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({ error: errorMessage })}\n\n`)
+          encoder.encode(
+            `data: ${JSON.stringify({ error: 'Erreur lors de la génération.' })}\n\n`
+          )
         );
         controller.close();
       }

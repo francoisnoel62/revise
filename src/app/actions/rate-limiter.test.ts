@@ -6,14 +6,9 @@ import {
   canGenerateChapter,
   canGenerateCanonFacts,
   canGenerateMetadata,
-  cleanupChapterGenerationEntries,
-  cleanupMetadataGenerationEntries,
-  cleanupTelemetryEntries,
-  consumeTelemetryQuota,
   recordCanonFactsGeneration,
   recordChapterGeneration,
   recordMetadataGeneration,
-  TELEMETRY_MAX_PER_WINDOW,
 } from './rate-limiter';
 
 describe('generation rate limiters', () => {
@@ -99,87 +94,4 @@ describe('generation rate limiters', () => {
     expect(canGenerateChapter(userId, 'chapter-outline').allowed).toBe(true);
   });
 
-  it('cleans chapter and metadata limiter entries independently', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-06-15T10:00:00Z'));
-    const userId = 'cleanup-user-1';
-
-    recordMetadataGeneration(userId, 'characters');
-    recordChapterGeneration(userId, 'chapter-full');
-
-    vi.advanceTimersByTime(60_001);
-    cleanupMetadataGenerationEntries();
-
-    expect(canGenerateMetadata(userId, 'characters').allowed).toBe(true);
-    expect(canGenerateChapter(userId, 'chapter-full').allowed).toBe(true);
-
-    recordMetadataGeneration(userId, 'characters');
-    recordChapterGeneration(userId, 'chapter-full');
-
-    vi.advanceTimersByTime(60_001);
-    cleanupChapterGenerationEntries();
-
-    expect(canGenerateChapter(userId, 'chapter-full').allowed).toBe(true);
-  });
-});
-
-describe('telemetry sliding-window rate limiter', () => {
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it('allows a burst up to the window limit then blocks with a retry hint', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-06-15T10:00:00Z'));
-    const userId = 'telemetry-user-1';
-
-    for (let i = 0; i < TELEMETRY_MAX_PER_WINDOW; i++) {
-      expect(consumeTelemetryQuota(userId).allowed).toBe(true);
-    }
-
-    const blocked = consumeTelemetryQuota(userId);
-    expect(blocked.allowed).toBe(false);
-    expect(blocked.retryAfterSeconds).toBeGreaterThan(0);
-  });
-
-  it('frees capacity once the window slides past old hits', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-06-15T10:00:00Z'));
-    const userId = 'telemetry-user-2';
-
-    for (let i = 0; i < TELEMETRY_MAX_PER_WINDOW; i++) {
-      consumeTelemetryQuota(userId);
-    }
-    expect(consumeTelemetryQuota(userId).allowed).toBe(false);
-
-    vi.advanceTimersByTime(60_001);
-    expect(consumeTelemetryQuota(userId).allowed).toBe(true);
-  });
-
-  it('isolates quotas by user', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-06-15T10:00:00Z'));
-
-    for (let i = 0; i < TELEMETRY_MAX_PER_WINDOW; i++) {
-      consumeTelemetryQuota('telemetry-user-3');
-    }
-
-    expect(consumeTelemetryQuota('telemetry-user-3').allowed).toBe(false);
-    expect(consumeTelemetryQuota('telemetry-user-4').allowed).toBe(true);
-  });
-
-  it('drops stale entries on cleanup', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-06-15T10:00:00Z'));
-    const userId = 'telemetry-user-5';
-
-    consumeTelemetryQuota(userId);
-    vi.advanceTimersByTime(60_001);
-    cleanupTelemetryEntries();
-
-    // After cleanup the window starts fresh — a full burst is allowed again.
-    for (let i = 0; i < TELEMETRY_MAX_PER_WINDOW; i++) {
-      expect(consumeTelemetryQuota(userId).allowed).toBe(true);
-    }
-  });
 });

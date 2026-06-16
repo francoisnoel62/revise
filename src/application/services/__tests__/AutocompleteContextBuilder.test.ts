@@ -33,7 +33,7 @@ describe('AutocompleteContextBuilder', () => {
     const repo = makeProjectRepo([makeChapter('chap-1', 'Elle ouvrit la porte.')]);
     const builder = new AutocompleteContextBuilder(repo, aiContextBuilder);
 
-    const context = await builder.buildContext({ ownerId: 'o', projectId: 'p', chapterId: 'chap-1' });
+    const { context } = await builder.buildContext({ ownerId: 'o', projectId: 'p', chapterId: 'chap-1' });
 
     expect(context).toContain('[CHAPITRE EN COURS]');
     expect(context).toContain('Elle ouvrit la porte.');
@@ -47,7 +47,7 @@ describe('AutocompleteContextBuilder', () => {
     const repo = makeProjectRepo([makeChapter('chap-1', 'Texte')]);
     const builder = new AutocompleteContextBuilder(repo, aiContextBuilder);
 
-    const context = await builder.buildContext({
+    const { context } = await builder.buildContext({
       ownerId: 'o',
       projectId: 'p',
       chapterId: 'chap-1',
@@ -63,7 +63,7 @@ describe('AutocompleteContextBuilder', () => {
     const repo = makeProjectRepo([makeChapter('chap-1', long)]);
     const builder = new AutocompleteContextBuilder(repo, aiContextBuilder);
 
-    const context = await builder.buildContext({ ownerId: 'o', projectId: 'p', chapterId: 'chap-1' });
+    const { context } = await builder.buildContext({ ownerId: 'o', projectId: 'p', chapterId: 'chap-1' });
 
     expect(context).toContain('FINDUTEXTE');
     expect(context).toContain('…');
@@ -73,7 +73,7 @@ describe('AutocompleteContextBuilder', () => {
     const repo = { loadProject: vi.fn().mockResolvedValue(null) } as unknown as ProjectRepository;
     const builder = new AutocompleteContextBuilder(repo, aiContextBuilder);
 
-    const context = await builder.buildContext({ ownerId: 'o', projectId: 'p', chapterId: 'chap-1' });
+    const { context } = await builder.buildContext({ ownerId: 'o', projectId: 'p', chapterId: 'chap-1' });
 
     expect(context).not.toContain('[CHAPITRE EN COURS]');
     expect(context).toContain("[INTENTION DE L'AUTEUR — RECHERCHE]");
@@ -83,10 +83,62 @@ describe('AutocompleteContextBuilder', () => {
     const repo = makeProjectRepo([makeChapter('chap-1', 'Texte')]);
     const builder = new AutocompleteContextBuilder(repo, aiContextBuilder);
 
-    const context = await builder.buildContext({ ownerId: 'o', projectId: 'p' });
+    const { context } = await builder.buildContext({ ownerId: 'o', projectId: 'p' });
 
     expect(context).not.toContain('[CHAPITRE EN COURS]');
     expect(repo.loadProject).not.toHaveBeenCalled();
+  });
+
+  it('uses a pre-loaded project instead of reloading it', async () => {
+    const chapters = [makeChapter('chap-1', 'Déjà chargé en amont.')];
+    const repo = makeProjectRepo(chapters);
+    const builder = new AutocompleteContextBuilder(repo, aiContextBuilder);
+
+    const project = { getChapters: () => chapters } as never;
+    const { context } = await builder.buildContext({
+      ownerId: 'o',
+      projectId: 'p',
+      chapterId: 'chap-1',
+      project,
+    });
+
+    expect(context).toContain('Déjà chargé en amont.');
+    // The route already loaded the project: the builder must not hit the DB again.
+    expect(repo.loadProject).not.toHaveBeenCalled();
+  });
+
+  it('reports the number of injected canon facts via the return value', async () => {
+    const repo = makeProjectRepo([makeChapter('chap-1', 'Texte')]);
+    const canonRepo = {
+      findForSelection: vi
+        .fn()
+        .mockResolvedValue([makeCanonFact('Léa', 'est morte', 9)]),
+    };
+    const builder = new AutocompleteContextBuilder(repo, aiContextBuilder, canonRepo as never);
+
+    const { canonFactsCount } = await builder.buildContext({
+      ownerId: 'o',
+      projectId: 'p',
+      chapterId: 'chap-1',
+      includeCanon: true,
+      entities: ['Léa'],
+      chapterIndex: 11,
+    });
+
+    expect(canonFactsCount).toBe(1);
+  });
+
+  it('reports zero canon facts when canon is disabled', async () => {
+    const repo = makeProjectRepo([makeChapter('chap-1', 'Texte')]);
+    const builder = new AutocompleteContextBuilder(repo, aiContextBuilder);
+
+    const { canonFactsCount } = await builder.buildContext({
+      ownerId: 'o',
+      projectId: 'p',
+      chapterId: 'chap-1',
+    });
+
+    expect(canonFactsCount).toBe(0);
   });
 
   const makeCanonFact = (entity: string, statement: string, validFromChapter: number) => ({
@@ -108,7 +160,7 @@ describe('AutocompleteContextBuilder', () => {
       canonRepo as never
     );
 
-    const context = await builder.buildContext({
+    const { context } = await builder.buildContext({
       ownerId: 'o',
       projectId: 'p',
       chapterId: 'chap-1',
@@ -127,7 +179,7 @@ describe('AutocompleteContextBuilder', () => {
     const canonRepo = { findForSelection: vi.fn().mockResolvedValue([]) };
     const builder = new AutocompleteContextBuilder(repo, aiContextBuilder, canonRepo as never);
 
-    const context = await builder.buildContext({
+    const { context } = await builder.buildContext({
       ownerId: 'o',
       projectId: 'p',
       chapterId: 'chap-1',
@@ -147,7 +199,7 @@ describe('AutocompleteContextBuilder', () => {
     };
     const builder = new AutocompleteContextBuilder(repo, aiContextBuilder, canonRepo as never);
 
-    const context = await builder.buildContext({
+    const { context } = await builder.buildContext({
       ownerId: 'o',
       projectId: 'p',
       chapterId: 'chap-1',
@@ -166,7 +218,7 @@ describe('AutocompleteContextBuilder', () => {
     };
     const builder = new AutocompleteContextBuilder(repo, aiContextBuilder, canonRepo as never);
 
-    const context = await builder.buildContext({
+    const { context } = await builder.buildContext({
       ownerId: 'o',
       projectId: 'p',
       chapterId: 'chap-1',

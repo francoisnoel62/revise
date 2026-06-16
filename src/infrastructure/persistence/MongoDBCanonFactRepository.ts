@@ -85,9 +85,22 @@ export class MongoDBCanonFactRepository implements CanonFactRepository {
     projectId: string,
     facts: CanonFact[]
   ): Promise<void> {
-    await this.collection().deleteMany({ ownerId, projectId, source: 'derived' });
+    // Capture the derived facts to retire BEFORE inserting the new batch.
+    // Insert-then-delete (rather than delete-then-insert) means a failed insert
+    // leaves the previous derived facts intact — the ledger is never momentarily
+    // emptied by a partial failure. MongoDB transactions are avoided on purpose:
+    // they require a replica set, which local/CI single-node deployments lack.
+    const previous = await this.collection()
+      .find({ ownerId, projectId, source: 'derived' }, { projection: { _id: 1 } })
+      .toArray();
+
     if (facts.length > 0) {
       await this.collection().insertMany(facts.map(serializeCanonFact));
+    }
+
+    const previousIds = previous.map((doc) => doc._id);
+    if (previousIds.length > 0) {
+      await this.collection().deleteMany({ _id: { $in: previousIds }, ownerId });
     }
   }
 

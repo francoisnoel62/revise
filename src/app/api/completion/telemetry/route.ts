@@ -4,8 +4,7 @@
 import { NextRequest } from 'next/server';
 import { ObjectId } from 'mongodb';
 import { auth } from '@/infrastructure/auth/auth-config';
-import { getAutocompleteEventRepo } from '@/app/actions/utils';
-import { consumeTelemetryQuota } from '@/app/actions/rate-limiter';
+import { getAutocompleteEventRepo, getRateLimitRepo } from '@/app/actions/utils';
 import { AutocompleteEvent } from '@/domain/entities/AutocompleteEvent';
 import {
   isValidAutocompleteOutcome,
@@ -45,6 +44,12 @@ type TelemetryPayload = LifecyclePayload | DeletionPayload;
 const isNonNegativeNumber = (v: unknown): v is number =>
   typeof v === 'number' && Number.isFinite(v) && v >= 0;
 
+// Telemetry is intentionally high-frequency (one record per suggestion); cap the
+// volume per user across a rolling window. Backed by a shared store so the limit
+// holds across serverless instances, where an in-memory counter would be useless.
+const TELEMETRY_WINDOW_MS = 60_000; // 1 minute
+const TELEMETRY_MAX_PER_WINDOW = 300; // ~5 events/second sustained
+
 export async function POST(request: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -53,15 +58,26 @@ export async function POST(request: NextRequest) {
   const ownerId = session.user.id;
 
   // Cap ingestion volume per user before doing any work — telemetry is
-  // best-effort and must never become an abuse vector against storage.
-  const quota = consumeTelemetryQuota(ownerId);
-  if (!quota.allowed) {
-    return new Response('Too Many Requests', {
-      status: 429,
-      headers: quota.retryAfterSeconds
-        ? { 'Retry-After': String(quota.retryAfterSeconds) }
-        : undefined,
-    });
+  // best-effort and must never become an abuse vector against storage. If the
+  // limiter store is unavailable we fail OPEN: telemetry must never disrupt the
+  // editor, and a store outage also blocks the persistence an attacker is after.
+  try {
+    const rateLimitRepo = await getRateLimitRepo();
+    const quota = await rateLimitRepo.consumeFixedWindow(
+      `telemetry:${ownerId}`,
+      TELEMETRY_WINDOW_MS,
+      TELEMETRY_MAX_PER_WINDOW
+    );
+    if (!quota.allowed) {
+      return new Response('Too Many Requests', {
+        status: 429,
+        headers: quota.retryAfterSeconds
+          ? { 'Retry-After': String(quota.retryAfterSeconds) }
+          : undefined,
+      });
+    }
+  } catch (error) {
+    console.error('[Autocomplete telemetry] rate-limit check failed:', error);
   }
 
   let body: TelemetryPayload;

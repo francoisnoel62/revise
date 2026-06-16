@@ -3,6 +3,7 @@
 
 import { ProjectRepository } from '../../domain/interfaces/ProjectRepository';
 import { CanonFactRepository } from '../../domain/interfaces/CanonFactRepository';
+import { Project } from '../../domain/entities/Project';
 import { AIContextBuilder } from './AIContextBuilder';
 import { extractChapterText } from './project-text';
 
@@ -18,6 +19,19 @@ export interface AutocompleteContextInput {
   entities?: string[];
   /** 0-based index of the current chapter (for temporal canon selection). */
   chapterIndex?: number;
+  /**
+   * Project already loaded by the caller. When provided, the builder reuses it
+   * instead of issuing a second loadProject — the completion route is on the
+   * typing hot path and must not query the same project twice per suggestion.
+   */
+  project?: Project;
+}
+
+export interface AutocompleteContextResult {
+  /** The context block to prepend to the completion prompt ('' when empty). */
+  context: string;
+  /** Number of canon facts injected into this context (for instrumentation). */
+  canonFactsCount: number;
 }
 
 // Tail of the current chapter (chars) included as context — nearest the cursor.
@@ -27,32 +41,28 @@ const CHAPTER_TEXT_CAP = 1500;
 const MAX_CANON_FACTS = 20;
 
 export class AutocompleteContextBuilder {
-  // Number of canon facts injected by the last buildContext call (for instrumentation).
-  private lastCanonFactsCount = 0;
-
   constructor(
     private readonly projectRepository: ProjectRepository,
     private readonly aiContextBuilder: AIContextBuilder,
     private readonly canonFactRepository?: CanonFactRepository
   ) {}
 
-  /** Canon facts injected by the most recent buildContext call. */
-  getLastCanonFactsCount(): number {
-    return this.lastCanonFactsCount;
-  }
-
   /**
    * Build a manuscript-first context block to prepend to the completion prompt.
    * Hierarchy: current chapter text → author intent (research) → metadata (opt-in only).
+   * Returns the assembled context and how many canon facts it injected.
    */
-  async buildContext(input: AutocompleteContextInput): Promise<string> {
+  async buildContext(
+    input: AutocompleteContextInput
+  ): Promise<AutocompleteContextResult> {
     const parts: string[] = [];
-    this.lastCanonFactsCount = 0;
+    let canonFactsCount = 0;
 
     const chapterText = await this.currentChapterText(
       input.ownerId,
       input.projectId,
-      input.chapterId
+      input.chapterId,
+      input.project
     );
     if (chapterText) {
       parts.push(`[CHAPITRE EN COURS]\n${chapterText}`);
@@ -60,7 +70,10 @@ export class AutocompleteContextBuilder {
 
     if (input.includeCanon) {
       const canon = await this.buildCanonSection(input);
-      if (canon) parts.push(canon);
+      if (canon) {
+        parts.push(canon.text);
+        canonFactsCount = canon.count;
+      }
     }
 
     if (input.includeMetadata) {
@@ -81,17 +94,22 @@ export class AutocompleteContextBuilder {
       if (research.trim()) parts.push(research.trim());
     }
 
-    return parts.length > 0 ? '\n\n' + parts.join('\n\n') : '';
+    return {
+      context: parts.length > 0 ? '\n\n' + parts.join('\n\n') : '',
+      canonFactsCount,
+    };
   }
 
   /**
    * Build the [CANON] section: facts about the locally-present characters that are
-   * valid at the current chapter. Returns '' if disabled, unavailable or empty.
+   * valid at the current chapter. Returns null if disabled, unavailable or empty.
    */
-  private async buildCanonSection(input: AutocompleteContextInput): Promise<string> {
-    if (!this.canonFactRepository) return '';
-    if (!input.entities || input.entities.length === 0) return '';
-    if (input.chapterIndex === undefined) return '';
+  private async buildCanonSection(
+    input: AutocompleteContextInput
+  ): Promise<{ text: string; count: number } | null> {
+    if (!this.canonFactRepository) return null;
+    if (!input.entities || input.entities.length === 0) return null;
+    if (input.chapterIndex === undefined) return null;
 
     let facts;
     try {
@@ -102,30 +120,32 @@ export class AutocompleteContextBuilder {
         input.chapterIndex
       );
     } catch {
-      return ''; // fail gracefully — completion still works without canon
+      return null; // fail gracefully — completion still works without canon
     }
 
-    if (facts.length === 0) return '';
+    if (facts.length === 0) return null;
 
     const selected = facts.slice(0, MAX_CANON_FACTS);
-    this.lastCanonFactsCount = selected.length;
     const lines = selected.map(
       (f) => `${f.getEntity()} : ${f.getStatement()} (depuis ch.${f.getValidFromChapter() + 1})`
     );
 
-    return `[CANON]\n${lines.join('\n')}`;
+    return { text: `[CANON]\n${lines.join('\n')}`, count: selected.length };
   }
 
   private async currentChapterText(
     ownerId: string,
     projectId: string,
-    chapterId?: string
+    chapterId?: string,
+    preloadedProject?: Project
   ): Promise<string> {
     if (!chapterId) return '';
 
-    let project;
+    let project: Project | null;
     try {
-      project = await this.projectRepository.loadProject(ownerId, projectId);
+      project =
+        preloadedProject ??
+        (await this.projectRepository.loadProject(ownerId, projectId));
     } catch {
       return ''; // fail gracefully — completion still works without chapter context
     }

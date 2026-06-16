@@ -27,6 +27,16 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   SerializedCanonFact,
   listCanonFactsAction,
   createCanonFactAction,
@@ -83,6 +93,10 @@ export default function CockpitCanonPage() {
 
   // Edit dialog state
   const [editingFact, setEditingFact] = useState<EditingFact | null>(null);
+
+  // Delete confirmation state — a fact (author or derived) is never removed
+  // without an explicit confirmation (the author owns and decides).
+  const [deletingFact, setDeletingFact] = useState<SerializedCanonFact | null>(null);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -199,7 +213,9 @@ export default function CockpitCanonPage() {
     setIsSaving(false);
   };
 
-  const handleDelete = async (factId: string) => {
+  const handleDelete = async () => {
+    if (!deletingFact) return;
+    const factId = deletingFact.id;
     setActionError(null);
     const result = await deleteCanonFactAction(projectId, factId);
     if (!result.success) {
@@ -207,6 +223,7 @@ export default function CockpitCanonPage() {
     } else {
       setFacts((prev) => prev.filter((f) => f.id !== factId));
     }
+    setDeletingFact(null);
   };
 
   if (isLoading) {
@@ -276,6 +293,7 @@ export default function CockpitCanonPage() {
             onClick={handleGenerate}
             disabled={isGenerating || !selectedProviderId}
             size="sm"
+            title="Remplace les faits déduits par l'IA. Vos faits (source : auteur) restent intacts."
           >
             <RefreshCw className={`h-4 w-4 mr-1 ${isGenerating ? 'animate-spin' : ''}`} />
             {isGenerating ? 'Génération…' : 'Générer / Régénérer'}
@@ -421,7 +439,7 @@ export default function CockpitCanonPage() {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(fact.id)}
+                        onClick={() => setDeletingFact(fact)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
@@ -512,6 +530,27 @@ export default function CockpitCanonPage() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Delete confirmation — protects author-curated facts from accidental loss */}
+      <AlertDialog
+        open={!!deletingFact}
+        onOpenChange={(open) => !open && setDeletingFact(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce fait ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deletingFact
+                ? `« ${deletingFact.entity} : ${deletingFact.statement} » sera définitivement supprimé. Cette action est irréversible.`
+                : ''}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Supprimer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -39,6 +39,8 @@ import { MongoDBAutocompleteEventRepository } from '@/infrastructure/persistence
 import { AutocompleteEventRepository } from '@/domain/interfaces/AutocompleteEventRepository';
 import { MongoDBCanonFactRepository } from '@/infrastructure/persistence/MongoDBCanonFactRepository';
 import { CanonFactRepository } from '@/domain/interfaces/CanonFactRepository';
+import { MongoDBRateLimitRepository } from '@/infrastructure/persistence/MongoDBRateLimitRepository';
+import { RateLimitRepository } from '@/domain/interfaces/RateLimitRepository';
 import { MongoDBExchangeRepository } from '@/infrastructure/persistence/MongoDBExchangeRepository';
 import { getFieldEncryption } from '@/infrastructure/security/FieldEncryption';
 import { MongoDBModelPricingRepository } from '@/infrastructure/persistence/MongoDBModelPricingRepository';
@@ -269,6 +271,20 @@ export async function getCanonFactRepository(): Promise<CanonFactRepository> {
     await canonFactRepoInstance.ensureIndexes();
   }
   return canonFactRepoInstance;
+}
+
+/**
+ * Get the rate-limit repository (shared fixed-window counters across instances).
+ */
+let rateLimitRepoInstance: MongoDBRateLimitRepository | null = null;
+
+export async function getRateLimitRepository(): Promise<RateLimitRepository> {
+  if (!rateLimitRepoInstance) {
+    const db = await getDatabase();
+    rateLimitRepoInstance = new MongoDBRateLimitRepository(db);
+    await rateLimitRepoInstance.ensureIndexes();
+  }
+  return rateLimitRepoInstance;
 }
 
 /**

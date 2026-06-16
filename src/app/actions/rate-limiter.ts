@@ -49,21 +49,6 @@ export function recordTestConnection(userId: string): void {
 }
 
 /**
- * Clean up old entries (optional, for memory management).
- * Call this periodically in production.
- */
-export function cleanupOldEntries(): void {
-  const now = Date.now();
-  const expiry = TEST_COOLDOWN_MS * 2; // Keep 2x cooldown period
-
-  for (const [userId, timestamp] of testConnectionLimits.entries()) {
-    if (now - timestamp > expiry) {
-      testConnectionLimits.delete(userId);
-    }
-  }
-}
-
-/**
  * Rate limiting for metadata generation.
  * Prevents API abuse by limiting generation frequency per metadata type.
  */
@@ -124,28 +109,6 @@ export function recordMetadataGeneration(userId: string, metadataType: string): 
   }
 
   userLimits.set(metadataType, Date.now());
-}
-
-/**
- * Clean up old metadata generation entries (optional, for memory management).
- * Call this periodically in production.
- */
-export function cleanupMetadataGenerationEntries(): void {
-  const now = Date.now();
-  const expiry = METADATA_COOLDOWN_MS * 2; // Keep 2x cooldown period
-
-  for (const [userId, userLimits] of metadataGenerationLimits.entries()) {
-    for (const [metadataType, timestamp] of userLimits.entries()) {
-      if (now - timestamp > expiry) {
-        userLimits.delete(metadataType);
-      }
-    }
-
-    // Remove user entry if no types remain
-    if (userLimits.size === 0) {
-      metadataGenerationLimits.delete(userId);
-    }
-  }
 }
 
 /**
@@ -212,27 +175,6 @@ export function recordChapterGeneration(userId: string, generationType: string):
   userLimits.set(generationType, Date.now());
 }
 
-/**
- * Clean up old chapter generation entries (optional, for memory management).
- * Call this periodically in production.
- */
-export function cleanupChapterGenerationEntries(): void {
-  const now = Date.now();
-  const expiry = CHAPTER_GENERATION_COOLDOWN_MS * 2; // Keep 2x cooldown period
-
-  for (const [userId, userLimits] of chapterGenerationLimits.entries()) {
-    for (const [generationType, timestamp] of userLimits.entries()) {
-      if (now - timestamp > expiry) {
-        userLimits.delete(generationType);
-      }
-    }
-
-    if (userLimits.size === 0) {
-      chapterGenerationLimits.delete(userId);
-    }
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Canon-fact generation rate limiting (independent namespace + cooldown).
 // ---------------------------------------------------------------------------
@@ -273,63 +215,6 @@ export function recordCanonFactsGeneration(userId: string): void {
   canonFactsGenerationLimits.set(userId, Date.now());
 }
 
-/**
- * Sliding-window rate limiting for autocomplete telemetry ingestion.
- *
- * Telemetry is intentionally high-frequency (one record per suggestion), so a
- * fixed cooldown would drop legitimate events. Instead this caps the number of
- * events accepted per rolling window per user — generous for real typing, but a
- * ceiling against an authenticated client flooding the collection.
- */
-
-const telemetryHits = new Map<string, number[]>();
-const TELEMETRY_WINDOW_MS = 60_000; // 1 minute
-export const TELEMETRY_MAX_PER_WINDOW = 300; // ~5 events/second sustained
-
-/**
- * Account for one telemetry event and report whether it is within budget.
- * Prunes timestamps that have slid out of the window before deciding.
- *
- * @param userId The user emitting telemetry
- * @returns allowed flag and, when blocked, seconds until capacity frees up
- */
-export function consumeTelemetryQuota(userId: string): {
-  allowed: boolean;
-  retryAfterSeconds?: number;
-} {
-  const now = Date.now();
-  const windowStart = now - TELEMETRY_WINDOW_MS;
-
-  const hits = telemetryHits.get(userId) ?? [];
-  const recent = hits.filter((t) => t > windowStart);
-
-  if (recent.length >= TELEMETRY_MAX_PER_WINDOW) {
-    telemetryHits.set(userId, recent);
-    const oldest = recent[0];
-    const retryAfterSeconds = Math.max(
-      1,
-      Math.ceil((oldest + TELEMETRY_WINDOW_MS - now) / 1000)
-    );
-    return { allowed: false, retryAfterSeconds };
-  }
-
-  recent.push(now);
-  telemetryHits.set(userId, recent);
-  return { allowed: true };
-}
-
-/**
- * Clean up telemetry windows with no recent hits (memory management).
- */
-export function cleanupTelemetryEntries(): void {
-  const windowStart = Date.now() - TELEMETRY_WINDOW_MS;
-
-  for (const [userId, hits] of telemetryHits.entries()) {
-    const recent = hits.filter((t) => t > windowStart);
-    if (recent.length === 0) {
-      telemetryHits.delete(userId);
-    } else {
-      telemetryHits.set(userId, recent);
-    }
-  }
-}
+// Telemetry ingestion is rate-limited via the shared RateLimitRepository (see
+// the telemetry route): an in-memory limiter is useless on serverless because
+// each instance counts alone and resets on cold start.

@@ -10,15 +10,11 @@ vi.mock('@/infrastructure/auth/auth-config', () => ({
 
 vi.mock('@/app/actions/utils', () => ({
   getAutocompleteEventRepo: vi.fn(),
-}));
-
-vi.mock('@/app/actions/rate-limiter', () => ({
-  consumeTelemetryQuota: vi.fn(),
+  getRateLimitRepo: vi.fn(),
 }));
 
 import { auth } from '@/infrastructure/auth/auth-config';
-import { getAutocompleteEventRepo } from '@/app/actions/utils';
-import { consumeTelemetryQuota } from '@/app/actions/rate-limiter';
+import { getAutocompleteEventRepo, getRateLimitRepo } from '@/app/actions/utils';
 import { POST } from '../route';
 
 const makeRequest = (body: unknown) =>
@@ -48,12 +44,14 @@ const lifecycleBody = (overrides: Record<string, unknown> = {}) => ({
 
 describe('POST /api/completion/telemetry', () => {
   let repo: { save: ReturnType<typeof vi.fn>; markDeletedAfterInsert: ReturnType<typeof vi.fn> };
+  let consumeFixedWindow: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     repo = { save: vi.fn().mockResolvedValue(undefined), markDeletedAfterInsert: vi.fn().mockResolvedValue(undefined) };
     vi.mocked(getAutocompleteEventRepo).mockResolvedValue(repo as never);
-    vi.mocked(consumeTelemetryQuota).mockReturnValue({ allowed: true });
+    consumeFixedWindow = vi.fn().mockResolvedValue({ allowed: true });
+    vi.mocked(getRateLimitRepo).mockResolvedValue({ consumeFixedWindow } as never);
   });
 
   it('returns 401 when not authenticated', async () => {
@@ -119,10 +117,7 @@ describe('POST /api/completion/telemetry', () => {
 
   it('returns 429 and skips persistence when the quota is exhausted', async () => {
     vi.mocked(auth).mockResolvedValue({ user: { id: 'user-1' } } as never);
-    vi.mocked(consumeTelemetryQuota).mockReturnValue({
-      allowed: false,
-      retryAfterSeconds: 12,
-    });
+    consumeFixedWindow.mockResolvedValue({ allowed: false, retryAfterSeconds: 12 });
 
     const res = await POST(makeRequest(lifecycleBody()));
 
@@ -133,11 +128,24 @@ describe('POST /api/completion/telemetry', () => {
 
   it('enforces the quota before the body is parsed', async () => {
     vi.mocked(auth).mockResolvedValue({ user: { id: 'user-1' } } as never);
-    vi.mocked(consumeTelemetryQuota).mockReturnValue({ allowed: false });
+    consumeFixedWindow.mockResolvedValue({ allowed: false });
 
     const res = await POST(makeRequest({ type: 'deletion', suggestionId: 's', deletedAfterMs: 1 }));
 
     expect(res.status).toBe(429);
     expect(repo.markDeletedAfterInsert).not.toHaveBeenCalled();
+  });
+
+  it('fails open (still persists) when the limiter store is unavailable', async () => {
+    vi.mocked(auth).mockResolvedValue({ user: { id: 'user-1' } } as never);
+    consumeFixedWindow.mockRejectedValue(new Error('mongo down'));
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const res = await POST(makeRequest(lifecycleBody()));
+
+    // Telemetry must never disrupt the editor: a limiter outage allows the event.
+    expect(res.status).toBe(204);
+    expect(repo.save).toHaveBeenCalledTimes(1);
+    errorSpy.mockRestore();
   });
 });

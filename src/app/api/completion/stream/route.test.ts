@@ -115,4 +115,49 @@ describe('POST /api/completion/stream', () => {
     );
     expect(body.indexOf('"type":"metadata"')).toBeLessThan(body.indexOf('"text":" suite"'));
   });
+
+  it('does not leak the raw provider error message to the client', async () => {
+    const provider = {
+      getId: () => 'provider-1',
+      getName: () => 'Claude',
+      getType: () => 'anthropic',
+      getModel: () => 'claude-sonnet-4-5',
+    };
+    const project = { getProviderId: () => 'provider-1', getChapters: () => [] };
+    const secret = 'Anthropic 401: invalid x-api-key sk-ant-SECRET';
+    const llmProvider = {
+      // eslint-disable-next-line require-yield
+      async *generateCompletionStream() {
+        throw new Error(secret);
+      },
+    };
+
+    vi.mocked(getProviderRepository).mockResolvedValue({
+      listProviders: vi.fn().mockResolvedValue([provider]),
+    } as never);
+    vi.mocked(getProjectRepository).mockResolvedValue({
+      loadProject: vi.fn().mockResolvedValue(project),
+    } as never);
+    vi.mocked(getTrackedLLMProviderById).mockResolvedValue(llmProvider as never);
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const response = await POST(
+      request({
+        projectId: 'project-1',
+        chapterId: 'chapter-1',
+        textBeforeCursor: 'Elle ouvrit la porte et',
+        textAfterCursor: '',
+      })
+    );
+
+    const body = await readResponse(response);
+
+    // The client gets a generic message; the secret stays server-side only.
+    expect(body).toContain('"error"');
+    expect(body).not.toContain(secret);
+    expect(body).not.toContain('sk-ant-SECRET');
+    // The full detail is still logged for server-side debugging.
+    expect(errorSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
 });
