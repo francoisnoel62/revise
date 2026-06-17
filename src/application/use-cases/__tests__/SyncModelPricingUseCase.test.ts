@@ -86,4 +86,82 @@ describe('SyncModelPricingUseCase', () => {
     expect(report.errors).toHaveLength(1);
     expect(deps.emailService.sendPricingSyncReport).toHaveBeenCalledOnce();
   });
+
+  it('quarantines colliding keys and excludes them from upsert', async () => {
+    const deps = makeDeps({
+      pricingRepository: {
+        findAll: vi.fn().mockResolvedValue([]),
+        upsertMany: vi.fn().mockResolvedValue(undefined),
+      },
+      pricingClient: {
+        fetchPricingEntries: vi.fn().mockResolvedValue([
+          { provider: 'anthropic', prefix: 'claude-opus-4', inputPerM: 15.0, outputPerM: 75.0, cachedInputPerM: 1.5, cachedInInput: false, updatedAt: new Date() },
+          { provider: 'anthropic', prefix: 'claude-opus-4', inputPerM: 5.0, outputPerM: 25.0, cachedInputPerM: 0.5, cachedInInput: false, updatedAt: new Date() },
+          { provider: 'openai', prefix: 'gpt-4o', inputPerM: 2.5, outputPerM: 10.0, cachedInputPerM: 1.25, cachedInInput: true, updatedAt: new Date() },
+        ]),
+      },
+    });
+    const useCase = new SyncModelPricingUseCase(deps.pricingClient as never, deps.pricingRepository as never, deps.emailService as never);
+
+    const report = await useCase.execute();
+
+    const upserted = deps.pricingRepository.upsertMany.mock.calls[0][0];
+    expect(upserted).toHaveLength(1);
+    expect(upserted[0].prefix).toBe('gpt-4o');
+    expect(report.newModels.some((m) => m.key === 'anthropic/claude-opus-4')).toBe(false);
+    expect(
+      report.errors.some((e) => e.includes('Collision') && e.includes('anthropic/claude-opus-4'))
+    ).toBe(true);
+  });
+
+  it('quarantines changes that exceed the variation threshold', async () => {
+    const deps = makeDeps({
+      pricingRepository: {
+        findAll: vi.fn().mockResolvedValue([
+          { id: '1', provider: 'anthropic', prefix: 'claude-opus-4', inputPerM: 15.0, outputPerM: 75.0, cachedInputPerM: 1.5, cachedInInput: false, updatedAt: new Date('2026-01-01') },
+          { id: '2', provider: 'openai', prefix: 'gpt-4o', inputPerM: 2.5, outputPerM: 10.0, cachedInputPerM: 1.25, cachedInInput: true, updatedAt: new Date('2026-01-01') },
+        ]),
+        upsertMany: vi.fn().mockResolvedValue(undefined),
+      },
+      pricingClient: {
+        fetchPricingEntries: vi.fn().mockResolvedValue([
+          { provider: 'anthropic', prefix: 'claude-opus-4', inputPerM: 5.0, outputPerM: 25.0, cachedInputPerM: 0.5, cachedInInput: false, updatedAt: new Date() },
+          { provider: 'openai', prefix: 'gpt-4o', inputPerM: 2.6, outputPerM: 10.0, cachedInputPerM: 1.25, cachedInInput: true, updatedAt: new Date() },
+        ]),
+      },
+    });
+    const useCase = new SyncModelPricingUseCase(deps.pricingClient as never, deps.pricingRepository as never, deps.emailService as never);
+
+    const report = await useCase.execute();
+
+    // opus -66.7% is quarantined; gpt-4o +4% is applied
+    expect(report.updatedModels.some((m) => m.key === 'anthropic/claude-opus-4')).toBe(false);
+    expect(report.updatedModels.some((m) => m.key === 'openai/gpt-4o')).toBe(true);
+    const upserted = deps.pricingRepository.upsertMany.mock.calls[0][0];
+    expect(upserted.map((e: { prefix: string }) => e.prefix)).toEqual(['gpt-4o']);
+    expect(
+      report.errors.some((e) => e.includes('Variation') && e.includes('anthropic/claude-opus-4'))
+    ).toBe(true);
+  });
+
+  it('reports totalModels as the count of distinct keys, not raw fetched length', async () => {
+    const deps = makeDeps({
+      pricingRepository: {
+        findAll: vi.fn().mockResolvedValue([]),
+        upsertMany: vi.fn().mockResolvedValue(undefined),
+      },
+      pricingClient: {
+        fetchPricingEntries: vi.fn().mockResolvedValue([
+          { provider: 'anthropic', prefix: 'claude-opus-4', inputPerM: 15.0, outputPerM: 75.0, cachedInputPerM: 1.5, cachedInInput: false, updatedAt: new Date() },
+          { provider: 'anthropic', prefix: 'claude-opus-4', inputPerM: 5.0, outputPerM: 25.0, cachedInputPerM: 0.5, cachedInInput: false, updatedAt: new Date() },
+          { provider: 'openai', prefix: 'gpt-4o', inputPerM: 2.5, outputPerM: 10.0, cachedInputPerM: 1.25, cachedInInput: true, updatedAt: new Date() },
+        ]),
+      },
+    });
+    const useCase = new SyncModelPricingUseCase(deps.pricingClient as never, deps.pricingRepository as never, deps.emailService as never);
+
+    const report = await useCase.execute();
+
+    expect(report.totalModels).toBe(2);
+  });
 });
