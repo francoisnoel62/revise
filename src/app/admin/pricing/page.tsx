@@ -9,6 +9,7 @@ import { getAuthenticatedAdminId } from '@/app/actions/utils';
 import { listModelPricingAction } from '@/app/actions/pricing-admin-actions';
 import { ModelPricingTable } from '@/components/admin/ModelPricingTable';
 import { SyncButton } from '@/components/admin/SyncButton';
+import { PruneButton } from '@/components/admin/PruneButton';
 
 export const metadata = {
   title: 'Tarifs IA - Admin Revise',
@@ -30,6 +31,7 @@ export default async function AdminPricingPage() {
             <h1 className="text-xl font-bold">Tarifs IA</h1>
             <div className="flex items-center gap-2">
               <SyncButton />
+              <PruneButton />
               <Link href="/dashboard">
                 <Button variant="ghost" size="sm">
                   <ArrowLeft className="mr-2 h-4 w-4" />

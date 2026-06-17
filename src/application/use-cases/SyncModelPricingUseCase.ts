@@ -1,9 +1,30 @@
 // ABOUTME: Orchestrates fetching model pricing from OpenRouter and persisting to MongoDB.
-// ABOUTME: Computes a diff (new vs updated) and sends an email report after each sync.
+// ABOUTME: Validates the diff (key collisions, large swings) and quarantines suspect entries before upsert.
 
 import { ModelPricingEntry, ModelPricingRepository } from '@/domain/interfaces/ModelPricingRepository';
 import { EmailService, PricingSyncReport } from '@/domain/interfaces/EmailService';
 import { OpenRouterPricingClient } from '@/infrastructure/pricing/OpenRouterPricingClient';
+
+/** Price swings beyond this ratio are quarantined for manual review instead of applied automatically. */
+const MAX_VARIATION_RATIO = 0.5;
+
+type PriceFields = Pick<ModelPricingEntry, 'inputPerM' | 'outputPerM' | 'cachedInputPerM'>;
+
+function formatUsd(value: number): string {
+  return value.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 3 });
+}
+
+/** True when any of the three rates moves by more than MAX_VARIATION_RATIO (a drop to/from 0 always counts). */
+function exceedsThreshold(prev: PriceFields, current: PriceFields): boolean {
+  const fields: (keyof PriceFields)[] = ['inputPerM', 'outputPerM', 'cachedInputPerM'];
+  return fields.some((field) => {
+    const before = prev[field];
+    const after = current[field];
+    if (before === after) return false;
+    if (before === 0) return true;
+    return Math.abs(after - before) / before > MAX_VARIATION_RATIO;
+  });
+}
 
 export class SyncModelPricingUseCase {
   constructor(
@@ -31,14 +52,36 @@ export class SyncModelPricingUseCase {
         existing.map((e) => [`${e.provider}/${e.prefix}`, e])
       );
 
+      // Group fetched entries by key first. Several distinct source models can
+      // collapse onto the same provider/prefix key (e.g. claude-opus-4 and
+      // claude-opus-4.8); applying them would be order-dependent (last write
+      // wins), so colliding keys are quarantined rather than upserted.
+      const byKey = new Map<string, typeof fetched>();
       for (const entry of fetched) {
         const key = `${entry.provider}/${entry.prefix}`;
+        const group = byKey.get(key);
+        if (group) group.push(entry);
+        else byKey.set(key, [entry]);
+      }
+
+      const toApply: typeof fetched = [];
+
+      for (const [key, group] of byKey) {
+        if (group.length > 1) {
+          report.errors.push(
+            `Collision de clé "${key}" : ${group.length} modèles sources distincts fusionnés — entrées ignorées (préfixe trop générique).`
+          );
+          continue;
+        }
+
+        const entry = group[0];
         const prev = existingMap.get(key);
         const current = {
           inputPerM: entry.inputPerM,
           outputPerM: entry.outputPerM,
           cachedInputPerM: entry.cachedInputPerM,
         };
+
         if (!prev) {
           report.newModels.push({
             key,
@@ -47,27 +90,47 @@ export class SyncModelPricingUseCase {
             previous: null,
             current,
           });
-        } else if (
+          toApply.push(entry);
+          continue;
+        }
+
+        const changed =
           prev.inputPerM !== entry.inputPerM ||
           prev.outputPerM !== entry.outputPerM ||
-          prev.cachedInputPerM !== entry.cachedInputPerM
-        ) {
-          report.updatedModels.push({
-            key,
-            provider: entry.provider,
-            prefix: entry.prefix,
-            previous: {
-              inputPerM: prev.inputPerM,
-              outputPerM: prev.outputPerM,
-              cachedInputPerM: prev.cachedInputPerM,
-            },
-            current,
-          });
+          prev.cachedInputPerM !== entry.cachedInputPerM;
+
+        if (!changed) {
+          // Unchanged: re-upsert to refresh updatedAt, but don't report it.
+          toApply.push(entry);
+          continue;
         }
+
+        if (exceedsThreshold(prev, current)) {
+          report.errors.push(
+            `Variation > ${MAX_VARIATION_RATIO * 100}% sur "${key}" non appliquée, à valider : ` +
+              `entrée ${formatUsd(prev.inputPerM)}→${formatUsd(current.inputPerM)} $, ` +
+              `sortie ${formatUsd(prev.outputPerM)}→${formatUsd(current.outputPerM)} $, ` +
+              `cache ${formatUsd(prev.cachedInputPerM)}→${formatUsd(current.cachedInputPerM)} $.`
+          );
+          continue;
+        }
+
+        report.updatedModels.push({
+          key,
+          provider: entry.provider,
+          prefix: entry.prefix,
+          previous: {
+            inputPerM: prev.inputPerM,
+            outputPerM: prev.outputPerM,
+            cachedInputPerM: prev.cachedInputPerM,
+          },
+          current,
+        });
+        toApply.push(entry);
       }
 
-      await this.pricingRepository.upsertMany(fetched);
-      report.totalModels = fetched.length;
+      await this.pricingRepository.upsertMany(toApply);
+      report.totalModels = byKey.size;
     } catch (err) {
       report.errors.push(err instanceof Error ? err.message : String(err));
     }

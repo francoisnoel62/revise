@@ -6,6 +6,7 @@
 import { getAuthenticatedAdminId } from './utils';
 import { getModelPricingRepository } from '@/infrastructure/config/providers';
 import { SyncModelPricingUseCase } from '@/application/use-cases/SyncModelPricingUseCase';
+import { PruneObsoletePricingUseCase, PrunePricingReport } from '@/application/use-cases/PruneObsoletePricingUseCase';
 import { OpenRouterPricingClient } from '@/infrastructure/pricing/OpenRouterPricingClient';
 import { ResendEmailService } from '@/infrastructure/email/ResendEmailService';
 import { ModelPricingEntry } from '@/domain/interfaces/ModelPricingRepository';
@@ -72,6 +73,20 @@ export async function triggerPricingSyncAction(): Promise<ActionResult<PricingSy
       repo,
       new ResendEmailService()
     );
+    const report = await useCase.execute();
+    return { success: true, data: report };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+export async function prunePricingAction(): Promise<ActionResult<PrunePricingReport>> {
+  const auth = await getAuthenticatedAdminId();
+  if ('error' in auth) return { success: false, error: 'Admin access required' };
+
+  try {
+    const repo = await getModelPricingRepository();
+    const useCase = new PruneObsoletePricingUseCase(new OpenRouterPricingClient(), repo);
     const report = await useCase.execute();
     return { success: true, data: report };
   } catch (err) {
