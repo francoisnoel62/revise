@@ -45,13 +45,14 @@ describe('OpenRouterPricingClient', () => {
     expect(providers).not.toContain('cohere');
   });
 
-  it('maps anthropic model to correct prefix and cachedInInput=false', async () => {
+  it('preserves the full version in the prefix and normalizes dots to dashes', async () => {
     const client = new OpenRouterPricingClient();
     const entries = await client.fetchPricingEntries();
     const opus = entries.find((e) => e.provider === 'anthropic');
 
     expect(opus).toBeDefined();
-    expect(opus!.prefix).toBe('claude-opus-4');
+    // "anthropic/claude-opus-4.8" → "claude-opus-4-8" (version kept, dot → dash)
+    expect(opus!.prefix).toBe('claude-opus-4-8');
     expect(opus!.cachedInInput).toBe(false);
     expect(opus!.inputPerM).toBeCloseTo(5.0, 4);
   });

@@ -36,11 +36,16 @@ function resolveProvider(modelId: string): PricingProvider | null {
   return null;
 }
 
-/** Extract model prefix for startsWith matching: "anthropic/claude-opus-4.8" → "claude-opus-4" */
+/**
+ * Normalize an OpenRouter id into a matchable prefix: drop the provider segment,
+ * lowercase, and unify "." → "-" so the stored prefix lines up with runtime
+ * model ids ("anthropic/claude-opus-4.8" → "claude-opus-4-8"). The full version
+ * is preserved so distinct versions stay distinct keys; matching specificity is
+ * handled by selectPricingEntry (longest-prefix).
+ */
 function resolvePrefix(modelId: string): string {
   const withoutProvider = modelId.replace(/^[^/]+\//, '');
-  // Keep major version: "claude-opus-4.8" → "claude-opus-4", "gpt-4o-mini" → "gpt-4o-mini"
-  return withoutProvider.replace(/\.\d+$/, '');
+  return withoutProvider.toLowerCase().replace(/\./g, '-');
 }
 
 export class OpenRouterPricingClient {

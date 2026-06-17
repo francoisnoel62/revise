@@ -2,8 +2,12 @@
 // ABOUTME: Covers known/unknown entries, cached-token discounting, and missing usage
 
 import { describe, it, expect } from 'vitest';
-import { computeCostEur } from '../ModelPricing';
+import { computeCostEur, selectPricingEntry } from '../ModelPricing';
 import { ModelPricingEntry } from '@/domain/interfaces/ModelPricingRepository';
+
+function entry(provider: ModelPricingEntry['provider'], prefix: string, inputPerM: number): ModelPricingEntry {
+  return { id: prefix, provider, prefix, inputPerM, outputPerM: inputPerM * 5, cachedInputPerM: inputPerM * 0.1, cachedInInput: provider !== 'anthropic', updatedAt: new Date() };
+}
 
 const opusEntry: ModelPricingEntry = {
   id: '1',
@@ -84,5 +88,54 @@ describe('computeCostEur', () => {
       EUR_USD
     );
     expect(cost).toBeNull();
+  });
+});
+
+describe('selectPricingEntry', () => {
+  it('picks the most specific (longest) matching prefix', () => {
+    const entries = [entry('anthropic', 'claude-opus-4', 15), entry('anthropic', 'claude-opus-4-8', 5)];
+
+    const match = selectPricingEntry(entries, 'anthropic', 'claude-opus-4-8-20260101');
+
+    expect(match?.prefix).toBe('claude-opus-4-8');
+    expect(match?.inputPerM).toBe(5);
+  });
+
+  it('keeps an older version distinct from its successor', () => {
+    const entries = [entry('anthropic', 'claude-opus-4', 15), entry('anthropic', 'claude-opus-4-8', 5)];
+
+    const match = selectPricingEntry(entries, 'anthropic', 'claude-opus-4-20250514');
+
+    expect(match?.prefix).toBe('claude-opus-4');
+    expect(match?.inputPerM).toBe(15);
+  });
+
+  it('bridges OpenRouter dot notation and runtime dash notation', () => {
+    // stored prefix as OpenRouter would yield before normalization
+    const entries = [entry('anthropic', 'claude-sonnet-4.5', 3)];
+
+    const match = selectPricingEntry(entries, 'anthropic', 'claude-sonnet-4-5-20250929');
+
+    expect(match?.prefix).toBe('claude-sonnet-4.5');
+  });
+
+  it('does not let a coarse prefix steal an adjacent model (gpt-4 vs gpt-4o)', () => {
+    const entries = [entry('openai', 'gpt-4', 30), entry('openai', 'gpt-4o', 2.5)];
+
+    const match = selectPricingEntry(entries, 'openai', 'gpt-4o-mini');
+
+    expect(match?.prefix).toBe('gpt-4o');
+  });
+
+  it('matches only within the same provider', () => {
+    const entries = [entry('openai', 'gpt-4o', 2.5)];
+
+    expect(selectPricingEntry(entries, 'anthropic', 'gpt-4o')).toBeNull();
+  });
+
+  it('returns null when nothing matches', () => {
+    const entries = [entry('anthropic', 'claude-opus-4', 15)];
+
+    expect(selectPricingEntry(entries, 'anthropic', 'claude-haiku-4-5')).toBeNull();
   });
 });

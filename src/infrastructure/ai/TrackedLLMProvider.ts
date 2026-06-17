@@ -8,7 +8,7 @@ import { IdGenerator } from '@/domain/interfaces/IdGenerator';
 import { AIUsageRecord } from '@/domain/entities/AIUsageRecord';
 import { AIExchange } from '@/domain/entities/AIExchange';
 import { AIOperationType } from '@/domain/value-objects/AIOperationType';
-import { computeCostEur } from '@/domain/value-objects/ModelPricing';
+import { computeCostEur, selectPricingEntry } from '@/domain/value-objects/ModelPricing';
 import { truncateExchangeField } from './exchange-truncation';
 import { ModelPricingRepository, ModelPricingEntry, PricingProvider } from '@/domain/interfaces/ModelPricingRepository';
 import { EUR_USD_RATE } from '@/infrastructure/pricing/OpenRouterPricingClient';
@@ -150,11 +150,7 @@ export class TrackedLLMProvider implements LLMProvider {
       this.pricingCacheAt = now;
     }
 
-    return (
-      this.pricingCache.find(
-        (e) => e.provider === normalizedProvider && model.startsWith(e.prefix)
-      ) ?? null
-    );
+    return selectPricingEntry(this.pricingCache, normalizedProvider, model);
   }
 
   private async recordUsage(
