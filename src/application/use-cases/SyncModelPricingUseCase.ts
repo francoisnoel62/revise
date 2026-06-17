@@ -34,14 +34,35 @@ export class SyncModelPricingUseCase {
       for (const entry of fetched) {
         const key = `${entry.provider}/${entry.prefix}`;
         const prev = existingMap.get(key);
+        const current = {
+          inputPerM: entry.inputPerM,
+          outputPerM: entry.outputPerM,
+          cachedInputPerM: entry.cachedInputPerM,
+        };
         if (!prev) {
-          report.newModels.push(key);
+          report.newModels.push({
+            key,
+            provider: entry.provider,
+            prefix: entry.prefix,
+            previous: null,
+            current,
+          });
         } else if (
           prev.inputPerM !== entry.inputPerM ||
           prev.outputPerM !== entry.outputPerM ||
           prev.cachedInputPerM !== entry.cachedInputPerM
         ) {
-          report.updatedModels.push(key);
+          report.updatedModels.push({
+            key,
+            provider: entry.provider,
+            prefix: entry.prefix,
+            previous: {
+              inputPerM: prev.inputPerM,
+              outputPerM: prev.outputPerM,
+              cachedInputPerM: prev.cachedInputPerM,
+            },
+            current,
+          });
         }
       }
 
