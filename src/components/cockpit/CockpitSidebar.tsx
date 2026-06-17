@@ -1,5 +1,5 @@
 // ABOUTME: Sidebar navigation for the cockpit dashboard
-// ABOUTME: Provides navigation between Overview, Objectifs, Tâches, Paramètres, Métadonnées, Personnages, Recherches, Annexes
+// ABOUTME: Provides navigation between Overview, Objectifs, Tâches, Paramètres, Métadonnées, Canon, Personnages, Recherches, Annexes
 
 'use client';
 

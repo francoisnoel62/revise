@@ -1,10 +1,11 @@
 // ABOUTME: Dropdown menu for quick access to all cockpit sections from the editor
 // ABOUTME: Groups items into Pilotage and Contenu, mirroring the CockpitSidebar structure
+// ABOUTME: Includes Canon (literary canon facts) in the Pilotage group
 
 'use client';
 
 import Link from 'next/link';
-import { SlidersHorizontal, LayoutDashboard, Target, CheckSquare, Settings, Users, Search, FileText, Sparkles, Database } from 'lucide-react';
+import { SlidersHorizontal, LayoutDashboard, Target, CheckSquare, Settings, Users, Search, FileText, Sparkles, Database, BookMarked } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -29,6 +30,7 @@ const sections = [
       { title: 'Utilisation IA', icon: Sparkles, href: '/usage' },
       { title: 'Paramètres', icon: Settings, href: '/settings' },
       { title: 'Métadonnées', icon: Database, href: '/metadata' },
+      { title: 'Canon', icon: BookMarked, href: '/canon' },
     ],
   },
   {
