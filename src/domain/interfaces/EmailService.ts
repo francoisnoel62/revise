@@ -2,10 +2,31 @@
 // ABOUTME: Abstracts email delivery for notifications like user approval requests and sync reports.
 
 import { SafeUser } from '../entities/User';
+import { PricingProvider } from './ModelPricingRepository';
+
+/** USD per million token rates for a single model at a point in time. */
+export interface PriceSnapshot {
+  inputPerM: number;
+  outputPerM: number;
+  cachedInputPerM: number;
+}
+
+/**
+ * A model whose pricing changed during a sync.
+ * `previous` is null for a newly added model, set for an updated one.
+ */
+export interface ModelPriceChange {
+  /** "provider/prefix" identifier, e.g. "anthropic/claude-opus-4" */
+  key: string;
+  provider: PricingProvider;
+  prefix: string;
+  previous: PriceSnapshot | null;
+  current: PriceSnapshot;
+}
 
 export interface PricingSyncReport {
-  newModels: string[];
-  updatedModels: string[];
+  newModels: ModelPriceChange[];
+  updatedModels: ModelPriceChange[];
   totalModels: number;
   syncedAt: Date;
   errors: string[];

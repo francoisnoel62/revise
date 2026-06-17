@@ -54,8 +54,16 @@ describe('SyncModelPricingUseCase', () => {
     const report = await useCase.execute();
 
     // gpt-4o is new, claude-opus-4 is updated (price changed)
-    expect(report.newModels).toContain('openai/gpt-4o');
-    expect(report.updatedModels).toContain('anthropic/claude-opus-4');
+    const newModel = report.newModels.find((m) => m.key === 'openai/gpt-4o');
+    expect(newModel).toBeDefined();
+    expect(newModel?.previous).toBeNull();
+    expect(newModel?.current.inputPerM).toBe(2.5);
+
+    const updated = report.updatedModels.find((m) => m.key === 'anthropic/claude-opus-4');
+    expect(updated).toBeDefined();
+    // carries the old and new input price so the email can show the delta
+    expect(updated?.previous?.inputPerM).toBe(5.0);
+    expect(updated?.current.inputPerM).toBe(6.0);
   });
 
   it('sends email report after sync', async () => {
