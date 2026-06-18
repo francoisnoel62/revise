@@ -65,17 +65,22 @@ export class GenerateCanonFactsUseCase {
       input.ownerId,
       input.projectId
     );
-    const knownNames = characters.map((c) => c.getName());
-    // No known cast → nothing to extract; clear derived facts and return.
-    if (knownNames.length === 0) {
-      await this.canonFactRepository.replaceDerived(input.ownerId, input.projectId, []);
-      return { facts: [], factCount: 0, characterCount: 0 };
+    let effectiveNames = characters.map((c) => c.getName());
+
+    // No character sheets → ask the LLM to discover the main cast from the manuscript.
+    if (effectiveNames.length === 0) {
+      const discovered = await this.llmProvider.generateCharacters(fullText);
+      effectiveNames = discovered.characterProfiles.map((p) => p.name).filter(Boolean);
+      if (effectiveNames.length === 0) {
+        await this.canonFactRepository.replaceDerived(input.ownerId, input.projectId, []);
+        return { facts: [], factCount: 0, characterCount: 0 };
+      }
     }
 
     const contentHash = hashText(fullText);
-    const extraction = await this.llmProvider.generateCanonFacts(fullText, knownNames);
+    const extraction = await this.llmProvider.generateCanonFacts(fullText, effectiveNames);
 
-    const knownNameSet = new Set(knownNames.map((n) => n.toLowerCase()));
+    const knownNameSet = new Set(effectiveNames.map((n) => n.toLowerCase()));
     const lastChapterIndex = chapters.length - 1;
 
     const facts: CanonFact[] = extraction.facts
@@ -101,6 +106,6 @@ export class GenerateCanonFactsUseCase {
 
     await this.canonFactRepository.replaceDerived(input.ownerId, input.projectId, facts);
 
-    return { facts, factCount: facts.length, characterCount: knownNames.length };
+    return { facts, factCount: facts.length, characterCount: effectiveNames.length };
   }
 }

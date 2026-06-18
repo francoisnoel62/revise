@@ -163,7 +163,7 @@ export default function CockpitCanonPage() {
       if (result.data.factCount === 0) {
         setActionNotice(
           result.data.characterCount === 0
-            ? "Ce projet n'a aucun personnage. Générez d'abord les personnages (cockpit Personnages) avant d'extraire le canon."
+            ? "Aucun personnage n'a été identifié dans le manuscrit. Vérifiez que le manuscrit contient du contenu suffisant."
             : "Aucun fait n'a pu être extrait du manuscrit pour les personnages connus."
         );
       }

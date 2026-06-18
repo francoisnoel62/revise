@@ -23,7 +23,7 @@ describe('GenerateCanonFactsUseCase', () => {
   let canonRepo: { replaceDerived: ReturnType<typeof vi.fn> };
   let projectRepo: { loadProject: ReturnType<typeof vi.fn> };
   let characterRepo: { findByProjectId: ReturnType<typeof vi.fn> };
-  let llm: { generateCanonFacts: ReturnType<typeof vi.fn> };
+  let llm: { generateCanonFacts: ReturnType<typeof vi.fn>; generateCharacters: ReturnType<typeof vi.fn> };
   let idGen: IdGenerator;
 
   beforeEach(() => {
@@ -42,7 +42,10 @@ describe('GenerateCanonFactsUseCase', () => {
         { getName: () => 'Tom' },
       ]),
     };
-    llm = { generateCanonFacts: vi.fn() };
+    llm = {
+      generateCanonFacts: vi.fn(),
+      generateCharacters: vi.fn(),
+    };
     idGen = { generate: () => new ObjectId().toHexString() };
   });
 
@@ -99,15 +102,42 @@ describe('GenerateCanonFactsUseCase', () => {
     expect(result.facts[0].getSourceChapterId()).toBe('ch-2');
   });
 
-  it('clears derived facts and skips the LLM when there is no known cast', async () => {
+  it('discovers characters from the manuscript when no character sheets exist', async () => {
     characterRepo.findByProjectId.mockResolvedValue([]);
+    llm.generateCharacters.mockResolvedValue({
+      characterProfiles: [{ name: 'Léa' }, { name: 'Tom' }],
+      relationalMap: '',
+      narrativeHierarchy: '',
+      summary: '',
+    });
+    llm.generateCanonFacts.mockResolvedValue({
+      facts: [{ entity: 'Léa', statement: 'est morte', validFromChapter: 2, evidence: 'q' }],
+    });
 
     const result = await build().execute({ ownerId: 'o1', projectId: 'p1' });
 
-    expect(result.factCount).toBe(0);
-    // The caller can tell "0 facts because no cast" apart from "0 facts extracted".
-    expect(result.characterCount).toBe(0);
+    expect(llm.generateCharacters).toHaveBeenCalledTimes(1);
+    expect(llm.generateCanonFacts).toHaveBeenCalledWith(expect.any(String), ['Léa', 'Tom']);
+    expect(result.factCount).toBe(1);
+    expect(result.characterCount).toBe(2);
+    expect(result.facts[0].getEntity()).toBe('Léa');
+  });
+
+  it('clears derived facts and skips canon extraction when no sheets and LLM finds no characters', async () => {
+    characterRepo.findByProjectId.mockResolvedValue([]);
+    llm.generateCharacters.mockResolvedValue({
+      characterProfiles: [],
+      relationalMap: '',
+      narrativeHierarchy: '',
+      summary: '',
+    });
+
+    const result = await build().execute({ ownerId: 'o1', projectId: 'p1' });
+
+    expect(llm.generateCharacters).toHaveBeenCalledTimes(1);
     expect(llm.generateCanonFacts).not.toHaveBeenCalled();
+    expect(result.factCount).toBe(0);
+    expect(result.characterCount).toBe(0);
     expect(canonRepo.replaceDerived).toHaveBeenCalledWith('o1', 'p1', []);
   });
 
