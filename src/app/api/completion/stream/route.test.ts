@@ -11,8 +11,6 @@ vi.mock('@/infrastructure/auth/auth-config', () => ({
 vi.mock('@/infrastructure/config/providers', () => ({
   getProviderRepository: vi.fn(),
   getProjectRepository: vi.fn(),
-  getMetadataRepository: vi.fn(),
-  getResearchDocumentRepository: vi.fn(),
   getCharacterRepository: vi.fn(),
   getCanonFactRepository: vi.fn(),
 }));
@@ -26,8 +24,6 @@ import { auth } from '@/infrastructure/auth/auth-config';
 import {
   getProviderRepository,
   getProjectRepository,
-  getMetadataRepository,
-  getResearchDocumentRepository,
   getCharacterRepository,
   getCanonFactRepository,
 } from '@/infrastructure/config/providers';
@@ -61,11 +57,6 @@ describe('POST /api/completion/stream', () => {
     vi.clearAllMocks();
 
     vi.mocked(auth).mockResolvedValue({ user: { id: 'user-1' } } as never);
-    vi.mocked(getMetadataRepository).mockResolvedValue({} as never);
-    vi.mocked(getResearchDocumentRepository).mockResolvedValue({
-      findByProjectId: vi.fn().mockResolvedValue([]),
-      findByChapterId: vi.fn().mockResolvedValue([]),
-    } as never);
     vi.mocked(getCanonFactRepository).mockResolvedValue({
       findForSelection: vi.fn().mockResolvedValue([]),
     } as never);

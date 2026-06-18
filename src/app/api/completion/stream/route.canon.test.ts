@@ -1,4 +1,4 @@
-// ABOUTME: Tests the completion route canon wiring when CANON_CONTEXT_ENABLED is on
+// ABOUTME: Tests the completion route canon wiring
 // ABOUTME: Verifies local entity detection feeds [CANON] into the prompt and canonFactsCount
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -6,16 +6,9 @@ import { NextRequest } from 'next/server';
 
 vi.mock('@/infrastructure/auth/auth-config', () => ({ auth: vi.fn() }));
 
-vi.mock('@/lib/ai-feature-flags', () => ({
-  CANON_CONTEXT_ENABLED: true,
-  LONG_FORM_GENERATION_ENABLED: false,
-}));
-
 vi.mock('@/infrastructure/config/providers', () => ({
   getProviderRepository: vi.fn(),
   getProjectRepository: vi.fn(),
-  getMetadataRepository: vi.fn(),
-  getResearchDocumentRepository: vi.fn(),
   getCharacterRepository: vi.fn(),
   getCanonFactRepository: vi.fn(),
 }));
@@ -29,8 +22,6 @@ import { auth } from '@/infrastructure/auth/auth-config';
 import {
   getProviderRepository,
   getProjectRepository,
-  getMetadataRepository,
-  getResearchDocumentRepository,
   getCharacterRepository,
   getCanonFactRepository,
 } from '@/infrastructure/config/providers';
@@ -68,12 +59,6 @@ describe('POST /api/completion/stream — canon enabled', () => {
     vi.mocked(getRateLimitRepo).mockResolvedValue({
       consumeFixedWindow: vi.fn().mockResolvedValue({ allowed: true }),
     } as never);
-    vi.mocked(getMetadataRepository).mockResolvedValue({} as never);
-    vi.mocked(getResearchDocumentRepository).mockResolvedValue({
-      findByProjectId: vi.fn().mockResolvedValue([]),
-      findByChapterId: vi.fn().mockResolvedValue([]),
-    } as never);
-
     const provider = {
       getId: () => 'provider-1',
       getName: () => 'Claude',

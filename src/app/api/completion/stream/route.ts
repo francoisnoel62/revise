@@ -5,13 +5,10 @@ import { NextRequest } from 'next/server';
 import { auth } from '@/infrastructure/auth/auth-config';
 import {
   getProviderRepository,
-  getMetadataRepository,
-  getResearchDocumentRepository,
   getCharacterRepository,
   getCanonFactRepository,
 } from '@/infrastructure/config/providers';
 import { getTrackedLLMProviderById, getRateLimitRepo } from '@/app/actions/utils';
-import { AIContextBuilder } from '@/application/services/AIContextBuilder';
 import { AutocompleteContextBuilder } from '@/application/services/AutocompleteContextBuilder';
 import { intentDirective } from '@/application/services/autocompleteIntents';
 import {
@@ -24,7 +21,6 @@ import {
   isValidSuggestionLength,
   isValidAudaceLevel,
 } from '@/domain/value-objects/AutocompletePreferences';
-import { CANON_CONTEXT_ENABLED } from '@/lib/ai-feature-flags';
 
 export const runtime = 'nodejs';
 
@@ -145,23 +141,16 @@ export async function POST(request: NextRequest) {
   const selectedProviderType = selectedProvider.getType();
   const selectedProviderModel = selectedProvider.getModel();
 
-  // 5. Build the long-range completion context (author intent + optional canon).
-  // The local scene is already carried by the cursor window (textBeforeCursor); derived
-  // metadata is kept OUT of the writing hot path (opt-in only).
-  const metadataRepo = await getMetadataRepository();
-  const researchRepo = await getResearchDocumentRepository();
-  const aiContextBuilder = new AIContextBuilder(metadataRepo, researchRepo);
+  // 5. Build the long-range completion context (canon facts only).
+  // The local scene is already carried by the cursor window (textBeforeCursor).
   const canonFactRepo = await getCanonFactRepository();
-  const autocompleteContext = new AutocompleteContextBuilder(
-    aiContextBuilder,
-    canonFactRepo
-  );
+  const autocompleteContext = new AutocompleteContextBuilder(canonFactRepo);
 
-  // Resolve local canon context (behind a flag): which known characters appear in
-  // the local window, and the current chapter index for temporal fact selection.
+  // Resolve which known characters appear in the local window and the current
+  // chapter index for temporal canon fact selection.
   let entities: string[] | undefined;
   let chapterIndex: number | undefined;
-  if (CANON_CONTEXT_ENABLED && chapterId && project) {
+  if (chapterId && project) {
     const chapters = project.getChapters();
     const idx = chapters.findIndex((c) => c.getId() === chapterId);
     if (idx >= 0) {
@@ -176,8 +165,7 @@ export async function POST(request: NextRequest) {
     await autocompleteContext.buildContext({
       ownerId: userId,
       projectId,
-      chapterId,
-      includeCanon: CANON_CONTEXT_ENABLED,
+      includeCanon: true,
       entities,
       chapterIndex,
     });
