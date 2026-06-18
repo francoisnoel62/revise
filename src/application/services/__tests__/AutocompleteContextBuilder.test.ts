@@ -181,6 +181,21 @@ describe('AutocompleteContextBuilder', () => {
       return { getTitle: () => title, getContent: () => content };
     }
 
+    it('accepts an injected ManuscriptContextBuilder', async () => {
+      const injected = { build: vi.fn().mockReturnValue('[CHAPITRES PRÉCÉDENTS]\ninjected') };
+      const builder = new AutocompleteContextBuilder(undefined, injected as never);
+
+      const { context } = await builder.buildContext({
+        ownerId: 'o',
+        projectId: 'p',
+        includeManuscript: true,
+        chapters: [makeChapter('Ch', 10)],
+      });
+
+      expect(injected.build).toHaveBeenCalled();
+      expect(context).toContain('injected');
+    });
+
     it('injects [CHAPITRES PRÉCÉDENTS] before [CANON] when opted in', async () => {
       const canonRepo = {
         findForSelection: vi.fn().mockResolvedValue([makeCanonFact('Léa', 'est morte', 1)]),

@@ -301,6 +301,45 @@ describe('POST /api/completion/stream', () => {
     expect(contexts[0]).not.toContain('[AUDACE DEMANDÉE]');
   });
 
+  it('emits firstTokenMs in the done event', async () => {
+    const provider = {
+      getId: () => 'provider-1',
+      getName: () => 'Claude',
+      getType: () => 'anthropic',
+      getModel: () => 'claude-sonnet-4-5',
+    };
+    const project = { getProviderId: () => 'provider-1', getChapters: () => [] };
+    const llmProvider = {
+      async *generateCompletionStream() {
+        yield 'chunk';
+      },
+    };
+
+    vi.mocked(getProviderRepository).mockResolvedValue({
+      listProviders: vi.fn().mockResolvedValue([provider]),
+    } as never);
+    vi.mocked(getProjectRepository).mockResolvedValue({
+      loadProject: vi.fn().mockResolvedValue(project),
+    } as never);
+    vi.mocked(getTrackedLLMProviderById).mockResolvedValue(llmProvider as never);
+
+    const response = await POST(
+      request({ projectId: 'project-1', textBeforeCursor: 'Il marchait' })
+    );
+    const body = await readResponse(response);
+
+    const doneEvent = body
+      .split('\n\n')
+      .map((line) => line.replace(/^data: /, ''))
+      .find((d) => {
+        try { return JSON.parse(d)?.type === 'done'; } catch { return false; }
+      });
+    expect(doneEvent).toBeDefined();
+    const parsed = JSON.parse(doneEvent!);
+    expect(typeof parsed.firstTokenMs).toBe('number');
+    expect(parsed.firstTokenMs).toBeGreaterThanOrEqual(0);
+  });
+
   it('does not leak the raw provider error message to the client', async () => {
     const provider = {
       getId: () => 'provider-1',

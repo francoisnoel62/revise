@@ -30,9 +30,14 @@ export interface AutocompleteContextResult {
 const MAX_CANON_FACTS = 40;
 
 export class AutocompleteContextBuilder {
-  private readonly manuscriptBuilder = new ManuscriptContextBuilder();
+  private readonly manuscriptBuilder: ManuscriptContextBuilder;
 
-  constructor(private readonly canonFactRepository?: CanonFactRepository) {}
+  constructor(
+    private readonly canonFactRepository?: CanonFactRepository,
+    manuscriptBuilder?: ManuscriptContextBuilder
+  ) {
+    this.manuscriptBuilder = manuscriptBuilder ?? new ManuscriptContextBuilder();
+  }
 
   async buildContext(input: AutocompleteContextInput): Promise<AutocompleteContextResult> {
     const parts: string[] = [];

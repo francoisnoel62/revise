@@ -204,14 +204,19 @@ export async function POST(request: NextRequest) {
           projectContext
         );
 
+        const streamStart = performance.now();
+        let firstTokenMs: number | undefined;
         for await (const chunk of generator) {
+          if (firstTokenMs === undefined) {
+            firstTokenMs = Math.round(performance.now() - streamStart);
+          }
           // Send as Server-Sent Event
           const data = `data: ${JSON.stringify({ text: chunk })}\n\n`;
           controller.enqueue(encoder.encode(data));
         }
 
-        // Send done event
-        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+        // Send done event with latency telemetry
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done', firstTokenMs })}\n\n`));
         controller.close();
       } catch (error) {
         // Log the full detail server-side; never forward provider/internal error
