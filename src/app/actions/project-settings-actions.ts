@@ -14,6 +14,7 @@ import { Contributor } from '@/domain/value-objects/Contributor';
 import { RelatedWork } from '@/domain/value-objects/RelatedWork';
 import { PointOfView, NarrationTense, TargetAudience } from '@/domain/value-objects/NarrationSettings';
 import { AutocompletePreferences } from '@/domain/value-objects/AutocompletePreferences';
+import { CanonExtractionPreferences } from '@/domain/value-objects/CanonExtractionPreferences';
 
 export interface SerializedProjectSettings {
   id: string;
@@ -33,6 +34,7 @@ export interface SerializedProjectSettings {
   createdAt: string;
   updatedAt: string;
   autocompletePreferences: AutocompletePreferences;
+  canonExtractionPreferences: CanonExtractionPreferences;
 }
 
 function serializeProjectSettings(settings: ProjectSettings): SerializedProjectSettings {
@@ -54,6 +56,7 @@ function serializeProjectSettings(settings: ProjectSettings): SerializedProjectS
     createdAt: settings.getCreatedAt().toISOString(),
     updatedAt: settings.getUpdatedAt().toISOString(),
     autocompletePreferences: settings.getAutocompletePreferences(),
+    canonExtractionPreferences: settings.getCanonExtractionPreferences(),
   };
 }
 

@@ -149,4 +149,17 @@ describe('UpdateProjectSettingsUseCase', () => {
       })
     ).rejects.toThrow('Project title cannot be empty');
   });
+
+  it('updates canonExtractionPreferences mode', async () => {
+    const settings = ProjectSettings.create('id-1', 'project-1', 'user-1', 'Title');
+    mockRepository.findByProjectId.mockResolvedValue(settings);
+
+    const result = await useCase.execute({
+      userId: 'user-1',
+      projectId: 'project-1',
+      updates: { canonExtractionPreferences: { mode: 'session-end' } },
+    });
+
+    expect(result.getCanonExtractionPreferences().mode).toBe('session-end');
+  });
 });

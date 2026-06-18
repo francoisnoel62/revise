@@ -5,6 +5,7 @@ import { describe, it, expect } from 'vitest';
 import { ProjectSettings, ProjectSettingsProperties } from '../ProjectSettings';
 import { Contributor } from '@/domain/value-objects/Contributor';
 import { RelatedWork } from '@/domain/value-objects/RelatedWork';
+import { DEFAULT_CANON_EXTRACTION_PREFERENCES } from '@/domain/value-objects/CanonExtractionPreferences';
 
 describe('ProjectSettings', () => {
   const validProps: ProjectSettingsProperties = {
@@ -253,6 +254,38 @@ describe('ProjectSettings', () => {
 
       props.contributors.push({ name: 'New', role: 'other' });
       expect(settings.getContributors()).toEqual([{ name: 'John Doe', role: 'author' }]);
+    });
+  });
+
+  describe('getCanonExtractionPreferences', () => {
+    it('returns defaults when no mode stored', () => {
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'My Novel');
+      expect(settings.getCanonExtractionPreferences()).toEqual(DEFAULT_CANON_EXTRACTION_PREFERENCES);
+    });
+
+    it('returns stored mode when set', () => {
+      const settings = ProjectSettings.reconstruct({
+        ...validProps,
+        canonExtractionMode: 'session-end',
+      });
+      expect(settings.getCanonExtractionPreferences().mode).toBe('session-end');
+    });
+  });
+
+  describe('updateCanonExtractionPreferences', () => {
+    it('returns new instance with updated mode', () => {
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'My Novel');
+      const updated = settings.updateCanonExtractionPreferences({ mode: 'session-end' });
+
+      expect(updated.getCanonExtractionPreferences().mode).toBe('session-end');
+      expect(settings.getCanonExtractionPreferences().mode).toBe('manual');
+    });
+
+    it('preserves other prefs when updating partial', () => {
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'My Novel');
+      const updated = settings.updateCanonExtractionPreferences({ mode: 'manual' });
+
+      expect(updated.getCanonExtractionPreferences()).toEqual(DEFAULT_CANON_EXTRACTION_PREFERENCES);
     });
   });
 

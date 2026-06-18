@@ -10,6 +10,11 @@ import {
   AudaceLevel,
   DEFAULT_AUTOCOMPLETE_PREFERENCES,
 } from '../value-objects/AutocompletePreferences';
+import {
+  CanonExtractionPreferences,
+  CanonExtractionMode,
+  DEFAULT_CANON_EXTRACTION_PREFERENCES,
+} from '../value-objects/CanonExtractionPreferences';
 
 export interface ProjectSettingsProperties {
   id: string;
@@ -35,6 +40,7 @@ export interface ProjectSettingsProperties {
   autocompleteLearnFromRejections?: boolean;
   autocompletePartialAcceptance?: boolean;
   autocompleteSmartPrefetch?: boolean;
+  canonExtractionMode?: CanonExtractionMode;
 }
 
 export class ProjectSettings {
@@ -61,6 +67,7 @@ export class ProjectSettings {
   private autocompleteLearnFromRejections?: boolean;
   private autocompletePartialAcceptance?: boolean;
   private autocompleteSmartPrefetch?: boolean;
+  private canonExtractionMode?: CanonExtractionMode;
 
   private constructor(props: ProjectSettingsProperties) {
     this.validate(props);
@@ -88,6 +95,7 @@ export class ProjectSettings {
     this.autocompleteLearnFromRejections = props.autocompleteLearnFromRejections;
     this.autocompletePartialAcceptance = props.autocompletePartialAcceptance;
     this.autocompleteSmartPrefetch = props.autocompleteSmartPrefetch;
+    this.canonExtractionMode = props.canonExtractionMode;
   }
 
   private validate(props: ProjectSettingsProperties): void {
@@ -331,6 +339,20 @@ export class ProjectSettings {
     });
   }
 
+  getCanonExtractionPreferences(): CanonExtractionPreferences {
+    return {
+      mode: this.canonExtractionMode ?? DEFAULT_CANON_EXTRACTION_PREFERENCES.mode,
+    };
+  }
+
+  updateCanonExtractionPreferences(prefs: Partial<CanonExtractionPreferences>): ProjectSettings {
+    return new ProjectSettings({
+      ...this.toProperties(),
+      canonExtractionMode: prefs.mode ?? this.canonExtractionMode,
+      updatedAt: new Date(),
+    });
+  }
+
   toProperties(): ProjectSettingsProperties {
     return {
       id: this.id,
@@ -356,6 +378,7 @@ export class ProjectSettings {
       autocompleteLearnFromRejections: this.autocompleteLearnFromRejections,
       autocompletePartialAcceptance: this.autocompletePartialAcceptance,
       autocompleteSmartPrefetch: this.autocompleteSmartPrefetch,
+      canonExtractionMode: this.canonExtractionMode,
     };
   }
 }

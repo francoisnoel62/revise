@@ -7,6 +7,7 @@ import { Contributor, ContributorRole } from '@/domain/value-objects/Contributor
 import { RelatedWork } from '@/domain/value-objects/RelatedWork';
 import { PointOfView, NarrationTense, TargetAudience } from '@/domain/value-objects/NarrationSettings';
 import { SuggestionLength, AudaceLevel } from '@/domain/value-objects/AutocompletePreferences';
+import { CanonExtractionMode } from '@/domain/value-objects/CanonExtractionPreferences';
 
 export interface ContributorDocument {
   name: string;
@@ -42,6 +43,7 @@ export interface ProjectSettingsDocument {
   autocompleteLearnFromRejections?: boolean;
   autocompletePartialAcceptance?: boolean;
   autocompleteSmartPrefetch?: boolean;
+  canonExtractionMode?: string;
 }
 
 export function serializeProjectSettings(
@@ -78,6 +80,7 @@ export function serializeProjectSettings(
     autocompleteLearnFromRejections: props.autocompleteLearnFromRejections,
     autocompletePartialAcceptance: props.autocompletePartialAcceptance,
     autocompleteSmartPrefetch: props.autocompleteSmartPrefetch,
+    canonExtractionMode: props.canonExtractionMode,
   };
 }
 
@@ -116,6 +119,7 @@ export function deserializeProjectSettings(doc: ProjectSettingsDocument): Projec
     autocompleteLearnFromRejections: doc.autocompleteLearnFromRejections,
     autocompletePartialAcceptance: doc.autocompletePartialAcceptance,
     autocompleteSmartPrefetch: doc.autocompleteSmartPrefetch,
+    canonExtractionMode: doc.canonExtractionMode as CanonExtractionMode | undefined,
   };
 
   return ProjectSettings.reconstruct(props);

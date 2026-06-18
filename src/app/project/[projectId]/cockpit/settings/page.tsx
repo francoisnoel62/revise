@@ -13,6 +13,7 @@ import {
 import { loadProjectAction } from '@/app/actions/project-actions';
 import { ProjectSettingsForm } from '@/components/cockpit/ProjectSettingsForm';
 import { AutocompletePreferencesCard } from '@/components/cockpit/AutocompletePreferencesCard';
+import { CanonExtractionPreferencesCard } from '@/components/cockpit/CanonExtractionPreferencesCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
@@ -129,6 +130,11 @@ export default function SettingsPage() {
       <AutocompletePreferencesCard
         projectId={projectId}
         initialPreferences={settings.autocompletePreferences}
+      />
+
+      <CanonExtractionPreferencesCard
+        projectId={projectId}
+        initialPreferences={settings.canonExtractionPreferences}
       />
     </div>
   );

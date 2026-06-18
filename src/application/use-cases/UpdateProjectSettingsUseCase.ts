@@ -7,6 +7,7 @@ import { Contributor } from '@/domain/value-objects/Contributor';
 import { RelatedWork } from '@/domain/value-objects/RelatedWork';
 import { PointOfView, NarrationTense, TargetAudience } from '@/domain/value-objects/NarrationSettings';
 import { AutocompletePreferences } from '@/domain/value-objects/AutocompletePreferences';
+import { CanonExtractionPreferences } from '@/domain/value-objects/CanonExtractionPreferences';
 
 export interface ProjectSettingsUpdates {
   title?: string;
@@ -21,6 +22,7 @@ export interface ProjectSettingsUpdates {
   contributors?: Contributor[];
   relatedWorks?: RelatedWork[];
   autocompletePreferences?: Partial<AutocompletePreferences>;
+  canonExtractionPreferences?: Partial<CanonExtractionPreferences>;
 }
 
 export interface UpdateProjectSettingsInput {
@@ -88,6 +90,10 @@ export class UpdateProjectSettingsUseCase {
 
     if ('autocompletePreferences' in updates) {
       updated = updated.updateAutocompletePreferences(updates.autocompletePreferences!);
+    }
+
+    if ('canonExtractionPreferences' in updates) {
+      updated = updated.updateCanonExtractionPreferences(updates.canonExtractionPreferences!);
     }
 
     return this.repository.update(input.userId, updated);

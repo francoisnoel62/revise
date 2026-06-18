@@ -31,6 +31,12 @@ import {
   AutocompletePreferences,
   DEFAULT_AUTOCOMPLETE_PREFERENCES,
 } from '@/domain/value-objects/AutocompletePreferences';
+import {
+  CanonExtractionPreferences,
+  DEFAULT_CANON_EXTRACTION_PREFERENCES,
+} from '@/domain/value-objects/CanonExtractionPreferences';
+import { useSessionEndTrigger } from '@/hooks/useSessionEndTrigger';
+import { CanonExtractionBanner } from '@/components/editor/CanonExtractionBanner';
 import { ThesaurusPalette } from '@/components/editor/ThesaurusPalette';
 import { PublishDialog } from '@/components/publish/PublishDialog';
 import { CommandPalette } from '@/components/editor/CommandPalette';
@@ -91,6 +97,11 @@ function EditorContent() {
     DEFAULT_AUTOCOMPLETE_PREFERENCES
   );
 
+  // Canon extraction mode
+  const [canonExtractionPrefs, setCanonExtractionPrefs] = useState<CanonExtractionPreferences>(
+    DEFAULT_CANON_EXTRACTION_PREFERENCES
+  );
+
   // Load per-project autocomplete preferences when project is known. The toolbar
   // toggle is the single effective on/off for the session, seeded from the saved
   // preference so it can never misrepresent the persisted state.
@@ -100,9 +111,17 @@ function EditorContent() {
       if (result.success && result.settings) {
         setAutocompletePrefs(result.settings.autocompletePreferences);
         setAutocompleteEnabled(result.settings.autocompletePreferences.enabled);
+        setCanonExtractionPrefs(result.settings.canonExtractionPreferences);
       }
     });
   }, [project?.id]);
+
+  const { notification: canonNotification, dismissNotification: dismissCanonNotification } =
+    useSessionEndTrigger({
+      projectId: project?.id ?? '',
+      mode: canonExtractionPrefs.mode,
+      providerId: selectedProviderId,
+    });
 
   // Generation state (for AI menu dropdown)
   const [generationLoading, setGenerationLoading] = useState(false);
@@ -726,6 +745,12 @@ function EditorContent() {
         chapterTitle={project.chapters.find((c) => c.id === project.activeChapterId)?.title || 'Chapitre'}
         applyingIssueId={applyingIssueId}
         isApplyingAll={isApplyingAll}
+      />
+
+      {/* Canon extraction background notification */}
+      <CanonExtractionBanner
+        notification={canonNotification}
+        onDismiss={dismissCanonNotification}
       />
     </main>
   );
