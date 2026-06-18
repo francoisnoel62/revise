@@ -108,3 +108,17 @@ belong in Revise.
 
 Repeatable procedures live in `.claude/skills/` (tdd-cycle, systematic-debugging, journal) and `.claude/commands/`.
 Hooks in `.claude/hooks/` require **Git Bash + `jq`** in PATH (Windows: install jq via WinGet). If `jq` is missing the hooks print a warning and no-op.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues (`github.com/francoisnoel62/revise`). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default vocabulary — `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context repo — one `CONTEXT.md` + `docs/adr/` at the root. See `docs/agents/domain.md`.
