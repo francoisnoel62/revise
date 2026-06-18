@@ -55,4 +55,32 @@ describe('parseCanonFactsJson', () => {
     expect(() => parseCanonFactsJson('not json')).toThrow();
     expect(() => parseCanonFactsJson(JSON.stringify({ nope: true }))).toThrow();
   });
+
+  it('passes through a non-empty invalidates field', () => {
+    const result = parseCanonFactsJson(
+      JSON.stringify({
+        facts: [
+          {
+            entity: 'Léa',
+            statement: 'sait que Tom est innocent',
+            validFromChapter: 5,
+            evidence: 'q',
+            invalidates: 'croit que Tom est coupable',
+          },
+        ],
+      })
+    );
+    expect(result.facts[0].invalidates).toBe('croit que Tom est coupable');
+  });
+
+  it('omits invalidates when absent or empty', () => {
+    const result = parseCanonFactsJson(
+      JSON.stringify({
+        facts: [
+          { entity: 'Léa', statement: 'est morte', validFromChapter: 9, evidence: 'q' },
+        ],
+      })
+    );
+    expect(result.facts[0].invalidates).toBeUndefined();
+  });
 });

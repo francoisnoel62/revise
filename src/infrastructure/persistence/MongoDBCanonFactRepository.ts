@@ -11,6 +11,7 @@ import {
 } from './canon-fact-serializer';
 
 const COLLECTION_NAME = 'canonFacts';
+const STATE_COLLECTION = 'canonExtractionState';
 
 export class MongoDBCanonFactRepository implements CanonFactRepository {
   constructor(private readonly db: Db) {}
@@ -83,15 +84,21 @@ export class MongoDBCanonFactRepository implements CanonFactRepository {
   async replaceDerived(
     ownerId: string,
     projectId: string,
-    facts: CanonFact[]
+    facts: CanonFact[],
+    reprocessedChapterIds?: string[]
   ): Promise<void> {
     // Capture the derived facts to retire BEFORE inserting the new batch.
     // Insert-then-delete (rather than delete-then-insert) means a failed insert
     // leaves the previous derived facts intact — the ledger is never momentarily
     // emptied by a partial failure. MongoDB transactions are avoided on purpose:
     // they require a replica set, which local/CI single-node deployments lack.
+    const filter =
+      reprocessedChapterIds && reprocessedChapterIds.length > 0
+        ? { ownerId, projectId, source: 'derived' as const, sourceChapterId: { $in: reprocessedChapterIds } }
+        : { ownerId, projectId, source: 'derived' as const };
+
     const previous = await this.collection()
-      .find({ ownerId, projectId, source: 'derived' }, { projection: { _id: 1 } })
+      .find(filter, { projection: { _id: 1 } })
       .toArray();
 
     if (facts.length > 0) {
@@ -106,5 +113,27 @@ export class MongoDBCanonFactRepository implements CanonFactRepository {
 
   async deleteAllByOwner(ownerId: string): Promise<void> {
     await this.collection().deleteMany({ ownerId });
+  }
+
+  async getChapterHashes(ownerId: string, projectId: string): Promise<Map<string, string>> {
+    const doc = await this.db
+      .collection<{ ownerId: string; projectId: string; chapterHashes: Record<string, string> }>(STATE_COLLECTION)
+      .findOne({ ownerId, projectId });
+    if (!doc) return new Map();
+    return new Map(Object.entries(doc.chapterHashes));
+  }
+
+  async saveChapterHashes(
+    ownerId: string,
+    projectId: string,
+    hashes: Map<string, string>
+  ): Promise<void> {
+    await this.db
+      .collection(STATE_COLLECTION)
+      .updateOne(
+        { ownerId, projectId },
+        { $set: { ownerId, projectId, chapterHashes: Object.fromEntries(hashes) } },
+        { upsert: true }
+      );
   }
 }

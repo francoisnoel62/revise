@@ -130,4 +130,23 @@ export class CanonFact {
   getUpdatedAt(): Date {
     return this.updatedAt;
   }
+
+  /** Return a copy with validToChapter set to the given chapter index. */
+  withValidToChapter(validToChapter: number): CanonFact {
+    return CanonFact.reconstruct({
+      id: this.id,
+      ownerId: this.ownerId,
+      projectId: this.projectId,
+      entity: this.entity,
+      statement: this.statement,
+      validFromChapter: this.validFromChapter,
+      validToChapter,
+      source: this.source,
+      sourceChapterId: this.sourceChapterId,
+      contentHash: this.contentHash,
+      category: this.category,
+      createdAt: this.createdAt,
+      updatedAt: new Date(),
+    });
+  }
 }

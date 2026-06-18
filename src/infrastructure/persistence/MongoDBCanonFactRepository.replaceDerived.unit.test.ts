@@ -1,4 +1,4 @@
-// ABOUTME: Unit tests for MongoDBCanonFactRepository.replaceDerived resilience
+// ABOUTME: Unit tests for MongoDBCanonFactRepository.replaceDerived resilience and per-chapter scoping
 // ABOUTME: A failed insert must never delete the previous derived facts (no empty ledger)
 
 import { describe, it, expect, vi } from 'vitest';
@@ -63,5 +63,27 @@ describe('MongoDBCanonFactRepository.replaceDerived — resilience', () => {
     expect(insertMany.mock.invocationCallOrder[0]).toBeLessThan(
       deleteMany.mock.invocationCallOrder[0]
     );
+  });
+
+  it('filters the find query by sourceChapterId when reprocessedChapterIds is provided', async () => {
+    const { db, find } = makeFakeDb({ insertThrows: false });
+    const repo = new MongoDBCanonFactRepository(db);
+
+    await repo.replaceDerived('owner-1', 'project-1', [], ['ch-3', 'ch-4']);
+
+    expect(find).toHaveBeenCalledWith(
+      expect.objectContaining({ sourceChapterId: { $in: ['ch-3', 'ch-4'] } }),
+      expect.anything()
+    );
+  });
+
+  it('uses a broad filter (no sourceChapterId) when reprocessedChapterIds is omitted', async () => {
+    const { db, find } = makeFakeDb({ insertThrows: false });
+    const repo = new MongoDBCanonFactRepository(db);
+
+    await repo.replaceDerived('owner-1', 'project-1', []);
+
+    const filterArg = find.mock.calls[0][0];
+    expect(filterArg).not.toHaveProperty('sourceChapterId');
   });
 });

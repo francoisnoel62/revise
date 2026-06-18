@@ -18,6 +18,11 @@ export interface ExtractedCanonFact {
    * Defaults to 1 when not provided.
    */
   category?: CanonFactCategory;
+  /**
+   * Statement of a prior belief this fact contradicts. When set, the prior belief
+   * with the same entity and this statement receives a validToChapter.
+   */
+  invalidates?: string;
 }
 
 export interface CanonFacts {

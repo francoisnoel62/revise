@@ -66,11 +66,14 @@ Retourne UNIQUEMENT un JSON valide, sans markdown, de la forme :
 {
   "facts": [
     { "entity": "Dupont", "statement": "croit à tort que Marc est innocent", "validFromChapter": 4, "category": 3, "evidence": "Il en était certain : Marc n'avait pas pu commettre ce crime." },
-    { "entity": "Martin", "statement": "ignore que Dupont a lu la lettre", "validFromChapter": 7, "category": 4, "evidence": "Martin glissa la lettre dans sa veste, persuadé d'être seul à en connaître le contenu." }
+    { "entity": "Martin", "statement": "ignore que Dupont a lu la lettre", "validFromChapter": 7, "category": 4, "evidence": "Martin glissa la lettre dans sa veste, persuadé d'être seul à en connaître le contenu." },
+    { "entity": "Dupont", "statement": "sait que Marc est coupable", "validFromChapter": 9, "category": 2, "evidence": "La vérité éclata enfin.", "invalidates": "croit à tort que Marc est innocent" }
   ]
 }
 ```
 
 Le champ `category` est obligatoire : utilise le numéro (1–5) correspondant à la catégorie du fait.
+
+Le champ `invalidates` est **optionnel** : quand un fait nouveau contredit directement une croyance ou un état antérieur du même personnage, indique l'`statement` exact de ce fait antérieur. Cela permet de clore automatiquement les croyances dépassées.
 
 Si aucun fait établi n'est trouvé, retourne `{ "facts": [] }`.

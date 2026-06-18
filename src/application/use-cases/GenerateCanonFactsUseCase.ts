@@ -1,5 +1,5 @@
 // ABOUTME: Use case for extracting canon facts from a manuscript and reconciling them with the ledger
-// ABOUTME: Derived facts replace prior derived ones; author facts are preserved (refutability)
+// ABOUTME: Incremental per-chapter extraction: only reprocesses chapters whose content hash changed
 
 import {
   ProjectRepository,
@@ -10,7 +10,7 @@ import {
   CharacterRepository,
 } from '../../domain';
 import { hashText } from '../utils/text-hash';
-import { extractProjectFullText } from '../services/project-text';
+import { extractProjectFullText, extractChapterText } from '../services/project-text';
 
 export interface GenerateCanonFactsInput {
   ownerId: string;
@@ -77,35 +77,136 @@ export class GenerateCanonFactsUseCase {
       }
     }
 
-    const contentHash = hashText(fullText);
-    const extraction = await this.llmProvider.generateCanonFacts(fullText, effectiveNames);
-
     const knownNameSet = new Set(effectiveNames.map((n) => n.toLowerCase()));
-    const lastChapterIndex = chapters.length - 1;
 
-    const facts: CanonFact[] = extraction.facts
-      // Keep only facts about known characters (defensive: prompt already restricts this).
-      .filter((f) => knownNameSet.has(f.entity.trim().toLowerCase()))
-      .map((f) => {
-        const validFromChapter = Math.min(Math.max(0, f.validFromChapter), lastChapterIndex);
-        const sourceChapterId = chapters[validFromChapter]?.getId() ?? null;
-        return CanonFact.create({
-          id: this.idGenerator.generate(),
-          ownerId: input.ownerId,
-          projectId: input.projectId,
-          entity: f.entity.trim(),
-          statement: f.statement.trim(),
-          validFromChapter,
-          validToChapter: null,
-          source: 'derived',
-          sourceChapterId,
-          contentHash,
-          category: f.category,
+    // Compute per-chapter content hashes
+    const currentHashes = new Map<string, string>();
+    for (const ch of chapters) {
+      const text = extractChapterText(ch);
+      if (text.trim()) {
+        currentHashes.set(ch.getId(), hashText(text));
+      }
+    }
+
+    // Identify chapters that have changed (new or modified)
+    const storedHashes = await this.canonFactRepository.getChapterHashes(
+      input.ownerId,
+      input.projectId
+    );
+
+    const changedChapters = chapters.filter((ch) => {
+      const current = currentHashes.get(ch.getId());
+      if (!current) return false; // empty chapter, skip
+      return current !== storedHashes.get(ch.getId());
+    });
+
+    // If nothing changed, return existing derived facts without LLM calls
+    if (changedChapters.length === 0) {
+      const existing = await this.canonFactRepository.listByProject(
+        input.ownerId,
+        input.projectId
+      );
+      const derived = existing.filter((f) => f.getSource() === 'derived');
+      return { facts: derived, factCount: derived.length, characterCount: effectiveNames.length };
+    }
+
+    // Extract facts per changed chapter
+    const newFacts: CanonFact[] = [];
+    const changedChapterIds: string[] = [];
+    const factsWithInvalidates: Array<{ fact: CanonFact; invalidates: string }> = [];
+
+    for (const ch of changedChapters) {
+      const chapterIndex = chapters.findIndex((c) => c.getId() === ch.getId());
+      const chapterText = extractChapterText(ch);
+      const extraction = await this.llmProvider.generateCanonFacts(chapterText, effectiveNames);
+      const chapterHash = currentHashes.get(ch.getId()) ?? null;
+
+      const chapterFacts = extraction.facts
+        .filter((f) => knownNameSet.has(f.entity.trim().toLowerCase()))
+        .map((f) => {
+          const fact = CanonFact.create({
+            id: this.idGenerator.generate(),
+            ownerId: input.ownerId,
+            projectId: input.projectId,
+            entity: f.entity.trim(),
+            statement: f.statement.trim(),
+            // Remap from 0 to actual chapter index (LLM sees single-chapter text)
+            validFromChapter: chapterIndex,
+            validToChapter: null,
+            source: 'derived',
+            sourceChapterId: ch.getId(),
+            contentHash: chapterHash,
+            category: f.category,
+          });
+          if (f.invalidates) {
+            factsWithInvalidates.push({ fact, invalidates: f.invalidates });
+          }
+          return fact;
         });
-      });
 
-    await this.canonFactRepository.replaceDerived(input.ownerId, input.projectId, facts);
+      newFacts.push(...chapterFacts);
+      changedChapterIds.push(ch.getId());
+    }
 
-    return { facts, factCount: facts.length, characterCount: effectiveNames.length };
+    // Contradiction handling: set validToChapter on beliefs now contradicted by new facts.
+    // Only targets facts from unchanged chapters (changed chapters are about to be replaced).
+    if (factsWithInvalidates.length > 0) {
+      const allExisting = await this.canonFactRepository.listByProject(
+        input.ownerId,
+        input.projectId
+      );
+      const unchangedChapterIdSet = new Set(
+        chapters.map((c) => c.getId()).filter((id) => !changedChapterIds.includes(id))
+      );
+
+      for (const { fact: newFact, invalidates: stmt } of factsWithInvalidates) {
+        const invalidated = allExisting.find(
+          (f) =>
+            unchangedChapterIdSet.has(f.getSourceChapterId() ?? '') &&
+            f.getSource() === 'derived' &&
+            f.getEntity().toLowerCase() === newFact.getEntity().toLowerCase() &&
+            f.getStatement().trim() === stmt.trim() &&
+            f.getValidToChapter() === null &&
+            newFact.getValidFromChapter() > f.getValidFromChapter()
+        );
+        if (invalidated) {
+          const validTo = Math.max(
+            invalidated.getValidFromChapter(),
+            newFact.getValidFromChapter() - 1
+          );
+          await this.canonFactRepository.update(
+            input.ownerId,
+            invalidated.withValidToChapter(validTo)
+          );
+        }
+      }
+    }
+
+    // Replace derived facts for changed chapters only; preserve unchanged chapters' facts
+    await this.canonFactRepository.replaceDerived(
+      input.ownerId,
+      input.projectId,
+      newFacts,
+      changedChapterIds
+    );
+
+    // Persist updated chapter hashes
+    const updatedHashes = new Map(storedHashes);
+    for (const [id, hash] of currentHashes) {
+      updatedHashes.set(id, hash);
+    }
+    await this.canonFactRepository.saveChapterHashes(
+      input.ownerId,
+      input.projectId,
+      updatedHashes
+    );
+
+    // Return all derived facts (new + preserved from unchanged chapters)
+    const allFacts = await this.canonFactRepository.listByProject(
+      input.ownerId,
+      input.projectId
+    );
+    const derived = allFacts.filter((f) => f.getSource() === 'derived');
+    return { facts: derived, factCount: derived.length, characterCount: effectiveNames.length };
   }
 }
