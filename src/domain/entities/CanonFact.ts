@@ -5,6 +5,7 @@ import {
   CanonFactSource,
   isValidCanonFactSource,
 } from '../value-objects/CanonFactSource';
+import type { CanonFactCategory } from '../value-objects/CanonFacts';
 
 export interface CanonFactProperties {
   id: string;
@@ -17,6 +18,8 @@ export interface CanonFactProperties {
   source: CanonFactSource;
   sourceChapterId: string | null;
   contentHash: string | null;
+  /** Narrative category 1-5; defaults to 1 (objectif) when absent from stored data */
+  category?: CanonFactCategory;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -34,6 +37,7 @@ export class CanonFact {
   private readonly source: CanonFactSource;
   private readonly sourceChapterId: string | null;
   private readonly contentHash: string | null;
+  private readonly category: CanonFactCategory;
   private readonly createdAt: Date;
   private readonly updatedAt: Date;
 
@@ -50,6 +54,7 @@ export class CanonFact {
     this.source = props.source;
     this.sourceChapterId = props.sourceChapterId;
     this.contentHash = props.contentHash;
+    this.category = props.category ?? 1;
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
   }
@@ -115,6 +120,9 @@ export class CanonFact {
   }
   getContentHash(): string | null {
     return this.contentHash;
+  }
+  getCategory(): CanonFactCategory {
+    return this.category;
   }
   getCreatedAt(): Date {
     return this.createdAt;

@@ -95,6 +95,7 @@ export class GenerateCanonFactsUseCase {
           source: 'derived',
           sourceChapterId,
           contentHash,
+          category: f.category,
         });
       });
 

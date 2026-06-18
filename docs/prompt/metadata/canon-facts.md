@@ -65,10 +65,12 @@ Retourne UNIQUEMENT un JSON valide, sans markdown, de la forme :
 ```
 {
   "facts": [
-    { "entity": "Dupont", "statement": "croit à tort que Marc est innocent", "validFromChapter": 4, "evidence": "Il en était certain : Marc n'avait pas pu commettre ce crime." },
-    { "entity": "Martin", "statement": "ignore que Dupont a lu la lettre", "validFromChapter": 7, "evidence": "Martin glissa la lettre dans sa veste, persuadé d'être seul à en connaître le contenu." }
+    { "entity": "Dupont", "statement": "croit à tort que Marc est innocent", "validFromChapter": 4, "category": 3, "evidence": "Il en était certain : Marc n'avait pas pu commettre ce crime." },
+    { "entity": "Martin", "statement": "ignore que Dupont a lu la lettre", "validFromChapter": 7, "category": 4, "evidence": "Martin glissa la lettre dans sa veste, persuadé d'être seul à en connaître le contenu." }
   ]
 }
 ```
+
+Le champ `category` est obligatoire : utilise le numéro (1–5) correspondant à la catégorie du fait.
 
 Si aucun fait établi n'est trouvé, retourne `{ "facts": [] }`.

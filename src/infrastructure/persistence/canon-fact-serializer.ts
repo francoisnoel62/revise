@@ -3,6 +3,7 @@
 
 import { CanonFact, CanonFactProperties } from '@/domain/entities/CanonFact';
 import { CanonFactSource } from '@/domain/value-objects/CanonFactSource';
+import type { CanonFactCategory } from '@/domain/value-objects/CanonFacts';
 import { ObjectId } from 'mongodb';
 
 export interface CanonFactDocument {
@@ -16,6 +17,7 @@ export interface CanonFactDocument {
   source: CanonFactSource;
   sourceChapterId: string | null;
   contentHash: string | null;
+  category?: CanonFactCategory;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -32,6 +34,7 @@ export function serializeCanonFact(fact: CanonFact): CanonFactDocument {
     source: fact.getSource(),
     sourceChapterId: fact.getSourceChapterId(),
     contentHash: fact.getContentHash(),
+    category: fact.getCategory(),
     createdAt: fact.getCreatedAt(),
     updatedAt: fact.getUpdatedAt(),
   };
@@ -49,6 +52,7 @@ export function deserializeCanonFact(doc: CanonFactDocument): CanonFact {
     source: doc.source,
     sourceChapterId: doc.sourceChapterId ?? null,
     contentHash: doc.contentHash ?? null,
+    category: doc.category,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };

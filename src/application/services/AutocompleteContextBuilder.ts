@@ -22,7 +22,7 @@ export interface AutocompleteContextResult {
 }
 
 // Hard ceiling on canon facts injected, so the realtime prompt never bloats.
-const MAX_CANON_FACTS = 20;
+const MAX_CANON_FACTS = 40;
 
 export class AutocompleteContextBuilder {
   constructor(private readonly canonFactRepository?: CanonFactRepository) {}
@@ -70,7 +70,19 @@ export class AutocompleteContextBuilder {
 
     if (facts.length === 0) return null;
 
-    const selected = facts.slice(0, MAX_CANON_FACTS);
+    const prioritized = [...facts].sort((a, b) => {
+      // Most recent chapter first
+      const chapterDiff = b.getValidFromChapter() - a.getValidFromChapter();
+      if (chapterDiff !== 0) return chapterDiff;
+      // Within same chapter: categories 2-4 (knowledge/belief) before 1 (objective) and 5 (relational)
+      const catA = a.getCategory?.() ?? 1;
+      const catB = b.getCategory?.() ?? 1;
+      const priorityA = catA >= 2 && catA <= 4 ? 0 : 1;
+      const priorityB = catB >= 2 && catB <= 4 ? 0 : 1;
+      return priorityA - priorityB;
+    });
+
+    const selected = prioritized.slice(0, MAX_CANON_FACTS);
     const lines = selected.map(
       (f) => `${f.getEntity()} : ${f.getStatement()} (depuis ch.${f.getValidFromChapter() + 1})`
     );

@@ -110,4 +110,31 @@ describe('GenerateCanonFactsUseCase', () => {
     expect(llm.generateCanonFacts).not.toHaveBeenCalled();
     expect(canonRepo.replaceDerived).toHaveBeenCalledWith('o1', 'p1', []);
   });
+
+  it('preserves the category extracted by the LLM on the CanonFact', async () => {
+    llm.generateCanonFacts.mockResolvedValue({
+      facts: [
+        { entity: 'Léa', statement: 'sait que Tom est le traître', validFromChapter: 1, evidence: 'q', category: 2 },
+        { entity: 'Tom', statement: 'croit à tort que Léa est morte', validFromChapter: 2, evidence: 'q', category: 3 },
+      ],
+    });
+
+    const result = await build().execute({ ownerId: 'o1', projectId: 'p1' });
+
+    expect(result.factCount).toBe(2);
+    expect(result.facts[0].getCategory()).toBe(2);
+    expect(result.facts[1].getCategory()).toBe(3);
+  });
+
+  it('defaults category to 1 when not provided by the LLM', async () => {
+    llm.generateCanonFacts.mockResolvedValue({
+      facts: [
+        { entity: 'Léa', statement: 'est morte', validFromChapter: 2, evidence: 'q' },
+      ],
+    });
+
+    const result = await build().execute({ ownerId: 'o1', projectId: 'p1' });
+
+    expect(result.facts[0].getCategory()).toBe(1);
+  });
 });

@@ -34,6 +34,7 @@ export function parseCanonFactsJson(jsonContent: string): CanonFacts {
     statement: f.statement.trim(),
     validFromChapter: f.validFromChapter,
     evidence: typeof f.evidence === 'string' ? f.evidence : '',
+    category: f.category,
   }));
 
   return { facts };

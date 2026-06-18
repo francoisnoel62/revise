@@ -1,6 +1,8 @@
 // ABOUTME: Value object for canon-fact extraction output (one entry per atomic fact)
 // ABOUTME: Providers validate parsed JSON via isValidExtractedCanonFact before trusting it
 
+export type CanonFactCategory = 1 | 2 | 3 | 4 | 5;
+
 export interface ExtractedCanonFact {
   /** Known character name the fact is about */
   entity: string;
@@ -10,6 +12,12 @@ export interface ExtractedCanonFact {
   validFromChapter: number;
   /** Short quote/context backing the fact */
   evidence: string;
+  /**
+   * One of the 5 narrative categories:
+   * 1=objectif, 2=état de connaissance, 3=croyance, 4=croyance sur ce que les autres savent, 5=dynamique relationnelle
+   * Defaults to 1 when not provided.
+   */
+  category?: CanonFactCategory;
 }
 
 export interface CanonFacts {

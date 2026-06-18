@@ -5,10 +5,16 @@ import { describe, it, expect, vi } from 'vitest';
 import { AutocompleteContextBuilder } from '../AutocompleteContextBuilder';
 
 describe('AutocompleteContextBuilder', () => {
-  const makeCanonFact = (entity: string, statement: string, validFromChapter: number) => ({
+  const makeCanonFact = (
+    entity: string,
+    statement: string,
+    validFromChapter: number,
+    category: 1 | 2 | 3 | 4 | 5 = 1
+  ) => ({
     getEntity: () => entity,
     getStatement: () => statement,
     getValidFromChapter: () => validFromChapter,
+    getCategory: () => category,
   });
 
   it('returns empty context when no canon is requested', async () => {
@@ -95,5 +101,74 @@ describe('AutocompleteContextBuilder', () => {
     expect(canonFactsCount).toBe(0);
     // Completion still works: context is empty but the request proceeds normally.
     expect(context).toBe('');
+  });
+
+  it('injects at most 40 facts (cap raised from 20)', async () => {
+    const facts = Array.from({ length: 50 }, (_, i) =>
+      makeCanonFact(`P${i}`, `fait ${i}`, i % 10)
+    );
+    const canonRepo = { findForSelection: vi.fn().mockResolvedValue(facts) };
+    const builder = new AutocompleteContextBuilder(canonRepo as never);
+
+    const { canonFactsCount } = await builder.buildContext({
+      ownerId: 'o',
+      projectId: 'p',
+      includeCanon: true,
+      entities: ['P0'],
+      chapterIndex: 10,
+    });
+
+    expect(canonFactsCount).toBe(40);
+  });
+
+  it('sorts facts by most recent chapter first', async () => {
+    const facts = [
+      makeCanonFact('A', 'vieux', 0),
+      makeCanonFact('B', 'récent', 5),
+      makeCanonFact('C', 'milieu', 2),
+    ];
+    const canonRepo = { findForSelection: vi.fn().mockResolvedValue(facts) };
+    const builder = new AutocompleteContextBuilder(canonRepo as never);
+
+    const { context } = await builder.buildContext({
+      ownerId: 'o',
+      projectId: 'p',
+      includeCanon: true,
+      entities: ['A', 'B', 'C'],
+      chapterIndex: 10,
+    });
+
+    const lines = context.split('\n').filter((l) => l.startsWith('B') || l.startsWith('C') || l.startsWith('A'));
+    expect(lines[0]).toContain('B');  // ch.5 first
+    expect(lines[1]).toContain('C');  // ch.2 second
+    expect(lines[2]).toContain('A');  // ch.0 last
+  });
+
+  it('prioritises categories 2-4 over 1 and 5 within the same chapter', async () => {
+    const facts = [
+      makeCanonFact('P', 'fait objectif', 3, 1),
+      makeCanonFact('P', 'sait que X est le traître', 3, 2),
+      makeCanonFact('P', 'méfiance envers Q', 3, 5),
+      makeCanonFact('P', 'croit à tort que Y est innocent', 3, 3),
+    ];
+    const canonRepo = { findForSelection: vi.fn().mockResolvedValue(facts) };
+    const builder = new AutocompleteContextBuilder(canonRepo as never);
+
+    const { context } = await builder.buildContext({
+      ownerId: 'o',
+      projectId: 'p',
+      includeCanon: true,
+      entities: ['P'],
+      chapterIndex: 10,
+    });
+
+    const lines = context.split('\n').filter((l) => l.startsWith('P'));
+    // Categories 2 and 3 come before categories 1 and 5
+    expect(lines[0]).toContain('sait que X est le traître');
+    expect(lines[1]).toContain('croit à tort que Y est innocent');
+    // categories 1 and 5 come after
+    const last2 = [lines[2], lines[3]];
+    expect(last2.some((l) => l.includes('fait objectif'))).toBe(true);
+    expect(last2.some((l) => l.includes('méfiance envers Q'))).toBe(true);
   });
 });

@@ -9,7 +9,8 @@ describe('canon-facts prompt contract', () => {
 
   it('restricts extraction to established facts only', async () => {
     const prompt = (await repo.getCanonFactsPrompt()).toLowerCase();
-    expect(prompt).toContain('faits établis');
+    // The prompt enforces "ÉTABLI PAR LE TEXTE" — only extract what the text clearly establishes
+    expect(prompt).toContain('établi par le texte');
   });
 
   it('warns against over-asserting ambiguity', async () => {
@@ -28,5 +29,6 @@ describe('canon-facts prompt contract', () => {
     expect(prompt).toContain('statement');
     expect(prompt).toContain('validFromChapter');
     expect(prompt).toContain('evidence');
+    expect(prompt).toContain('category');
   });
 });
