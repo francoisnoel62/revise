@@ -93,6 +93,7 @@ describe('AutocompleteContextBuilder', () => {
 
     expect(context).not.toContain('[CANON]');
     expect(canonFactsCount).toBe(0);
+    // Completion still works: context is empty but the request proceeds normally.
     expect(context).toBe('');
   });
 });
