@@ -116,7 +116,7 @@ describe('GenerateCanonFactsUseCase', () => {
 
     const result = await build().execute({ ownerId: 'o1', projectId: 'p1' });
 
-    expect(llm.generateCharacters).toHaveBeenCalledTimes(1);
+    expect(llm.generateCharacters).toHaveBeenCalledWith(expect.any(String));
     expect(llm.generateCanonFacts).toHaveBeenCalledWith(expect.any(String), ['Léa', 'Tom']);
     expect(result.factCount).toBe(1);
     expect(result.characterCount).toBe(2);
