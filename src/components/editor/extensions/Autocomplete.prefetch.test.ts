@@ -1,11 +1,13 @@
 // ABOUTME: Unit tests for the Autocomplete extension's pure prefetch helpers
-// ABOUTME: Covers the sentence-boundary gate, the trigger predicate, and discarded-prefetch accounting
+// ABOUTME: Covers the sentence-boundary gate, the trigger predicate, discarded-prefetch accounting, and before-text clamping
 
 import { describe, it, expect, vi } from 'vitest';
 import {
   endsWithSentenceBoundary,
   shouldTriggerSmartPrefetch,
   flushDiscardedPrefetch,
+  clampBeforeText,
+  MAX_BEFORE_CHARS,
   type AutocompleteOptions,
   type AutocompleteStorage,
 } from './Autocomplete';
@@ -143,5 +145,34 @@ describe('flushDiscardedPrefetch', () => {
 
     expect(onEvent).not.toHaveBeenCalled();
     expect(storage.prefetchTelemetry).toBeNull();
+  });
+});
+
+describe('clampBeforeText', () => {
+  it('returns the text unchanged when it is shorter than MAX_BEFORE_CHARS', () => {
+    const short = 'a'.repeat(100);
+    expect(clampBeforeText(short)).toBe(short);
+  });
+
+  it('returns the text unchanged when it equals MAX_BEFORE_CHARS exactly', () => {
+    const exact = 'x'.repeat(MAX_BEFORE_CHARS);
+    expect(clampBeforeText(exact)).toBe(exact);
+  });
+
+  it('truncates from the left when text exceeds MAX_BEFORE_CHARS, preserving the end', () => {
+    const prefix = 'a'.repeat(500);
+    const suffix = 'b'.repeat(MAX_BEFORE_CHARS);
+    const long = prefix + suffix;
+    const result = clampBeforeText(long);
+    expect(result).toHaveLength(MAX_BEFORE_CHARS);
+    expect(result).toBe(suffix);
+  });
+
+  it('returns an empty string for empty input', () => {
+    expect(clampBeforeText('')).toBe('');
+  });
+
+  it('MAX_BEFORE_CHARS equals the server limit of 8000', () => {
+    expect(MAX_BEFORE_CHARS).toBe(8000);
   });
 });

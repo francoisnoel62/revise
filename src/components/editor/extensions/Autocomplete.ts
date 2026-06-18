@@ -102,6 +102,12 @@ const autocompletePluginKey = new PluginKey('autocomplete');
 
 const DELETION_WATCH_MS = 30000;
 const PREFETCH_IDLE_MS = 10000;
+export const MAX_BEFORE_CHARS = 8000;
+
+/** Truncates text from the left so it never exceeds MAX_BEFORE_CHARS, preserving the tail closest to the cursor. */
+export function clampBeforeText(text: string): string {
+  return text.length > MAX_BEFORE_CHARS ? text.slice(-MAX_BEFORE_CHARS) : text;
+}
 
 /** Returns true if text ends with a sentence-boundary character. */
 export function endsWithSentenceBoundary(text: string): boolean {
@@ -276,7 +282,7 @@ function buildContext(
   const { state } = editor;
   const { selection, doc } = state;
   const pos = selection.from;
-  const textBefore = doc.textBetween(Math.max(0, pos - 3000), pos, '\n', '\n');
+  const textBefore = clampBeforeText(doc.textBetween(0, pos, '\n', '\n'));
   const textAfter = doc.textBetween(
     pos,
     Math.min(doc.content.size, pos + 400),
