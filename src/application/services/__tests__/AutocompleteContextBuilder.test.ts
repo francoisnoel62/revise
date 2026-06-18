@@ -1,5 +1,5 @@
 // ABOUTME: Tests for AutocompleteContextBuilder (long-range completion context)
-// ABOUTME: Canon facts only; no research documents or derived metadata in the hot path
+// ABOUTME: Covers canon facts and previous chapters context blocks
 
 import { describe, it, expect, vi } from 'vitest';
 import { AutocompleteContextBuilder } from '../AutocompleteContextBuilder';
@@ -169,5 +169,66 @@ describe('AutocompleteContextBuilder', () => {
     expect(first3.some((l) => l.includes('croit à tort que Y est innocent'))).toBe(true);
     expect(first3.some((l) => l.includes('méfiance envers Q'))).toBe(true);
     expect(lines[3]).toContain('fait objectif');
+  });
+
+  describe('manuscript context ([CHAPITRES PRÉCÉDENTS])', () => {
+    function makeChapter(title: string, wordCount: number) {
+      const words = Array.from({ length: wordCount }, (_, i) => `mot${i}`).join(' ');
+      const content = JSON.stringify({
+        type: 'doc',
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: words }] }],
+      });
+      return { getTitle: () => title, getContent: () => content };
+    }
+
+    it('injects [CHAPITRES PRÉCÉDENTS] before [CANON] when opted in', async () => {
+      const canonRepo = {
+        findForSelection: vi.fn().mockResolvedValue([makeCanonFact('Léa', 'est morte', 1)]),
+      };
+      const builder = new AutocompleteContextBuilder(canonRepo as never);
+      const chapters = [makeChapter('Prologue', 100)];
+
+      const { context } = await builder.buildContext({
+        ownerId: 'o',
+        projectId: 'p',
+        includeManuscript: true,
+        chapters,
+        includeCanon: true,
+        entities: ['Léa'],
+        chapterIndex: 2,
+      });
+
+      expect(context).toContain('[CHAPITRES PRÉCÉDENTS]');
+      expect(context).toContain('[CANON]');
+      const manuscriptPos = context.indexOf('[CHAPITRES PRÉCÉDENTS]');
+      const canonPos = context.indexOf('[CANON]');
+      expect(manuscriptPos).toBeLessThan(canonPos);
+    });
+
+    it('does not inject [CHAPITRES PRÉCÉDENTS] when includeManuscript is false', async () => {
+      const builder = new AutocompleteContextBuilder();
+      const chapters = [makeChapter('Ch 1', 100)];
+
+      const { context } = await builder.buildContext({
+        ownerId: 'o',
+        projectId: 'p',
+        chapters,
+      });
+
+      expect(context).not.toContain('[CHAPITRES PRÉCÉDENTS]');
+    });
+
+    it('omits [CHAPITRES PRÉCÉDENTS] when chapters array is empty', async () => {
+      const builder = new AutocompleteContextBuilder();
+
+      const { context } = await builder.buildContext({
+        ownerId: 'o',
+        projectId: 'p',
+        includeManuscript: true,
+        chapters: [],
+      });
+
+      expect(context).not.toContain('[CHAPITRES PRÉCÉDENTS]');
+    });
   });
 });

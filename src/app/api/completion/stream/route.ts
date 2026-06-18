@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
   const selectedProviderType = selectedProvider.getType();
   const selectedProviderModel = selectedProvider.getModel();
 
-  // 5. Build the long-range completion context (canon facts only).
+  // 5. Build the long-range completion context (previous chapters + canon facts).
   // The local scene is already carried by the cursor window (textBeforeCursor).
   const canonFactRepo = await getCanonFactRepository();
   const autocompleteContext = new AutocompleteContextBuilder(canonFactRepo);
@@ -150,11 +150,13 @@ export async function POST(request: NextRequest) {
   // chapter index for temporal canon fact selection.
   let entities: string[] | undefined;
   let chapterIndex: number | undefined;
+  let previousChapters: import('@/domain/entities/Chapter').Chapter[] = [];
   if (chapterId && project) {
     const chapters = project.getChapters();
     const idx = chapters.findIndex((c) => c.getId() === chapterId);
     if (idx >= 0) {
       chapterIndex = idx;
+      previousChapters = chapters.slice(0, idx);
       const characterRepo = await getCharacterRepository();
       const characters = await characterRepo.findByProjectId(userId, projectId);
       entities = detectEntities(textBeforeCursor, characters.map((c) => c.getName()));
@@ -165,6 +167,8 @@ export async function POST(request: NextRequest) {
     await autocompleteContext.buildContext({
       ownerId: userId,
       projectId,
+      includeManuscript: true,
+      chapters: previousChapters,
       includeCanon: true,
       entities,
       chapterIndex,

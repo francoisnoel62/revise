@@ -1,11 +1,16 @@
 // ABOUTME: Long-range context builder for autocompletion (the writing hot path)
-// ABOUTME: Canon facts only; the local scene comes from the cursor window
+// ABOUTME: Builds [CHAPITRES PRÉCÉDENTS] and [CANON] blocks for the completion prompt
 
 import { CanonFactRepository } from '../../domain/interfaces/CanonFactRepository';
+import { ManuscriptContextBuilder, ManuscriptChapter } from './ManuscriptContextBuilder';
 
 export interface AutocompleteContextInput {
   ownerId: string;
   projectId: string;
+  /** Opt-in: inject previous chapters as [CHAPITRES PRÉCÉDENTS]. */
+  includeManuscript?: boolean;
+  /** Chapters preceding the current one (ordered). Required when includeManuscript is true. */
+  chapters?: ManuscriptChapter[];
   /** Opt-in: append the local canon facts. */
   includeCanon?: boolean;
   /** Known character names detected in the local window (for canon selection). */
@@ -25,11 +30,18 @@ export interface AutocompleteContextResult {
 const MAX_CANON_FACTS = 40;
 
 export class AutocompleteContextBuilder {
+  private readonly manuscriptBuilder = new ManuscriptContextBuilder();
+
   constructor(private readonly canonFactRepository?: CanonFactRepository) {}
 
   async buildContext(input: AutocompleteContextInput): Promise<AutocompleteContextResult> {
     const parts: string[] = [];
     let canonFactsCount = 0;
+
+    if (input.includeManuscript && input.chapters) {
+      const manuscript = this.manuscriptBuilder.build(input.chapters);
+      if (manuscript) parts.push(manuscript);
+    }
 
     if (input.includeCanon) {
       const canon = await this.buildCanonSection(input);
