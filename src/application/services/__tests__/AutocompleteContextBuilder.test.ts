@@ -144,7 +144,7 @@ describe('AutocompleteContextBuilder', () => {
     expect(lines[2]).toContain('A');  // ch.0 last
   });
 
-  it('prioritises categories 2-4 over 1 and 5 within the same chapter', async () => {
+  it('prioritises categories 2-5 (knowledge/belief/relational) over category 1 (objective) within the same chapter', async () => {
     const facts = [
       makeCanonFact('P', 'fait objectif', 3, 1),
       makeCanonFact('P', 'sait que X est le traître', 3, 2),
@@ -163,12 +163,11 @@ describe('AutocompleteContextBuilder', () => {
     });
 
     const lines = context.split('\n').filter((l) => l.startsWith('P'));
-    // Categories 2 and 3 come before categories 1 and 5
-    expect(lines[0]).toContain('sait que X est le traître');
-    expect(lines[1]).toContain('croit à tort que Y est innocent');
-    // categories 1 and 5 come after
-    const last2 = [lines[2], lines[3]];
-    expect(last2.some((l) => l.includes('fait objectif'))).toBe(true);
-    expect(last2.some((l) => l.includes('méfiance envers Q'))).toBe(true);
+    // Categories 2, 3, 5 come before category 1
+    const first3 = [lines[0], lines[1], lines[2]];
+    expect(first3.some((l) => l.includes('sait que X est le traître'))).toBe(true);
+    expect(first3.some((l) => l.includes('croit à tort que Y est innocent'))).toBe(true);
+    expect(first3.some((l) => l.includes('méfiance envers Q'))).toBe(true);
+    expect(lines[3]).toContain('fait objectif');
   });
 });

@@ -39,4 +39,30 @@ describe('isValidExtractedCanonFact', () => {
     expect(isValidExtractedCanonFact('nope')).toBe(false);
     expect(isValidExtractedCanonFact(42)).toBe(false);
   });
+
+  it('accepts a fact with a valid category (1-5)', () => {
+    for (const category of [1, 2, 3, 4, 5] as const) {
+      expect(
+        isValidExtractedCanonFact({ entity: 'Léa', statement: 'x', validFromChapter: 0, evidence: 'e', category })
+      ).toBe(true);
+    }
+  });
+
+  it('accepts a fact without a category (optional field)', () => {
+    expect(
+      isValidExtractedCanonFact({ entity: 'Léa', statement: 'x', validFromChapter: 0, evidence: 'e' })
+    ).toBe(true);
+  });
+
+  it('rejects a fact with an out-of-range category', () => {
+    expect(
+      isValidExtractedCanonFact({ entity: 'Léa', statement: 'x', validFromChapter: 0, evidence: 'e', category: 6 })
+    ).toBe(false);
+    expect(
+      isValidExtractedCanonFact({ entity: 'Léa', statement: 'x', validFromChapter: 0, evidence: 'e', category: 0 })
+    ).toBe(false);
+    expect(
+      isValidExtractedCanonFact({ entity: 'Léa', statement: 'x', validFromChapter: 0, evidence: 'e', category: 'croyance' })
+    ).toBe(false);
+  });
 });

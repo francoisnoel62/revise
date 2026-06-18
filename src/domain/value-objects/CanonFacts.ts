@@ -36,5 +36,6 @@ export function isValidExtractedCanonFact(value: unknown): value is ExtractedCan
   ) {
     return false;
   }
+  if (f.category !== undefined && ![1, 2, 3, 4, 5].includes(f.category as number)) return false;
   return true;
 }

@@ -74,11 +74,11 @@ export class AutocompleteContextBuilder {
       // Most recent chapter first
       const chapterDiff = b.getValidFromChapter() - a.getValidFromChapter();
       if (chapterDiff !== 0) return chapterDiff;
-      // Within same chapter: categories 2-4 (knowledge/belief) before 1 (objective) and 5 (relational)
-      const catA = a.getCategory?.() ?? 1;
-      const catB = b.getCategory?.() ?? 1;
-      const priorityA = catA >= 2 && catA <= 4 ? 0 : 1;
-      const priorityB = catB >= 2 && catB <= 4 ? 0 : 1;
+      // Within same chapter: categories 2-5 (knowledge/belief/relational) before 1 (objective)
+      const catA = a.getCategory();
+      const catB = b.getCategory();
+      const priorityA = catA >= 2 ? 0 : 1;
+      const priorityB = catB >= 2 ? 0 : 1;
       return priorityA - priorityB;
     });
 
