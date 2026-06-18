@@ -23,6 +23,9 @@ export class MongoDBCanonFactRepository implements CanonFactRepository {
   async ensureIndexes(): Promise<void> {
     await this.collection().createIndex({ ownerId: 1, projectId: 1, entity: 1 });
     await this.collection().createIndex({ ownerId: 1, projectId: 1, validFromChapter: 1 });
+    await this.db
+      .collection(STATE_COLLECTION)
+      .createIndex({ ownerId: 1, projectId: 1 }, { unique: true });
   }
 
   async save(fact: CanonFact): Promise<CanonFact> {

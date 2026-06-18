@@ -130,7 +130,6 @@ export class GenerateCanonFactsUseCase {
             projectId: input.projectId,
             entity: f.entity.trim(),
             statement: f.statement.trim(),
-            // Remap from 0 to actual chapter index (LLM sees single-chapter text)
             validFromChapter: chapterIndex,
             validToChapter: null,
             source: 'derived',
