@@ -76,14 +76,13 @@ export function useSessionEndTrigger({
 
     const ACTIVITY_EVENTS = ['keydown', 'mousedown', 'wheel', 'touchstart'] as const;
 
+    // Only start the countdown after the first activity — opening the editor
+    // without typing should not count as an "idle session".
     const handleActivity = () => resetTimer();
 
     ACTIVITY_EVENTS.forEach((event) => {
       document.addEventListener(event, handleActivity, { passive: true });
     });
-
-    // Start the initial timer
-    resetTimer();
 
     return () => {
       ACTIVITY_EVENTS.forEach((event) => {

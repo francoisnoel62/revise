@@ -43,7 +43,7 @@ export interface ProjectSettingsDocument {
   autocompleteLearnFromRejections?: boolean;
   autocompletePartialAcceptance?: boolean;
   autocompleteSmartPrefetch?: boolean;
-  canonExtractionMode?: string;
+  canonExtractionMode?: CanonExtractionMode;
 }
 
 export function serializeProjectSettings(
@@ -119,7 +119,7 @@ export function deserializeProjectSettings(doc: ProjectSettingsDocument): Projec
     autocompleteLearnFromRejections: doc.autocompleteLearnFromRejections,
     autocompletePartialAcceptance: doc.autocompletePartialAcceptance,
     autocompleteSmartPrefetch: doc.autocompleteSmartPrefetch,
-    canonExtractionMode: doc.canonExtractionMode as CanonExtractionMode | undefined,
+    canonExtractionMode: doc.canonExtractionMode,
   };
 
   return ProjectSettings.reconstruct(props);

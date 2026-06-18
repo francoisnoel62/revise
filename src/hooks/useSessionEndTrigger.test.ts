@@ -41,7 +41,7 @@ describe('useSessionEndTrigger', () => {
     expect(mockGenerateCanonFactsAction).not.toHaveBeenCalled();
   });
 
-  it('triggers extraction after inactivity threshold in session-end mode', async () => {
+  it('triggers extraction after inactivity threshold following first activity', async () => {
     mockGenerateCanonFactsAction.mockResolvedValue({ success: true, data: { factCount: 5, characterCount: 2 } });
 
     renderHook(() =>
@@ -51,6 +51,11 @@ describe('useSessionEndTrigger', () => {
         providerId: 'provider-1',
       })
     );
+
+    // Simulate first keystroke to start the session
+    await act(async () => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
+    });
 
     await act(async () => {
       vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MS + 1000);
@@ -71,7 +76,28 @@ describe('useSessionEndTrigger', () => {
     );
 
     await act(async () => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
+    });
+
+    await act(async () => {
       vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MS - 1000);
+    });
+
+    expect(mockGenerateCanonFactsAction).not.toHaveBeenCalled();
+  });
+
+  it('does not trigger without any activity even after long wait', async () => {
+    renderHook(() =>
+      useSessionEndTrigger({
+        projectId: 'proj-1',
+        mode: 'session-end',
+        providerId: 'provider-1',
+      })
+    );
+
+    // Advance past threshold WITHOUT any activity event
+    await act(async () => {
+      vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MS + 1000);
     });
 
     expect(mockGenerateCanonFactsAction).not.toHaveBeenCalled();
@@ -88,24 +114,29 @@ describe('useSessionEndTrigger', () => {
       })
     );
 
+    // First activity starts the session clock
+    await act(async () => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
+    });
+
     // Advance to just before threshold
     await act(async () => {
       vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MS - 1000);
     });
 
-    // Simulate user activity (keydown event)
+    // Second activity resets the countdown
     await act(async () => {
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'b' }));
     });
 
-    // Advance past the original threshold but not the new one
+    // Advance past the original threshold but not the reset one
     await act(async () => {
       vi.advanceTimersByTime(2000);
     });
 
     expect(mockGenerateCanonFactsAction).not.toHaveBeenCalled();
 
-    // Now advance past threshold from activity reset
+    // Now advance past threshold from the reset
     await act(async () => {
       vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MS);
     });
@@ -128,14 +159,21 @@ describe('useSessionEndTrigger', () => {
       })
     );
 
-    // Trigger the first extraction
+    // Start the session with first activity, then let it idle past threshold
+    await act(async () => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
+    });
+
     await act(async () => {
       vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MS + 1000);
     });
 
     expect(mockGenerateCanonFactsAction).toHaveBeenCalledOnce();
 
-    // Advance again — should NOT trigger a second call while first is running
+    // Activity + advance again — should NOT re-trigger while first is running
+    await act(async () => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'b' }));
+    });
     await act(async () => {
       vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MS + 1000);
     });
@@ -165,6 +203,9 @@ describe('useSessionEndTrigger', () => {
     expect(result.current.notification).toBeNull();
 
     await act(async () => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
+    });
+    await act(async () => {
       vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MS + 1000);
     });
 
@@ -187,6 +228,9 @@ describe('useSessionEndTrigger', () => {
     );
 
     await act(async () => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
+    });
+    await act(async () => {
       vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MS + 1000);
     });
 
@@ -207,6 +251,9 @@ describe('useSessionEndTrigger', () => {
       })
     );
 
+    await act(async () => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
+    });
     await act(async () => {
       vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MS + 1000);
     });
