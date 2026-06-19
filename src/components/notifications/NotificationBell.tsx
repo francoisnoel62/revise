@@ -31,7 +31,7 @@ const SEVERITY_ICON: Record<string, React.ReactNode> = {
 };
 
 export function NotificationBell() {
-  const { notifications, dismissNotification, markAsRead, markAllAsRead } =
+  const { notifications, dismissNotification, markAllAsRead } =
     useNotificationStore();
   const [open, setOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<AppNotification | null>(null);

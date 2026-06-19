@@ -70,6 +70,10 @@ export default [
         HTMLTableRowElement: "readonly",
         HTMLTableCellElement: "readonly",
         HTMLTableCaptionElement: "readonly",
+        // DOM events
+        KeyboardEvent: "readonly",
+        MouseEvent: "readonly",
+        Event: "readonly",
         // Test environment
         global: "readonly",
       },
