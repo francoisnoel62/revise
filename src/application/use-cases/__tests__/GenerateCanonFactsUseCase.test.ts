@@ -4,6 +4,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GenerateCanonFactsUseCase } from '../GenerateCanonFactsUseCase';
 import type { CanonFactRepository } from '@/domain/interfaces/CanonFactRepository';
+import type { CanonExtractionStateRepository } from '@/domain/interfaces/CanonExtractionStateRepository';
 import type { ProjectRepository } from '@/domain/interfaces/ProjectRepository';
 import type { CharacterRepository } from '@/domain/interfaces/CharacterRepository';
 import type { LLMProvider } from '@/domain/interfaces/LLMProvider';
@@ -23,10 +24,12 @@ function chapter(id: string, title: string, text: string) {
 describe('GenerateCanonFactsUseCase', () => {
   let canonRepo: {
     replaceDerived: ReturnType<typeof vi.fn>;
-    getChapterHashes: ReturnType<typeof vi.fn>;
-    saveChapterHashes: ReturnType<typeof vi.fn>;
     listByProject: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
+  };
+  let canonStateRepo: {
+    getChapterHashes: ReturnType<typeof vi.fn>;
+    saveChapterHashes: ReturnType<typeof vi.fn>;
   };
   let projectRepo: { loadProject: ReturnType<typeof vi.fn> };
   let characterRepo: { findByProjectId: ReturnType<typeof vi.fn> };
@@ -39,10 +42,12 @@ describe('GenerateCanonFactsUseCase', () => {
     let storedFacts: CanonFact[] = [];
     canonRepo = {
       replaceDerived: vi.fn().mockImplementation(async (_o, _p, facts) => { storedFacts = facts ?? []; }),
-      getChapterHashes: vi.fn().mockResolvedValue(new Map()),
-      saveChapterHashes: vi.fn().mockResolvedValue(undefined),
       listByProject: vi.fn().mockImplementation(async () => storedFacts),
       update: vi.fn().mockResolvedValue(undefined),
+    };
+    canonStateRepo = {
+      getChapterHashes: vi.fn().mockResolvedValue(new Map()),
+      saveChapterHashes: vi.fn().mockResolvedValue(undefined),
     };
     // Single chapter keeps most tests simple — per-chapter extraction calls LLM once.
     // Tests needing multi-chapter projects override loadProject directly.
@@ -68,6 +73,7 @@ describe('GenerateCanonFactsUseCase', () => {
   function build() {
     return new GenerateCanonFactsUseCase(
       canonRepo as unknown as CanonFactRepository,
+      canonStateRepo as unknown as CanonExtractionStateRepository,
       projectRepo as unknown as ProjectRepository,
       characterRepo as unknown as CharacterRepository,
       llm as unknown as LLMProvider,
@@ -203,8 +209,7 @@ describe('GenerateCanonFactsUseCase', () => {
       const hash0 = hashText(extractChapterText(chapters[0]));
       const hash1 = hashText(extractChapterText(chapters[1]));
 
-      (canonRepo as unknown as { getChapterHashes: ReturnType<typeof vi.fn> })
-        .getChapterHashes.mockResolvedValue(new Map([['ch-0', hash0], ['ch-1', hash1]]));
+      canonStateRepo.getChapterHashes.mockResolvedValue(new Map([['ch-0', hash0], ['ch-1', hash1]]));
 
       llm.generateCanonFacts.mockResolvedValue({
         facts: [{ entity: 'Léa', statement: 'est morte', validFromChapter: 0, evidence: 'q' }],
@@ -242,8 +247,7 @@ describe('GenerateCanonFactsUseCase', () => {
 
       await build().execute({ ownerId: 'o1', projectId: 'p1' });
 
-      expect((canonRepo as unknown as { saveChapterHashes: ReturnType<typeof vi.fn> })
-        .saveChapterHashes).toHaveBeenCalledWith('o1', 'p1', expect.any(Map));
+      expect(canonStateRepo.saveChapterHashes).toHaveBeenCalledWith('o1', 'p1', expect.any(Map));
     });
 
     it('passes only changed chapter ids to replaceDerived', async () => {
@@ -257,8 +261,7 @@ describe('GenerateCanonFactsUseCase', () => {
       const { extractChapterText } = await import('@/application/services/project-text');
       const hash0 = hashText(extractChapterText(chapters[0]));
       // ch-1 is new (not in stored hashes)
-      (canonRepo as unknown as { getChapterHashes: ReturnType<typeof vi.fn> })
-        .getChapterHashes.mockResolvedValue(new Map([['ch-0', hash0]]));
+      canonStateRepo.getChapterHashes.mockResolvedValue(new Map([['ch-0', hash0]]));
 
       llm.generateCanonFacts.mockResolvedValue({ facts: [] });
 
@@ -296,8 +299,7 @@ describe('GenerateCanonFactsUseCase', () => {
       const { hashText } = await import('@/application/utils/text-hash');
       const { extractChapterText } = await import('@/application/services/project-text');
       const hash0 = hashText(extractChapterText(chapters[0]));
-      (canonRepo as unknown as { getChapterHashes: ReturnType<typeof vi.fn> })
-        .getChapterHashes.mockResolvedValue(new Map([['ch-0', hash0]]));
+      canonStateRepo.getChapterHashes.mockResolvedValue(new Map([['ch-0', hash0]]));
 
       // ch-1 is changed; it returns a fact that invalidates the prior belief
       llm.generateCanonFacts.mockResolvedValue({

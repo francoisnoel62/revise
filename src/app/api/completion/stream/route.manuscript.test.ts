@@ -112,6 +112,44 @@ describe('POST /api/completion/stream — manuscript context', () => {
     expect(capturedContext).not.toContain('Chapitre 1');
   });
 
+  it('includes firstTokenMs in the done SSE event', async () => {
+    const chapters = [tipTapChapter('Chapitre 1', 'Le héros arriva au carrefour.')];
+    vi.mocked(getProjectRepository).mockResolvedValue({
+      loadProject: vi.fn().mockResolvedValue({
+        getProviderId: () => 'provider-1',
+        getChapters: () => chapters,
+      }),
+    } as never);
+
+    const response = await POST(
+      request({
+        projectId: 'project-1',
+        chapterId: 'Chapitre 1',
+        textBeforeCursor: 'Il continua sa route',
+      })
+    );
+
+    expect(response.status).toBe(200);
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    let rawText = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      rawText += decoder.decode(value);
+    }
+
+    // Parse SSE events and find the done event
+    const events = rawText
+      .split('\n\n')
+      .filter((e) => e.startsWith('data: '))
+      .map((e) => JSON.parse(e.slice(6)));
+
+    const doneEvent = events.find((e) => e.type === 'done');
+    expect(doneEvent).toBeDefined();
+    expect(typeof doneEvent?.firstTokenMs).toBe('number');
+  });
+
   it('omits [CHAPITRES PRÉCÉDENTS] when there are no previous chapters', async () => {
     const chapters = [
       tipTapChapter('Chapitre 1', 'Le héros arriva au carrefour.'),

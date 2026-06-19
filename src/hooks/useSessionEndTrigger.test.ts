@@ -3,7 +3,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useSessionEndTrigger, INACTIVITY_THRESHOLD_MS } from './useSessionEndTrigger';
+import { useSessionEndTrigger, INACTIVITY_THRESHOLD_MIN_MS, INACTIVITY_THRESHOLD_MAX_MS } from './useSessionEndTrigger';
 
 vi.mock('@/app/actions/canon-actions', () => ({
   generateCanonFactsAction: vi.fn(),
@@ -35,7 +35,7 @@ describe('useSessionEndTrigger', () => {
     );
 
     await act(async () => {
-      vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MS + 1000);
+      vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MAX_MS + 1000);
     });
 
     expect(mockGenerateCanonFactsAction).not.toHaveBeenCalled();
@@ -58,7 +58,7 @@ describe('useSessionEndTrigger', () => {
     });
 
     await act(async () => {
-      vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MS + 1000);
+      vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MAX_MS + 1000);
     });
 
     expect(mockGenerateCanonFactsAction).toHaveBeenCalledWith('proj-1', 'provider-1');
@@ -80,7 +80,7 @@ describe('useSessionEndTrigger', () => {
     });
 
     await act(async () => {
-      vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MS - 1000);
+      vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MIN_MS - 1000);
     });
 
     expect(mockGenerateCanonFactsAction).not.toHaveBeenCalled();
@@ -97,7 +97,7 @@ describe('useSessionEndTrigger', () => {
 
     // Advance past threshold WITHOUT any activity event
     await act(async () => {
-      vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MS + 1000);
+      vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MAX_MS + 1000);
     });
 
     expect(mockGenerateCanonFactsAction).not.toHaveBeenCalled();
@@ -121,7 +121,7 @@ describe('useSessionEndTrigger', () => {
 
     // Advance to just before threshold
     await act(async () => {
-      vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MS - 1000);
+      vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MIN_MS - 1000);
     });
 
     // Second activity resets the countdown
@@ -138,7 +138,7 @@ describe('useSessionEndTrigger', () => {
 
     // Now advance past threshold from the reset
     await act(async () => {
-      vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MS);
+      vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MAX_MS);
     });
 
     expect(mockGenerateCanonFactsAction).toHaveBeenCalledOnce();
@@ -165,7 +165,7 @@ describe('useSessionEndTrigger', () => {
     });
 
     await act(async () => {
-      vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MS + 1000);
+      vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MAX_MS + 1000);
     });
 
     expect(mockGenerateCanonFactsAction).toHaveBeenCalledOnce();
@@ -175,7 +175,7 @@ describe('useSessionEndTrigger', () => {
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'b' }));
     });
     await act(async () => {
-      vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MS + 1000);
+      vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MAX_MS + 1000);
     });
 
     expect(mockGenerateCanonFactsAction).toHaveBeenCalledOnce();
@@ -206,7 +206,7 @@ describe('useSessionEndTrigger', () => {
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
     });
     await act(async () => {
-      vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MS + 1000);
+      vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MAX_MS + 1000);
     });
 
     expect(result.current.notification).not.toBeNull();
@@ -231,7 +231,7 @@ describe('useSessionEndTrigger', () => {
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
     });
     await act(async () => {
-      vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MS + 1000);
+      vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MAX_MS + 1000);
     });
 
     expect(result.current.notification?.type).toBe('error');
@@ -255,7 +255,7 @@ describe('useSessionEndTrigger', () => {
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
     });
     await act(async () => {
-      vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MS + 1000);
+      vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MAX_MS + 1000);
     });
 
     expect(result.current.notification).not.toBeNull();
@@ -277,7 +277,7 @@ describe('useSessionEndTrigger', () => {
     );
 
     await act(async () => {
-      vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MS + 1000);
+      vi.advanceTimersByTime(INACTIVITY_THRESHOLD_MAX_MS + 1000);
     });
 
     expect(mockGenerateCanonFactsAction).not.toHaveBeenCalled();

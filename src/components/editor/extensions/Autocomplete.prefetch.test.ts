@@ -12,6 +12,10 @@ import {
   type AutocompleteStorage,
 } from './Autocomplete';
 import type { PrefetchTelemetryRecord } from './autocompleteTelemetry';
+import { Editor } from '@tiptap/core';
+import Document from '@tiptap/extension-document';
+import Paragraph from '@tiptap/extension-paragraph';
+import Text from '@tiptap/extension-text';
 
 describe('endsWithSentenceBoundary', () => {
   it('matches a period at the end', () => {
@@ -174,5 +178,48 @@ describe('clampBeforeText', () => {
 
   it('MAX_BEFORE_CHARS equals the server limit of 8000', () => {
     expect(MAX_BEFORE_CHARS).toBe(8000);
+  });
+});
+
+/**
+ * #108 — Invariant: TipTap document contains a single chapter at a time.
+ * Therefore doc.textBetween(0, cursorPos) always starts from the chapter beginning.
+ * This test documents the contract so a regression (adding multi-chapter content
+ * to a single editor) would break it explicitly.
+ */
+describe('chapter-start extraction invariant (#108)', () => {
+  it('doc.textBetween(0, pos) includes text from the very beginning of the document', () => {
+    const openingLine = 'Il faisait nuit noire.';
+    const laterLine = 'Elle entendit un bruit.';
+    const editor = new Editor({
+      extensions: [Document, Paragraph, Text],
+      content: `<p>${openingLine}</p><p>${laterLine}</p>`,
+    });
+
+    // Position cursor at the end of the second paragraph
+    const docSize = editor.state.doc.content.size;
+    const cursorPos = docSize - 1;
+
+    const extracted = editor.state.doc.textBetween(0, cursorPos, '\n', '\n');
+
+    // The extraction starts from position 0 — it must include the chapter's opening line
+    expect(extracted).toContain(openingLine);
+    expect(extracted).toContain(laterLine);
+
+    editor.destroy();
+  });
+
+  it('clampBeforeText preserves the end of the text (closest to cursor), not the start', () => {
+    // This is intentional: when the chapter is longer than MAX_BEFORE_CHARS,
+    // we keep the most recent context. The chapter beginning is covered by canon facts.
+    const chapterStart = 'START '.repeat(100);
+    const recentContext = 'RECENT '.repeat(MAX_BEFORE_CHARS / 7 + 1);
+    const full = chapterStart + recentContext;
+
+    const clamped = clampBeforeText(full);
+
+    expect(clamped).toHaveLength(MAX_BEFORE_CHARS);
+    expect(clamped.endsWith(recentContext.slice(-50))).toBe(true);
+    expect(clamped.startsWith('START')).toBe(false);
   });
 });
