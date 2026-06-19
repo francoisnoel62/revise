@@ -215,6 +215,9 @@ export async function POST(request: NextRequest) {
           controller.enqueue(encoder.encode(data));
         }
 
+        // Log server-side latency so it's available in production logs for SLA monitoring
+        console.info('[autocomplete:latency]', { projectId, model: selectedProviderModel, firstTokenMs });
+
         // Send done event with latency telemetry
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done', firstTokenMs })}\n\n`));
         controller.close();

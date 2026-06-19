@@ -7,7 +7,15 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { CanonExtractionMode } from '@/domain/value-objects/CanonExtractionPreferences';
 import { generateCanonFactsAction } from '@/app/actions/canon-actions';
 
-export const INACTIVITY_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes
+export const INACTIVITY_THRESHOLD_MIN_MS = 15 * 60 * 1000; // 15 minutes minimum
+export const INACTIVITY_THRESHOLD_MAX_MS = 30 * 60 * 1000; // 30 minutes maximum
+
+function randomThresholdMs(): number {
+  return (
+    INACTIVITY_THRESHOLD_MIN_MS +
+    Math.random() * (INACTIVITY_THRESHOLD_MAX_MS - INACTIVITY_THRESHOLD_MIN_MS)
+  );
+}
 
 export interface SessionEndNotification {
   type: 'success' | 'error';
@@ -68,7 +76,7 @@ export function useSessionEndTrigger({
     if (timerRef.current !== null) {
       clearTimeout(timerRef.current);
     }
-    timerRef.current = setTimeout(runExtraction, INACTIVITY_THRESHOLD_MS);
+    timerRef.current = setTimeout(runExtraction, randomThresholdMs());
   }, [runExtraction]);
 
   useEffect(() => {

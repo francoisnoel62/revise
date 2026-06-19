@@ -23,7 +23,6 @@ import { Editor } from '@tiptap/react';
 import { rewriteText } from '@/app/actions/rewrite-text';
 import { listProvidersAction, SafeProvider } from '@/app/actions/provider-actions';
 import { updateProjectProviderAction } from '@/app/actions/project-actions';
-import { generateCanonFactsAction, checkCanonFreshnessAction } from '@/app/actions/canon-actions';
 import { generateChapterAction } from '@/app/actions/chapter-generation-actions';
 import { CorrectionHistoryDialog } from '@/components/history/CorrectionHistoryDialog';
 import { FloatingGenerationMenu } from '@/components/editor/FloatingGenerationMenu';
@@ -37,6 +36,7 @@ import {
   DEFAULT_CANON_EXTRACTION_PREFERENCES,
 } from '@/domain/value-objects/CanonExtractionPreferences';
 import { useSessionEndTrigger } from '@/hooks/useSessionEndTrigger';
+import { useCanonFreshnessCheck } from '@/hooks/useCanonFreshnessCheck';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { useNotificationStore } from '@/store/notificationStore';
 import { ThesaurusPalette } from '@/components/editor/ThesaurusPalette';
@@ -229,30 +229,11 @@ function EditorContent() {
     }
   }, [project?.id, project?.providerId]);
 
-  // Check canon freshness after providers are ready; push actionable notification if stale
-  useEffect(() => {
-    const pid = project?.id;
-    const pid2 = selectedProviderId;
-    if (!pid || !pid2 || providersLoading) return;
-    if (hasNotificationOfType('canon-stale')) return;
-
-    checkCanonFreshnessAction(pid).then((result) => {
-      if (!result.success || !result.data.isStale) return;
-      addNotification({
-        type: 'canon-stale',
-        title: 'Faits canon périmés',
-        message: 'Le manuscrit a été modifié depuis la dernière extraction.',
-        severity: 'warning',
-        action: {
-          label: 'Régénérer',
-          confirmMessage: 'L\'extraction incrémentale sera relancée pour les chapitres modifiés. Les faits de l\'auteur sont préservés.',
-          onConfirm: () => generateCanonFactsAction(pid, pid2).then(() => undefined),
-        },
-      });
-    });
-  // Run once when provider id is first known
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project?.id, selectedProviderId, providersLoading]);
+  useCanonFreshnessCheck({
+    projectId: project?.id ?? null,
+    providerId: selectedProviderId,
+    providersLoading,
+  });
 
   // Selection change handler
   const handleSelectionChange = (from: number, to: number) => {
@@ -571,7 +552,7 @@ function EditorContent() {
   return (
     <main className="min-h-screen bg-slate-50">
       {/* Header with controls - 3-level responsive layout */}
-      <header className="sticky top-0 z-50 bg-white border-b border-slate-200">
+      <header className="sticky top-0 z-50 bg-white border-b border-slate-200 relative">
         {/* Mobile header (< 640px): super compact */}
         <div className="flex sm:hidden items-center justify-between px-2 py-2 gap-1">
           <div className="flex items-center shrink-0">
@@ -588,7 +569,6 @@ function EditorContent() {
             <SaveStatus compact />
           </div>
           <div className="flex items-center shrink-0">
-            <NotificationBell />
             <ExportDialog />
             <UserMenu />
           </div>
@@ -614,11 +594,15 @@ function EditorContent() {
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            <NotificationBell />
             <PublishDialog projectId={project.id} projectTitle={project.title} chapters={project.chapters} />
             <ExportDialog />
             <UserMenu />
           </div>
+        </div>
+
+        {/* Single NotificationBell instance — absolute within header, independent of responsive layout */}
+        <div className="absolute inset-y-0 right-20 sm:right-32 lg:right-36 flex items-center z-10">
+          <NotificationBell />
         </div>
 
         {/* Desktop header (≥1024px): full 3-column grid */}
@@ -646,7 +630,6 @@ function EditorContent() {
           </div>
           {/* Right: controls */}
           <div className="flex items-center justify-end gap-2">
-            <NotificationBell />
             <PublishDialog projectId={project.id} projectTitle={project.title} chapters={project.chapters} />
             <ExportDialog />
             <UserMenu />
