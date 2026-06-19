@@ -3,6 +3,7 @@
 
 import { Db, ObjectId } from 'mongodb';
 import { CanonFactRepository } from '@/domain/interfaces/CanonFactRepository';
+import { CanonExtractionStateRepository } from '@/domain/interfaces/CanonExtractionStateRepository';
 import { CanonFact } from '@/domain/entities/CanonFact';
 import {
   CanonFactDocument,
@@ -13,7 +14,7 @@ import {
 const COLLECTION_NAME = 'canonFacts';
 const STATE_COLLECTION = 'canonExtractionState';
 
-export class MongoDBCanonFactRepository implements CanonFactRepository {
+export class MongoDBCanonFactRepository implements CanonFactRepository, CanonExtractionStateRepository {
   constructor(private readonly db: Db) {}
 
   private collection() {

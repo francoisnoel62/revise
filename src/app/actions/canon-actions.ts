@@ -8,6 +8,7 @@ import {
   getAuthenticatedUserId,
   getRepository,
   getCanonFactRepo,
+  getCanonExtractionStateRepo,
   getCharacterRepo,
   getIdGenerator,
   getRateLimitRepo,
@@ -193,6 +194,7 @@ export async function generateCanonFactsAction(
 
   return withErrorHandling(async () => {
     const canonRepo = await getCanonFactRepo();
+    const canonStateRepo = await getCanonExtractionStateRepo();
     const projectRepo = await getRepository();
     const characterRepo = await getCharacterRepo();
     const idGen = await getIdGenerator();
@@ -200,6 +202,7 @@ export async function generateCanonFactsAction(
 
     const useCase = new GenerateCanonFactsUseCase(
       canonRepo,
+      canonStateRepo,
       projectRepo,
       characterRepo,
       llm,

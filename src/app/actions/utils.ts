@@ -17,6 +17,7 @@ import {
   getAIUsageRepository as getAIUsageRepositoryFromConfig,
   getAutocompleteEventRepository as getAutocompleteEventRepositoryFromConfig,
   getCanonFactRepository as getCanonFactRepositoryFromConfig,
+  getCanonExtractionStateRepository as getCanonExtractionStateRepositoryFromConfig,
   getRateLimitRepository as getRateLimitRepositoryFromConfig,
   getAIExchangeRepository as getAIExchangeRepositoryFromConfig,
   getBlogArticleRepository,
@@ -50,6 +51,7 @@ import { WritingQuotaRepository } from '@/domain/interfaces/WritingQuotaReposito
 import { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
 import { AutocompleteEventRepository } from '@/domain/interfaces/AutocompleteEventRepository';
 import { CanonFactRepository } from '@/domain/interfaces/CanonFactRepository';
+import { CanonExtractionStateRepository } from '@/domain/interfaces/CanonExtractionStateRepository';
 import { RateLimitRepository } from '@/domain/interfaces/RateLimitRepository';
 import { AIExchangeRepository } from '@/domain/interfaces/AIExchangeRepository';
 import { BlogArticleRepository } from '@/domain/interfaces/BlogArticleRepository';
@@ -220,6 +222,10 @@ export async function getAutocompleteEventRepo(): Promise<AutocompleteEventRepos
  */
 export async function getCanonFactRepo(): Promise<CanonFactRepository> {
   return await getCanonFactRepositoryFromConfig();
+}
+
+export async function getCanonExtractionStateRepo(): Promise<CanonExtractionStateRepository> {
+  return await getCanonExtractionStateRepositoryFromConfig();
 }
 
 /**

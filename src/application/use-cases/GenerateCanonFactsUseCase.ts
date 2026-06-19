@@ -7,6 +7,7 @@ import {
   IdGenerator,
   CanonFact,
   CanonFactRepository,
+  CanonExtractionStateRepository,
   CharacterRepository,
 } from '../../domain';
 import { hashText } from '../utils/text-hash';
@@ -32,6 +33,7 @@ export interface GenerateCanonFactsResult {
 export class GenerateCanonFactsUseCase {
   constructor(
     private readonly canonFactRepository: CanonFactRepository,
+    private readonly canonExtractionStateRepository: CanonExtractionStateRepository,
     private readonly projectRepository: ProjectRepository,
     private readonly characterRepository: CharacterRepository,
     private readonly llmProvider: LLMProvider,
@@ -89,7 +91,7 @@ export class GenerateCanonFactsUseCase {
     }
 
     // Identify chapters that have changed (new or modified)
-    const storedHashes = await this.canonFactRepository.getChapterHashes(
+    const storedHashes = await this.canonExtractionStateRepository.getChapterHashes(
       input.ownerId,
       input.projectId
     );
@@ -194,7 +196,7 @@ export class GenerateCanonFactsUseCase {
     for (const [id, hash] of currentHashes) {
       updatedHashes.set(id, hash);
     }
-    await this.canonFactRepository.saveChapterHashes(
+    await this.canonExtractionStateRepository.saveChapterHashes(
       input.ownerId,
       input.projectId,
       updatedHashes

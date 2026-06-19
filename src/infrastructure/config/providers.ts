@@ -39,6 +39,7 @@ import { MongoDBAutocompleteEventRepository } from '@/infrastructure/persistence
 import { AutocompleteEventRepository } from '@/domain/interfaces/AutocompleteEventRepository';
 import { MongoDBCanonFactRepository } from '@/infrastructure/persistence/MongoDBCanonFactRepository';
 import { CanonFactRepository } from '@/domain/interfaces/CanonFactRepository';
+import { CanonExtractionStateRepository } from '@/domain/interfaces/CanonExtractionStateRepository';
 import { MongoDBRateLimitRepository } from '@/infrastructure/persistence/MongoDBRateLimitRepository';
 import { RateLimitRepository } from '@/domain/interfaces/RateLimitRepository';
 import { MongoDBExchangeRepository } from '@/infrastructure/persistence/MongoDBExchangeRepository';
@@ -265,6 +266,16 @@ export async function getAutocompleteEventRepository(): Promise<AutocompleteEven
 let canonFactRepoInstance: MongoDBCanonFactRepository | null = null;
 
 export async function getCanonFactRepository(): Promise<CanonFactRepository> {
+  if (!canonFactRepoInstance) {
+    const db = await getDatabase();
+    canonFactRepoInstance = new MongoDBCanonFactRepository(db);
+    await canonFactRepoInstance.ensureIndexes();
+  }
+  return canonFactRepoInstance;
+}
+
+export async function getCanonExtractionStateRepository(): Promise<CanonExtractionStateRepository> {
+  // MongoDBCanonFactRepository implements both interfaces; reuse the shared instance.
   if (!canonFactRepoInstance) {
     const db = await getDatabase();
     canonFactRepoInstance = new MongoDBCanonFactRepository(db);

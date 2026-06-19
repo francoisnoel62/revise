@@ -139,6 +139,7 @@ export type {
   AutocompleteStats,
 } from './interfaces/AutocompleteEventRepository';
 export type { CanonFactRepository } from './interfaces/CanonFactRepository';
+export type { CanonExtractionStateRepository } from './interfaces/CanonExtractionStateRepository';
 export type { ProjectTaskRepository, TaskFilters, TaskSortOptions } from './interfaces/ProjectTaskRepository';
 export type { CharacterRepository } from './interfaces/CharacterRepository';
 export type {
