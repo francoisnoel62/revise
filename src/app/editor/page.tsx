@@ -23,6 +23,7 @@ import { Editor } from '@tiptap/react';
 import { rewriteText } from '@/app/actions/rewrite-text';
 import { listProvidersAction, SafeProvider } from '@/app/actions/provider-actions';
 import { updateProjectProviderAction } from '@/app/actions/project-actions';
+import { generateCanonFactsAction, checkCanonFreshnessAction } from '@/app/actions/canon-actions';
 import { generateChapterAction } from '@/app/actions/chapter-generation-actions';
 import { CorrectionHistoryDialog } from '@/components/history/CorrectionHistoryDialog';
 import { FloatingGenerationMenu } from '@/components/editor/FloatingGenerationMenu';
@@ -36,7 +37,8 @@ import {
   DEFAULT_CANON_EXTRACTION_PREFERENCES,
 } from '@/domain/value-objects/CanonExtractionPreferences';
 import { useSessionEndTrigger } from '@/hooks/useSessionEndTrigger';
-import { CanonExtractionBanner } from '@/components/editor/CanonExtractionBanner';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { useNotificationStore } from '@/store/notificationStore';
 import { ThesaurusPalette } from '@/components/editor/ThesaurusPalette';
 import { PublishDialog } from '@/components/publish/PublishDialog';
 import { CommandPalette } from '@/components/editor/CommandPalette';
@@ -122,6 +124,21 @@ function EditorContent() {
       mode: canonExtractionPrefs.mode,
       providerId: selectedProviderId,
     });
+
+  const addNotification = useNotificationStore((s) => s.addNotification);
+  const hasNotificationOfType = useNotificationStore((s) => s.hasNotificationOfType);
+
+  // Forward session-end extraction results to the notification center
+  useEffect(() => {
+    if (!canonNotification) return;
+    addNotification({
+      type: canonNotification.type === 'success' ? 'canon-done' : 'canon-error',
+      title: canonNotification.type === 'success' ? 'Canon mis à jour' : 'Erreur canon',
+      message: canonNotification.message,
+      severity: canonNotification.type === 'success' ? 'success' : 'error',
+    });
+    dismissCanonNotification();
+  }, [canonNotification, addNotification, dismissCanonNotification]);
 
   // Generation state (for AI menu dropdown)
   const [generationLoading, setGenerationLoading] = useState(false);
@@ -211,6 +228,31 @@ function EditorContent() {
       loadProviders();
     }
   }, [project?.id, project?.providerId]);
+
+  // Check canon freshness after providers are ready; push actionable notification if stale
+  useEffect(() => {
+    const pid = project?.id;
+    const pid2 = selectedProviderId;
+    if (!pid || !pid2 || providersLoading) return;
+    if (hasNotificationOfType('canon-stale')) return;
+
+    checkCanonFreshnessAction(pid).then((result) => {
+      if (!result.success || !result.data.isStale) return;
+      addNotification({
+        type: 'canon-stale',
+        title: 'Faits canon périmés',
+        message: 'Le manuscrit a été modifié depuis la dernière extraction.',
+        severity: 'warning',
+        action: {
+          label: 'Régénérer',
+          confirmMessage: 'L\'extraction incrémentale sera relancée pour les chapitres modifiés. Les faits de l\'auteur sont préservés.',
+          onConfirm: () => generateCanonFactsAction(pid, pid2).then(() => undefined),
+        },
+      });
+    });
+  // Run once when provider id is first known
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project?.id, selectedProviderId, providersLoading]);
 
   // Selection change handler
   const handleSelectionChange = (from: number, to: number) => {
@@ -546,6 +588,7 @@ function EditorContent() {
             <SaveStatus compact />
           </div>
           <div className="flex items-center shrink-0">
+            <NotificationBell />
             <ExportDialog />
             <UserMenu />
           </div>
@@ -571,6 +614,7 @@ function EditorContent() {
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
+            <NotificationBell />
             <PublishDialog projectId={project.id} projectTitle={project.title} chapters={project.chapters} />
             <ExportDialog />
             <UserMenu />
@@ -602,6 +646,7 @@ function EditorContent() {
           </div>
           {/* Right: controls */}
           <div className="flex items-center justify-end gap-2">
+            <NotificationBell />
             <PublishDialog projectId={project.id} projectTitle={project.title} chapters={project.chapters} />
             <ExportDialog />
             <UserMenu />
@@ -747,11 +792,6 @@ function EditorContent() {
         isApplyingAll={isApplyingAll}
       />
 
-      {/* Canon extraction background notification */}
-      <CanonExtractionBanner
-        notification={canonNotification}
-        onDismiss={dismissCanonNotification}
-      />
     </main>
   );
 }

@@ -47,6 +47,7 @@ import {
 } from '@/app/actions/canon-actions';
 import { listProvidersAction, SafeProvider } from '@/app/actions/provider-actions';
 import { loadProjectAction } from '@/app/actions/project-actions';
+import { useNotificationStore } from '@/store/notificationStore';
 
 interface FactsByEntity {
   [entity: string]: SerializedCanonFact[];
@@ -99,6 +100,8 @@ export default function CockpitCanonPage() {
   // without an explicit confirmation (the author owns and decides).
   const [deletingFact, setDeletingFact] = useState<SerializedCanonFact | null>(null);
 
+  const { addNotification, hasNotificationOfType } = useNotificationStore();
+
   const loadData = useCallback(async () => {
     setIsLoading(true);
     setLoadError(null);
@@ -144,6 +147,26 @@ export default function CockpitCanonPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Push an actionable "canon-stale" notification once when staleness is detected
+  useEffect(() => {
+    if (!isStale || !selectedProviderId) return;
+    if (hasNotificationOfType('canon-stale')) return;
+    addNotification({
+      type: 'canon-stale',
+      title: 'Faits canon périmés',
+      message: 'Le manuscrit a été modifié depuis la dernière extraction. Régénérer les faits canon ?',
+      severity: 'warning',
+      action: {
+        label: 'Régénérer',
+        confirmMessage: 'L\'extraction incrémentale sera relancée pour les chapitres modifiés. Les faits de l\'auteur sont préservés.',
+        onConfirm: async () => {
+          await generateCanonFactsAction(projectId, selectedProviderId);
+          await loadData();
+        },
+      },
+    });
+  }, [isStale, selectedProviderId, addNotification, hasNotificationOfType, projectId, loadData]);
 
   const handleGenerate = async () => {
     if (!selectedProviderId) {

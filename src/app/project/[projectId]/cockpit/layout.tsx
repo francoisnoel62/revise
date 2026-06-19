@@ -15,6 +15,7 @@ import {
   BreadcrumbList,
 } from '@/components/ui/breadcrumb';
 import { UserMenu } from '@/components/auth/UserMenu';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 interface CockpitLayoutProps {
   children: React.ReactNode;
@@ -33,7 +34,10 @@ export default async function CockpitLayout({
       <nav className="border-b bg-background fixed top-0 left-0 right-0 z-50 h-14">
         <div className="container mx-auto px-4 h-full flex items-center justify-between">
           <div className="font-semibold text-lg">Revise</div>
-          <UserMenu />
+          <div className="flex items-center gap-1">
+            <NotificationBell />
+            <UserMenu />
+          </div>
         </div>
       </nav>
 
