@@ -30,6 +30,14 @@ export const TEST_RESEARCH_DOC_ID = '6475a8f3c1234567890abcde';
 // Fixed 24-char hex ObjectId for the autocomplete project settings
 export const TEST_AUTOCOMPLETE_SETTINGS_ID = '6475a8f3c1234567890abcdf';
 
+// Canon E2E fixtures — stale canon (for notification bell tests)
+export const TEST_CANON_STALE_PROJECT_ID = 'e2e-canon-stale-project-001';
+export const TEST_CANON_STALE_CHAPTER_ID = 'e2e-canon-stale-chapter-001';
+// Canon E2E fixtures — session-end mode
+export const TEST_CANON_SESSION_PROJECT_ID = 'e2e-canon-session-project-001';
+export const TEST_CANON_SESSION_CHAPTER_ID = 'e2e-canon-session-chapter-001';
+export const TEST_CANON_SESSION_SETTINGS_ID = '6475a8f3c1234567890abce0';
+
 // ── Chapter content seedé ─────────────────────────────────────────────────────
 
 export const TEST_CHAPTER_TITLE = 'Chapitre 1';
@@ -310,6 +318,114 @@ export async function seedAll(): Promise<void> {
     { upsert: true }
   );
 
+  // 7. Canon stale project — one chapter, one derived fact with a wrong contentHash.
+  //    checkCanonFreshnessAction compares fact.contentHash with hashText(projectFullText).
+  //    Using a sentinel string guarantees a mismatch → isStale = true.
+  const canonStaleChapterText = 'Madeleine ouvrit la porte avec précaution.';
+  const canonStaleChapterContent = JSON.stringify({
+    type: 'doc',
+    content: [{ type: 'paragraph', content: [{ type: 'text', text: canonStaleChapterText }] }],
+  });
+  await db.collection('projects').replaceOne(
+    { _id: TEST_CANON_STALE_PROJECT_ID } as object,
+    {
+      _id: TEST_CANON_STALE_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      title: 'Projet Canon Périmé',
+      chapters: [{
+        id: TEST_CANON_STALE_CHAPTER_ID,
+        title: 'Chapitre 1',
+        content: canonStaleChapterContent,
+        order: 0,
+        metadata: { wordCount: 6, characterCount: 42, lastEdited: past },
+      }],
+      activeChapterId: TEST_CANON_STALE_CHAPTER_ID,
+      providerId: TEST_PROVIDER_ID,
+      createdAt: past,
+      updatedAt: now,
+      isPublished: false,
+      shareToken: null,
+      publishedAt: null,
+      publishedChapterIds: null,
+    },
+    { upsert: true }
+  );
+  // Seed a derived fact with a stale contentHash (does not match real chapter hash)
+  await db.collection('canonFacts').deleteMany({
+    ownerId: TEST_USER_ID,
+    projectId: TEST_CANON_STALE_PROJECT_ID,
+  });
+  await db.collection('canonFacts').insertOne({
+    _id: new ObjectId(),
+    ownerId: TEST_USER_ID,
+    projectId: TEST_CANON_STALE_PROJECT_ID,
+    entity: 'Madeleine',
+    statement: 'ouvre la porte',
+    validFromChapter: 0,
+    validToChapter: null,
+    source: 'derived',
+    sourceChapterId: TEST_CANON_STALE_CHAPTER_ID,
+    contentHash: 'stale-sentinel-does-not-match-real-hash',
+    category: 1,
+    createdAt: past,
+    updatedAt: past,
+  });
+
+  // 8. Canon session-end project — project with session-end extraction mode.
+  const canonSessionChapterText = 'Le détective attendait dans l\'ombre.';
+  const canonSessionChapterContent = JSON.stringify({
+    type: 'doc',
+    content: [{ type: 'paragraph', content: [{ type: 'text', text: canonSessionChapterText }] }],
+  });
+  await db.collection('projects').replaceOne(
+    { _id: TEST_CANON_SESSION_PROJECT_ID } as object,
+    {
+      _id: TEST_CANON_SESSION_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      title: 'Projet Canon Session',
+      chapters: [{
+        id: TEST_CANON_SESSION_CHAPTER_ID,
+        title: 'Chapitre 1',
+        content: canonSessionChapterContent,
+        order: 0,
+        metadata: { wordCount: 6, characterCount: 37, lastEdited: past },
+      }],
+      activeChapterId: TEST_CANON_SESSION_CHAPTER_ID,
+      providerId: TEST_PROVIDER_ID,
+      createdAt: past,
+      updatedAt: now,
+      isPublished: false,
+      shareToken: null,
+      publishedAt: null,
+      publishedChapterIds: null,
+    },
+    { upsert: true }
+  );
+  await db.collection('project_settings').replaceOne(
+    { _id: new ObjectId(TEST_CANON_SESSION_SETTINGS_ID) },
+    {
+      _id: new ObjectId(TEST_CANON_SESSION_SETTINGS_ID),
+      projectId: TEST_CANON_SESSION_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      title: 'Projet Canon Session',
+      summary: '',
+      genre: '',
+      synopsis: '',
+      contributors: [],
+      relatedWorks: [],
+      createdAt: past,
+      updatedAt: now,
+      autocompleteEnabled: true,
+      autocompleteSuggestionLength: 'medium',
+      autocompleteAudace: 'balanced',
+      autocompleteLearnFromRejections: false,
+      autocompletePartialAcceptance: true,
+      autocompleteSmartPrefetch: false,
+      canonExtractionMode: 'session-end',
+    },
+    { upsert: true }
+  );
+
   // 6. Autocomplete telemetry fixtures for cockpit usage metrics.
   await db.collection('autocompleteEvents').deleteMany({
     ownerId: TEST_USER_ID,
@@ -362,6 +478,8 @@ export async function cleanupAll(): Promise<void> {
     db.collection('project_settings').deleteMany({ ownerId: TEST_USER_ID }),
     db.collection('researchDocuments').deleteMany({ ownerId: TEST_USER_ID }),
     db.collection('autocompleteEvents').deleteMany({ ownerId: TEST_USER_ID }),
+    db.collection('canonFacts').deleteMany({ ownerId: TEST_USER_ID }),
+    db.collection('canonExtractionState').deleteMany({ ownerId: TEST_USER_ID }),
   ]);
 
   await client.close();
