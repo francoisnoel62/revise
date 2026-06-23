@@ -26,7 +26,9 @@ Pure business logic with no framework dependencies.
 - `ResearchDocument` - Research document with title, body, tags, and chapter locality (`linkedChapterIds`); read by the AI as the author's intentional context (Phase 6, 8.0)
 - `WritingGoal` - Writing goal with target word count, deadline, progress (Phase 6)
 - `AIUsageRecord` - AI usage tracking with operation type, tokens, cost (Phase 6)
-- `AIExchange` - Captured content of one AI exchange (system prompt, input, raw output) for the transparency ledger; stored separately from `AIUsageRecord`, encrypted at rest, opt-in, with retention/TTL purge. See [transparency-ledger.md](transparency-ledger.md)
+- `AIExchange` - Captured content of one AI exchange (system prompt, input, raw output) for the transparency ledger; stored separately from `AIUsageRecord`, encrypted at rest, opt-in, with retention/TTL purge
+- `WordCountSnapshot` - Daily word-count checkpoint per project for activity tracking and milestone metrics
+- `WritingQuota` - Recurring writing quota with daily/weekly period, target word rate, and progress tracking against `WordCountSnapshot`
 - `AutocompleteEvent` - Full lifecycle of one autocomplete suggestion (triggered → displayed → accepted/rejected/expired); carries provider, model, latency, outcome, and session identifiers for telemetry (Phase 10.0)
 - `CanonFact` - Established fact extracted from the manuscript (character, location, relation, event); tracks source (`derived` | `authored`), validity, and the chapter it was extracted from; author can validate or invalidate (Phase 10.0)
 - `ChapterAnalysis` - Complete chapter analysis result with issues, repetitions, statistics (Phase 7)
@@ -52,6 +54,8 @@ Pure business logic with no framework dependencies.
 - `ChatMessage` - Single message in a character conversation with role (`author` | `character`), content, and timestamp (Phase 9.0)
 - `ModelPricing` - Maintained pricing table (€/million tokens) for all supported models; computes euro cost per call discounting cached tokens; cost is snapshot at usage time (Phase 9.0)
 - `AutocompletePreferences` - 6 per-project autocomplete settings: `enabled`, `suggestionLength` (short/medium/long), `audace` (prudent/balanced/bold), `smartPrefetch`, `partialAcceptance`, `learnFromRejections`; stored on `ProjectSettings` (Phase 10.0)
+- `CanonExtractionPreferences` - Per-project settings for canon extraction trigger (auto at session-end vs manual)
+- `WordAlternative` - Synonym / word alternative with relevance score, produced by the `Thesaurus`
 - `AutocompleteIntent` - Detected intention of the writing context (`dialogue`, `description`, `action`, `introspection`, `other`); drives variant generation (Phase 10.0)
 - `AutocompleteOutcome` - Result of a suggestion (`accepted_full`, `accepted_partial`, `rejected`, `expired`, `ignored`) (Phase 10.0)
 - `CanonFacts` - Typed collection of `CanonFact` items (Phase 10.0)
@@ -82,7 +86,15 @@ Pure business logic with no framework dependencies.
 - `RateLimiter` - Rate limiting abstraction for registration protection (Phase 6.1)
 - `AutocompleteEventRepository` - Persist and query autocomplete telemetry events; aggregates by period/provider/outcome (Phase 10.0)
 - `CanonFactRepository` - CRUD for canon facts with `replaceDerived()` for atomic bulk update (Phase 10.0)
+- `CanonExtractionStateRepository` - Tracks per-project extraction state (last run, chapter cursor, cooldown); extracted from `CanonFactRepository` (Phase 10.0)
 - `RateLimitRepository` - Generic persistent sliding-window rate limiting (replaces in-memory for canon generation and telemetry ingestion) (Phase 10.0)
+- `ModelPricingRepository` - Stores USD/M token rates fetched from OpenRouter, used to compute EUR costs at call time
+- `AIExchangeRepository` - CRUD for captured AI exchanges (transparency ledger), scoped by `userId`, with TTL purge
+- `WordCountSnapshotRepository` - Daily word-count checkpoints for activity tracking
+- `WritingQuotaRepository` - Recurring writing quotas (daily/weekly) scoped by `ownerId`
+- `Thesaurus` - Word alternative lookup (synonyms) abstraction
+- `Morphology` - Lemmatisation / conjugation abstraction
+- `PricingClient` - Fetches model pricing entries from an external source; abstracts `OpenRouterPricingClient` so use cases remain infrastructure-free
 - `CaptchaVerifier` - CAPTCHA verification abstraction (Phase 6.1)
 - `AuthProvider` - Authentication service abstraction
 - `EmailService` - Email notification service (Phase 3.8)
@@ -142,6 +154,17 @@ Use cases orchestrating domain logic.
 - `GenerateChapterUseCase` - Generate chapter content from metadata context
 - `GenerateCompletionUseCase` - Generate autocompletion suggestions
 - `GenerateCanonFactsUseCase` - Extract canon facts from manuscript via LLM, atomically replace derived facts, enforces per-project cooldown (Phase 10.0)
+- `SuggestAlternativesUseCase` - Looks up word alternatives via the `Thesaurus` interface (conjugation-aware)
+
+**Writing Goal & Quota Use Cases**:
+- `CreateWritingQuotaUseCase`, `UpdateWritingQuotaUseCase`, `DeleteWritingQuotaUseCase`, `ListWritingQuotasUseCase` - Quota CRUD
+- `RecordWordCountSnapshotUseCase` - Records a daily word-count snapshot for activity tracking
+- `GetWritingActivityUseCase` - Returns time-series activity data for the cockpit chart
+- `GetWorkflowMetricsUseCase` - Computes milestone metrics (total written, daily rate, quota adherence)
+
+**Pricing Use Cases**:
+- `SyncModelPricingUseCase` - Fetches model pricing from `PricingClient`, validates diff (quarantines collisions and large swings), upserts to repository, sends email report
+- `PruneObsoletePricingUseCase` - Deletes stored pricing entries absent from the latest `PricingClient` fetch; never deletes when the fetch fails
 
 **Character Chat Use Cases** (Phase 9.0):
 - `ChatWithCharacterUseCase` - Streaming use case; builds the character persona via `AIContextBuilder.buildCharacterPersona`, hydrates/creates the conversation, streams reply via `LLMProvider.chatStream`, persists the accumulated reply. Returns an `AsyncIterableIterator` of text chunks. History capped at 20 messages.
@@ -151,6 +174,7 @@ Use cases orchestrating domain logic.
 - `AIContextBuilder` (service) - Centralized metadata → prompt projection; produces ready-to-inject
   context blocks (completion / chapter / rewrite / character persona), applies "author edit wins", projects research docs by locality
 - `AutocompleteContextBuilder` (service) - Builds cursor-anchored local window for completions; injects relevant canon facts when `CANON_CONTEXT_ENABLED`; replaces chapter-tail context (Phase 10.0)
+- `ManuscriptContextBuilder` (service) - Injects previous chapters as a `[CHAPITRES PRÉCÉDENTS]` block; capped at 8 000 chars from the chapter start (Phase 10.0)
 - `autocompleteIntents` (service) - Translates detected `AutocompleteIntent` into a prompt directive string (Phase 10.0)
 - `canonEntities` (service) - Selects and formats canon facts relevant to the current context (Phase 10.0)
 - `CheckMetadataFreshnessUseCase` - Read-only staleness check (manuscript hash vs stored metadata hash); never regenerates
@@ -243,12 +267,28 @@ External service implementations.
 - `MongoDBAutocompleteEventRepository` - Telemetry event persistence with aggregation by period/provider/outcome; TTL index for automatic purge (Phase 10.0)
 - `MongoDBCanonFactRepository` - Canon fact persistence with `replaceDerived()` atomic bulk replace (Phase 10.0)
 - `MongoDBRateLimitRepository` - Persistent sliding-window rate limiting for canon generation cooldown and telemetry ingestion (Phase 10.0)
+- `MongoDBExchangeRepository` - AI exchange transparency ledger persistence with TTL index for automatic purge; content fields encrypted via `FieldEncryption`
+- `MongoDBModelPricingRepository` - Model pricing entries persistence; queried by `TrackedLLMProvider` for cost snapshots
+- `MongoDBWordCountSnapshotRepository` - Daily word-count snapshot persistence with TTL
+- `MongoDBWritingQuotaRepository` - Writing quota persistence scoped by `ownerId`
 - `InMemoryProjectRepository` - Ephemeral storage (testing/legacy)
 - All repositories support `deleteAllByOwner()` for RGPD compliance (Phase 3.11)
 - Serialization utilities for all entity types
 
 **Storage** (Phase 6):
 - `VercelBlobStorage` - Cover image storage using Vercel Blob
+
+**Lexical**:
+- `ConjugationAwareThesaurus` - Implements `Thesaurus`; wraps `JeuxDeMotsThesaurus` with conjugation-aware lookup via `FrenchMorphology`
+- `JeuxDeMotsThesaurus` - Fetches synonyms from the JeuxDeMots French thesaurus API
+- `FrenchMorphology` - Implements `Morphology`; French lemmatisation via the lexique index
+
+**Pricing**:
+- `OpenRouterPricingClient` - Implements `PricingClient`; fetches model pricing from the OpenRouter public API; normalises provider/prefix keys
+
+**Encryption** (Phase 10.0+):
+- `FieldEncryption` - AES-256-GCM encryption for transparency-ledger content fields (PBKDF2, domain-separated from API-key encryption)
+- `exchange-truncation` - Trims oversized system prompts, inputs, and outputs before persistence in `MongoDBExchangeRepository`
 
 **Security** (Phase 6.1):
 - `HCaptchaVerifier` - hCaptcha verification for bot protection
@@ -288,6 +328,9 @@ React components and UI.
 - `read/[projectId]/[token]/page.tsx` - Public reader for published projects (Phase 5.0)
 - `project/[projectId]/cockpit/*` - Cockpit pages (overview, characters, metadata, objectives, research, settings, tasks, usage, canon) (Phase 6, 10.0)
 - `project/[projectId]/cockpit/canon/page.tsx` - Canon ledger: list extracted facts, validate/invalidate, trigger regeneration (Phase 10.0)
+- `historique-ia/page.tsx` - User-facing AI transparency ledger: browsing and searching captured exchanges
+- `guide/*/page.tsx` - Full user guide (editor, cockpit, characters, manuscript, analyses, providers, assistant, privacy)
+- `admin/pricing/page.tsx` - Admin panel for model pricing: sync, prune, and manual override
 - `api/approve/route.ts` - User approval endpoint (Phase 3.8)
 - `api/completion/stream/route.ts` - Autocompletion SSE endpoint; accepts `intent`/`suggestionLength`/`audace`; injects preference directives + canon context (Phase 4.1, 10.0)
 - `api/completion/telemetry/route.ts` - Receives autocomplete lifecycle events from the client; sliding-window rate-limited (Phase 10.0)
@@ -309,7 +352,10 @@ React components and UI.
 - **AI Menu**: `AIMenuDropdown`, `CommandPalette` (Ctrl+Shift+I) (Phase 4.1+)
 - **Navigation**: `ProjectSettingsMenu` - Dropdown in the editor header for quick access to all cockpit sections (Phase 9.0)
 - **Publishing**: `PublishDialog` (with chapter selection), `PublicReader` (with cover image) (Phase 5.0, 6.1)
-- **Cockpit**: `CockpitSidebar`, `StatCard`, `ProgressCard`, `QuickActionsCard`, `QuickActionButton` (Phase 6); `AutocompletePreferencesCard` (6 per-project autocomplete settings), `AutocompleteStatsCard` (telemetry metrics dashboard) (Phase 10.0)
+- **Cockpit**: `CockpitSidebar`, `StatCard`, `ProgressCard`, `QuickActionsCard`, `QuickActionButton` (Phase 6); `AutocompletePreferencesCard` (6 per-project autocomplete settings), `AutocompleteStatsCard` (telemetry metrics dashboard), `CanonExtractionPreferencesCard` (auto vs manual trigger), `NotificationBell` (canon-stale alerts), `ActivityChart`, `MilestoneMetricsCard`, `TodayPaceCard`, `QuotaCard`, `QuotaForm` (Phase 10.0)
+- **Transparency**: `AIExchangeLedger` (browsable list of captured exchanges), `AIExchangeLoggingCard` (opt-in toggle)
+- **Admin**: `ModelPricingTable`, `ModelPricingForm`, `SyncButton`, `PruneButton`
+- **Editor**: `ThesaurusPalette` - palette for browsing and inserting word alternatives via the conjugation-aware thesaurus
 - **Characters**: `CharacterCard` (with Chat button opening CharacterChatSheet), `CharacterForm` (with Auto-fill button), `CharacterChatSheet` (streaming chat sheet) (Phase 6, 9.0)
 - **Tasks**: `TaskForm`, `TaskRow`, `TaskSummaryCard` (Phase 6)
 - **Goals**: `GoalCard`, `GoalForm` (Phase 6)
@@ -344,6 +390,11 @@ React components and UI.
 - `research-document-actions` - Research document CRUD (→ ResearchDocument Use Cases, Phase 6)
 - `project-settings-actions` - Project settings CRUD including autocomplete preferences (→ ProjectSettings Use Cases, Phase 6, 10.0)
 - `canon-actions` - Generate, list, validate, invalidate, and delete canon facts (→ GenerateCanonFactsUseCase, Phase 10.0)
+- `writing-quota-actions` - Writing quota CRUD (→ WritingQuota Use Cases)
+- `word-count-tracking` - Record word-count snapshots (→ RecordWordCountSnapshotUseCase)
+- `exchange-actions` - Load exchange history for the transparency ledger (→ AIExchangeRepository)
+- `thesaurus-actions` - Suggest word alternatives (→ SuggestAlternativesUseCase)
+- `pricing-admin-actions` - Trigger pricing sync and prune (→ SyncModelPricingUseCase, PruneObsoletePricingUseCase)
 - `analysis-actions` - Chapter analysis operations (→ Analysis Use Cases, Phase 7)
 
 **Dependency Injection** (`utils.ts`):
@@ -368,13 +419,24 @@ React components and UI.
 - `getCharacterConversationRepo()` - Character conversation repository (Phase 9.0)
 - `getAutocompleteEventRepo()` - Autocomplete event telemetry repository (Phase 10.0)
 - `getCanonFactRepo()` - Canon fact repository (Phase 10.0)
+- `getCanonExtractionStateRepo()` - Canon extraction state repository (Phase 10.0)
 - `getRateLimitRepo()` - Persistent rate limit repository (Phase 10.0)
+- `getAIExchangeRepo()` - AI exchange transparency ledger repository
+- `getModelPricingRepo()` - Model pricing repository
+- `getWordCountSnapshotRepo()` - Word-count snapshot repository
+- `getWritingQuotaRepo()` - Writing quota repository
+- `getPricingClient()` - `OpenRouterPricingClient` instance (implements `PricingClient`)
 
 **Hooks**:
 - `useAutosave` - Auto-save hook with 1-second debounce
 - `useHasAIProviders` - Check provider availability (Phase 3.10)
 - `useMobile` - Mobile device detection hook (Phase 6)
 - `useCharacterChat` - SSE connection management, message state, and conversation persistence for character chat (Phase 9.0)
+- `useSessionEndTrigger` - Detects idle time / tab-visibility loss and fires background canon extraction (Phase 10.0)
+- `useCanonFreshnessCheck` - Polls canon staleness and dispatches a notification when stale (Phase 10.0)
+
+**State**:
+- `notificationStore` - Zustand store for in-app notifications (e.g. canon-stale alert with actionable "regenerate" CTA)
 
 ## Data Flow
 

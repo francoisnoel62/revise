@@ -1062,6 +1062,17 @@ Pure business logic with zero framework dependencies.
 
 ---
 
+#### `CanonExtractionStateRepository` ⭐ NEW (Phase 10.0)
+**Contract**: Tracks per-project incremental extraction state
+
+**Methods**:
+- `findByProjectId(ownerId, projectId)` → `Promise<CanonExtractionState | null>`
+- `save(ownerId, state)` → `Promise<void>`
+
+**Implementation**: `MongoDBCanonFactRepository` (same collection, separate interface)
+
+---
+
 #### `RateLimitRepository` ⭐ NEW (Phase 10.0)
 **Contract**: Generic persistent sliding-window rate limiting
 
@@ -1070,6 +1081,89 @@ Pure business logic with zero framework dependencies.
 - `record(key)` → `Promise<void>`
 
 **Implementation**: `MongoDBRateLimitRepository`
+
+---
+
+#### `ModelPricingRepository` ⭐ NEW
+**Contract**: Model pricing persistence and retrieval
+
+**Methods**:
+- `upsertMany(entries)` → `Promise<void>`
+- `findByProvider(provider)` → `Promise<ModelPricingEntry[]>`
+- `findAll()` → `Promise<ModelPricingEntry[]>`
+- `update(id, data)` → `Promise<ModelPricingEntry | null>`
+- `delete(id)` → `Promise<void>`
+
+**Implementation**: `MongoDBModelPricingRepository`
+
+---
+
+#### `AIExchangeRepository` ⭐ NEW
+**Contract**: AI exchange transparency ledger persistence
+
+**Methods**:
+- `create(exchange)` → `Promise<AIExchange>`
+- `findByUserId(userId, filters?)` → `Promise<AIExchange[]>`
+- `deleteExpired()` → `Promise<void>` (also handled by MongoDB TTL index)
+
+**Implementation**: `MongoDBExchangeRepository`
+
+---
+
+#### `WordCountSnapshotRepository` ⭐ NEW
+**Contract**: Daily word-count checkpoint persistence
+
+**Methods**:
+- `save(snapshot)` → `Promise<void>`
+- `findByProjectId(projectId, days?)` → `Promise<WordCountSnapshot[]>`
+
+**Implementation**: `MongoDBWordCountSnapshotRepository`
+
+---
+
+#### `WritingQuotaRepository` ⭐ NEW
+**Contract**: Recurring writing quota persistence scoped by `ownerId`
+
+**Methods**:
+- `create(ownerId, quota)` → `Promise<WritingQuota>`
+- `findByProjectId(ownerId, projectId)` → `Promise<WritingQuota[]>`
+- `update(ownerId, quota)` → `Promise<WritingQuota>`
+- `delete(ownerId, quotaId)` → `Promise<void>`
+
+**Implementation**: `MongoDBWritingQuotaRepository`
+
+---
+
+#### `PricingClient` ⭐ NEW
+**Contract**: Fetches model pricing entries from an external source
+
+**Methods**:
+- `fetchPricingEntries()` → `Promise<Omit<ModelPricingEntry, 'id'>[]>`
+
+**Purpose**: Abstracts `OpenRouterPricingClient` so use cases in the Application layer never import infrastructure directly
+
+**Implementation**: `OpenRouterPricingClient`
+
+---
+
+#### `Thesaurus` ⭐ NEW
+**Contract**: Word alternative lookup
+
+**Methods**:
+- `getSynonyms(word)` → `Promise<WordAlternative[]>`
+
+**Implementation**: `ConjugationAwareThesaurus` (wraps `JeuxDeMotsThesaurus` + `FrenchMorphology`)
+
+---
+
+#### `Morphology` ⭐ NEW
+**Contract**: Lemmatisation / conjugation
+
+**Methods**:
+- `lemmatise(word)` → `Promise<string>`
+- `conjugate(lemma, form)` → `Promise<string>`
+
+**Implementation**: `FrenchMorphology`
 
 ---
 

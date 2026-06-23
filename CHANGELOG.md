@@ -135,7 +135,69 @@ Principe directeur : *Revise ne finit pas votre chapitre. Il vous tend la procha
 
 ## Unreleased
 
+### Added
+
+- **PricingClient domain interface** — `src/domain/interfaces/PricingClient.ts` extracted so `SyncModelPricingUseCase` and `PruneObsoletePricingUseCase` depend on an abstraction instead of the concrete `OpenRouterPricingClient`; `OpenRouterPricingClient` now declares `implements PricingClient`
+
+- **Canon pipeline complete** (#106–#115):
+  - **Incremental per-chapter extraction** — canon facts are extracted chapter-by-chapter; existing derived facts for a chapter are replaced atomically; cross-chapter contradictions invalidate affected facts
+  - **Session-end trigger** — `useSessionEndTrigger` hook detects idle time / tab-visibility loss and fires background canon extraction; `useCanonFreshnessCheck` polls staleness
+  - **Notification bell** — `NotificationBell` component + `notificationStore` (Zustand); user is notified when canon is stale and can trigger regeneration from the bell
+  - **`CanonExtractionStateRepository` interface** — tracks extraction state per project (last run, chapter cursor, cooldown); extracted from `CanonFactRepository`
+  - **`CanonExtractionPreferencesCard`** — per-project settings card for automatic vs manual extraction trigger
+  - **`ManuscriptContextBuilder` service** — injects previous chapters as a `[CHAPITRES PRÉCÉDENTS]` block in the autocomplete context
+  - **Canon 5-category model** — categories: character, location, relation, event, belief; injection cap raised to 40; belief facts prioritised; recent facts sorted first
+  - **Character discovery** — when no character sheets exist, `generateCharacters` is called on the manuscript text to seed canon extraction
+  - **Canon link** added to the editor cockpit navigation menu (#106)
+
+- **AI Transparency Ledger** (#96):
+  - **`AIExchange` entity** — captures one AI exchange (system prompt, input, raw output, token metrics) for the transparency ledger; stored separately from `AIUsageRecord`, encrypted at rest, opt-in, with retention / TTL purge
+  - **`AIExchangeRepository` interface** — CRUD for exchanges scoped by `userId`
+  - **`MongoDBExchangeRepository`** — MongoDB persistence with TTL index for automatic purge
+  - **`FieldEncryption`** — AES-256-GCM encryption for transparency-ledger content fields; derives its key via PBKDF2 with a distinct salt (domain-separated from API-key encryption)
+  - **`exchange-truncation`** — trims oversized system prompts, inputs, and outputs before persistence
+  - **`AIExchangeLedger` component** — renders the list of exchanges with provider, operation, cost, and truncated preview
+  - **`AIExchangeLoggingCard`** — settings card to opt in / out of exchange logging
+  - **`/historique-ia` page** — user-facing transparency ledger
+
+- **Dynamic Model Pricing** (#95, #97, #104, #105):
+  - **`ModelPricingRepository` interface** — stores USD/M token rates fetched from OpenRouter
+  - **`OpenRouterPricingClient`** — fetches pricing from the OpenRouter public API; normalises provider/prefix keys
+  - **`SyncModelPricingUseCase`** — fetches and upserts pricing entries; quarantines key collisions and large price swings (> 50%); sends an enriched email report
+  - **`PruneObsoletePricingUseCase`** — deletes stored entries absent from the latest OpenRouter fetch; never deletes if the fetch fails
+  - **`MongoDBModelPricingRepository`** — MongoDB persistence for pricing entries
+  - **Admin UI**: `ModelPricingForm`, `ModelPricingTable`, `SyncButton`, `PruneButton` at `/admin/pricing`
+  - **`/api/cron/sync-pricing`** route — cron endpoint for scheduled pricing sync
+
+- **Cockpit Objectives** (#85):
+  - **`WritingQuota` entity** — recurring writing quota (daily / weekly target word rate)
+  - **`WritingQuotaRepository` interface** — CRUD for quotas scoped by `ownerId`
+  - **`MongoDBWritingQuotaRepository`** — MongoDB persistence
+  - **`WordCountSnapshot` entity** — daily word-count checkpoint for activity tracking
+  - **`WordCountSnapshotRepository` interface** — CRUD for snapshots
+  - **`MongoDBWordCountSnapshotRepository`** — MongoDB persistence with TTL
+  - **Quota use cases**: `CreateWritingQuotaUseCase`, `UpdateWritingQuotaUseCase`, `DeleteWritingQuotaUseCase`, `ListWritingQuotasUseCase`
+  - **`RecordWordCountSnapshotUseCase`** — records a daily word-count snapshot
+  - **`GetWritingActivityUseCase`** — returns time-series activity data for charts
+  - **`GetWorkflowMetricsUseCase`** — computes milestone metrics (total written, daily rate, quota adherence)
+  - **Cockpit components**: `ActivityChart`, `MilestoneMetricsCard`, `TodayPaceCard`, `QuotaCard`, `QuotaForm`
+
+- **Thesaurus / Lexical Layer**:
+  - **`Thesaurus` domain interface** — word alternative lookup contract
+  - **`Morphology` domain interface** — lemmatisation / conjugation contract
+  - **`WordAlternative` value object** — synonym with relevance score
+  - **`ConjugationAwareThesaurus`** — wraps `JeuxDeMotsThesaurus` with conjugation-aware lookup using `FrenchMorphology`
+  - **`JeuxDeMotsThesaurus`** — fetches synonyms from the JeuxDeMots French thesaurus API
+  - **`FrenchMorphology`** — French lemmatisation via the lexique index
+  - **`SuggestAlternativesUseCase`** — uses thesaurus to suggest word alternatives
+  - **`ThesaurusPalette` component** — editor palette for browsing and inserting alternatives
+
+- **User Guide** (#99) — full guide at `/guide/` covering the editor, cockpit, characters, manuscript, analyses, AI providers, assistant, and privacy
+
+- **Project settings dropdown** — `ProjectSettingsMenu` in the editor header gives quick access to all cockpit sections without leaving the editor
+
 ### Fixed
+- **Architecture** — `PruneObsoletePricingUseCase` and `SyncModelPricingUseCase` now depend on the `PricingClient` domain interface; domain test for `AIExchange` no longer imports `mongodb`
 - **AI token usage now recorded** - the cockpit "Utilisation IA" page showed `0` tokens because
   no provider read the token usage from its API responses, so every `AIUsageRecord` was saved with
   `null` tokens (operation count and duration worked since they don't depend on the provider).
