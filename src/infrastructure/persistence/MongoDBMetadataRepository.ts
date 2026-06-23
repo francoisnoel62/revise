@@ -54,7 +54,8 @@ export class MongoDBMetadataRepository implements MetadataRepository {
     } catch (error: unknown) {
       if (error instanceof Error && error.message.includes('duplicate key')) {
         throw new Error(
-          `Metadata of type "${metadata.getTypeKey()}" already exists for this project`
+          `Metadata of type "${metadata.getTypeKey()}" already exists for this project`,
+          { cause: error }
         );
       }
       throw error;

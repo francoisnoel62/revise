@@ -94,9 +94,9 @@ export class MarkdownParser implements DocumentParser {
       return chapters;
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`Failed to parse markdown: ${error.message}`);
+        throw new Error(`Failed to parse markdown: ${error.message}`, { cause: error });
       }
-      throw new Error('Failed to parse markdown file');
+      throw new Error('Failed to parse markdown file', { cause: error });
     }
   }
 

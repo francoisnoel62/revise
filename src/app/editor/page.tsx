@@ -126,7 +126,7 @@ function EditorContent() {
     });
 
   const addNotification = useNotificationStore((s) => s.addNotification);
-  const hasNotificationOfType = useNotificationStore((s) => s.hasNotificationOfType);
+  const _hasNotificationOfType = useNotificationStore((s) => s.hasNotificationOfType);
 
   // Forward session-end extraction results to the notification center
   useEffect(() => {

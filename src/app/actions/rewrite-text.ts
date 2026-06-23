@@ -93,7 +93,7 @@ export async function rewriteText(
     }
 
     // 6. Extract plain text context from TipTap JSON for AI
-    let plainTextContext = '';
+    let plainTextContext: string;
     try {
       const tiptapJson = JSON.parse(fullContent);
       plainTextContext = extractTextFromTipTapJSON(tiptapJson);

@@ -36,7 +36,7 @@ export class MongoDBProjectRepository implements ProjectRepository {
       return project;
     } catch (error: unknown) {
       if (error instanceof Error && error.message.includes('duplicate key')) {
-        throw new Error(`Project with id ${project.getId()} already exists`);
+        throw new Error(`Project with id ${project.getId()} already exists`, { cause: error });
       }
       throw error;
     }

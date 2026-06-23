@@ -61,9 +61,9 @@ export class DocxExporter implements DocumentExporter {
       return await Packer.toBuffer(doc);
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`Failed to export docx: ${error.message}`);
+        throw new Error(`Failed to export docx: ${error.message}`, { cause: error });
       }
-      throw new Error('Failed to export docx file');
+      throw new Error('Failed to export docx file', { cause: error });
     }
   }
 
@@ -78,9 +78,9 @@ export class DocxExporter implements DocumentExporter {
       return await this.buildDocument(chapters, preset, options);
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`Failed to export project: ${error.message}`);
+        throw new Error(`Failed to export project: ${error.message}`, { cause: error });
       }
-      throw new Error('Failed to export project');
+      throw new Error('Failed to export project', { cause: error });
     }
   }
 
@@ -94,9 +94,9 @@ export class DocxExporter implements DocumentExporter {
       return await this.buildDocument([chapter], preset, options);
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`Failed to export chapter: ${error.message}`);
+        throw new Error(`Failed to export chapter: ${error.message}`, { cause: error });
       }
-      throw new Error('Failed to export chapter');
+      throw new Error('Failed to export chapter', { cause: error });
     }
   }
 
@@ -114,9 +114,9 @@ export class DocxExporter implements DocumentExporter {
       return await this.buildDocument(chapters, preset, options);
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`Failed to export chapters: ${error.message}`);
+        throw new Error(`Failed to export chapters: ${error.message}`, { cause: error });
       }
-      throw new Error('Failed to export chapters');
+      throw new Error('Failed to export chapters', { cause: error });
     }
   }
 

@@ -122,10 +122,11 @@ export class FilePromptRepository implements PromptRepository {
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(
-          `Failed to read autocompletion prompt from ${filePath}: ${error.message}`
+          `Failed to read autocompletion prompt from ${filePath}: ${error.message}`,
+          { cause: error }
         );
       }
-      throw new Error('Failed to read autocompletion prompt');
+      throw new Error('Failed to read autocompletion prompt', { cause: error });
     }
   }
 
@@ -149,10 +150,11 @@ export class FilePromptRepository implements PromptRepository {
       if (error instanceof Error) {
         const typeName = promptType || filename;
         throw new Error(
-          `Failed to read ${typeName} prompt from ${filePath}: ${error.message}`
+          `Failed to read ${typeName} prompt from ${filePath}: ${error.message}`,
+          { cause: error }
         );
       }
-      throw new Error(`Failed to read prompt: ${filename}`);
+      throw new Error(`Failed to read prompt: ${filename}`, { cause: error });
     }
   }
 }

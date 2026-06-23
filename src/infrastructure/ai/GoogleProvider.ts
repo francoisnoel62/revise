@@ -160,7 +160,7 @@ export class GoogleProvider implements LLMProvider {
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error during text generation');
+      throw new Error('Unknown error during text generation', { cause: error });
     }
   }
 
@@ -309,7 +309,7 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans aucun texte avant ou après.
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error during narrative analysis');
+      throw new Error('Unknown error during narrative analysis', { cause: error });
     }
   }
 
@@ -427,7 +427,7 @@ INSTRUCTIONS FINALES:
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error during stylistic DNA analysis');
+      throw new Error('Unknown error during stylistic DNA analysis', { cause: error });
     }
   }
 
@@ -529,7 +529,7 @@ INSTRUCTIONS:
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error during characters analysis');
+      throw new Error('Unknown error during characters analysis', { cause: error });
     }
   }
 
@@ -654,7 +654,7 @@ INSTRUCTIONS:
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error during plot analysis');
+      throw new Error('Unknown error during plot analysis', { cause: error });
     }
   }
 
@@ -806,7 +806,7 @@ INSTRUCTIONS:
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error during worldbuilding analysis');
+      throw new Error('Unknown error during worldbuilding analysis', { cause: error });
     }
   }
 
@@ -960,7 +960,7 @@ INSTRUCTIONS:
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error during synthesis analysis');
+      throw new Error('Unknown error during synthesis analysis', { cause: error });
     }
   }
 
@@ -1140,7 +1140,7 @@ INSTRUCTIONS:
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error during chapter summaries generation');
+      throw new Error('Unknown error during chapter summaries generation', { cause: error });
     }
   }
 
@@ -1172,7 +1172,7 @@ INSTRUCTIONS:
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error during canon facts generation');
+      throw new Error('Unknown error during canon facts generation', { cause: error });
     }
   }
 
@@ -1260,7 +1260,7 @@ INSTRUCTIONS SUPPLÉMENTAIRES:
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error during chapter generation');
+      throw new Error('Unknown error during chapter generation', { cause: error });
     }
   }
 
@@ -1309,7 +1309,7 @@ INSTRUCTIONS FINALES:
     } catch (e) {
       console.error('[GoogleProvider] JSON parse failed. Raw content:', content.substring(0, 500));
       console.error('[GoogleProvider] Extracted content:', jsonContent.substring(0, 500));
-      throw new Error(`Failed to parse chapter generation response from Google AI: ${e instanceof Error ? e.message : 'unknown error'}`);
+      throw new Error(`Failed to parse chapter generation response from Google AI: ${e instanceof Error ? e.message : 'unknown error'}`, { cause: e });
     }
 
     if (!parsed.content || typeof parsed.content !== 'string') {
@@ -1362,7 +1362,7 @@ INSTRUCTIONS FINALES:
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error during completion generation');
+      throw new Error('Unknown error during completion generation', { cause: error });
     }
   }
 
@@ -1471,7 +1471,7 @@ INSTRUCTIONS FINALES:
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error during character sheet generation');
+      throw new Error('Unknown error during character sheet generation', { cause: error });
     }
   }
 
@@ -1583,7 +1583,7 @@ INSTRUCTIONS:
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error during thesaurus suggestion');
+      throw new Error('Unknown error during thesaurus suggestion', { cause: error });
     }
   }
 

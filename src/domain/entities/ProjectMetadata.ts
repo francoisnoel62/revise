@@ -231,7 +231,7 @@ export class ProjectMetadata {
       }
     } catch (error) {
       if (error instanceof SyntaxError) {
-        throw new Error('Invalid JSON format for metadata content');
+        throw new Error('Invalid JSON format for metadata content', { cause: error });
       }
       throw error;
     }

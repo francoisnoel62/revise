@@ -45,9 +45,9 @@ export class MongoDBProviderRepository implements ProviderRepository {
       return provider;
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`Failed to create provider: ${error.message}`);
+        throw new Error(`Failed to create provider: ${error.message}`, { cause: error });
       }
-      throw new Error('Failed to create provider');
+      throw new Error('Failed to create provider', { cause: error });
     }
   }
 
@@ -74,9 +74,9 @@ export class MongoDBProviderRepository implements ProviderRepository {
       return deserializeProvider(doc, apiKey);
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`Failed to find provider: ${error.message}`);
+        throw new Error(`Failed to find provider: ${error.message}`, { cause: error });
       }
-      throw new Error('Failed to find provider');
+      throw new Error('Failed to find provider', { cause: error });
     }
   }
 
@@ -99,9 +99,9 @@ export class MongoDBProviderRepository implements ProviderRepository {
       });
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`Failed to list providers: ${error.message}`);
+        throw new Error(`Failed to list providers: ${error.message}`, { cause: error });
       }
-      throw new Error('Failed to list providers');
+      throw new Error('Failed to list providers', { cause: error });
     }
   }
 
@@ -137,9 +137,9 @@ export class MongoDBProviderRepository implements ProviderRepository {
       return provider;
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`Failed to update provider: ${error.message}`);
+        throw new Error(`Failed to update provider: ${error.message}`, { cause: error });
       }
-      throw new Error('Failed to update provider');
+      throw new Error('Failed to update provider', { cause: error });
     }
   }
 
@@ -156,9 +156,9 @@ export class MongoDBProviderRepository implements ProviderRepository {
       }
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`Failed to delete provider: ${error.message}`);
+        throw new Error(`Failed to delete provider: ${error.message}`, { cause: error });
       }
-      throw new Error('Failed to delete provider');
+      throw new Error('Failed to delete provider', { cause: error });
     }
   }
 
@@ -182,9 +182,9 @@ export class MongoDBProviderRepository implements ProviderRepository {
       return count > 0;
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`Failed to check provider usage: ${error.message}`);
+        throw new Error(`Failed to check provider usage: ${error.message}`, { cause: error });
       }
-      throw new Error('Failed to check provider usage');
+      throw new Error('Failed to check provider usage', { cause: error });
     }
   }
 
@@ -196,9 +196,9 @@ export class MongoDBProviderRepository implements ProviderRepository {
       return result.deletedCount;
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`Failed to delete providers: ${error.message}`);
+        throw new Error(`Failed to delete providers: ${error.message}`, { cause: error });
       }
-      throw new Error('Failed to delete providers');
+      throw new Error('Failed to delete providers', { cause: error });
     }
   }
 }

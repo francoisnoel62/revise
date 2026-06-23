@@ -96,7 +96,7 @@ export class MongoDBBlogArticleRepository implements BlogArticleRepository {
       return article;
     } catch (error: unknown) {
       if (error instanceof Error && error.message.includes('duplicate key')) {
-        throw new Error(`Article with slug "${article.getSlug()}" already exists`);
+        throw new Error(`Article with slug "${article.getSlug()}" already exists`, { cause: error });
       }
       throw error;
     }

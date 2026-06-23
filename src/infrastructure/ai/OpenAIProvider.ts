@@ -290,7 +290,7 @@ export class OpenAIProvider implements LLMProvider {
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error during text generation');
+      throw new Error('Unknown error during text generation', { cause: error });
     }
   }
 
@@ -441,7 +441,7 @@ FORMAT DE SORTIE (JSON):
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error during narrative analysis');
+      throw new Error('Unknown error during narrative analysis', { cause: error });
     }
   }
 
@@ -564,7 +564,7 @@ INSTRUCTIONS FINALES:
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error during stylistic DNA analysis');
+      throw new Error('Unknown error during stylistic DNA analysis', { cause: error });
     }
   }
 
@@ -661,7 +661,7 @@ INSTRUCTIONS:
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error during characters analysis');
+      throw new Error('Unknown error during characters analysis', { cause: error });
     }
   }
 
@@ -787,7 +787,7 @@ INSTRUCTIONS:
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error during plot analysis');
+      throw new Error('Unknown error during plot analysis', { cause: error });
     }
   }
 
@@ -940,7 +940,7 @@ INSTRUCTIONS:
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error during worldbuilding analysis');
+      throw new Error('Unknown error during worldbuilding analysis', { cause: error });
     }
   }
 
@@ -1094,7 +1094,7 @@ INSTRUCTIONS:
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error during synthesis analysis');
+      throw new Error('Unknown error during synthesis analysis', { cause: error });
     }
   }
 
@@ -1269,7 +1269,7 @@ INSTRUCTIONS:
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error during chapter summaries generation');
+      throw new Error('Unknown error during chapter summaries generation', { cause: error });
     }
   }
 
@@ -1297,7 +1297,7 @@ INSTRUCTIONS:
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error during canon facts generation');
+      throw new Error('Unknown error during canon facts generation', { cause: error });
     }
   }
 
@@ -1382,7 +1382,7 @@ INSTRUCTIONS SUPPLÉMENTAIRES:
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error during chapter generation');
+      throw new Error('Unknown error during chapter generation', { cause: error });
     }
   }
 
@@ -1506,7 +1506,7 @@ INSTRUCTIONS FINALES:
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error during completion generation');
+      throw new Error('Unknown error during completion generation', { cause: error });
     }
   }
 
@@ -1612,7 +1612,7 @@ INSTRUCTIONS FINALES:
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error during character sheet generation');
+      throw new Error('Unknown error during character sheet generation', { cause: error });
     }
   }
 
@@ -1719,7 +1719,7 @@ INSTRUCTIONS:
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error during thesaurus suggestion');
+      throw new Error('Unknown error during thesaurus suggestion', { cause: error });
     }
   }
 

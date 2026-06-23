@@ -39,9 +39,9 @@ export class DocxParser implements DocumentParser {
       return result.value;
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`Failed to parse docx: ${error.message}`);
+        throw new Error(`Failed to parse docx: ${error.message}`, { cause: error });
       }
-      throw new Error('Failed to parse docx file');
+      throw new Error('Failed to parse docx file', { cause: error });
     }
   }
 
@@ -127,9 +127,9 @@ export class DocxParser implements DocumentParser {
       return chapters;
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`Failed to parse docx: ${error.message}`);
+        throw new Error(`Failed to parse docx: ${error.message}`, { cause: error });
       }
-      throw new Error('Failed to parse docx file');
+      throw new Error('Failed to parse docx file', { cause: error });
     }
   }
 

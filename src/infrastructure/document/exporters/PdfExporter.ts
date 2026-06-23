@@ -263,9 +263,9 @@ export class PdfExporter implements DocumentExporter {
       return Buffer.from(pdfBytes);
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`Failed to export PDF: ${error.message}`);
+        throw new Error(`Failed to export PDF: ${error.message}`, { cause: error });
       }
-      throw new Error('Failed to export PDF file');
+      throw new Error('Failed to export PDF file', { cause: error });
     }
   }
 
@@ -312,9 +312,9 @@ export class PdfExporter implements DocumentExporter {
       return Buffer.from(pdfBytes);
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`Failed to export project: ${error.message}`);
+        throw new Error(`Failed to export project: ${error.message}`, { cause: error });
       }
-      throw new Error('Failed to export project');
+      throw new Error('Failed to export project', { cause: error });
     }
   }
 
@@ -355,9 +355,9 @@ export class PdfExporter implements DocumentExporter {
       return Buffer.from(pdfBytes);
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`Failed to export chapter: ${error.message}`);
+        throw new Error(`Failed to export chapter: ${error.message}`, { cause: error });
       }
-      throw new Error('Failed to export chapter');
+      throw new Error('Failed to export chapter', { cause: error });
     }
   }
 
@@ -407,9 +407,9 @@ export class PdfExporter implements DocumentExporter {
       return Buffer.from(pdfBytes);
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`Failed to export chapters: ${error.message}`);
+        throw new Error(`Failed to export chapters: ${error.message}`, { cause: error });
       }
-      throw new Error('Failed to export chapters');
+      throw new Error('Failed to export chapters', { cause: error });
     }
   }
 

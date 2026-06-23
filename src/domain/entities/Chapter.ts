@@ -97,7 +97,7 @@ export class Chapter {
       }
     } catch (error) {
       if (error instanceof SyntaxError) {
-        throw new Error('Invalid JSON format for chapter content');
+        throw new Error('Invalid JSON format for chapter content', { cause: error });
       }
       throw error;
     }
