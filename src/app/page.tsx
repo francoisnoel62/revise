@@ -25,7 +25,9 @@ import {
   Check,
   Quote,
   Heart,
-  Mail
+  Mail,
+  Bot,
+  FileText
 } from 'lucide-react';
 
 export const metadata = {
@@ -332,15 +334,27 @@ export default function LandingPage() {
                 available={true}
               />
               <FeatureCard
+                icon={Bot}
+                title="Chat avec vos personnages"
+                description="Interrogez un personnage : il vous répond dans sa voix, selon sa fiche. Explorez sa psychologie, testez une scène, ou débloquez un dialogue difficile. Vous posez les questions. Lui, il reste lui-même."
+                available={true}
+              />
+              <FeatureCard
+                icon={FileText}
+                title="Fiche personnage depuis le manuscrit"
+                description="Un clic sur « Auto-remplir » : l'IA lit vos chapitres et propose une fiche complète — psychologie, voix, histoire, fonction narrative. Vous relisez, vous corrigez, vous enregistrez. Le personnage reste le vôtre."
+                available={true}
+              />
+              <FeatureCard
                 icon={BookOpen}
                 title="Bible de projet"
-                description="Structurez votre univers : personnages, lieux, chronologie, règles du monde. Tout centralisé."
+                description="Fiches personnages, lieux, relations, événements — extraits automatiquement de votre manuscrit au fil des chapitres. Vous vérifiez, vous validez. La bible se construit pendant que vous écrivez."
                 available={true}
               />
               <FeatureCard
                 icon={Sparkles}
                 title="Suggestions intelligentes"
-                description="Complétez vos phrases avec des propositions adaptées à votre voix, pas des formules génériques."
+                description="L'autocomplétion lit votre manuscrit en temps réel : personnages présents dans la scène, faits établis, contexte des chapitres précédents. La suggestion connaît votre histoire aussi bien que vous."
                 available={true}
               />
             </div>
@@ -429,6 +443,17 @@ export default function LandingPage() {
                       <p className="font-medium">Sauvegarde automatique</p>
                       <p className="text-sm text-muted-foreground">
                         Vos écrits sont sauvegardés en temps réel.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-muted rounded flex items-center justify-center flex-shrink-0">
+                      <Users className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Personnages et canon intégrés</p>
+                      <p className="text-sm text-muted-foreground">
+                        Vos fiches personnages et les faits canon de votre histoire sont accessibles depuis l&apos;éditeur, toujours à jour.
                       </p>
                     </div>
                   </div>
