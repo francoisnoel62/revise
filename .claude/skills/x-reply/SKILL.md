@@ -1,6 +1,6 @@
 ---
 name: x-reply
-description: Génère une réponse à un tweet pour le compte X/Twitter de Revise Studio. L'utilisateur fournit un screenshot de tweet (image). Produit trois variantes (recommandée, courte, tranchée) + explication. Objectif : +1000 followers via des réponses intelligentes qui donnent envie de visiter le profil.
+description: Génère une réponse à un tweet pour le compte X/Twitter de Revise Studio. L'utilisateur fournit un screenshot de tweet (image) ou le texte du tweet directement. Produit trois variantes (recommandée, courte, tranchée) + explication. Objectif : +1000 followers via des réponses intelligentes qui donnent envie de visiter le profil.
 ---
 
 # X-Reply — Réponses X pour Revise Studio
@@ -15,12 +15,17 @@ Objectif business : **+1000 followers** via des réponses qui montrent une vraie
 
 ## Input attendu
 
-L'utilisateur envoie un **screenshot de tweet** (image).
+L'utilisateur fournit **au moins l'un des éléments suivants** :
 
-1. Lire le contenu du tweet dans l'image.
-2. Extraire : texte du tweet, pseudo de l'auteur, métriques visibles (likes, RT, réponses), contexte éventuel du fil.
-3. Si du texte complémentaire accompagne le screenshot (contexte, objectif), en tenir compte.
-4. Si rien d'autre n'est fourni, tout déduire de l'image.
+- Un **screenshot de tweet** (image) — extraire texte, pseudo, métriques visibles (likes, RT, réponses), contexte du fil.
+- Le **texte brut du tweet** — utiliser directement le contenu fourni.
+- Les deux à la fois — la combinaison est bienvenue.
+
+Règles de traitement :
+1. Si une image est fournie, lire son contenu (texte, auteur, métriques, fil).
+2. Si du texte est fourni (inline ou en argument), l'utiliser comme contenu du tweet.
+3. Tenir compte de tout contexte ou objectif mentionné en supplément.
+4. En cas d'ambiguïté, inférer à partir de ce qui est disponible.
 
 ## Méthode d'analyse
 
