@@ -183,7 +183,7 @@ export const synthesisConfig: MetadataTypeConfig<Synthesis> = {
   typeKey: 'synthesis',
   title: 'Synthèse',
   generate: (provider: LLMProvider, fullText: string) =>
-    provider.generateSynthesis(fullText),
+    provider.generateSynthesis(fullText, {}),
   format: (a) =>
     tipTap([
       h('Identité du Texte'),
