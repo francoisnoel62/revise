@@ -10,13 +10,16 @@ import { ListMetadataUseCase } from '@/application/use-cases/ListMetadataUseCase
 import { UpdateMetadataContentUseCase } from '@/application/use-cases/UpdateMetadataContentUseCase';
 import { UpdateMetadataTitleUseCase } from '@/application/use-cases/UpdateMetadataTitleUseCase';
 import { DeleteMetadataUseCase } from '@/application/use-cases/DeleteMetadataUseCase';
-import { GenerateNarrativeAnalysisUseCase } from '@/application/use-cases/GenerateNarrativeAnalysisUseCase';
-import { GenerateStylisticDNAUseCase } from '@/application/use-cases/GenerateStylisticDNAUseCase';
-import { GenerateCharactersUseCase } from '@/application/use-cases/GenerateCharactersUseCase';
-import { GeneratePlotUseCase } from '@/application/use-cases/GeneratePlotUseCase';
-import { GenerateWorldbuildingUseCase } from '@/application/use-cases/GenerateWorldbuildingUseCase';
-import { GenerateSynthesisUseCase } from '@/application/use-cases/GenerateSynthesisUseCase';
-import { GenerateChapterSummariesUseCase } from '@/application/use-cases/GenerateChapterSummariesUseCase';
+import { GenerateMetadataUseCase } from '@/application/use-cases/GenerateMetadataUseCase';
+import {
+  narrativeAnalysisConfig,
+  stylisticDNAConfig,
+  charactersConfig,
+  plotConfig,
+  worldbuildingConfig,
+  synthesisConfig,
+  chapterSummariesConfig,
+} from '@/application/use-cases/metadata-type-configs';
 import { CheckMetadataFreshnessUseCase, MetadataFreshness } from '@/application/use-cases/CheckMetadataFreshnessUseCase';
 import {
   ActionResult,
@@ -286,11 +289,12 @@ export async function generateNarrativeAnalysisAction(
       ? await getTrackedLLMProviderById(auth.userId, providerId, projectId)
       : await getTrackedLLMProviderForProject(auth.userId, projectId);
 
-    const useCase = new GenerateNarrativeAnalysisUseCase(
+    const useCase = new GenerateMetadataUseCase(
       await getMetadataRepo(),
       await getRepository(),
       llmProvider,
-      await getIdGenerator()
+      await getIdGenerator(),
+      narrativeAnalysisConfig
     );
 
     const result = await useCase.execute({
@@ -341,11 +345,12 @@ export async function generateStylisticDNAAction(
       ? await getTrackedLLMProviderById(auth.userId, providerId, projectId)
       : await getTrackedLLMProviderForProject(auth.userId, projectId);
 
-    const useCase = new GenerateStylisticDNAUseCase(
+    const useCase = new GenerateMetadataUseCase(
       await getMetadataRepo(),
       await getRepository(),
       llmProvider,
-      await getIdGenerator()
+      await getIdGenerator(),
+      stylisticDNAConfig
     );
 
     const result = await useCase.execute({
@@ -396,11 +401,12 @@ export async function generateCharactersAction(
       ? await getTrackedLLMProviderById(auth.userId, providerId, projectId)
       : await getTrackedLLMProviderForProject(auth.userId, projectId);
 
-    const useCase = new GenerateCharactersUseCase(
+    const useCase = new GenerateMetadataUseCase(
       await getMetadataRepo(),
       await getRepository(),
       llmProvider,
-      await getIdGenerator()
+      await getIdGenerator(),
+      charactersConfig
     );
 
     const result = await useCase.execute({
@@ -451,11 +457,12 @@ export async function generatePlotAction(
       ? await getTrackedLLMProviderById(auth.userId, providerId, projectId)
       : await getTrackedLLMProviderForProject(auth.userId, projectId);
 
-    const useCase = new GeneratePlotUseCase(
+    const useCase = new GenerateMetadataUseCase(
       await getMetadataRepo(),
       await getRepository(),
       llmProvider,
-      await getIdGenerator()
+      await getIdGenerator(),
+      plotConfig
     );
 
     const result = await useCase.execute({
@@ -506,11 +513,12 @@ export async function generateWorldbuildingAction(
       ? await getTrackedLLMProviderById(auth.userId, providerId, projectId)
       : await getTrackedLLMProviderForProject(auth.userId, projectId);
 
-    const useCase = new GenerateWorldbuildingUseCase(
+    const useCase = new GenerateMetadataUseCase(
       await getMetadataRepo(),
       await getRepository(),
       llmProvider,
-      await getIdGenerator()
+      await getIdGenerator(),
+      worldbuildingConfig
     );
 
     const result = await useCase.execute({
@@ -561,11 +569,12 @@ export async function generateSynthesisAction(
       ? await getTrackedLLMProviderById(auth.userId, providerId, projectId)
       : await getTrackedLLMProviderForProject(auth.userId, projectId);
 
-    const useCase = new GenerateSynthesisUseCase(
+    const useCase = new GenerateMetadataUseCase(
       await getMetadataRepo(),
       await getRepository(),
       llmProvider,
-      await getIdGenerator()
+      await getIdGenerator(),
+      synthesisConfig
     );
 
     const result = await useCase.execute({
@@ -616,11 +625,12 @@ export async function generateChapterSummariesAction(
       ? await getTrackedLLMProviderById(auth.userId, providerId, projectId)
       : await getTrackedLLMProviderForProject(auth.userId, projectId);
 
-    const useCase = new GenerateChapterSummariesUseCase(
+    const useCase = new GenerateMetadataUseCase(
       await getMetadataRepo(),
       await getRepository(),
       llmProvider,
-      await getIdGenerator()
+      await getIdGenerator(),
+      chapterSummariesConfig
     );
 
     const result = await useCase.execute({

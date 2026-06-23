@@ -1,7 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { GenerateNarrativeAnalysisUseCase } from '../GenerateNarrativeAnalysisUseCase';
+// ABOUTME: Tests for narrative analysis generation via GenerateMetadataUseCase + narrativeAnalysisConfig.
+// ABOUTME: Verifies formatter output structure, structuredData storage, and multi-chapter extraction.
 
-describe('GenerateNarrativeAnalysisUseCase', () => {
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { GenerateMetadataUseCase } from '../GenerateMetadataUseCase';
+import { narrativeAnalysisConfig } from '../metadata-type-configs';
+
+describe('GenerateMetadataUseCase — narrative analysis config', () => {
   const mockMetadataRepository = {
     create: vi.fn(),
     findById: vi.fn(),
@@ -25,36 +29,20 @@ describe('GenerateNarrativeAnalysisUseCase', () => {
   };
 
   const mockLLMProvider = {
-    generateRewrites: vi.fn(),
-    testConnection: vi.fn(),
-    getProviderName: vi.fn().mockReturnValue('OpenAI'),
-    getModel: vi.fn().mockReturnValue('gpt-4o-mini'),
     generateNarrativeAnalysis: vi.fn(),
-    generateStylisticDNA: vi.fn(),
-    generateCharacters: vi.fn(),
-    generatePlot: vi.fn(),
-    generateWorldbuilding: vi.fn(),
-    generateSynthesis: vi.fn(),
-    generateChapterSummaries: vi.fn(),
-    generateChapter: vi.fn(),
-    generateCompletion: vi.fn(),
-    generateCompletionStream: vi.fn(),
-    chatStream: vi.fn(),
-    generateCharacterSheet: vi.fn(),
-  };
+  } as never;
 
   const mockIdGenerator = {
     generate: vi.fn().mockReturnValue('generated-id'),
   };
 
-  let useCase: GenerateNarrativeAnalysisUseCase;
-
   const mockChapter = {
     getTitle: () => 'Chapter 1',
-    getContent: () => JSON.stringify({
-      type: 'doc',
-      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Test content' }] }],
-    }),
+    getContent: () =>
+      JSON.stringify({
+        type: 'doc',
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Test content' }] }],
+      }),
   };
 
   const mockProject = {
@@ -68,46 +56,32 @@ describe('GenerateNarrativeAnalysisUseCase', () => {
     temporality: 'Passé simple',
     chapterStructure: 'Linéaire',
     narrativeVoice: ['Point 1', 'Point 2'],
-    summary: 'Résumé de l\'analyse',
+    summary: "Résumé de l'analyse",
   };
+
+  let useCase: GenerateMetadataUseCase<typeof mockAnalysis>;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    useCase = new GenerateNarrativeAnalysisUseCase(
+    mockProjectRepository.loadProject.mockResolvedValue(mockProject);
+    mockLLMProvider.generateNarrativeAnalysis.mockResolvedValue(mockAnalysis);
+    mockMetadataRepository.findByProjectAndType.mockResolvedValue(null);
+    mockMetadataRepository.create.mockImplementation((_, m: unknown) => Promise.resolve(m));
+    useCase = new GenerateMetadataUseCase(
       mockMetadataRepository,
       mockProjectRepository,
       mockLLMProvider,
-      mockIdGenerator
+      mockIdGenerator,
+      narrativeAnalysisConfig
     );
   });
 
-  it('should generate narrative analysis and create new metadata', async () => {
-    mockProjectRepository.loadProject.mockResolvedValue(mockProject);
-    mockLLMProvider.generateNarrativeAnalysis.mockResolvedValue(mockAnalysis);
-    mockMetadataRepository.findByProjectAndType.mockResolvedValue(null);
-    mockMetadataRepository.create.mockImplementation((_, m) => Promise.resolve(m));
+  it('creates new metadata and stores structuredData on the create path', async () => {
+    const result = await useCase.execute({ ownerId: 'user-1', projectId: 'project-1' });
 
-    const result = await useCase.execute({
-      ownerId: 'user-1',
-      projectId: 'project-1',
-    });
-
-    expect(result.analysis).toEqual(mockAnalysis);
     expect(result.wasUpdated).toBe(false);
     expect(result.metadata.isGenerated()).toBe(true);
     expect(mockMetadataRepository.create).toHaveBeenCalled();
-    expect(mockLLMProvider.generateNarrativeAnalysis).toHaveBeenCalledWith(
-      expect.stringContaining('# Chapter 1')
-    );
-  });
-
-  it('should store structuredData on create path', async () => {
-    mockProjectRepository.loadProject.mockResolvedValue(mockProject);
-    mockLLMProvider.generateNarrativeAnalysis.mockResolvedValue(mockAnalysis);
-    mockMetadataRepository.findByProjectAndType.mockResolvedValue(null);
-    mockMetadataRepository.create.mockImplementation((_, m) => Promise.resolve(m));
-
-    const result = await useCase.execute({ ownerId: 'user-1', projectId: 'project-1' });
 
     const raw = result.metadata.getStructuredData();
     expect(raw).not.toBeNull();
@@ -116,7 +90,7 @@ describe('GenerateNarrativeAnalysisUseCase', () => {
     expect(parsed.narrativeVoice).toEqual(mockAnalysis.narrativeVoice);
   });
 
-  it('should store structuredData on update path', async () => {
+  it('stores structuredData on the update path', async () => {
     const existingMetadata = {
       getId: () => 'existing-id',
       updateContent: vi.fn(),
@@ -125,9 +99,6 @@ describe('GenerateNarrativeAnalysisUseCase', () => {
       isGenerated: () => true,
       needsRegeneration: vi.fn().mockReturnValue(true),
     };
-
-    mockProjectRepository.loadProject.mockResolvedValue(mockProject);
-    mockLLMProvider.generateNarrativeAnalysis.mockResolvedValue(mockAnalysis);
     mockMetadataRepository.findByProjectAndType.mockResolvedValue(existingMetadata);
     mockMetadataRepository.update.mockResolvedValue(existingMetadata);
 
@@ -138,135 +109,30 @@ describe('GenerateNarrativeAnalysisUseCase', () => {
     );
   });
 
-  it('should update existing metadata when regenerating', async () => {
-    const existingMetadata = {
-      getId: () => 'existing-id',
-      updateContent: vi.fn(),
-      markAsGenerated: vi.fn(),
-      updateStructuredData: vi.fn(),
-      isGenerated: () => true,
-      needsRegeneration: vi.fn().mockReturnValue(true),
-    };
-
-    mockProjectRepository.loadProject.mockResolvedValue(mockProject);
-    mockLLMProvider.generateNarrativeAnalysis.mockResolvedValue(mockAnalysis);
-    mockMetadataRepository.findByProjectAndType.mockResolvedValue(existingMetadata);
-    mockMetadataRepository.update.mockResolvedValue(existingMetadata);
-
-    const result = await useCase.execute({
-      ownerId: 'user-1',
-      projectId: 'project-1',
-    });
-
-    expect(result.wasUpdated).toBe(true);
-    expect(existingMetadata.updateContent).toHaveBeenCalled();
-    expect(existingMetadata.markAsGenerated).toHaveBeenCalled();
-    expect(mockMetadataRepository.update).toHaveBeenCalled();
-  });
-
-  it('should throw error if project not found', async () => {
-    mockProjectRepository.loadProject.mockResolvedValue(null);
-
-    await expect(useCase.execute({
-      ownerId: 'user-1',
-      projectId: 'project-1',
-    })).rejects.toThrow('Project not found');
-  });
-
-  it('should throw error if project has no chapters', async () => {
-    mockProjectRepository.loadProject.mockResolvedValue({
-      ...mockProject,
-      getChapters: () => [],
-    });
-
-    await expect(useCase.execute({
-      ownerId: 'user-1',
-      projectId: 'project-1',
-    })).rejects.toThrow('no chapters');
-  });
-
-  it('should throw error if chapters have no content', async () => {
-    const emptyChapter = {
-      getTitle: () => 'Empty',
-      getContent: () => JSON.stringify({ type: 'doc', content: [] }),
-    };
-
-    mockProjectRepository.loadProject.mockResolvedValue({
-      ...mockProject,
-      getChapters: () => [emptyChapter],
-    });
-
-    await expect(useCase.execute({
-      ownerId: 'user-1',
-      projectId: 'project-1',
-    })).rejects.toThrow('no content');
-  });
-
-  it('should throw error for empty owner ID', async () => {
-    await expect(useCase.execute({
-      ownerId: '',
-      projectId: 'project-1',
-    })).rejects.toThrow('Owner ID is required');
-  });
-
-  it('should throw error for empty project ID', async () => {
-    await expect(useCase.execute({
-      ownerId: 'user-1',
-      projectId: '',
-    })).rejects.toThrow('Project ID is required');
-  });
-
-  it('should format analysis as TipTap JSON correctly', async () => {
-    mockProjectRepository.loadProject.mockResolvedValue(mockProject);
-    mockLLMProvider.generateNarrativeAnalysis.mockResolvedValue(mockAnalysis);
-    mockMetadataRepository.findByProjectAndType.mockResolvedValue(null);
-    mockMetadataRepository.create.mockImplementation((_, m) => Promise.resolve(m));
-
-    const result = await useCase.execute({
-      ownerId: 'user-1',
-      projectId: 'project-1',
-    });
+  it('formats analysis as TipTap JSON with headings', async () => {
+    const result = await useCase.execute({ ownerId: 'user-1', projectId: 'project-1' });
 
     const content = JSON.parse(result.metadata.getContent());
     expect(content.type).toBe('doc');
-    expect(content.content).toBeInstanceOf(Array);
-
-    // Check for headings
-    const headings = content.content.filter((node: {type: string}) => node.type === 'heading');
+    const headings = content.content.filter((node: { type: string }) => node.type === 'heading');
     expect(headings.length).toBeGreaterThan(0);
   });
 
-  it('should extract text from multiple chapters', async () => {
-    const chapter1 = {
-      getTitle: () => 'Chapter 1',
-      getContent: () => JSON.stringify({
-        type: 'doc',
-        content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Content 1' }] }],
-      }),
-    };
-
+  it('passes the full text of multiple chapters to the LLM', async () => {
     const chapter2 = {
       getTitle: () => 'Chapter 2',
-      getContent: () => JSON.stringify({
-        type: 'doc',
-        content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Content 2' }] }],
-      }),
+      getContent: () =>
+        JSON.stringify({
+          type: 'doc',
+          content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Content 2' }] }],
+        }),
     };
-
-    const multiChapterProject = {
+    mockProjectRepository.loadProject.mockResolvedValue({
       id: 'project-1',
-      getChapters: () => [chapter1, chapter2],
-    };
-
-    mockProjectRepository.loadProject.mockResolvedValue(multiChapterProject);
-    mockLLMProvider.generateNarrativeAnalysis.mockResolvedValue(mockAnalysis);
-    mockMetadataRepository.findByProjectAndType.mockResolvedValue(null);
-    mockMetadataRepository.create.mockImplementation((_, m) => Promise.resolve(m));
-
-    await useCase.execute({
-      ownerId: 'user-1',
-      projectId: 'project-1',
+      getChapters: () => [mockChapter, chapter2],
     });
+
+    await useCase.execute({ ownerId: 'user-1', projectId: 'project-1' });
 
     expect(mockLLMProvider.generateNarrativeAnalysis).toHaveBeenCalledWith(
       expect.stringContaining('# Chapter 1')
