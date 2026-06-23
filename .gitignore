@@ -1,3 +1,7 @@
+# Brag video build artifacts
+brag-output/
+brag-output-*/
+
 # JDM lexical data cache (validate-jdm-coverage.mjs)
 .jdm-cache/
 
