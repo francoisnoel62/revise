@@ -2,7 +2,7 @@
 // ABOUTME: Safe by design — a failed fetch deletes nothing (errors are reported instead).
 
 import { ModelPricingRepository } from '@/domain/interfaces/ModelPricingRepository';
-import { OpenRouterPricingClient } from '@/infrastructure/pricing/OpenRouterPricingClient';
+import { PricingClient } from '@/domain/interfaces/PricingClient';
 
 export interface PrunePricingReport {
   /** "provider/prefix" keys that were deleted. */
@@ -14,7 +14,7 @@ export interface PrunePricingReport {
 
 export class PruneObsoletePricingUseCase {
   constructor(
-    private readonly pricingClient: OpenRouterPricingClient,
+    private readonly pricingClient: PricingClient,
     private readonly pricingRepository: ModelPricingRepository
   ) {}
 

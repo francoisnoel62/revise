@@ -2,12 +2,11 @@
 // ABOUTME: Covers factory creation, retention/expiry computation, and reconstruction
 
 import { describe, it, expect } from 'vitest';
-import { ObjectId } from 'mongodb';
 import { AIExchange } from '../AIExchange';
 
 function build(retentionDays = 30) {
   return AIExchange.create({
-    id: new ObjectId().toHexString(),
+    id: 'aabbccdd11223344556677ee',
     userId: 'user-1',
     projectId: 'project-1',
     usageRecordId: 'usage-1',

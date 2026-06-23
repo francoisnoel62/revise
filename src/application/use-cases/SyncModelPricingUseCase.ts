@@ -3,7 +3,7 @@
 
 import { ModelPricingEntry, ModelPricingRepository } from '@/domain/interfaces/ModelPricingRepository';
 import { EmailService, PricingSyncReport } from '@/domain/interfaces/EmailService';
-import { OpenRouterPricingClient } from '@/infrastructure/pricing/OpenRouterPricingClient';
+import { PricingClient } from '@/domain/interfaces/PricingClient';
 
 /** Price swings beyond this ratio are quarantined for manual review instead of applied automatically. */
 const MAX_VARIATION_RATIO = 0.5;
@@ -28,7 +28,7 @@ function exceedsThreshold(prev: PriceFields, current: PriceFields): boolean {
 
 export class SyncModelPricingUseCase {
   constructor(
-    private readonly pricingClient: OpenRouterPricingClient,
+    private readonly pricingClient: PricingClient,
     private readonly pricingRepository: ModelPricingRepository,
     private readonly emailService: EmailService
   ) {}
