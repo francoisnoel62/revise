@@ -99,43 +99,12 @@ describe('AnalysisLLMClient', () => {
       client = new OpenAIAnalysisLLMClient('test-key', 'gpt-4o');
     });
 
-    it('should call OpenAI API for spelling analysis', async () => {
-      const mockResponse = {
-        issues: [
-          {
-            originalText: 'teh',
-            suggestion: 'the',
-            explanation: 'Common typo',
-            position: { start: 0, end: 3 },
-            context: 'teh quick fox',
-            severity: 'error',
-          },
-        ],
-      };
-
-      mockOpenAICreate.mockResolvedValue({
-        choices: [{ message: { content: JSON.stringify(mockResponse) } }],
-      });
-
-      const result = await client.analyzeSpelling('teh quick fox', { language: 'en' });
-
-      expect(result.issues).toHaveLength(1);
-      expect(result.issues[0].originalText).toBe('teh');
-      expect(mockOpenAICreate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          model: 'gpt-4o',
-          response_format: { type: 'json_object' },
-          temperature: 0.3,
-        })
-      );
-    });
-
     it('should throw error when no response content', async () => {
       mockOpenAICreate.mockResolvedValue({
         choices: [{ message: { content: null } }],
       });
 
-      await expect(client.analyzeSpelling('test', { language: 'en' })).rejects.toThrow(
+      await expect(client.analyzeGrammar('test', { language: 'en' })).rejects.toThrow(
         'No response from LLM'
       );
     });
@@ -145,7 +114,7 @@ describe('AnalysisLLMClient', () => {
         choices: [{ message: { content: 'not json' } }],
       });
 
-      await expect(client.analyzeSpelling('test', { language: 'en' })).rejects.toThrow(
+      await expect(client.analyzeGrammar('test', { language: 'en' })).rejects.toThrow(
         'Failed to parse LLM response'
       );
     });
@@ -155,7 +124,7 @@ describe('AnalysisLLMClient', () => {
         choices: [{ message: { content: '{"issues": []}' } }],
       });
 
-      await client.analyzeSpelling('Bonjour', { language: 'fr' });
+      await client.analyzeGrammar('Bonjour', { language: 'fr' });
 
       expect(mockOpenAICreate).toHaveBeenCalledWith(
         expect.objectContaining({

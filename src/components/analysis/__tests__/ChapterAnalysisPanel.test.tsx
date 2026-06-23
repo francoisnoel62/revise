@@ -24,7 +24,7 @@ describe('ChapterAnalysisPanel', () => {
   const mockIssues: AnalysisIssueData[] = [
     {
       id: 'issue-1',
-      category: 'spelling',
+      category: 'grammar',
       severity: 'error',
       originalText: 'teh',
       suggestedText: 'the',
@@ -60,8 +60,7 @@ describe('ChapterAnalysisPanel', () => {
     appliedIssues: 1,
     ignoredIssues: 0,
     byCategory: {
-      spelling: 1,
-      grammar: 1,
+      grammar: 2,
       punctuation: 0,
       repetition: 0,
       style: 1,
@@ -119,18 +118,18 @@ describe('ChapterAnalysisPanel', () => {
     render(<ChapterAnalysisPanel {...defaultProps} />);
 
     expect(screen.getByRole('tab', { name: /tous/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /orthographe/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /grammaire/i })).toBeInTheDocument();
   });
 
   it('filters issues when category tab is clicked', async () => {
     const user = userEvent.setup();
     render(<ChapterAnalysisPanel {...defaultProps} />);
 
-    const spellingTab = screen.getByRole('tab', { name: /orthographe/i });
-    await user.click(spellingTab);
+    const styleTab = screen.getByRole('tab', { name: /style/i });
+    await user.click(styleTab);
 
-    // Should only show spelling issue
-    expect(screen.getByText('teh')).toBeInTheDocument();
+    // Should only show style issue
+    expect(screen.getByText('very very')).toBeInTheDocument();
     expect(screen.queryByText('he go')).not.toBeInTheDocument();
   });
 
@@ -186,7 +185,6 @@ describe('ChapterAnalysisPanel', () => {
       appliedIssues: 0,
       ignoredIssues: 0,
       byCategory: {
-        spelling: 0,
         grammar: 0,
         punctuation: 0,
         repetition: 0,

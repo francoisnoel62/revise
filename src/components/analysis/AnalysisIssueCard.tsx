@@ -3,7 +3,7 @@
 
 'use client';
 
-import { Check, X, Loader2, SpellCheck, Languages, Type, Repeat, Palette } from 'lucide-react';
+import { Check, X, Loader2, Languages, Type, Repeat, Palette } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,8 +29,7 @@ interface AnalysisIssueCardProps {
   isApplying?: boolean;
 }
 
-const categoryIcons: Record<AnalysisCategory, typeof SpellCheck> = {
-  spelling: SpellCheck,
+const categoryIcons: Record<AnalysisCategory, typeof Languages> = {
   grammar: Languages,
   punctuation: Type,
   repetition: Repeat,

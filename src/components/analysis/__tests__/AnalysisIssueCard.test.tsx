@@ -10,7 +10,7 @@ import { AnalysisSeverity } from '@/domain/value-objects/AnalysisSeverity';
 describe('AnalysisIssueCard', () => {
   const defaultIssue = {
     id: 'issue-1',
-    category: 'spelling' as AnalysisCategory,
+    category: 'grammar' as AnalysisCategory,
     severity: 'error' as AnalysisSeverity,
     originalText: 'teh',
     suggestedText: 'the',

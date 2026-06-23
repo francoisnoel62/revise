@@ -4,7 +4,6 @@
 'use client';
 
 import {
-  SpellCheck,
   Languages,
   Type,
   Repeat,
@@ -34,9 +33,8 @@ interface AnalysisSummaryCardProps {
 
 const categoryConfig: Record<
   AnalysisCategory,
-  { label: string; icon: typeof SpellCheck }
+  { label: string; icon: typeof Languages }
 > = {
-  spelling: { label: 'Orthographe', icon: SpellCheck },
   grammar: { label: 'Grammaire', icon: Languages },
   punctuation: { label: 'Ponctuation', icon: Type },
   repetition: { label: 'Répétitions', icon: Repeat },

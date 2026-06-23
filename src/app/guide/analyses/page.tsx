@@ -6,7 +6,7 @@ import Link from 'next/link';
 export const metadata = {
   title: 'Analyser et vérifier son texte avec Revise',
   description:
-    "Sept analyses de manuscrit (narrative, personnages, intrigue, ADN stylistique, worldbuilding, résumés, synthèse) et la vérification de chapitre : orthographe, grammaire, ponctuation, style, répétitions.",
+    "Sept analyses de manuscrit (narrative, personnages, intrigue, ADN stylistique, worldbuilding, résumés, synthèse) et la vérification de chapitre : grammaire, ponctuation, style, répétitions.",
 };
 
 const analyses: [string, string][] = [
@@ -20,11 +20,10 @@ const analyses: [string, string][] = [
 ];
 
 const checks: [string, string][] = [
-  ['Orthographe', 'Fautes d’orthographe, avec suggestions de correction'],
-  ['Grammaire', 'Erreurs grammaticales et accords'],
-  ['Ponctuation', 'Erreurs de ponctuation et typographie'],
-  ['Style', "Suggestions d'amélioration stylistique"],
-  ['Répétitions', 'Mots et phrases revenant trop souvent'],
+  [‘Grammaire’, ‘Erreurs grammaticales et accords’],
+  [‘Ponctuation’, ‘Erreurs de ponctuation et typographie’],
+  [‘Style’, "Suggestions d’amélioration stylistique"],
+  [‘Répétitions’, ‘Mots et phrases revenant trop souvent’],
 ];
 
 export default function GuideAnalysesPage() {

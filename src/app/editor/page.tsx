@@ -515,7 +515,7 @@ function EditorContent() {
         pendingIssues: 0,
         appliedIssues: 0,
         ignoredIssues: 0,
-        byCategory: { spelling: 0, grammar: 0, punctuation: 0, repetition: 0, style: 0 },
+        byCategory: { grammar: 0, punctuation: 0, repetition: 0, style: 0 },
       };
 
   if (isLoading) {

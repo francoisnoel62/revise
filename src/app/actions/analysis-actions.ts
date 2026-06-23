@@ -1,5 +1,5 @@
 // ABOUTME: Server Actions for chapter analysis/verification feature.
-// ABOUTME: Provides AI-powered spelling, grammar, punctuation, style, and repetition analysis.
+// ABOUTME: Provides AI-powered grammar, punctuation, style, and repetition analysis.
 
 'use server';
 
@@ -15,7 +15,6 @@ import {
 import { AnalyzeChapterUseCase } from '@/application/use-cases/AnalyzeChapterUseCase';
 import { ApplyCorrectionUseCase, CorrectionIssue } from '@/application/use-cases/ApplyCorrectionUseCase';
 import { ApplyBatchCorrectionsUseCase, BatchCorrectionIssue } from '@/application/use-cases/ApplyBatchCorrectionsUseCase';
-import { SpellingAnalysisStrategy } from '@/application/strategies/SpellingAnalysisStrategy';
 import { GrammarAnalysisStrategy } from '@/application/strategies/GrammarAnalysisStrategy';
 import { PunctuationAnalysisStrategy } from '@/application/strategies/PunctuationAnalysisStrategy';
 import { StyleAnalysisStrategy } from '@/application/strategies/StyleAnalysisStrategy';
@@ -158,9 +157,6 @@ export async function analyzeChapter(
     const strategiesMap = new Map<AnalysisCategory, AnalysisStrategy>();
     for (const category of categories) {
       switch (category) {
-        case 'spelling':
-          strategiesMap.set(category, new SpellingAnalysisStrategy(analysisClient));
-          break;
         case 'grammar':
           strategiesMap.set(category, new GrammarAnalysisStrategy(analysisClient));
           break;
@@ -197,7 +193,6 @@ export async function analyzeChapter(
 
     // Compute stats
     const byCategory: Record<AnalysisCategory, number> = {
-      spelling: 0,
       grammar: 0,
       punctuation: 0,
       repetition: 0,

@@ -1,8 +1,7 @@
 // ABOUTME: Value object defining analysis categories for chapter verification
-// ABOUTME: Provides type safety, validation, labels and ordering for spelling, grammar, punctuation, repetition, and style analysis
+// ABOUTME: Provides type safety, validation, labels and ordering for grammar, punctuation, repetition, and style analysis
 
 export const ANALYSIS_CATEGORIES = [
-  'spelling',
   'grammar',
   'punctuation',
   'repetition',
@@ -16,7 +15,6 @@ export function isValidAnalysisCategory(value: string): value is AnalysisCategor
 }
 
 export const ANALYSIS_CATEGORY_LABELS: Record<AnalysisCategory, string> = {
-  spelling: 'Orthographe',
   grammar: 'Grammaire',
   punctuation: 'Ponctuation',
   repetition: 'Répétitions',
@@ -24,7 +22,6 @@ export const ANALYSIS_CATEGORY_LABELS: Record<AnalysisCategory, string> = {
 };
 
 export const ANALYSIS_CATEGORY_ICONS: Record<AnalysisCategory, string> = {
-  spelling: 'spell-check',
   grammar: 'book-text',
   punctuation: 'quote',
   repetition: 'copy',
@@ -32,9 +29,8 @@ export const ANALYSIS_CATEGORY_ICONS: Record<AnalysisCategory, string> = {
 };
 
 export const ANALYSIS_CATEGORY_ORDER: Record<AnalysisCategory, number> = {
-  spelling: 0,
-  grammar: 1,
-  punctuation: 2,
-  repetition: 3,
-  style: 4,
+  grammar: 0,
+  punctuation: 1,
+  repetition: 2,
+  style: 3,
 };

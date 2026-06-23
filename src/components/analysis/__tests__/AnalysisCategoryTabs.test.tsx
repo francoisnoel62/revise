@@ -10,8 +10,7 @@ import { AnalysisCategory } from '@/domain/value-objects/AnalysisCategory';
 describe('AnalysisCategoryTabs', () => {
   const mockOnChange = vi.fn();
   const defaultCounts: Record<AnalysisCategory | 'all', number> = {
-    all: 15,
-    spelling: 5,
+    all: 10,
     grammar: 4,
     punctuation: 2,
     repetition: 2,
@@ -32,7 +31,6 @@ describe('AnalysisCategoryTabs', () => {
     );
 
     expect(screen.getByRole('tab', { name: /tous/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /orthographe/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /grammaire/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /ponctuation/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /répétitions/i })).toBeInTheDocument();
@@ -48,22 +46,21 @@ describe('AnalysisCategoryTabs', () => {
       />
     );
 
-    expect(screen.getByText('15')).toBeInTheDocument();
-    expect(screen.getByText('5')).toBeInTheDocument();
+    expect(screen.getByText('10')).toBeInTheDocument();
     expect(screen.getByText('4')).toBeInTheDocument();
   });
 
   it('marks the selected tab as active', () => {
     render(
       <AnalysisCategoryTabs
-        selectedCategory="spelling"
+        selectedCategory="grammar"
         counts={defaultCounts}
         onChange={mockOnChange}
       />
     );
 
-    const spellingTab = screen.getByRole('tab', { name: /orthographe/i });
-    expect(spellingTab).toHaveAttribute('data-state', 'active');
+    const grammarTab = screen.getByRole('tab', { name: /grammaire/i });
+    expect(grammarTab).toHaveAttribute('data-state', 'active');
   });
 
   it('calls onChange when a tab is clicked', async () => {
@@ -111,9 +108,9 @@ describe('AnalysisCategoryTabs', () => {
       />
     );
 
-    // Should have at least one SVG icon per visible tab
+    // Should have at least one SVG icon per visible tab (5 tabs: all, grammar, punctuation, repetition, style)
     const svgElements = container.querySelectorAll('svg');
-    expect(svgElements.length).toBeGreaterThanOrEqual(6);
+    expect(svgElements.length).toBeGreaterThanOrEqual(5);
   });
 
   it('disables tabs when disabled prop is true', () => {
@@ -126,7 +123,7 @@ describe('AnalysisCategoryTabs', () => {
       />
     );
 
-    const spellingTab = screen.getByRole('tab', { name: /orthographe/i });
-    expect(spellingTab).toBeDisabled();
+    const grammarTab = screen.getByRole('tab', { name: /grammaire/i });
+    expect(grammarTab).toBeDisabled();
   });
 });

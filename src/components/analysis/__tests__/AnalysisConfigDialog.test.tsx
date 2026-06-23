@@ -30,7 +30,6 @@ describe('AnalysisConfigDialog', () => {
   it('renders all category checkboxes', () => {
     render(<AnalysisConfigDialog {...defaultProps} />);
 
-    expect(screen.getByRole('checkbox', { name: /orthographe/i })).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /grammaire/i })).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /ponctuation/i })).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /répétitions/i })).toBeInTheDocument();
@@ -72,7 +71,6 @@ describe('AnalysisConfigDialog', () => {
     render(<AnalysisConfigDialog {...defaultProps} />);
 
     // Uncheck all checkboxes one by one
-    await user.click(screen.getByRole('checkbox', { name: /orthographe/i }));
     await user.click(screen.getByRole('checkbox', { name: /grammaire/i }));
     await user.click(screen.getByRole('checkbox', { name: /ponctuation/i }));
     await user.click(screen.getByRole('checkbox', { name: /répétitions/i }));

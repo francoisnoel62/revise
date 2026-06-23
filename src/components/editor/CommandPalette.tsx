@@ -177,12 +177,12 @@ export function CommandPalette({
     ...(onAnalyze ? [{
       id: 'analyze',
       label: 'Vérifier le chapitre',
-      description: 'Analyser orthographe, grammaire, style et répétitions',
+      description: 'Analyser grammaire, ponctuation, style et répétitions',
       icon: <CheckCircle className="h-4 w-4" />,
       action: () => executeCommand(onAnalyze),
       available: hasValidProvider && !analysisLoading,
       category: 'settings' as const,
-      keywords: ['analyze', 'analyser', 'vérifier', 'check', 'orthographe', 'grammaire', 'style'],
+      keywords: ['analyze', 'analyser', 'vérifier', 'check', 'grammaire', 'style'],
     }] : []),
     {
       id: 'toggle-autocomplete',

@@ -8,12 +8,11 @@ import { AnalysisCategory } from '@/domain/value-objects/AnalysisCategory';
 
 describe('AnalysisSummaryCard', () => {
   const defaultStats = {
-    totalIssues: 25,
-    pendingIssues: 17,
+    totalIssues: 17,
+    pendingIssues: 9,
     appliedIssues: 5,
     ignoredIssues: 3,
     byCategory: {
-      spelling: 8,
       grammar: 6,
       punctuation: 4,
       repetition: 4,
@@ -24,14 +23,14 @@ describe('AnalysisSummaryCard', () => {
   it('renders total issues count', () => {
     render(<AnalysisSummaryCard stats={defaultStats} />);
 
-    expect(screen.getByText('25')).toBeInTheDocument();
+    expect(screen.getByText('17')).toBeInTheDocument();
     expect(screen.getByText(/problèmes détectés/i)).toBeInTheDocument();
   });
 
   it('renders pending issues count', () => {
     render(<AnalysisSummaryCard stats={defaultStats} />);
 
-    expect(screen.getByText('17')).toBeInTheDocument();
+    expect(screen.getByText('9')).toBeInTheDocument();
     expect(screen.getByText(/à traiter/i)).toBeInTheDocument();
   });
 
@@ -54,7 +53,6 @@ describe('AnalysisSummaryCard', () => {
   it('renders category breakdown', () => {
     render(<AnalysisSummaryCard stats={defaultStats} />);
 
-    expect(screen.getByText(/orthographe/i)).toBeInTheDocument();
     expect(screen.getByText(/grammaire/i)).toBeInTheDocument();
     expect(screen.getByText(/ponctuation/i)).toBeInTheDocument();
     expect(screen.getByText(/répétitions/i)).toBeInTheDocument();
@@ -118,7 +116,6 @@ describe('AnalysisSummaryCard', () => {
       appliedIssues: 0,
       ignoredIssues: 0,
       byCategory: {
-        spelling: 0,
         grammar: 0,
         punctuation: 0,
         repetition: 0,
