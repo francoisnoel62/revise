@@ -23,6 +23,7 @@ export interface ProjectSettingsUpdates {
   relatedWorks?: RelatedWork[];
   autocompletePreferences?: Partial<AutocompletePreferences>;
   canonExtractionPreferences?: Partial<CanonExtractionPreferences>;
+  customDictionary?: string[];
 }
 
 export interface UpdateProjectSettingsInput {
@@ -94,6 +95,10 @@ export class UpdateProjectSettingsUseCase {
 
     if ('canonExtractionPreferences' in updates) {
       updated = updated.updateCanonExtractionPreferences(updates.canonExtractionPreferences!);
+    }
+
+    if ('customDictionary' in updates) {
+      updated = updated.updateCustomDictionary(updates.customDictionary!);
     }
 
     return this.repository.update(input.userId, updated);

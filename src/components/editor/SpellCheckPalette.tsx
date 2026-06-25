@@ -9,6 +9,8 @@ import { spellCheckPluginKey, type SpellError } from './SpellCheckExtension';
 
 interface SpellCheckPaletteProps {
   editor: Editor | null;
+  onIgnoreWord?: (word: string) => void;
+  onAddToDictionary?: (word: string) => Promise<void>;
 }
 
 interface PaletteState {
@@ -17,7 +19,7 @@ interface PaletteState {
   error: SpellError | null;
 }
 
-export function SpellCheckPalette({ editor }: SpellCheckPaletteProps) {
+export function SpellCheckPalette({ editor, onIgnoreWord, onAddToDictionary }: SpellCheckPaletteProps) {
   const [state, setState] = useState<PaletteState>({
     visible: false,
     position: { top: 0, left: 0 },
@@ -97,8 +99,9 @@ export function SpellCheckPalette({ editor }: SpellCheckPaletteProps) {
   );
 
   const ignoreCurrent = useCallback(() => {
+    if (state.error) onIgnoreWord?.(state.error.word);
     setState((s) => ({ ...s, visible: false }));
-  }, []);
+  }, [state.error, onIgnoreWord]);
 
   if (!state.visible || !state.error) return null;
 
@@ -132,13 +135,24 @@ export function SpellCheckPalette({ editor }: SpellCheckPaletteProps) {
         </ul>
       )}
 
-      <div className="border-t mt-2 pt-1.5">
+      <div className="border-t mt-2 pt-1.5 space-y-0.5">
         <button
           onClick={ignoreCurrent}
           className="w-full text-left rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
         >
           Ignorer
         </button>
+        {onAddToDictionary && (
+          <button
+            onClick={() => {
+              if (state.error) onAddToDictionary(state.error.word);
+              setState((s) => ({ ...s, visible: false }));
+            }}
+            className="w-full text-left rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+          >
+            Ajouter au dictionnaire
+          </button>
+        )}
       </div>
     </div>
   );

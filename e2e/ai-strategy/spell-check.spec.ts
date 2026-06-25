@@ -128,4 +128,64 @@ test.describe('Spell-check in the editor', () => {
 
     await expect(page.getByRole('button', { name: 'Ignorer' })).not.toBeVisible();
   });
+
+  test('uppercase-initial words (proper nouns / place names) are not underlined', async ({ page }) => {
+    const editor = await openSpellCheckEditor(page);
+
+    // Fantasy / sci-fi proper nouns not in any dictionary
+    await typeAtEnd(page, editor, ' Arrakis Khaleesi Gandalf');
+
+    // Wait long enough for debounce + server action
+    await page.waitForTimeout(4_000);
+
+    await expect(page.locator('.spell-error[data-spell-word="Arrakis"]')).not.toBeVisible();
+    await expect(page.locator('.spell-error[data-spell-word="Khaleesi"]')).not.toBeVisible();
+    await expect(page.locator('.spell-error[data-spell-word="Gandalf"]')).not.toBeVisible();
+  });
+
+  test('clicking Ignorer removes the underline and it does not reappear on re-check', async ({ page }) => {
+    const editor = await openSpellCheckEditor(page);
+    await typeAtEnd(page, editor, ' maisson');
+
+    const spellerror = page.locator('.spell-error[data-spell-word="maisson"]');
+    await expect(spellerror).toBeVisible({ timeout: 15_000 });
+    await spellerror.click();
+
+    await page.getByRole('button', { name: 'Ignorer' }).click();
+
+    // Underline is gone
+    await expect(spellerror).not.toBeVisible();
+
+    // Type something to trigger a new spell-check run
+    await typeAtEnd(page, editor, ' monde');
+    await page.waitForTimeout(4_000);
+
+    // The previously ignored word must stay undecorated
+    await expect(page.locator('.spell-error[data-spell-word="maisson"]')).not.toBeVisible();
+  });
+
+  test('the palette shows an "Ajouter au dictionnaire" button', async ({ page }) => {
+    const editor = await openSpellCheckEditor(page);
+    await typeAtEnd(page, editor, ' livrre');
+
+    const spellerror = page.locator('.spell-error[data-spell-word="livrre"]');
+    await expect(spellerror).toBeVisible({ timeout: 15_000 });
+    await spellerror.click();
+
+    await expect(page.getByRole('button', { name: 'Ajouter au dictionnaire' })).toBeVisible();
+  });
+
+  test('adding a word to the dictionary removes its underline immediately', async ({ page }) => {
+    const editor = await openSpellCheckEditor(page);
+    await typeAtEnd(page, editor, ' spicce');
+
+    const spellerror = page.locator('.spell-error[data-spell-word="spicce"]');
+    await expect(spellerror).toBeVisible({ timeout: 15_000 });
+    await spellerror.click();
+
+    await page.getByRole('button', { name: 'Ajouter au dictionnaire' }).click();
+
+    // Underline is gone immediately
+    await expect(spellerror).not.toBeVisible();
+  });
 });

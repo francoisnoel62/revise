@@ -44,6 +44,7 @@ export interface ProjectSettingsDocument {
   autocompletePartialAcceptance?: boolean;
   autocompleteSmartPrefetch?: boolean;
   canonExtractionMode?: CanonExtractionMode;
+  customDictionary?: string[];
 }
 
 export function serializeProjectSettings(
@@ -81,6 +82,7 @@ export function serializeProjectSettings(
     autocompletePartialAcceptance: props.autocompletePartialAcceptance,
     autocompleteSmartPrefetch: props.autocompleteSmartPrefetch,
     canonExtractionMode: props.canonExtractionMode,
+    customDictionary: props.customDictionary ?? [],
   };
 }
 
@@ -120,6 +122,7 @@ export function deserializeProjectSettings(doc: ProjectSettingsDocument): Projec
     autocompletePartialAcceptance: doc.autocompletePartialAcceptance,
     autocompleteSmartPrefetch: doc.autocompleteSmartPrefetch,
     canonExtractionMode: doc.canonExtractionMode,
+    customDictionary: doc.customDictionary ?? [],
   };
 
   return ProjectSettings.reconstruct(props);

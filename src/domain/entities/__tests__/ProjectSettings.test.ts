@@ -245,7 +245,7 @@ describe('ProjectSettings', () => {
       const settings = ProjectSettings.reconstruct(validProps);
       const props = settings.toProperties();
 
-      expect(props).toEqual(validProps);
+      expect(props).toEqual({ ...validProps, customDictionary: [] });
     });
 
     it('returns a copy of arrays', () => {
@@ -301,6 +301,72 @@ describe('ProjectSettings', () => {
 
       expect(settings.getCreatedAt().getFullYear()).toBe(2024);
       expect(settings.getUpdatedAt().getFullYear()).toBe(2024);
+    });
+  });
+
+  describe('customDictionary', () => {
+    it('defaults to an empty array when not provided', () => {
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'Title');
+      expect(settings.getCustomDictionary()).toEqual([]);
+    });
+
+    it('reconstructs with provided customDictionary', () => {
+      const settings = ProjectSettings.reconstruct({
+        ...validProps,
+        customDictionary: ['Arrakis', 'spicce'],
+      });
+      expect(settings.getCustomDictionary()).toEqual(['Arrakis', 'spicce']);
+    });
+
+    it('getCustomDictionary returns a copy (mutation-safe)', () => {
+      const settings = ProjectSettings.reconstruct({
+        ...validProps,
+        customDictionary: ['Arrakis'],
+      });
+      settings.getCustomDictionary().push('mutated');
+      expect(settings.getCustomDictionary()).toEqual(['Arrakis']);
+    });
+
+    it('addWordToCustomDictionary returns a new instance with the word appended', () => {
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'Title');
+      const updated = settings.addWordToCustomDictionary('Arrakis');
+
+      expect(updated).not.toBe(settings);
+      expect(updated.getCustomDictionary()).toEqual(['Arrakis']);
+      expect(settings.getCustomDictionary()).toEqual([]); // original unchanged
+    });
+
+    it('addWordToCustomDictionary is idempotent when word already present', () => {
+      const settings = ProjectSettings.reconstruct({
+        ...validProps,
+        customDictionary: ['Arrakis'],
+      });
+      const updated = settings.addWordToCustomDictionary('Arrakis');
+      expect(updated).toBe(settings); // same reference — no new instance
+    });
+
+    it('addWordToCustomDictionary throws for an empty word', () => {
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'Title');
+      expect(() => settings.addWordToCustomDictionary('')).toThrow('Word cannot be empty');
+      expect(() => settings.addWordToCustomDictionary('   ')).toThrow('Word cannot be empty');
+    });
+
+    it('toProperties includes customDictionary', () => {
+      const settings = ProjectSettings.reconstruct({
+        ...validProps,
+        customDictionary: ['Arrakis', 'spicce'],
+      });
+      expect(settings.toProperties().customDictionary).toEqual(['Arrakis', 'spicce']);
+    });
+
+    it('updateCustomDictionary replaces the full list and returns a new instance', () => {
+      const settings = ProjectSettings.reconstruct({
+        ...validProps,
+        customDictionary: ['old'],
+      });
+      const updated = settings.updateCustomDictionary(['Arrakis', 'spicce']);
+      expect(updated.getCustomDictionary()).toEqual(['Arrakis', 'spicce']);
+      expect(settings.getCustomDictionary()).toEqual(['old']); // original unchanged
     });
   });
 });

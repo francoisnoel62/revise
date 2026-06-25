@@ -41,6 +41,7 @@ export interface ProjectSettingsProperties {
   autocompletePartialAcceptance?: boolean;
   autocompleteSmartPrefetch?: boolean;
   canonExtractionMode?: CanonExtractionMode;
+  customDictionary?: string[];
 }
 
 export class ProjectSettings {
@@ -68,6 +69,7 @@ export class ProjectSettings {
   private autocompletePartialAcceptance?: boolean;
   private autocompleteSmartPrefetch?: boolean;
   private canonExtractionMode?: CanonExtractionMode;
+  private customDictionary: string[];
 
   private constructor(props: ProjectSettingsProperties) {
     this.validate(props);
@@ -96,6 +98,7 @@ export class ProjectSettings {
     this.autocompletePartialAcceptance = props.autocompletePartialAcceptance;
     this.autocompleteSmartPrefetch = props.autocompleteSmartPrefetch;
     this.canonExtractionMode = props.canonExtractionMode;
+    this.customDictionary = [...(props.customDictionary ?? [])];
   }
 
   private validate(props: ProjectSettingsProperties): void {
@@ -353,6 +356,29 @@ export class ProjectSettings {
     });
   }
 
+  getCustomDictionary(): string[] {
+    return [...this.customDictionary];
+  }
+
+  addWordToCustomDictionary(word: string): ProjectSettings {
+    const trimmed = word.trim();
+    if (!trimmed) throw new Error('Word cannot be empty');
+    if (this.customDictionary.includes(trimmed)) return this;
+    return new ProjectSettings({
+      ...this.toProperties(),
+      customDictionary: [...this.customDictionary, trimmed],
+      updatedAt: new Date(),
+    });
+  }
+
+  updateCustomDictionary(words: string[]): ProjectSettings {
+    return new ProjectSettings({
+      ...this.toProperties(),
+      customDictionary: [...words],
+      updatedAt: new Date(),
+    });
+  }
+
   toProperties(): ProjectSettingsProperties {
     return {
       id: this.id,
@@ -379,6 +405,7 @@ export class ProjectSettings {
       autocompletePartialAcceptance: this.autocompletePartialAcceptance,
       autocompleteSmartPrefetch: this.autocompleteSmartPrefetch,
       canonExtractionMode: this.canonExtractionMode,
+      customDictionary: [...this.customDictionary],
     };
   }
 }

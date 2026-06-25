@@ -232,14 +232,18 @@ export function TextEditor({
     };
   }, []);
 
-  useSpellCheck(editor);
+  const { ignoreWord, addToDictionary } = useSpellCheck(editor, projectId ?? project?.id);
 
   if (!editor) return null;
 
   return (
     <div className="w-full bg-slate-50 relative">
       <AutocompleteDot state={dotState} />
-      <SpellCheckPalette editor={editor} />
+      <SpellCheckPalette
+        editor={editor}
+        onIgnoreWord={ignoreWord}
+        onAddToDictionary={projectId ?? project?.id ? addToDictionary : undefined}
+      />
       {/* Spoken counterpart of the (aria-hidden) dot: tells screen-reader users a
           suggestion is waiting and how to act on it. */}
       <div className="sr-only" role="status" aria-live="polite">

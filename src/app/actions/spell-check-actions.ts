@@ -6,6 +6,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { SpellChecker } from '@/domain/interfaces/SpellChecker';
+import { getAuthenticatedUserId, getProjectSettingsRepo } from './utils';
 
 let spellCheckerInstance: SpellChecker | null = null;
 
@@ -32,23 +33,27 @@ export interface SpellCheckWordResult {
 
 /**
  * Checks a list of unique words against the French dictionary.
- * Words starting with an uppercase letter are checked case-insensitively
- * to avoid flagging proper nouns and sentence-initial words.
+ * Words starting with an uppercase letter are accepted unconditionally
+ * (proper nouns, place names, sentence starts — common in fiction).
+ * Words present in customWords are also accepted.
  */
 export async function checkSpellingAction(
-  words: string[]
+  words: string[],
+  customWords?: string[]
 ): Promise<SpellCheckWordResult[]> {
   if (words.length === 0) return [];
 
   const spell = await getSpellChecker();
+  const customSet = new Set(customWords ?? []);
   const misspelled: SpellCheckWordResult[] = [];
 
   for (const word of words) {
     if (word.length < 2) continue;
 
     const isCorrect =
+      customSet.has(word) ||
+      word[0] !== word[0].toLowerCase() ||
       spell.correct(word) ||
-      // Accept words that are correct when lowercased (proper nouns, sentence starts)
       spell.correct(word.toLowerCase());
 
     if (!isCorrect) {
@@ -60,4 +65,30 @@ export async function checkSpellingAction(
   }
 
   return misspelled;
+}
+
+export async function getCustomDictionaryAction(projectId: string): Promise<string[]> {
+  const authResult = await getAuthenticatedUserId();
+  if ('error' in authResult) return [];
+
+  const repo = await getProjectSettingsRepo();
+  const settings = await repo.findByProjectId(authResult.userId, projectId);
+  return settings?.getCustomDictionary() ?? [];
+}
+
+export async function addWordToCustomDictionaryAction(
+  projectId: string,
+  word: string
+): Promise<void> {
+  const authResult = await getAuthenticatedUserId();
+  if ('error' in authResult) return;
+
+  const repo = await getProjectSettingsRepo();
+  const existing = await repo.findByProjectId(authResult.userId, projectId);
+  if (!existing) return;
+
+  const updated = existing.addWordToCustomDictionary(word);
+  if (updated === existing) return;
+
+  await repo.update(authResult.userId, updated);
 }

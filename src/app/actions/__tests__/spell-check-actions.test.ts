@@ -65,4 +65,21 @@ describe('checkSpellingAction', () => {
     const result = await checkSpellingAction(['chat', 'chien', 'oiseau', 'poisson']);
     expect(result).toEqual([]);
   });
+
+  it('accepts any uppercase-initial word regardless of dictionary (proper nouns / place names)', async () => {
+    // Fictional names not in any French dictionary — must not be flagged
+    const result = await checkSpellingAction(['Arrakis', 'Khaleesi', 'Dûnesombres', 'Gandalf']);
+    expect(result).toEqual([]);
+  });
+
+  it('still flags a lowercase misspelled word even when a custom words list is provided', async () => {
+    const result = await checkSpellingAction(['maisson'], ['spicce']);
+    expect(result).toHaveLength(1);
+    expect(result[0].word).toBe('maisson');
+  });
+
+  it('accepts words present in the customWords list', async () => {
+    const result = await checkSpellingAction(['spicce', 'maisson'], ['spicce', 'maisson']);
+    expect(result).toEqual([]);
+  });
 });
