@@ -2,6 +2,7 @@
 // ABOUTME: Maps provider/model entries to ModelPricingEntry with USD/M token rates.
 
 import { ModelPricingEntry, PricingProvider } from '@/domain/interfaces/ModelPricingRepository';
+import type { PricingClient } from '@/domain/interfaces/PricingClient';
 
 /** EUR/USD exchange rate used to convert USD costs to EUR at query time. Update when rate drifts significantly. */
 export const EUR_USD_RATE = 1.1537;
@@ -48,7 +49,7 @@ function resolvePrefix(modelId: string): string {
   return withoutProvider.toLowerCase().replace(/\./g, '-');
 }
 
-export class OpenRouterPricingClient {
+export class OpenRouterPricingClient implements PricingClient {
   async fetchPricingEntries(): Promise<Omit<ModelPricingEntry, 'id'>[]> {
     const res = await fetch(OPENROUTER_API);
     if (!res.ok) {

@@ -3,7 +3,8 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { AIContextBuilder } from '@/application/services/AIContextBuilder';
-import { GenerateNarrativeAnalysisUseCase } from '@/application/use-cases/GenerateNarrativeAnalysisUseCase';
+import { GenerateMetadataUseCase } from '@/application/use-cases/GenerateMetadataUseCase';
+import { narrativeAnalysisConfig } from '@/application/use-cases/metadata-type-configs';
 import { CheckMetadataFreshnessUseCase } from '@/application/use-cases/CheckMetadataFreshnessUseCase';
 import { ProjectMetadata } from '@/domain/entities/ProjectMetadata';
 import { ResearchDocument } from '@/domain/entities/ResearchDocument';
@@ -105,11 +106,12 @@ function buildFreshnessHarness() {
   };
   const idGen = { generate: vi.fn().mockReturnValue('m1') };
 
-  const generate = new GenerateNarrativeAnalysisUseCase(
+  const generate = new GenerateMetadataUseCase(
     metadataRepo as never,
     projectRepo as never,
     llm as never,
-    idGen as never
+    idGen as never,
+    narrativeAnalysisConfig
   );
   const check = new CheckMetadataFreshnessUseCase(
     metadataRepo as never,

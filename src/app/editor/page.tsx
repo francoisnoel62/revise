@@ -126,7 +126,6 @@ function EditorContent() {
     });
 
   const addNotification = useNotificationStore((s) => s.addNotification);
-  const hasNotificationOfType = useNotificationStore((s) => s.hasNotificationOfType);
 
   // Forward session-end extraction results to the notification center
   useEffect(() => {
@@ -569,6 +568,7 @@ function EditorContent() {
             <SaveStatus compact />
           </div>
           <div className="flex items-center shrink-0">
+            <NotificationBell />
             <ExportDialog />
             <UserMenu />
           </div>
@@ -594,15 +594,11 @@ function EditorContent() {
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
+            <NotificationBell />
             <PublishDialog projectId={project.id} projectTitle={project.title} chapters={project.chapters} />
             <ExportDialog />
             <UserMenu />
           </div>
-        </div>
-
-        {/* Single NotificationBell instance — absolute within header, independent of responsive layout */}
-        <div className="absolute inset-y-0 right-20 sm:right-32 lg:right-36 flex items-center z-10">
-          <NotificationBell />
         </div>
 
         {/* Desktop header (≥1024px): full 3-column grid */}
@@ -630,6 +626,7 @@ function EditorContent() {
           </div>
           {/* Right: controls */}
           <div className="flex items-center justify-end gap-2">
+            <NotificationBell />
             <PublishDialog projectId={project.id} projectTitle={project.title} chapters={project.chapters} />
             <ExportDialog />
             <UserMenu />

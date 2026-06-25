@@ -154,6 +154,76 @@ function normalizeForWinAnsi(text: string): string {
   return result;
 }
 
+/**
+ * Wrap a single-style string into lines that each fit within maxWidth.
+ * Greedy word wrapping: a word wider than maxWidth keeps its own line
+ * (it cannot be broken without splitting characters). Always returns at
+ * least one line so callers can rely on a non-empty result.
+ *
+ * @param measure - returns the rendered width of a string (font-aware in
+ *   production, synthetic in tests).
+ */
+export function wrapText(
+  text: string,
+  maxWidth: number,
+  measure: (text: string) => number
+): string[] {
+  const words = text.split(/\s+/).filter((w) => w.length > 0);
+  if (words.length === 0) return [''];
+
+  const lines: string[] = [];
+  let currentLine = '';
+
+  for (const word of words) {
+    const candidate = currentLine.length === 0 ? word : `${currentLine} ${word}`;
+    if (measure(candidate) > maxWidth && currentLine.length > 0) {
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      currentLine = candidate;
+    }
+  }
+
+  if (currentLine.length > 0) lines.push(currentLine);
+  return lines.length > 0 ? lines : [''];
+}
+
+/**
+ * Concatenate the plain text of a node's direct text children.
+ */
+function nodePlainText(node: TipTapNode): string {
+  return (node.content || [])
+    .filter((n) => n.type === 'text')
+    .map((n) => n.text || '')
+    .join('');
+}
+
+/**
+ * True when the node is a heading whose text matches the chapter title
+ * (trimmed, case-insensitive). Used to avoid rendering the title twice when
+ * the author also typed it as the first heading of the chapter body.
+ */
+export function isLeadingTitleHeading(node: TipTapNode, chapterTitle: string): boolean {
+  if (node.type !== 'heading') return false;
+  return nodePlainText(node).trim().toLowerCase() === chapterTitle.trim().toLowerCase();
+}
+
+/**
+ * Return a copy of the document with its first node removed when that node is
+ * a heading duplicating the chapter title. The chapter title is rendered
+ * separately by the exporter, so keeping the duplicate would double it.
+ */
+export function stripLeadingTitleHeading(
+  doc: TipTapDocument,
+  chapterTitle: string
+): TipTapDocument {
+  if (!doc.content || doc.content.length === 0) return doc;
+  if (isLeadingTitleHeading(doc.content[0], chapterTitle)) {
+    return { ...doc, content: doc.content.slice(1) };
+  }
+  return doc;
+}
+
 // Highlight color mapping from Tailwind to RGB
 const HIGHLIGHT_COLORS: Record<string, RGB> = {
   '#fbbf24': rgb(0.98, 0.75, 0.14), // Yellow (Tailwind amber-400)
@@ -303,9 +373,10 @@ export class PdfExporter implements DocumentExporter {
         // Render chapter title as H1
         this.renderHeading(context, chapter.getTitle(), 1);
 
-        // Parse and render TipTap content
+        // Parse and render TipTap content, dropping a leading heading that
+        // merely repeats the chapter title to avoid showing it twice.
         const json = JSON.parse(chapter.getContent()) as TipTapDocument;
-        this.renderTipTapDocument(context, json);
+        this.renderTipTapDocument(context, stripLeadingTitleHeading(json, chapter.getTitle()));
       }
 
       const pdfBytes = await pdfDoc.save();
@@ -347,9 +418,10 @@ export class PdfExporter implements DocumentExporter {
       // Render chapter title
       this.renderHeading(context, chapter.getTitle(), 1);
 
-      // Parse and render content
+      // Parse and render content, dropping a leading heading that repeats the
+      // chapter title to avoid showing it twice.
       const json = JSON.parse(chapter.getContent()) as TipTapDocument;
-      this.renderTipTapDocument(context, json);
+      this.renderTipTapDocument(context, stripLeadingTitleHeading(json, chapter.getTitle()));
 
       const pdfBytes = await pdfDoc.save();
       return Buffer.from(pdfBytes);
@@ -398,9 +470,10 @@ export class PdfExporter implements DocumentExporter {
         // Render chapter title as H1
         this.renderHeading(context, chapter.getTitle(), 1);
 
-        // Parse and render TipTap content
+        // Parse and render TipTap content, dropping a leading heading that
+        // merely repeats the chapter title to avoid showing it twice.
         const json = JSON.parse(chapter.getContent()) as TipTapDocument;
-        this.renderTipTapDocument(context, json);
+        this.renderTipTapDocument(context, stripLeadingTitleHeading(json, chapter.getTitle()));
       }
 
       const pdfBytes = await pdfDoc.save();
@@ -503,15 +576,21 @@ export class PdfExporter implements DocumentExporter {
   private renderTipTapDocument(context: RenderContext, json: TipTapDocument): void {
     if (!json || !json.content) return;
 
+    // The chapter title is rendered as a heading just before the body, so the
+    // first body paragraph is treated as following a heading (no first-line
+    // indent, per the book typographic convention).
+    let prevWasHeading = true;
+
     for (const node of json.content) {
-      this.renderNode(context, node);
+      this.renderNode(context, node, prevWasHeading);
+      prevWasHeading = node.type === 'heading';
     }
   }
 
-  private renderNode(context: RenderContext, node: TipTapNode): void {
+  private renderNode(context: RenderContext, node: TipTapNode, prevWasHeading: boolean): void {
     switch (node.type) {
       case 'paragraph':
-        this.renderParagraph(context, node);
+        this.renderParagraph(context, node, prevWasHeading);
         break;
       case 'heading':
         this.renderHeadingNode(context, node);
@@ -523,10 +602,15 @@ export class PdfExporter implements DocumentExporter {
     }
   }
 
-  private renderParagraph(context: RenderContext, node: TipTapNode): void {
+  private renderParagraph(context: RenderContext, node: TipTapNode, prevWasHeading: boolean): void {
     const runs = this.extractTextRuns(node.content || []);
     const alignment = (node.attrs?.textAlign as string) || 'justify';
-    const hasIndent = node.attrs?.indent === true;
+
+    // First-line indent for body paragraphs (left/justified), except the first
+    // paragraph after a heading. Centered/right-aligned paragraphs (e.g. an
+    // epigraph) get no indent so they stay visually centered.
+    const indentableAlignment = alignment === 'left' || alignment === 'justify';
+    const hasIndent = indentableAlignment && !prevWasHeading;
 
     this.renderTextBlock(context, runs, PDF_CONFIG.typography.defaultSize, alignment, hasIndent);
 
@@ -543,30 +627,42 @@ export class PdfExporter implements DocumentExporter {
   private renderHeading(context: RenderContext, text: string, level: number): void {
     const scale = PDF_CONFIG.typography.headingScale[level] || 1;
     const fontSize = PDF_CONFIG.typography.defaultSize * scale;
-
-    // Add extra space before heading
-    context.yPosition -= fontSize * 0.5;
-
-    // Check if we need a new page
-    this.ensureSpace(context, fontSize * 2);
+    const lineHeight = fontSize * PDF_CONFIG.typography.lineHeight;
 
     const font = context.fonts.bold;
+    const measure = (s: string) => font.widthOfTextAtSize(s, fontSize);
+
+    // Wrap the heading so long titles stay within the content width instead of
+    // overflowing both margins.
     const normalizedText = normalizeForWinAnsi(text);
-    const textWidth = font.widthOfTextAtSize(normalizedText, fontSize);
+    const lines = wrapText(normalizedText, context.contentWidth, measure);
 
-    // Center headings
-    const x = PDF_CONFIG.margins.left + (context.contentWidth - textWidth) / 2;
+    // Space before the heading, scaled by its size.
+    context.yPosition -= fontSize * 0.6;
 
-    context.currentPage.drawText(normalizedText, {
-      x,
-      y: context.yPosition,
-      size: fontSize,
-      font,
-      color: rgb(0, 0, 0),
-    });
+    // Reserve the full block height so a multi-line heading is not orphaned at
+    // the bottom of a page.
+    this.ensureSpace(context, lines.length * lineHeight);
 
-    context.yPosition -= fontSize * PDF_CONFIG.typography.lineHeight;
-    context.yPosition -= PDF_CONFIG.typography.paragraphSpacing;
+    for (const line of lines) {
+      const lineWidth = measure(line);
+      // Center each line, clamped so a line wider than the content area still
+      // starts at the left margin instead of bleeding past it.
+      const x = PDF_CONFIG.margins.left + Math.max(0, (context.contentWidth - lineWidth) / 2);
+
+      context.currentPage.drawText(line, {
+        x,
+        y: context.yPosition,
+        size: fontSize,
+        font,
+        color: rgb(0, 0, 0),
+      });
+
+      context.yPosition -= lineHeight;
+    }
+
+    // Space after the heading before the body begins.
+    context.yPosition -= fontSize * 0.3;
   }
 
   private renderTextBlock(
