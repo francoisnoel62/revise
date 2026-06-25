@@ -3,6 +3,7 @@
 
 import { describe, it, expect, beforeAll } from 'vitest';
 import { checkSpellingAction } from '../spell-check-actions';
+// Note: getIgnoredWordsAction, addIgnoredWordAction etc. require auth + DB and are tested via E2E / integration
 
 // These tests use the real fr-FR dictionary — no mocks, so they validate actual spell-check logic.
 // Dictionary initialisation happens once via the module-level singleton; subsequent tests are fast.

@@ -245,7 +245,7 @@ describe('ProjectSettings', () => {
       const settings = ProjectSettings.reconstruct(validProps);
       const props = settings.toProperties();
 
-      expect(props).toEqual({ ...validProps, customDictionary: [] });
+      expect(props).toEqual({ ...validProps, customDictionary: [], ignoredWords: [] });
     });
 
     it('returns a copy of arrays', () => {
@@ -301,6 +301,70 @@ describe('ProjectSettings', () => {
 
       expect(settings.getCreatedAt().getFullYear()).toBe(2024);
       expect(settings.getUpdatedAt().getFullYear()).toBe(2024);
+    });
+  });
+
+  describe('ignoredWords', () => {
+    it('defaults to an empty array when not provided', () => {
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'Title');
+      expect(settings.getIgnoredWords()).toEqual([]);
+    });
+
+    it('reconstructs with provided ignoredWords', () => {
+      const settings = ProjectSettings.reconstruct({
+        ...validProps,
+        ignoredWords: ['gonna', 'ouais'],
+      });
+      expect(settings.getIgnoredWords()).toEqual(['gonna', 'ouais']);
+    });
+
+    it('getIgnoredWords returns a copy (mutation-safe)', () => {
+      const settings = ProjectSettings.reconstruct({ ...validProps, ignoredWords: ['gonna'] });
+      settings.getIgnoredWords().push('mutated');
+      expect(settings.getIgnoredWords()).toEqual(['gonna']);
+    });
+
+    it('addIgnoredWord returns a new instance with the word appended', () => {
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'Title');
+      const updated = settings.addIgnoredWord('gonna');
+      expect(updated).not.toBe(settings);
+      expect(updated.getIgnoredWords()).toEqual(['gonna']);
+      expect(settings.getIgnoredWords()).toEqual([]);
+    });
+
+    it('addIgnoredWord is idempotent when word already present', () => {
+      const settings = ProjectSettings.reconstruct({ ...validProps, ignoredWords: ['gonna'] });
+      const updated = settings.addIgnoredWord('gonna');
+      expect(updated).toBe(settings);
+    });
+
+    it('addIgnoredWord throws for an empty word', () => {
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'Title');
+      expect(() => settings.addIgnoredWord('')).toThrow('Word cannot be empty');
+    });
+
+    it('removeIgnoredWord returns a new instance without the word', () => {
+      const settings = ProjectSettings.reconstruct({ ...validProps, ignoredWords: ['gonna', 'ouais'] });
+      const updated = settings.removeIgnoredWord('gonna');
+      expect(updated.getIgnoredWords()).toEqual(['ouais']);
+      expect(settings.getIgnoredWords()).toEqual(['gonna', 'ouais']);
+    });
+
+    it('removeIgnoredWord is a no-op when word is not present', () => {
+      const settings = ProjectSettings.reconstruct({ ...validProps, ignoredWords: ['gonna'] });
+      const updated = settings.removeIgnoredWord('absent');
+      expect(updated).toBe(settings);
+    });
+
+    it('clearIgnoredWords returns a new instance with an empty list', () => {
+      const settings = ProjectSettings.reconstruct({ ...validProps, ignoredWords: ['gonna', 'ouais'] });
+      const updated = settings.clearIgnoredWords();
+      expect(updated.getIgnoredWords()).toEqual([]);
+    });
+
+    it('toProperties includes ignoredWords', () => {
+      const settings = ProjectSettings.reconstruct({ ...validProps, ignoredWords: ['gonna'] });
+      expect(settings.toProperties().ignoredWords).toEqual(['gonna']);
     });
   });
 

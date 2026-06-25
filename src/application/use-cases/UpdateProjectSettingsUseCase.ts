@@ -24,6 +24,7 @@ export interface ProjectSettingsUpdates {
   autocompletePreferences?: Partial<AutocompletePreferences>;
   canonExtractionPreferences?: Partial<CanonExtractionPreferences>;
   customDictionary?: string[];
+  ignoredWords?: string[];
 }
 
 export interface UpdateProjectSettingsInput {
@@ -99,6 +100,10 @@ export class UpdateProjectSettingsUseCase {
 
     if ('customDictionary' in updates) {
       updated = updated.updateCustomDictionary(updates.customDictionary!);
+    }
+
+    if ('ignoredWords' in updates) {
+      updated = updated.updateIgnoredWords(updates.ignoredWords!);
     }
 
     return this.repository.update(input.userId, updated);

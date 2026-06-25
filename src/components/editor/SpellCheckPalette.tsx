@@ -1,5 +1,5 @@
 // ABOUTME: Inline palette for spell check corrections — shown on click of a red-underlined word
-// ABOUTME: Offers dictionary suggestions; author chooses to apply or ignore each correction
+// ABOUTME: Three actions: apply suggestion, ignore in project (persistent), add to dictionary (persistent)
 
 'use client';
 
@@ -17,6 +17,7 @@ interface PaletteState {
   visible: boolean;
   position: { top: number; left: number };
   error: SpellError | null;
+  confirmation: 'none' | 'ignored' | 'added';
 }
 
 export function SpellCheckPalette({ editor, onIgnoreWord, onAddToDictionary }: SpellCheckPaletteProps) {
@@ -24,9 +25,25 @@ export function SpellCheckPalette({ editor, onIgnoreWord, onAddToDictionary }: S
     visible: false,
     position: { top: 0, left: 0 },
     error: null,
+    confirmation: 'none',
   });
 
   const paletteRef = useRef<HTMLDivElement>(null);
+  const confirmationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showConfirmation = useCallback((type: 'ignored' | 'added') => {
+    if (confirmationTimerRef.current) clearTimeout(confirmationTimerRef.current);
+    setState((s) => ({ ...s, confirmation: type }));
+    confirmationTimerRef.current = setTimeout(() => {
+      setState((s) => ({ ...s, visible: false, confirmation: 'none' }));
+    }, 1200);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (confirmationTimerRef.current) clearTimeout(confirmationTimerRef.current);
+    };
+  }, []);
 
   const findErrorAt = useCallback(
     (pos: number): SpellError | null => {
@@ -66,6 +83,7 @@ export function SpellCheckPalette({ editor, onIgnoreWord, onAddToDictionary }: S
         visible: true,
         position: { top: e.clientY + 8, left: e.clientX },
         error,
+        confirmation: 'none',
       });
     },
     [editor, findErrorAt]
@@ -73,7 +91,7 @@ export function SpellCheckPalette({ editor, onIgnoreWord, onAddToDictionary }: S
 
   const handleClickOutside = useCallback((e: MouseEvent) => {
     if (paletteRef.current && !paletteRef.current.contains(e.target as HTMLElement)) {
-      setState((s) => ({ ...s, visible: false }));
+      setState((s) => ({ ...s, visible: false, confirmation: 'none' }));
     }
   }, []);
 
@@ -98,14 +116,41 @@ export function SpellCheckPalette({ editor, onIgnoreWord, onAddToDictionary }: S
     [editor, state.error]
   );
 
-  const ignoreCurrent = useCallback(() => {
-    if (state.error) onIgnoreWord?.(state.error.word);
-    setState((s) => ({ ...s, visible: false }));
-  }, [state.error, onIgnoreWord]);
+  const handleIgnore = useCallback(() => {
+    if (!state.error) return;
+    onIgnoreWord?.(state.error.word);
+    showConfirmation('ignored');
+  }, [state.error, onIgnoreWord, showConfirmation]);
+
+  const handleAddToDictionary = useCallback(async () => {
+    if (!state.error || !onAddToDictionary) return;
+    await onAddToDictionary(state.error.word);
+    showConfirmation('added');
+  }, [state.error, onAddToDictionary, showConfirmation]);
+
+  const handleClose = useCallback(() => {
+    setState((s) => ({ ...s, visible: false, confirmation: 'none' }));
+  }, []);
 
   if (!state.visible || !state.error) return null;
 
-  const { error, position } = state;
+  const { error, position, confirmation } = state;
+
+  // Inline confirmation — auto-dismisses after 1.2s
+  if (confirmation !== 'none') {
+    return (
+      <div
+        ref={paletteRef}
+        style={{ top: position.top, left: position.left }}
+        className="fixed z-50 min-w-40 rounded-lg border bg-popover text-popover-foreground shadow-md p-3 text-sm"
+      >
+        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <span className="text-green-600">✓</span>
+          {confirmation === 'ignored' ? 'Ignoré dans ce projet' : 'Ajouté au dictionnaire'}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -136,23 +181,28 @@ export function SpellCheckPalette({ editor, onIgnoreWord, onAddToDictionary }: S
       )}
 
       <div className="border-t mt-2 pt-1.5 space-y-0.5">
-        <button
-          onClick={ignoreCurrent}
-          className="w-full text-left rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-        >
-          Ignorer
-        </button>
+        {onIgnoreWord && (
+          <button
+            onClick={handleIgnore}
+            className="w-full text-left rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+          >
+            Ignorer dans ce projet
+          </button>
+        )}
         {onAddToDictionary && (
           <button
-            onClick={() => {
-              if (state.error) onAddToDictionary(state.error.word);
-              setState((s) => ({ ...s, visible: false }));
-            }}
+            onClick={handleAddToDictionary}
             className="w-full text-left rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
           >
             Ajouter au dictionnaire
           </button>
         )}
+        <button
+          onClick={handleClose}
+          className="w-full text-left rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+        >
+          Fermer
+        </button>
       </div>
     </div>
   );

@@ -35,6 +35,8 @@ export interface SerializedProjectSettings {
   updatedAt: string;
   autocompletePreferences: AutocompletePreferences;
   canonExtractionPreferences: CanonExtractionPreferences;
+  customDictionary: string[];
+  ignoredWords: string[];
 }
 
 function serializeProjectSettings(settings: ProjectSettings): SerializedProjectSettings {
@@ -57,6 +59,8 @@ function serializeProjectSettings(settings: ProjectSettings): SerializedProjectS
     updatedAt: settings.getUpdatedAt().toISOString(),
     autocompletePreferences: settings.getAutocompletePreferences(),
     canonExtractionPreferences: settings.getCanonExtractionPreferences(),
+    customDictionary: settings.getCustomDictionary(),
+    ignoredWords: settings.getIgnoredWords(),
   };
 }
 

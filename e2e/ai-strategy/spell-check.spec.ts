@@ -188,4 +188,50 @@ test.describe('Spell-check in the editor', () => {
     // Underline is gone immediately
     await expect(spellerror).not.toBeVisible();
   });
+
+  test('inline confirmation appears after ignoring a word', async ({ page }) => {
+    const editor = await openSpellCheckEditor(page);
+    await typeAtEnd(page, editor, ' maisson');
+
+    const spellerror = page.locator('.spell-error[data-spell-word="maisson"]');
+    await expect(spellerror).toBeVisible({ timeout: 15_000 });
+    await spellerror.click();
+
+    await page.getByRole('button', { name: 'Ignorer dans ce projet' }).click();
+
+    // Brief confirmation message visible
+    await expect(page.getByText('Ignoré dans ce projet')).toBeVisible();
+    // Confirmation auto-dismisses after ~1.2s
+    await expect(page.getByText('Ignoré dans ce projet')).not.toBeVisible({ timeout: 3_000 });
+  });
+
+  test('inline confirmation appears after adding to dictionary', async ({ page }) => {
+    const editor = await openSpellCheckEditor(page);
+    await typeAtEnd(page, editor, ' spicce');
+
+    const spellerror = page.locator('.spell-error[data-spell-word="spicce"]');
+    await expect(spellerror).toBeVisible({ timeout: 15_000 });
+    await spellerror.click();
+
+    await page.getByRole('button', { name: 'Ajouter au dictionnaire' }).click();
+
+    await expect(page.getByText('Ajouté au dictionnaire')).toBeVisible();
+    await expect(page.getByText('Ajouté au dictionnaire')).not.toBeVisible({ timeout: 3_000 });
+  });
+
+  test('"Fermer" closes the palette without any action', async ({ page }) => {
+    const editor = await openSpellCheckEditor(page);
+    await typeAtEnd(page, editor, ' maisson');
+
+    const spellerror = page.locator('.spell-error[data-spell-word="maisson"]');
+    await expect(spellerror).toBeVisible({ timeout: 15_000 });
+    await spellerror.click();
+
+    await expect(page.getByRole('button', { name: 'Fermer' })).toBeVisible();
+    await page.getByRole('button', { name: 'Fermer' }).click();
+
+    await expect(page.getByRole('button', { name: 'Fermer' })).not.toBeVisible();
+    // Word is still flagged
+    await expect(spellerror).toBeVisible();
+  });
 });

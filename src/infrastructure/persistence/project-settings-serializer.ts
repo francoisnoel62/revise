@@ -45,6 +45,7 @@ export interface ProjectSettingsDocument {
   autocompleteSmartPrefetch?: boolean;
   canonExtractionMode?: CanonExtractionMode;
   customDictionary?: string[];
+  ignoredWords?: string[];
 }
 
 export function serializeProjectSettings(
@@ -83,6 +84,7 @@ export function serializeProjectSettings(
     autocompleteSmartPrefetch: props.autocompleteSmartPrefetch,
     canonExtractionMode: props.canonExtractionMode,
     customDictionary: props.customDictionary ?? [],
+    ignoredWords: props.ignoredWords ?? [],
   };
 }
 
@@ -123,6 +125,7 @@ export function deserializeProjectSettings(doc: ProjectSettingsDocument): Projec
     autocompleteSmartPrefetch: doc.autocompleteSmartPrefetch,
     canonExtractionMode: doc.canonExtractionMode,
     customDictionary: doc.customDictionary ?? [],
+    ignoredWords: doc.ignoredWords ?? [],
   };
 
   return ProjectSettings.reconstruct(props);

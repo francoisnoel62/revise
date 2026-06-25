@@ -12,12 +12,22 @@ vi.mock('@/app/actions/spell-check-actions', () => ({
   checkSpellingAction: vi.fn(),
   getCustomDictionaryAction: vi.fn().mockResolvedValue([]),
   addWordToCustomDictionaryAction: vi.fn().mockResolvedValue(undefined),
+  getIgnoredWordsAction: vi.fn().mockResolvedValue([]),
+  addIgnoredWordAction: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { checkSpellingAction, getCustomDictionaryAction, addWordToCustomDictionaryAction } from '@/app/actions/spell-check-actions';
+import {
+  checkSpellingAction,
+  getCustomDictionaryAction,
+  addWordToCustomDictionaryAction,
+  getIgnoredWordsAction,
+  addIgnoredWordAction,
+} from '@/app/actions/spell-check-actions';
 const mockCheckSpelling = checkSpellingAction as ReturnType<typeof vi.fn>;
 const mockGetCustomDictionary = getCustomDictionaryAction as ReturnType<typeof vi.fn>;
 const mockAddWordToCustomDictionary = addWordToCustomDictionaryAction as ReturnType<typeof vi.fn>;
+const mockGetIgnoredWords = getIgnoredWordsAction as ReturnType<typeof vi.fn>;
+const mockAddIgnoredWord = addIgnoredWordAction as ReturnType<typeof vi.fn>;
 
 // ---------------------------------------------------------------------------
 // Minimal TipTap Editor mock
@@ -283,6 +293,58 @@ describe('useSpellCheck', () => {
     // checkSpellingAction should have been called with the custom dictionary as second arg
     const [, customWords] = mockCheckSpelling.mock.calls[0];
     expect(customWords).toContain('spicce');
+  });
+
+  it('loads ignored words on mount when projectId is provided', async () => {
+    mockCheckSpelling.mockResolvedValue([]);
+    mockGetIgnoredWords.mockResolvedValue(['gonna']);
+    const editor = createMockEditor('gonna', [{ text: 'gonna', pos: 1 }]);
+
+    renderHook(() => useSpellCheck(editor as unknown as Editor, 'proj-1'));
+    await flushDebounce();
+
+    expect(mockGetIgnoredWords).toHaveBeenCalledWith('proj-1');
+    // checkSpellingAction should have been called with 'gonna' in the accepted list
+    const [, customWords] = mockCheckSpelling.mock.calls[0];
+    expect(customWords).toContain('gonna');
+  });
+
+  it('ignoreWord calls addIgnoredWordAction for persistence when projectId is set', async () => {
+    mockCheckSpelling.mockResolvedValue([{ word: 'maisson', suggestions: ['maison'] }]);
+    mockGetIgnoredWords.mockResolvedValue([]);
+
+    const editor = createMockEditor('maisson', [{ text: 'maisson', pos: 1 }]);
+
+    vi.spyOn(spellCheckPluginKey, 'getState').mockReturnValue({
+      decorations: {} as import('@tiptap/pm/view').DecorationSet,
+      errors: [{ word: 'maisson', from: 1, to: 8, suggestions: ['maison'] }],
+    });
+
+    const { result } = renderHook(() => useSpellCheck(editor as unknown as Editor, 'proj-1'));
+    await flushDebounce();
+
+    await act(async () => {
+      result.current.ignoreWord('maisson');
+    });
+
+    expect(mockAddIgnoredWord).toHaveBeenCalledWith('proj-1', 'maisson');
+  });
+
+  it('ignoreWord does NOT call addIgnoredWordAction when no projectId', async () => {
+    mockCheckSpelling.mockResolvedValue([{ word: 'maisson', suggestions: ['maison'] }]);
+
+    const editor = createMockEditor('maisson', [{ text: 'maisson', pos: 1 }]);
+    vi.spyOn(spellCheckPluginKey, 'getState').mockReturnValue({
+      decorations: {} as import('@tiptap/pm/view').DecorationSet,
+      errors: [{ word: 'maisson', from: 1, to: 8, suggestions: ['maison'] }],
+    });
+
+    const { result } = renderHook(() => useSpellCheck(editor as unknown as Editor));
+    await flushDebounce();
+
+    act(() => { result.current.ignoreWord('maisson'); });
+
+    expect(mockAddIgnoredWord).not.toHaveBeenCalled();
   });
 
   it('addToDictionary calls addWordToCustomDictionaryAction and removes the decoration', async () => {

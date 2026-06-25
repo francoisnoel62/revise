@@ -92,3 +92,72 @@ export async function addWordToCustomDictionaryAction(
 
   await repo.update(authResult.userId, updated);
 }
+
+export async function removeWordFromCustomDictionaryAction(
+  projectId: string,
+  word: string
+): Promise<void> {
+  const authResult = await getAuthenticatedUserId();
+  if ('error' in authResult) return;
+
+  const repo = await getProjectSettingsRepo();
+  const existing = await repo.findByProjectId(authResult.userId, projectId);
+  if (!existing) return;
+
+  const newList = existing.getCustomDictionary().filter((w) => w !== word);
+  await repo.update(authResult.userId, existing.updateCustomDictionary(newList));
+}
+
+export async function getIgnoredWordsAction(projectId: string): Promise<string[]> {
+  const authResult = await getAuthenticatedUserId();
+  if ('error' in authResult) return [];
+
+  const repo = await getProjectSettingsRepo();
+  const settings = await repo.findByProjectId(authResult.userId, projectId);
+  return settings?.getIgnoredWords() ?? [];
+}
+
+export async function addIgnoredWordAction(
+  projectId: string,
+  word: string
+): Promise<void> {
+  const authResult = await getAuthenticatedUserId();
+  if ('error' in authResult) return;
+
+  const repo = await getProjectSettingsRepo();
+  const existing = await repo.findByProjectId(authResult.userId, projectId);
+  if (!existing) return;
+
+  const updated = existing.addIgnoredWord(word);
+  if (updated === existing) return;
+
+  await repo.update(authResult.userId, updated);
+}
+
+export async function removeIgnoredWordAction(
+  projectId: string,
+  word: string
+): Promise<void> {
+  const authResult = await getAuthenticatedUserId();
+  if ('error' in authResult) return;
+
+  const repo = await getProjectSettingsRepo();
+  const existing = await repo.findByProjectId(authResult.userId, projectId);
+  if (!existing) return;
+
+  const updated = existing.removeIgnoredWord(word);
+  if (updated === existing) return;
+
+  await repo.update(authResult.userId, updated);
+}
+
+export async function clearIgnoredWordsAction(projectId: string): Promise<void> {
+  const authResult = await getAuthenticatedUserId();
+  if ('error' in authResult) return;
+
+  const repo = await getProjectSettingsRepo();
+  const existing = await repo.findByProjectId(authResult.userId, projectId);
+  if (!existing) return;
+
+  await repo.update(authResult.userId, existing.clearIgnoredWords());
+}

@@ -14,6 +14,7 @@ import { loadProjectAction } from '@/app/actions/project-actions';
 import { ProjectSettingsForm } from '@/components/cockpit/ProjectSettingsForm';
 import { AutocompletePreferencesCard } from '@/components/cockpit/AutocompletePreferencesCard';
 import { CanonExtractionPreferencesCard } from '@/components/cockpit/CanonExtractionPreferencesCard';
+import { SpellCheckSettingsCard } from '@/components/cockpit/SpellCheckSettingsCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
@@ -135,6 +136,12 @@ export default function SettingsPage() {
       <CanonExtractionPreferencesCard
         projectId={projectId}
         initialPreferences={settings.canonExtractionPreferences}
+      />
+
+      <SpellCheckSettingsCard
+        projectId={projectId}
+        initialCustomDictionary={settings.customDictionary}
+        initialIgnoredWords={settings.ignoredWords}
       />
     </div>
   );

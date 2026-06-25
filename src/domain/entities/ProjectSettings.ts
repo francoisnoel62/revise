@@ -42,6 +42,7 @@ export interface ProjectSettingsProperties {
   autocompleteSmartPrefetch?: boolean;
   canonExtractionMode?: CanonExtractionMode;
   customDictionary?: string[];
+  ignoredWords?: string[];
 }
 
 export class ProjectSettings {
@@ -70,6 +71,7 @@ export class ProjectSettings {
   private autocompleteSmartPrefetch?: boolean;
   private canonExtractionMode?: CanonExtractionMode;
   private customDictionary: string[];
+  private ignoredWords: string[];
 
   private constructor(props: ProjectSettingsProperties) {
     this.validate(props);
@@ -99,6 +101,7 @@ export class ProjectSettings {
     this.autocompleteSmartPrefetch = props.autocompleteSmartPrefetch;
     this.canonExtractionMode = props.canonExtractionMode;
     this.customDictionary = [...(props.customDictionary ?? [])];
+    this.ignoredWords = [...(props.ignoredWords ?? [])];
   }
 
   private validate(props: ProjectSettingsProperties): void {
@@ -379,6 +382,46 @@ export class ProjectSettings {
     });
   }
 
+  getIgnoredWords(): string[] {
+    return [...this.ignoredWords];
+  }
+
+  addIgnoredWord(word: string): ProjectSettings {
+    const trimmed = word.trim();
+    if (!trimmed) throw new Error('Word cannot be empty');
+    if (this.ignoredWords.includes(trimmed)) return this;
+    return new ProjectSettings({
+      ...this.toProperties(),
+      ignoredWords: [...this.ignoredWords, trimmed],
+      updatedAt: new Date(),
+    });
+  }
+
+  removeIgnoredWord(word: string): ProjectSettings {
+    if (!this.ignoredWords.includes(word)) return this;
+    return new ProjectSettings({
+      ...this.toProperties(),
+      ignoredWords: this.ignoredWords.filter((w) => w !== word),
+      updatedAt: new Date(),
+    });
+  }
+
+  clearIgnoredWords(): ProjectSettings {
+    return new ProjectSettings({
+      ...this.toProperties(),
+      ignoredWords: [],
+      updatedAt: new Date(),
+    });
+  }
+
+  updateIgnoredWords(words: string[]): ProjectSettings {
+    return new ProjectSettings({
+      ...this.toProperties(),
+      ignoredWords: [...words],
+      updatedAt: new Date(),
+    });
+  }
+
   toProperties(): ProjectSettingsProperties {
     return {
       id: this.id,
@@ -406,6 +449,7 @@ export class ProjectSettings {
       autocompleteSmartPrefetch: this.autocompleteSmartPrefetch,
       canonExtractionMode: this.canonExtractionMode,
       customDictionary: [...this.customDictionary],
+      ignoredWords: [...this.ignoredWords],
     };
   }
 }

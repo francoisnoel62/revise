@@ -8,6 +8,8 @@ import {
   checkSpellingAction,
   getCustomDictionaryAction,
   addWordToCustomDictionaryAction,
+  getIgnoredWordsAction,
+  addIgnoredWordAction,
 } from '@/app/actions/spell-check-actions';
 
 // Word regex: letters and combining marks, at least 2 chars
@@ -52,15 +54,18 @@ export function useSpellCheck(
   addToDictionary: (word: string) => Promise<void>;
 } {
   const lastTextRef = useRef<string>('');
-  const ignoredWordsRef = useRef<Set<string>>(new Set());
   const customDictionaryRef = useRef<string[]>([]);
+  const ignoredWordsRef = useRef<string[]>([]);
 
-  // Load per-project custom dictionary on mount / when projectId changes
+  // Load per-project custom dictionary and ignored words on mount / when projectId changes
   useEffect(() => {
     if (!projectId) return;
-    getCustomDictionaryAction(projectId).then((words) => {
-      customDictionaryRef.current = words;
-      // Force re-check on next editor update
+    Promise.all([
+      getCustomDictionaryAction(projectId),
+      getIgnoredWordsAction(projectId),
+    ]).then(([dictionary, ignored]) => {
+      customDictionaryRef.current = dictionary;
+      ignoredWordsRef.current = ignored;
       lastTextRef.current = '';
     });
   }, [projectId]);
@@ -80,20 +85,28 @@ export function useSpellCheck(
       return;
     }
 
-    const misspelled = await checkSpellingAction(uniqueWords, customDictionaryRef.current);
+    // Merge custom dictionary + ignored words — both are excluded from flagging
+    const accepted = [...customDictionaryRef.current, ...ignoredWordsRef.current];
+    const misspelled = await checkSpellingAction(uniqueWords, accepted);
     if (ed.isDestroyed) return;
 
     const misspelledMap = new Map(
       misspelled.map((m) => [m.word.toLowerCase(), m.suggestions])
     );
 
+    // Filter locally too — guards against stale server responses and test mocks
+    const locallyAccepted = new Set([
+      ...customDictionaryRef.current,
+      ...ignoredWordsRef.current,
+    ]);
+
     const errors: SpellError[] = wordsWithPositions
       .filter((w) => misspelledMap.has(w.word.toLowerCase()))
+      .filter((w) => !locallyAccepted.has(w.word))
       .map((w) => ({
         ...w,
         suggestions: misspelledMap.get(w.word.toLowerCase()) ?? [],
-      }))
-      .filter((e) => !ignoredWordsRef.current.has(e.word));
+      }));
 
     if (!ed.isDestroyed) {
       ed.view.dispatch(ed.state.tr.setMeta(spellCheckPluginKey, { errors }));
@@ -102,18 +115,24 @@ export function useSpellCheck(
 
   const ignoreWord = useCallback(
     (word: string) => {
-      ignoredWordsRef.current.add(word);
+      // Always track locally so subsequent runCheck calls exclude this word
+      if (!ignoredWordsRef.current.includes(word)) {
+        ignoredWordsRef.current = [...ignoredWordsRef.current, word];
+      }
+      // Persist per-project when possible
+      if (projectId) {
+        addIgnoredWordAction(projectId, word);
+      }
+      // Remove the decoration immediately
       if (!editor || editor.isDestroyed) return;
       const pluginState = spellCheckPluginKey.getState(editor.state);
       if (!pluginState) return;
-      const filteredErrors = pluginState.errors.filter(
-        (e) => !ignoredWordsRef.current.has(e.word)
-      );
+      const filteredErrors = pluginState.errors.filter((e) => e.word !== word);
       editor.view.dispatch(
         editor.state.tr.setMeta(spellCheckPluginKey, { errors: filteredErrors })
       );
     },
-    [editor]
+    [editor, projectId]
   );
 
   const addToDictionary = useCallback(
@@ -128,7 +147,6 @@ export function useSpellCheck(
       editor.view.dispatch(
         editor.state.tr.setMeta(spellCheckPluginKey, { errors: filteredErrors })
       );
-      // Reset so next edit triggers a full re-check with the updated dictionary
       lastTextRef.current = '';
     },
     [editor, projectId]
