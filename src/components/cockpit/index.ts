@@ -27,3 +27,4 @@ export { QuickActionButton, type QuickActionButtonProps } from './QuickActionBut
 export { QuickActionsCard } from './QuickActionsCard';
 export { EditorialCard } from './EditorialCard';
 export { EditorialEditor } from './EditorialEditor';
+export { SpellCheckSettingsCard } from './SpellCheckSettingsCard';

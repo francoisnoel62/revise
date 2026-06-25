@@ -160,6 +160,13 @@
   }
 }
 
+/* Spell check error underline */
+.tiptap .spell-error {
+  text-decoration: underline wavy #ef4444;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
 /* First-line indent for paragraphs and headings */
 .tiptap p[data-indent="true"],
 .tiptap h1[data-indent="true"],

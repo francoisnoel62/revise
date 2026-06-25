@@ -4,9 +4,6 @@
 export type { AnalysisStrategy, AnalysisOptions } from './AnalysisStrategy';
 export { BaseAnalysisStrategy } from './AnalysisStrategy';
 
-export { SpellingAnalysisStrategy, SPELLING_ANALYSIS_PROMPT } from './SpellingAnalysisStrategy';
-export type { SpellingLLMClient } from './SpellingAnalysisStrategy';
-
 export { GrammarAnalysisStrategy, GRAMMAR_ANALYSIS_PROMPT } from './GrammarAnalysisStrategy';
 export type { GrammarLLMClient } from './GrammarAnalysisStrategy';
 

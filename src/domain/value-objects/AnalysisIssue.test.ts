@@ -11,7 +11,7 @@ import {
 describe('AnalysisIssue', () => {
   const validIssueData = {
     id: 'issue-1',
-    category: 'spelling' as const,
+    category: 'grammar' as const,
     severity: 'error' as const,
     originalText: 'Elle à dit',
     suggestion: 'Elle a dit',
@@ -47,7 +47,7 @@ describe('AnalysisIssue', () => {
       const issue = createAnalysisIssue(validIssueData);
 
       expect(issue.id).toBe('issue-1');
-      expect(issue.category).toBe('spelling');
+      expect(issue.category).toBe('grammar');
       expect(issue.severity).toBe('error');
       expect(issue.originalText).toBe('Elle à dit');
       expect(issue.suggestion).toBe('Elle a dit');

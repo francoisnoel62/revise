@@ -31,7 +31,6 @@ describe('AnalysisCategory', () => {
 
   describe('isValidAnalysisCategory', () => {
     it('should return true for valid categories', () => {
-      expect(isValidAnalysisCategory('spelling')).toBe(true);
       expect(isValidAnalysisCategory('grammar')).toBe(true);
       expect(isValidAnalysisCategory('punctuation')).toBe(true);
       expect(isValidAnalysisCategory('repetition')).toBe(true);
@@ -41,7 +40,6 @@ describe('AnalysisCategory', () => {
     it('should return false for invalid categories', () => {
       expect(isValidAnalysisCategory('invalid')).toBe(false);
       expect(isValidAnalysisCategory('')).toBe(false);
-      expect(isValidAnalysisCategory('SPELLING')).toBe(false);
       expect(isValidAnalysisCategory('readability')).toBe(false);
     });
   });

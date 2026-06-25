@@ -4,7 +4,7 @@
 'use client';
 
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { SpellCheck, Languages, Type, Repeat, Palette, ListChecks } from 'lucide-react';
+import { Languages, Type, Repeat, Palette, ListChecks, SpellCheck } from 'lucide-react';
 import { AnalysisCategory } from '@/domain/value-objects/AnalysisCategory';
 
 type CategoryKey = AnalysisCategory | 'all';
@@ -17,7 +17,7 @@ interface AnalysisCategoryTabsProps {
   disabled?: boolean;
 }
 
-const categoryConfig: Record<CategoryKey, { label: string; icon: typeof SpellCheck }> = {
+const categoryConfig: Record<CategoryKey, { label: string; icon: typeof Languages }> = {
   all: { label: 'Tous', icon: ListChecks },
   spelling: { label: 'Orthographe', icon: SpellCheck },
   grammar: { label: 'Grammaire', icon: Languages },

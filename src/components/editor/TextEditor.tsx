@@ -17,6 +17,10 @@ import { IndentParagraph } from './extensions/IndentParagraph';
 import { IndentHeading } from './extensions/IndentHeading';
 import { Autocomplete, AutocompleteStorage } from './extensions/Autocomplete';
 import { AutocompleteDot, AutocompleteDotState } from './AutocompleteDot';
+import { SpellCheckExtension } from './SpellCheckExtension';
+import { SpellCheckPalette } from './SpellCheckPalette';
+import { useSpellCheck } from '@/hooks/useSpellCheck';
+
 import { useEffect, useCallback, useState, useRef } from 'react';
 import { useAutosave } from '@/hooks/useAutosave';
 import { useProjectStore } from '@/store/projectStore';
@@ -116,6 +120,7 @@ export function TextEditor({
       EmDashExtension,
       Placeholder.configure({ placeholder }),
       CharacterCount,
+      SpellCheckExtension,
       Autocomplete.configure({
         enabled: autocompleteEnabled,
         onComplete: handleAutocomplete,
@@ -227,11 +232,18 @@ export function TextEditor({
     };
   }, []);
 
+  const { ignoreWord, addToDictionary } = useSpellCheck(editor, projectId ?? project?.id);
+
   if (!editor) return null;
 
   return (
     <div className="w-full bg-slate-50 relative">
       <AutocompleteDot state={dotState} />
+      <SpellCheckPalette
+        editor={editor}
+        onIgnoreWord={ignoreWord}
+        onAddToDictionary={projectId ?? project?.id ? addToDictionary : undefined}
+      />
       {/* Spoken counterpart of the (aria-hidden) dot: tells screen-reader users a
           suggestion is waiting and how to act on it. */}
       <div className="sr-only" role="status" aria-live="polite">

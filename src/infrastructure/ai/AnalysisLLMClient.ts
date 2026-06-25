@@ -5,11 +5,6 @@ import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import { GoogleGenAI } from '@google/genai';
 import {
-  SpellingLLMClient,
-  SpellingAnalysisResponse,
-  SPELLING_ANALYSIS_PROMPT,
-} from '@/application/strategies/SpellingAnalysisStrategy';
-import {
   GrammarLLMClient,
   GrammarAnalysisResponse,
   GRAMMAR_ANALYSIS_PROMPT,
@@ -35,8 +30,7 @@ import { StyleRigor } from '@/domain/value-objects/StyleRigor';
  * Combined interface for all analysis LLM operations.
  */
 export interface AnalysisLLMClient
-  extends SpellingLLMClient,
-    GrammarLLMClient,
+  extends GrammarLLMClient,
     PunctuationLLMClient,
     StyleLLMClient,
     RepetitionLLMClient {}
@@ -51,17 +45,6 @@ export class OpenAIAnalysisLLMClient implements AnalysisLLMClient {
   constructor(apiKey: string, model: string = 'gpt-4o') {
     this.client = new OpenAI({ apiKey });
     this.model = model;
-  }
-
-  async analyzeSpelling(
-    content: string,
-    options: { language: 'fr' | 'en' }
-  ): Promise<SpellingAnalysisResponse> {
-    const prompt = SPELLING_ANALYSIS_PROMPT
-      .replace('{language}', options.language === 'fr' ? 'French' : 'English')
-      .replace('{content}', content);
-
-    return this.callLLM<SpellingAnalysisResponse>(prompt);
   }
 
   async analyzeGrammar(
@@ -183,17 +166,6 @@ export class AnthropicAnalysisLLMClient implements AnalysisLLMClient {
     this.model = model;
   }
 
-  async analyzeSpelling(
-    content: string,
-    options: { language: 'fr' | 'en' }
-  ): Promise<SpellingAnalysisResponse> {
-    const prompt = SPELLING_ANALYSIS_PROMPT
-      .replace('{language}', options.language === 'fr' ? 'French' : 'English')
-      .replace('{content}', content);
-
-    return this.callLLM<SpellingAnalysisResponse>(prompt);
-  }
-
   async analyzeGrammar(
     content: string,
     options: { language: 'fr' | 'en' }
@@ -305,17 +277,6 @@ export class GoogleAnalysisLLMClient implements AnalysisLLMClient {
   constructor(apiKey: string, model: string = 'gemini-3-flash-preview') {
     this.client = new GoogleGenAI({ apiKey });
     this.modelName = model;
-  }
-
-  async analyzeSpelling(
-    content: string,
-    options: { language: 'fr' | 'en' }
-  ): Promise<SpellingAnalysisResponse> {
-    const prompt = SPELLING_ANALYSIS_PROMPT
-      .replace('{language}', options.language === 'fr' ? 'French' : 'English')
-      .replace('{content}', content);
-
-    return this.callLLM<SpellingAnalysisResponse>(prompt);
   }
 
   async analyzeGrammar(

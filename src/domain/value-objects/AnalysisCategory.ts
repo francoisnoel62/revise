@@ -1,5 +1,5 @@
 // ABOUTME: Value object defining analysis categories for chapter verification
-// ABOUTME: Provides type safety, validation, labels and ordering for spelling, grammar, punctuation, repetition, and style analysis
+// ABOUTME: Provides type safety, validation, labels and ordering for grammar, punctuation, repetition, and style analysis
 
 export const ANALYSIS_CATEGORIES = [
   'spelling',

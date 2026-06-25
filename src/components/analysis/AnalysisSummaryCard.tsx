@@ -4,13 +4,13 @@
 'use client';
 
 import {
-  SpellCheck,
   Languages,
   Type,
   Repeat,
   Palette,
   CheckCircle2,
   AlertTriangle,
+  SpellCheck,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,7 +34,7 @@ interface AnalysisSummaryCardProps {
 
 const categoryConfig: Record<
   AnalysisCategory,
-  { label: string; icon: typeof SpellCheck }
+  { label: string; icon: typeof Languages }
 > = {
   spelling: { label: 'Orthographe', icon: SpellCheck },
   grammar: { label: 'Grammaire', icon: Languages },
@@ -127,7 +127,7 @@ export function AnalysisSummaryCard({
 
             {/* Category breakdown */}
             <div className="border-t pt-4">
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
                 {(Object.keys(categoryConfig) as AnalysisCategory[]).map((category) => {
                   const config = categoryConfig[category];
                   const count = stats.byCategory[category] || 0;
