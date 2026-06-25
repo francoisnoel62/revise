@@ -11,6 +11,7 @@ describe('AnalysisCategoryTabs', () => {
   const mockOnChange = vi.fn();
   const defaultCounts: Record<AnalysisCategory | 'all', number> = {
     all: 10,
+    spelling: 0,
     grammar: 4,
     punctuation: 2,
     repetition: 2,
@@ -108,9 +109,9 @@ describe('AnalysisCategoryTabs', () => {
       />
     );
 
-    // Should have at least one SVG icon per visible tab (5 tabs: all, grammar, punctuation, repetition, style)
+    // Should have at least one SVG icon per visible tab (6 tabs: all, spelling, grammar, punctuation, repetition, style)
     const svgElements = container.querySelectorAll('svg');
-    expect(svgElements.length).toBeGreaterThanOrEqual(5);
+    expect(svgElements.length).toBeGreaterThanOrEqual(6);
   });
 
   it('disables tabs when disabled prop is true', () => {

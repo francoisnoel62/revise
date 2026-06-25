@@ -30,6 +30,10 @@ export const TEST_RESEARCH_DOC_ID = '6475a8f3c1234567890abcde';
 // Fixed 24-char hex ObjectId for the autocomplete project settings
 export const TEST_AUTOCOMPLETE_SETTINGS_ID = '6475a8f3c1234567890abcdf';
 
+// Spell-check E2E fixtures
+export const TEST_SPELLCHECK_PROJECT_ID = 'e2e-spellcheck-project-001';
+export const TEST_SPELLCHECK_CHAPTER_ID = 'e2e-spellcheck-chapter-001';
+
 // Canon E2E fixtures — stale canon (for notification bell tests)
 export const TEST_CANON_STALE_PROJECT_ID = 'e2e-canon-stale-project-001';
 export const TEST_CANON_STALE_CHAPTER_ID = 'e2e-canon-stale-chapter-001';
@@ -107,6 +111,58 @@ export function computeChapterHash(): string {
   const text = extractTipTapText(JSON.parse(TEST_CHAPTER_CONTENT));
   const fullText = `# ${TEST_CHAPTER_TITLE}\n\n${text}`;
   return crypto.createHash('sha256').update(fullText, 'utf8').digest('hex');
+}
+
+// ── Spell-check project document ──────────────────────────────────────────────
+
+// Clean French text, no AI provider needed. The editor autosaves typed text back
+// to this chapter, so spell-check tests must re-seed it before each test to avoid
+// previously-typed misspellings accumulating in the shared chapter.
+function buildSpellCheckProject(past: Date, now: Date): Record<string, unknown> {
+  const spellcheckChapterText = 'La vieille bibliothèque sentait le bois.';
+  return {
+    _id: TEST_SPELLCHECK_PROJECT_ID,
+    ownerId: TEST_USER_ID,
+    title: 'Projet Test Orthographe',
+    chapters: [{
+      id: TEST_SPELLCHECK_CHAPTER_ID,
+      title: 'Chapitre Ortho',
+      content: JSON.stringify({
+        type: 'doc',
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: spellcheckChapterText }] }],
+      }),
+      order: 0,
+      metadata: { wordCount: 6, characterCount: 40, lastEdited: past },
+    }],
+    activeChapterId: TEST_SPELLCHECK_CHAPTER_ID,
+    providerId: null,
+    createdAt: past,
+    updatedAt: now,
+    isPublished: false,
+    shareToken: null,
+    publishedAt: null,
+    publishedChapterIds: null,
+  };
+}
+
+// Re-seed only the spell-check project to its clean state. Used in a beforeEach so
+// each spell-check test starts from the same chapter content regardless of what
+// previous tests typed and autosaved.
+export async function seedSpellCheckProject(): Promise<void> {
+  const client = new MongoClient(MONGODB_URI);
+  await client.connect();
+  try {
+    const db = client.db(MONGODB_DB_NAME);
+    const past = new Date('2025-01-01T10:00:00Z');
+    const now = new Date();
+    await db.collection('projects').replaceOne(
+      { _id: TEST_SPELLCHECK_PROJECT_ID } as object,
+      buildSpellCheckProject(past, now),
+      { upsert: true }
+    );
+  } finally {
+    await client.close();
+  }
 }
 
 // ── Seed all test fixtures ────────────────────────────────────────────────────
@@ -207,6 +263,13 @@ export async function seedAll(): Promise<void> {
       createdAt: past,
       updatedAt: now,
     },
+    { upsert: true }
+  );
+
+  // 2c-bis. Spell-check project — clean French text, no AI provider needed.
+  await db.collection('projects').replaceOne(
+    { _id: TEST_SPELLCHECK_PROJECT_ID } as object,
+    buildSpellCheckProject(past, now),
     { upsert: true }
   );
 

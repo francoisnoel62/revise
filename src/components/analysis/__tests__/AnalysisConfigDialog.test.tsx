@@ -71,6 +71,7 @@ describe('AnalysisConfigDialog', () => {
     render(<AnalysisConfigDialog {...defaultProps} />);
 
     // Uncheck all checkboxes one by one
+    await user.click(screen.getByRole('checkbox', { name: /orthographe/i }));
     await user.click(screen.getByRole('checkbox', { name: /grammaire/i }));
     await user.click(screen.getByRole('checkbox', { name: /ponctuation/i }));
     await user.click(screen.getByRole('checkbox', { name: /répétitions/i }));

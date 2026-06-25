@@ -4,7 +4,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, Languages, Type, Repeat, Palette } from 'lucide-react';
+import { Loader2, Languages, Type, Repeat, Palette, SpellCheck } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -42,6 +42,11 @@ const categoryConfig: Record<
   AnalysisCategory,
   { label: string; icon: typeof Languages; description: string }
 > = {
+  spelling: {
+    label: 'Orthographe',
+    icon: SpellCheck,
+    description: 'Fautes détectées hors connexion (fr-FR)',
+  },
   grammar: {
     label: 'Grammaire',
     icon: Languages,
@@ -83,6 +88,7 @@ const rigorOptions: { value: StyleRigor; label: string; description: string }[] 
 ];
 
 const allCategories: AnalysisCategory[] = [
+  'spelling',
   'grammar',
   'punctuation',
   'repetition',

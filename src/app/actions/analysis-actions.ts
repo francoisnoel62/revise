@@ -193,6 +193,7 @@ export async function analyzeChapter(
 
     // Compute stats
     const byCategory: Record<AnalysisCategory, number> = {
+      spelling: 0,
       grammar: 0,
       punctuation: 0,
       repetition: 0,

@@ -3,6 +3,8 @@
 
 'use server';
 
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import type { SpellChecker } from '@/domain/interfaces/SpellChecker';
 
 let spellCheckerInstance: SpellChecker | null = null;
@@ -10,20 +12,17 @@ let spellCheckerInstance: SpellChecker | null = null;
 async function getSpellChecker(): Promise<SpellChecker> {
   if (spellCheckerInstance) return spellCheckerInstance;
 
-  const [{ default: Nspell }, { default: fr }] = await Promise.all([
-    import('nspell'),
-    import('dictionary-fr'),
+  // Read .aff/.dic directly to avoid dictionary-fr's import.meta.url,
+  // which Turbopack rewrites to a bundle URL that fs.readFile cannot resolve.
+  const dictDir = path.join(process.cwd(), 'node_modules', 'dictionary-fr');
+  const [aff, dic] = await Promise.all([
+    readFile(path.join(dictDir, 'index.aff')),
+    readFile(path.join(dictDir, 'index.dic')),
   ]);
 
-  const spell: SpellChecker = await new Promise((resolve, reject) => {
-    fr((err: Error | null, dict: { aff: Buffer; dic: Buffer }) => {
-      if (err) reject(err);
-      else resolve(new Nspell(dict) as unknown as SpellChecker);
-    });
-  });
-
-  spellCheckerInstance = spell;
-  return spell;
+  const { default: Nspell } = await import('nspell');
+  spellCheckerInstance = new Nspell({ aff, dic }) as unknown as SpellChecker;
+  return spellCheckerInstance;
 }
 
 export interface SpellCheckWordResult {

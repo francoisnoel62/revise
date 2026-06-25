@@ -62,12 +62,16 @@ test.describe('Canon périmé — notification actionnable dans la cloche (#112,
   });
 
   test('Scénario D — annuler ferme la dialog sans déclencher l\'extraction', async ({ page }) => {
-    // Intercepter les appels canon pour vérifier qu'aucun n'est lancé
-    const canonCalls: string[] = [];
+    // Intercepter uniquement l'action d'extraction (generateCanonFactsAction), pas
+    // toutes les server actions. L'extraction reçoit (projectId, providerId) — son
+    // corps contient donc le providerId, contrairement aux actions de fond
+    // (checkCanonFreshnessAction, vérification orthographique) qui pourraient se
+    // déclencher pendant la fenêtre d'annulation et fausser un compteur trop large.
+    const extractionCalls: string[] = [];
     await page.route('**', async (route) => {
       const req = route.request();
-      if (req.headers()['next-action']) {
-        canonCalls.push(req.url());
+      if (req.headers()['next-action'] && (req.postData() ?? '').includes(TEST_PROVIDER_ID)) {
+        extractionCalls.push(req.url());
       }
       await route.continue();
     });
@@ -83,13 +87,13 @@ test.describe('Canon périmé — notification actionnable dans la cloche (#112,
     await page.getByRole('button', { name: 'Régénérer' }).first().click();
     await expect(page.getByRole('alertdialog')).toBeVisible({ timeout: 5_000 });
 
-    const callCountBeforeCancel = canonCalls.length;
+    const callCountBeforeCancel = extractionCalls.length;
 
-    // Annuler — la dialog se ferme, aucun appel supplémentaire de génération
+    // Annuler — la dialog se ferme, aucun appel d'extraction déclenché
     await page.getByRole('button', { name: 'Annuler' }).click();
     await expect(page.getByRole('alertdialog')).not.toBeVisible({ timeout: 3_000 });
 
-    // Aucun appel server action supplémentaire déclenché par l'annulation
-    expect(canonCalls.length).toBe(callCountBeforeCancel);
+    // Aucun appel d'extraction déclenché par l'annulation
+    expect(extractionCalls.length).toBe(callCountBeforeCancel);
   });
 });

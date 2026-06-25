@@ -20,10 +20,11 @@ const analyses: [string, string][] = [
 ];
 
 const checks: [string, string][] = [
-  [‘Grammaire’, ‘Erreurs grammaticales et accords’],
-  [‘Ponctuation’, ‘Erreurs de ponctuation et typographie’],
-  [‘Style’, "Suggestions d’amélioration stylistique"],
-  [‘Répétitions’, ‘Mots et phrases revenant trop souvent’],
+  ['Orthographe', "Fautes d'orthographe détectées hors connexion (dictionnaire fr-FR)"],
+  ['Grammaire', 'Erreurs grammaticales et accords'],
+  ['Ponctuation', 'Erreurs de ponctuation et typographie'],
+  ['Style', "Suggestions d'amélioration stylistique"],
+  ['Répétitions', 'Mots et phrases revenant trop souvent'],
 ];
 
 export default function GuideAnalysesPage() {

@@ -13,6 +13,7 @@ describe('AnalysisSummaryCard', () => {
     appliedIssues: 5,
     ignoredIssues: 3,
     byCategory: {
+      spelling: 0,
       grammar: 6,
       punctuation: 4,
       repetition: 4,
@@ -116,6 +117,7 @@ describe('AnalysisSummaryCard', () => {
       appliedIssues: 0,
       ignoredIssues: 0,
       byCategory: {
+        spelling: 0,
         grammar: 0,
         punctuation: 0,
         repetition: 0,

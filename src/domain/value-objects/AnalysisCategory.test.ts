@@ -12,19 +12,20 @@ import {
 
 describe('AnalysisCategory', () => {
   describe('ANALYSIS_CATEGORIES', () => {
-    it('should contain all four analysis categories', () => {
+    it('should contain all five analysis categories', () => {
+      expect(ANALYSIS_CATEGORIES).toContain('spelling');
       expect(ANALYSIS_CATEGORIES).toContain('grammar');
       expect(ANALYSIS_CATEGORIES).toContain('punctuation');
       expect(ANALYSIS_CATEGORIES).toContain('repetition');
       expect(ANALYSIS_CATEGORIES).toContain('style');
-      expect(ANALYSIS_CATEGORIES).toHaveLength(4);
+      expect(ANALYSIS_CATEGORIES).toHaveLength(5);
     });
 
     it('should be readonly', () => {
       // TypeScript ensures this at compile time
       // This test documents the intent
       expect(Object.isFrozen(ANALYSIS_CATEGORIES)).toBe(false); // as const doesn't freeze
-      expect(ANALYSIS_CATEGORIES.length).toBe(4);
+      expect(ANALYSIS_CATEGORIES.length).toBe(5);
     });
   });
 
@@ -39,13 +40,13 @@ describe('AnalysisCategory', () => {
     it('should return false for invalid categories', () => {
       expect(isValidAnalysisCategory('invalid')).toBe(false);
       expect(isValidAnalysisCategory('')).toBe(false);
-      expect(isValidAnalysisCategory('spelling')).toBe(false);
       expect(isValidAnalysisCategory('readability')).toBe(false);
     });
   });
 
   describe('ANALYSIS_CATEGORY_LABELS', () => {
     it('should have French labels for all categories', () => {
+      expect(ANALYSIS_CATEGORY_LABELS.spelling).toBe('Orthographe');
       expect(ANALYSIS_CATEGORY_LABELS.grammar).toBe('Grammaire');
       expect(ANALYSIS_CATEGORY_LABELS.punctuation).toBe('Ponctuation');
       expect(ANALYSIS_CATEGORY_LABELS.repetition).toBe('Répétitions');
@@ -71,10 +72,11 @@ describe('AnalysisCategory', () => {
 
   describe('ANALYSIS_CATEGORY_ORDER', () => {
     it('should define display order for all categories', () => {
-      expect(ANALYSIS_CATEGORY_ORDER.grammar).toBe(0);
-      expect(ANALYSIS_CATEGORY_ORDER.punctuation).toBe(1);
-      expect(ANALYSIS_CATEGORY_ORDER.repetition).toBe(2);
-      expect(ANALYSIS_CATEGORY_ORDER.style).toBe(3);
+      expect(ANALYSIS_CATEGORY_ORDER.spelling).toBe(0);
+      expect(ANALYSIS_CATEGORY_ORDER.grammar).toBe(1);
+      expect(ANALYSIS_CATEGORY_ORDER.punctuation).toBe(2);
+      expect(ANALYSIS_CATEGORY_ORDER.repetition).toBe(3);
+      expect(ANALYSIS_CATEGORY_ORDER.style).toBe(4);
     });
 
     it('should have unique order values', () => {
