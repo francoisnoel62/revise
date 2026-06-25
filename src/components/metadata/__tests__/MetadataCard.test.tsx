@@ -157,10 +157,8 @@ describe('MetadataCard', () => {
       await user.click(menuButton);
 
       // Click regenerate
-      await waitFor(async () => {
-        const regenerateItem = screen.getByText('Régénérer');
-        await user.click(regenerateItem);
-      });
+      const regenerateItem = await screen.findByText('Régénérer');
+      await user.click(regenerateItem);
 
       // Check dialog is open
       await waitFor(() => {

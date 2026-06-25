@@ -2,7 +2,12 @@
 // ABOUTME: Tests document creation, paragraph handling, and format validation
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { PdfExporter } from './PdfExporter';
+import {
+  PdfExporter,
+  wrapText,
+  isLeadingTitleHeading,
+  stripLeadingTitleHeading,
+} from './PdfExporter';
 import { Project } from '@/domain/entities/Project';
 import { Chapter } from '@/domain/entities/Chapter';
 
@@ -11,6 +16,101 @@ describe('PdfExporter', () => {
 
   beforeEach(() => {
     exporter = new PdfExporter();
+  });
+
+  describe('wrapText', () => {
+    // Synthetic measure: 1 unit per character, so assertions are deterministic.
+    const measure = (s: string) => s.length;
+
+    it('wraps long text into multiple lines, each within maxWidth', () => {
+      const lines = wrapText('aaaa bbbb cccc dddd', 10, measure);
+
+      expect(lines.length).toBeGreaterThanOrEqual(2);
+      for (const line of lines) {
+        expect(measure(line)).toBeLessThanOrEqual(10);
+      }
+    });
+
+    it('keeps a single word wider than maxWidth on its own line', () => {
+      expect(wrapText('aaaaaaaaaaaa', 10, measure)).toEqual(['aaaaaaaaaaaa']);
+    });
+
+    it('returns a single line when the text fits', () => {
+      expect(wrapText('short', 100, measure)).toEqual(['short']);
+    });
+
+    it('handles empty text', () => {
+      expect(wrapText('', 100, measure)).toEqual(['']);
+    });
+  });
+
+  describe('isLeadingTitleHeading', () => {
+    it('matches a heading equal to the title (trimmed, case-insensitive)', () => {
+      const node = {
+        type: 'heading',
+        attrs: { level: 1 },
+        content: [{ type: 'text', text: '  Chapitre Un  ' }],
+      };
+      expect(isLeadingTitleHeading(node, 'chapitre un')).toBe(true);
+    });
+
+    it('does not match a heading with different text', () => {
+      const node = {
+        type: 'heading',
+        attrs: { level: 2 },
+        content: [{ type: 'text', text: 'Autre' }],
+      };
+      expect(isLeadingTitleHeading(node, 'Chapitre Un')).toBe(false);
+    });
+
+    it('does not match a paragraph', () => {
+      const node = {
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'Chapitre Un' }],
+      };
+      expect(isLeadingTitleHeading(node, 'Chapitre Un')).toBe(false);
+    });
+  });
+
+  describe('stripLeadingTitleHeading', () => {
+    const title = 'Chapitre Un';
+
+    it('removes a leading heading that duplicates the title', () => {
+      const doc = {
+        type: 'doc' as const,
+        content: [
+          { type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: 'Chapitre Un' }] },
+          { type: 'paragraph', content: [{ type: 'text', text: 'Corps' }] },
+        ],
+      };
+      const result = stripLeadingTitleHeading(doc, title);
+      expect(result.content).toHaveLength(1);
+      expect(result.content![0].type).toBe('paragraph');
+    });
+
+    it('keeps a leading heading that differs from the title', () => {
+      const doc = {
+        type: 'doc' as const,
+        content: [
+          { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: 'Section' }] },
+          { type: 'paragraph', content: [{ type: 'text', text: 'Corps' }] },
+        ],
+      };
+      expect(stripLeadingTitleHeading(doc, title).content).toHaveLength(2);
+    });
+
+    it('leaves content without a leading heading unchanged', () => {
+      const doc = {
+        type: 'doc' as const,
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Corps' }] }],
+      };
+      expect(stripLeadingTitleHeading(doc, title).content).toHaveLength(1);
+    });
+
+    it('handles an empty document', () => {
+      const doc = { type: 'doc' as const, content: [] };
+      expect(stripLeadingTitleHeading(doc, title).content).toHaveLength(0);
+    });
   });
 
   describe('supports', () => {
@@ -431,6 +531,45 @@ describe('PdfExporter', () => {
 
       // Should not throw an error - French typography is preserved
       const buffer = await exporter.exportProject(project, 'french-typography.pdf');
+
+      expect(buffer).toBeInstanceOf(Buffer);
+      expect(buffer[0]).toBe(0x25); // '%'
+      expect(buffer[1]).toBe(0x50); // 'P'
+      expect(buffer[2]).toBe(0x44); // 'D'
+      expect(buffer[3]).toBe(0x46); // 'F'
+    });
+
+    it('should render a long title and a body that repeats it without throwing', async () => {
+      const longTitle =
+        'Un Titre Extremement Long Qui Depasse Largement La Largeur De La Page A4 Et Doit Revenir A La Ligne';
+      const content = JSON.stringify({
+        type: 'doc',
+        content: [
+          {
+            type: 'heading',
+            attrs: { level: 1 },
+            content: [{ type: 'text', text: longTitle }],
+          },
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: 'Premier paragraphe du chapitre.' }],
+          },
+        ],
+      });
+
+      const chapters = [new Chapter('ch-1', longTitle, content, 0)];
+      const project = new Project(
+        'proj-1',
+        'user-1',
+        'Roman',
+        chapters,
+        'ch-1',
+        null,
+        new Date(),
+        new Date()
+      );
+
+      const buffer = await exporter.exportProject(project, 'long-title.pdf');
 
       expect(buffer).toBeInstanceOf(Buffer);
       expect(buffer[0]).toBe(0x25); // '%'
