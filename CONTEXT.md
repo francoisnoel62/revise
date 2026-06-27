@@ -68,3 +68,41 @@ _Avoid_ : cron, timer, job
 **Centre de notifications** :
 Interface (cloche) qui informe l'auteur d'événements système pertinents pendant ou après sa session d'écriture. Toutes les notifications sont actionnables avec confirmation avant action.
 _Avoid_ : alertes, messages, toast
+
+### Mise en page et publication
+
+**Profil de publication** :
+Lentille de rendu et de contraintes appliquée au manuscrit pour une cible donnée (KDP 6×9, A4, A5, passerelle Word…). Changeable à tout moment, dans les deux sens, sans perte ; le manuscrit lui-même n'en dépend pas. L'auteur choisit un profil et l'écriture épouse le rendu d'export de cette cible.
+_Avoid_ : format, template, thème
+
+**Profil print-ready** :
+Profil de publication strict destiné à une marketplace d'impression (KDP, BoD, TheBookEdition). N'expose que des styles sémantiques : un fichier invalide est impossible à produire, garantissant l'acceptation sans aller-retour.
+_Avoid_ : preset, gabarit
+
+**Profil passerelle** :
+Profil de publication permissif destiné à une remise éditable (Word, Google Docs), par exemple pour un bêta-lecteur. Autorise les surcharges de présentation.
+_Avoid_ : brouillon, draft
+
+**Style sémantique** :
+Marquage du rôle d'un bloc ou d'un fragment (Corps, Titre de chapitre, Sous-titre, Citation, Épigraphe, Séparateur de scène) — pas son apparence. Le profil décide du rendu. L'auteur choisit un style, jamais une police ni une taille.
+_Avoid_ : format, style de paragraphe, police
+
+**Surcharge de présentation** :
+Mise en forme manuelle (police, taille, alignement) posée en profil passerelle. Stockée en couche séparée, ignorée par les profils print-ready et restituée au retour en passerelle — jamais destructive.
+_Avoid_ : override, format manuel
+
+**Pagination vivante** :
+Affichage du chapitre en vraies pages au trim de la cible pendant l'écriture, re-paginées à la pause de frappe (débounce). Le curseur circule de page en page comme dans le livre imprimé.
+_Avoid_ : aperçu, preview, mode impression
+
+**Moteur de rendu paginé** :
+Composant unique HTML/CSS « paged media » qui paginate à la fois l'éditeur et l'export PDF. Une seule définition du livre, d'où la parité.
+_Avoid_ : exporteur, générateur PDF
+
+**Parité d'aperçu** :
+Garantie que ce que l'auteur voit dans l'éditeur paginé est, au pixel, le PDF exporté. Atteignable pour le PDF/impression, pas pour le DOCX (refluable).
+_Avoid_ : WYSIWYG, fidélité
+
+**Liminaires** :
+Pages d'entrée du livre (faux-titre, page de titre, copyright, dédicace, épigraphe) et table des matières. Générés automatiquement depuis les annexes éditoriales et les métadonnées ; comptés dans la numérotation mais hors de la surface d'écriture.
+_Avoid_ : front matter, préliminaires, en-têtes
