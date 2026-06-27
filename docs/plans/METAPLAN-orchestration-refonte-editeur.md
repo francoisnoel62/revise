@@ -81,7 +81,7 @@ nodes:
     actor: agent
     label: ready-for-agent
     gate: A_green
-    exit_proof: re-pagination à la pause < 150 ms sur ~4000 mots ; caret correct ; verdict consigné dans ADR 0005
+    exit_proof: re-pagination à la pause < 900 ms sur ~4000 mots ; caret correct ; verdict consigné dans ADR 0005
 
   - id: C
     file: 0004-issue-chromium-vercel.md
@@ -222,7 +222,7 @@ nodes:
 | Gate | Vrai quand… |
 |---|---|
 | `A_green` | l'issue A est mergée ET son test pixel-diff passe |
-| `B_green` | l'issue B est mergée ET le budget < 150 ms est tenu (ou fallback décidé+consigné dans ADR 0005) |
+| `B_green` | l'issue B est mergée ET le budget < 900 ms est tenu (ou fallback décidé+consigné dans ADR 0005) |
 | `SPIKE_GREEN` | `A_green` **ET** `B_green` — **macro-porte qui débloque toute la Phase 1+** |
 | `X_done` | l'issue X est mergée, ses critères d'acceptation cochés, `npm run verify` vert |
 | `HUMAN_APPROVES_MIGRATION_STRATEGY` | décision humaine in-place vs versionnée prise (issue F) |

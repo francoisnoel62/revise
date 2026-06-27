@@ -64,7 +64,7 @@ Marges **miroir** (recto/verso) → CSS `@page :left` / `@page :right`.
 
 4. **🔴 Test d'abord — budget de perf.**
    - Rendre la route éditable (TipTap) ; à la **pause de frappe (~300 ms débounce)**, le contenu repasse dans Paged.js.
-   - Test : frappe dans un chapitre réaliste (~4 000 mots) ; assert que la re-pagination à la pause tient **sous un budget chiffré** (cible initiale : < 150 ms) et que le curseur reste correct.
+   - Test : frappe dans un chapitre réaliste (~4 000 mots) ; assert que la re-pagination à la pause tient **sous un budget chiffré** (< 900 ms, décision humaine du 2026-06-27) et que le curseur reste correct.
    - Test : ajouter du texte qui déborde une page ⇒ le curseur passe à la page suivante.
    Rouge.
 
