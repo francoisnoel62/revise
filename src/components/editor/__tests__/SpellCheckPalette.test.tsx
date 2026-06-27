@@ -7,7 +7,7 @@ import { SpellCheckPalette } from '../SpellCheckPalette';
 import { spellCheckPluginKey } from '../SpellCheckExtension';
 import type { Editor } from '@tiptap/core';
 
-function createMockEditor(errors = [{ word: 'spicce', from: 1, to: 7, suggestions: ['spice'] }]) {
+function createMockEditor(_errors = [{ word: 'spicce', from: 1, to: 7, suggestions: ['spice'] }]) {
   return {
     view: {
       dom: document.createElement('div'),
