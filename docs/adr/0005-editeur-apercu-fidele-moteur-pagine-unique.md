@@ -49,3 +49,9 @@ Sont **différés** : bascule de profil, surcharges passerelle, liminaires/TOC, 
 - Faut-il un **preflight de validation** explicite (marges, fond perdu, polices embarquées, DPI images, nombre de pages minimal) en plus de la garantie par construction ?
 - Modèle de stockage précis des surcharges de présentation (couche séparée scopée au profil passerelle).
 - Stratégie de calcul/cache des offsets de numérotation livre-entier pendant l'édition.
+
+## Premier incrément — résultats du spike #122
+
+- **Parité statique prouvée** : l'aperçu KDP 6×9 et le PDF Chromium utilisent le même HTML, la même CSS, Paged.js et EB Garamond. Le pixel-diff structurel de la première page est sous 1 % après tolérance des différences d'anti-aliasing ClearType/PDF.js.
+- **Re-pagination vivante acceptée** : sur un chapitre réaliste de 4 000 mots (80 paragraphes), la mesure observée est de **331,4 ms** après le debounce de 300 ms. Le nombre de pages augmente correctement lors du débordement et le caret reste inchangé.
+- **Budget décidé** : le budget de re-pagination est fixé à **< 900 ms** par décision humaine du 2026-06-27. La mesure tient ce budget ; Paged.js est donc retenu et le fallback ProseMirror custom n'est pas déclenché.

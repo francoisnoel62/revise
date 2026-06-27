@@ -12,7 +12,7 @@ Lever le risque de perf : prouver que Paged.js re-paginate **à la pause de frap
 
 ## Critères d'acceptation
 - [ ] La frappe dans un chapitre réaliste (~4 000 mots) déclenche une re-pagination à la pause.
-- [ ] La re-pagination à la pause tient sous le budget (cible initiale : **< 150 ms**).
+- [ ] La re-pagination à la pause tient sous le budget (**< 900 ms**, décision humaine du 2026-06-27).
 - [ ] Ajouter du texte qui déborde une page fait passer le curseur à la page suivante, position correcte.
 - [ ] Résultats consignés dans l'ADR 0005, section « Premier incrément — résultats » (Paged.js tient-il le budget ? sinon fallback documenté).
 

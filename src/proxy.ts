@@ -15,6 +15,12 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const path = nextUrl.pathname;
 
+  // The isolated spike contains fixture data only and must be reachable by its
+  // deterministic browser test without database-backed authentication setup.
+  if (path === '/editor/paged-spike' && process.env.NODE_ENV !== 'production') {
+    return NextResponse.next();
+  }
+
   // Check if route requires auth
   const isProtectedRoute = protectedRoutes.some(
     (route) => path === route || path.startsWith(`${route}/`)
