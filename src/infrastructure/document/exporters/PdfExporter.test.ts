@@ -1,5 +1,5 @@
-// ABOUTME: Unit test suite for PdfExporter validating PDF file generation
-// ABOUTME: Tests document creation, paragraph handling, and format validation
+// ABOUTME: Test suite for PdfExporter — validates pdf-lib A4/Times paragraph rendering and format validation.
+// ABOUTME: Covers single-chapter, paragraph spacing, and utility methods for the legacy pdf-lib exporter.
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import {

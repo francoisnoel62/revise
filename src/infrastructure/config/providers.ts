@@ -67,7 +67,8 @@ import { CompositeDocumentParser } from '@/infrastructure/document/parsers/Compo
 import { MarkdownFolderParser } from '@/infrastructure/document/parsers/MarkdownFolderParser';
 import { FolderParser } from '@/domain/interfaces/FolderParser';
 import { DocxExporter } from '@/infrastructure/document/exporters/DocxExporter';
-import { PdfExporter } from '@/infrastructure/document/exporters/PdfExporter';
+import { PagedPdfExporter } from '@/infrastructure/document/exporters/PagedPdfExporter';
+import { PlaywrightBrowserLauncher } from '@/infrastructure/document/paged/PlaywrightBrowserLauncher';
 import { TipTapContentService } from '@/infrastructure/document/utils/TipTapContentService';
 import { Provider } from '@/domain/entities/Provider';
 import { getDatabase } from './database';
@@ -470,7 +471,8 @@ export type ExportFormat = 'docx' | 'pdf';
  */
 export function getDocumentExporter(format: ExportFormat = 'docx'): DocumentExporter {
   if (format === 'pdf') {
-    return new PdfExporter();
+    const assetBaseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000';
+    return new PagedPdfExporter(assetBaseUrl, new PlaywrightBrowserLauncher());
   }
   return new DocxExporter();
 }

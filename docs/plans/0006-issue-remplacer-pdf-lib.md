@@ -11,10 +11,10 @@ L'export PDF actuel (`src/infrastructure/document/exporters/PdfExporter.ts`) est
 **Out** : DOCX (reste `DocxExporter`, voie passerelle refluable inchangée) ; déploiement Vercel (`0004`).
 
 ## Critères d'acceptation
-- [ ] L'export PDF d'un chapitre/projet passe par le moteur paginé et respecte le profil actif.
-- [ ] Parité pixel éditeur↔PDF vérifiée (réutiliser le test du spike).
-- [ ] L'export DOCX (passerelle) est intact.
-- [ ] Les tests existants de `PdfExporter` sont migrés ou retirés proprement (jamais supprimés juste « parce qu'ils échouent »).
+- [x] L'export PDF d'un chapitre/projet passe par le moteur paginé et respecte le profil actif.
+- [x] Parité pixel éditeur↔PDF vérifiée (réutiliser le test du spike).
+- [x] L'export DOCX (passerelle) est intact.
+- [x] Les tests existants de `PdfExporter` sont migrés ou retirés proprement (jamais supprimés juste « parce qu'ils échouent »).
 
 ## Ancre TDD
 Étendre le pixel-diff à la vraie voie d'export (`exportProjectPdf`). Test : l'export d'une fixture produit un PDF dont les pages matchent l'aperçu.
