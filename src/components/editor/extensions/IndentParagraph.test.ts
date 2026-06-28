@@ -222,3 +222,40 @@ describe('IndentParagraph', () => {
     editor.destroy();
   });
 });
+
+describe('IndentParagraph — semanticRole', () => {
+  const createEditor = (content = '<p>Hello world</p>') => {
+    return new Editor({
+      extensions: [Document, IndentParagraph, Text],
+      content,
+    });
+  };
+
+  it('sets semanticRole attribute on paragraph', () => {
+    const editor = createEditor();
+    editor.commands.setTextSelection(3);
+    editor.chain().focus().setSemanticRole('corps').run();
+
+    const attrs = editor.getAttributes('paragraph');
+    expect(attrs.semanticRole).toBe('corps');
+    editor.destroy();
+  });
+
+  it('renders semanticRole as data-semantic-role attribute', () => {
+    const editor = createEditor();
+    editor.commands.setTextSelection(3);
+    editor.chain().focus().setSemanticRole('epigraphe').run();
+
+    expect(editor.getHTML()).toContain('data-semantic-role="epigraphe"');
+    editor.destroy();
+  });
+
+  it('parses data-semantic-role from HTML', () => {
+    const editor = createEditor('<p data-semantic-role="corps">Body text</p>');
+    editor.commands.setTextSelection(3);
+
+    const attrs = editor.getAttributes('paragraph');
+    expect(attrs.semanticRole).toBe('corps');
+    editor.destroy();
+  });
+});

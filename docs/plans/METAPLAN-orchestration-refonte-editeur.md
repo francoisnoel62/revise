@@ -23,7 +23,7 @@ Les GitHub issues existent désormais (`francoisnoel62/revise`). **A et B ont é
 | C | **#123** | Déploiement Chromium sur Vercel | `done` | #122 | ✅ **FERMÉ** (décision : @sparticuz/chromium, 2026-06-28) |
 | D | **#124** | PublicationProfile + PagedRenderer | `done` | #122 | ✅ **MERGÉ** (2026-06-28) |
 | E | **#125** | Remplacer l'export PDF pdf-lib | `done` | #122, #124 | ✅ **MERGÉ** (2026-06-28) |
-| F | **#126** | Contenu sémantique + migration | `needs-triage` | #124 | ⬜ |
+| F | **#126** | Contenu sémantique + migration | `ready-for-agent` | #124 | 🔜 **DÉBLOQUÉ** (stratégie approuvée 2026-06-28) |
 | G | **#127** | Barre d'outils profil-adaptative | `needs-triage` | #126 | ⬜ |
 | H | **#128** | Surcharges de présentation | `needs-triage` | #126 | ⬜ |
 | I | **#129** | Sélecteur de profil + bascule à chaud | `needs-triage` | #124, #126 | ⬜ |
@@ -304,8 +304,8 @@ L'orchestrateur **ne franchit pas seul** ces points :
 | C (#123) | 1 | ✅ (SPIKE_GREEN) | ✅ **done** | ✅ décision @sparticuz/chromium consignée |
 | D (#124) | 1 | ✅ (SPIKE_GREEN) | ✅ **done** | ✅ PublicationProfile + PagedRenderer mergés |
 | E (#125) | 1 | ✅ (SPIKE_GREEN+D) | ✅ **done** | ✅ PagedPdfExporter mergé ; parité E2E verte ; DOCX intact ; tests pdf-lib conservés |
-| F (#126) | 2 | ⬜ (D+humain) | ⬜ todo | ⬜ |
-| G (#127) | 2 | ⬜ (F) | ⬜ todo | ⬜ |
+| F (#126) | 2 | ✅ (D+humain ✅) | ✅ **done** | ✅ schéma + migration + demigrator + script DB + banner ambiguïtés mergés (2026-06-28) |
+| G (#127) | 2 | ✅ (F ✅) | 🔜 **SUIVANT** | ⬜ |
 | H (#128) | 2 | ⬜ (F) | ⬜ todo | ⬜ |
 | I (#129) | 3 | ⬜ (D+F) | ⬜ todo | ⬜ |
 | J (#130) | 3 | ⬜ (D+I) | ⬜ todo | ⬜ |
@@ -315,4 +315,6 @@ L'orchestrateur **ne franchit pas seul** ces points :
 | N (#134) | 4 | ⬜ (E+M) | ⬜ todo | ⬜ |
 | O (#135) | 5 | ⬜ (F+B) | ⬜ todo | ⬜ |
 
-**Prochain pas : issue L (#132) — Liminaires + TOC générés (gate D_done + E_done ✅).**
+**Prochain pas :** deux fronts parallèles :
+- **G (#127)** — Barre d'outils profil-adaptative (gate ouverte : F_done ✅ 2026-06-28)
+- **L (#132)** — Liminaires + TOC (gate ouverte : D_done + E_done ✅)

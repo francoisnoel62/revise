@@ -87,9 +87,37 @@ _Avoid_ : brouillon, draft
 Marquage du rôle d'un bloc ou d'un fragment (Corps, Titre de chapitre, Sous-titre, Citation, Épigraphe, Séparateur de scène) — pas son apparence. Le profil décide du rendu. L'auteur choisit un style, jamais une police ni une taille.
 _Avoid_ : format, style de paragraphe, police
 
+**Corps** :
+Rôle sémantique du paragraphe de narration ordinaire. Valeur par défaut pour tout paragraphe non explicitement reclassifié lors de la migration. Identifiant code : `corps`.
+_Avoid_ : paragraphe, texte
+
+**Titre de chapitre** :
+Rôle sémantique du nœud `heading` level 1 — intitulé du chapitre courant. Mappé automatiquement lors de la migration. Un seul par chapitre. Identifiant code : `titre-de-chapitre`.
+_Avoid_ : titre, heading, h1
+
+**Sous-titre** :
+Rôle sémantique d'un titre de section à l'intérieur d'un chapitre (heading level 2+). Nécessite une reclassification manuelle — la migration ne peut pas l'inférer depuis les marques de présentation. Identifiant code : `sous-titre`.
+_Avoid_ : intertitre, heading
+
+**Citation** :
+Rôle sémantique d'un bloc de texte cité (extrait d'œuvre tiers, discours indirect libre). Rendu en retrait dans les profils print-ready. Nécessite une reclassification manuelle. Identifiant code : `citation`.
+_Avoid_ : blockquote, extrait
+
+**Épigraphe** :
+Rôle sémantique d'une citation placée en exergue, généralement en tête de chapitre. Un paragraphe centré est signalé comme ambigu lors de la migration — l'auteur confirme s'il s'agit d'une épigraphe. Identifiant code : `epigraphe`.
+_Avoid_ : exergue
+
+**Séparateur de scène** :
+Rôle sémantique d'une rupture entre deux scènes dans un chapitre. Représenté par le nœud `horizontalRule` — le type de nœud lui-même est le marqueur sémantique, aucun attribut supplémentaire n'est nécessaire. Identifiant code : `separateur-de-scene`.
+_Avoid_ : hr, break, séparateur
+
 **Surcharge de présentation** :
 Mise en forme manuelle (police, taille, alignement) posée en profil passerelle. Stockée en couche séparée, ignorée par les profils print-ready et restituée au retour en passerelle — jamais destructive.
 _Avoid_ : override, format manuel
+
+**Migration sémantique** :
+Script idempotent qui convertit le contenu TipTap legacy (portant des marques de présentation : fontFamily, fontSize, textAlign) en contenu sémantique pur (attribut `semanticRole` sur chaque bloc). Les cas ambigus (paragraphe centré pouvant être une épigraphe) sont conservés comme `corps` et signalés pour reclassification par l'auteur. Réversible par script inverse ; ne perd aucun texte.
+_Avoid_ : conversion, nettoyage, reformatage
 
 **Pagination vivante** :
 Affichage du chapitre en vraies pages au trim de la cible pendant l'écriture, re-paginées à la pause de frappe (débounce). Le curseur circule de page en page comme dans le livre imprimé.
