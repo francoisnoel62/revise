@@ -20,3 +20,12 @@ Test d'intégration : appeler la voie de génération PDF de prod sur une fixtur
 
 ## Pourquoi `ready-for-human`
 Choix d'infra/coût/billing et tests sur compte Vercel réel — décision humaine. Un agent peut préparer le POC, l'humain tranche.
+
+## Décision tranchée (2026-06-28)
+
+**`@sparticuz/chromium` + `puppeteer-core`** — solution standard pour Next.js/Vercel, gratuite, open source.
+
+- En local/CI : Playwright (Chromium déjà installé)
+- En production : `@sparticuz/chromium` (même Chromium, compressé pour serverless Vercel)
+- Seul inconvénient : cold start ~3-5 s sur la première requête après idle — acceptable pour un export intentionnel.
+- Implémentation : conditionnel `if (prod) use sparticuz else use playwright` dans la couche infrastructure.
