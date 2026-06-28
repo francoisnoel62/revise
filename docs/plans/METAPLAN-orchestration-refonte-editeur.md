@@ -15,26 +15,27 @@
 
 ## Mapping tracker (LIVE — issues créées le 2026-06-27)
 
-Les GitHub issues existent désormais (`francoisnoel62/revise`). **A et B ont été fusionnés en une seule issue spike (#122).** Le backlog compte 14 issues.
+Les GitHub issues existent désormais (`francoisnoel62/revise`). **A et B ont été fusionnés en une seule issue spike (#122), mergée sur `main` le 2026-06-27.** Le backlog compte 14 issues.
 
-| Nœud | Issue | Titre | Label | Bloqué par |
-|---|---|---|---|---|
-| SPIKE (ex-A+B) | **#122** | Spike — parité pixel + re-pagination vivante | `ready-for-agent` | — |
-| C | **#123** | Déploiement Chromium sur Vercel | `ready-for-human` | #122 |
-| D | **#124** | PublicationProfile + PagedRenderer | `needs-triage` | #122 |
-| E | **#125** | Remplacer l'export PDF pdf-lib | `needs-triage` | #122, #124 |
-| F | **#126** | Contenu sémantique + migration | `needs-triage` | #124 |
-| G | **#127** | Barre d'outils profil-adaptative | `needs-triage` | #126 |
-| H | **#128** | Surcharges de présentation | `needs-triage` | #126 |
-| I | **#129** | Sélecteur de profil + bascule à chaud | `needs-triage` | #124, #126 |
-| J | **#130** | Profils additionnels (A5, Word…) | `ready-for-agent` | #124, #129 |
-| K | **#131** | Marketplaces + preflight | `ready-for-human` | #124, #129 |
-| L | **#132** | Liminaires + TOC | `needs-triage` | #124, #125 |
-| M | **#133** | Numérotation livre-entier | `needs-triage` | #125, #132 |
-| N | **#134** | Aperçu livre entier | `ready-for-agent` | #125, #133 |
-| O | **#135** | IA adaptée au modèle paginé | `ready-for-agent` | #126, #122 |
+| Nœud | Issue | Titre | Label | Bloqué par | État |
+|---|---|---|---|---|---|
+| SPIKE (ex-A+B) | **#122** | Spike — parité pixel + re-pagination vivante | `done` | — | ✅ **MERGÉ** |
+| C | **#123** | Déploiement Chromium sur Vercel | `done` | #122 | ✅ **FERMÉ** (décision : @sparticuz/chromium, 2026-06-28) |
+| D | **#124** | PublicationProfile + PagedRenderer | `done` | #122 | ✅ **MERGÉ** (2026-06-28) |
+| E | **#125** | Remplacer l'export PDF pdf-lib | `ready-for-agent` | #122, #124 | 🔜 **SUIVANT** |
+| F | **#126** | Contenu sémantique + migration | `needs-triage` | #124 | ⬜ |
+| G | **#127** | Barre d'outils profil-adaptative | `needs-triage` | #126 | ⬜ |
+| H | **#128** | Surcharges de présentation | `needs-triage` | #126 | ⬜ |
+| I | **#129** | Sélecteur de profil + bascule à chaud | `needs-triage` | #124, #126 | ⬜ |
+| J | **#130** | Profils additionnels (A5, Word…) | `ready-for-agent` | #124, #129 | ⬜ |
+| K | **#131** | Marketplaces + preflight | `ready-for-human` | #124, #129 | ⬜ |
+| L | **#132** | Liminaires + TOC | `needs-triage` | #124, #125 | ⬜ |
+| M | **#133** | Numérotation livre-entier | `needs-triage` | #125, #132 | ⬜ |
+| N | **#134** | Aperçu livre entier | `ready-for-agent` | #125, #133 | ⬜ |
+| O | **#135** | IA adaptée au modèle paginé | `ready-for-agent` | #126, #122 | ⬜ |
 
-> Dans la suite du document, les nœuds A/B du graphe conceptuel correspondent tous deux à l'unique issue **#122** ; `A_green` et `B_green` se lisent désormais « jalon J1 / jalon J2 de #122 vert ». **Point d'entrée : #122.**
+> `SPIKE_GREEN` = ✅ (J1 : pixel-diff < 1 % · J2 : 331 ms < 900 ms · Paged.js retenu). Phase 1 débloquée.
+> Branche `feat/122-paged-renderer-spike` supprimée le 2026-06-28 (travail dans `main`).
 
 ## 0. Étoile polaire (critère de réussite global)
 
@@ -298,20 +299,20 @@ L'orchestrateur **ne franchit pas seul** ces points :
 
 | Issue | Phase | Gate ouverte ? | Statut | exit_proof atteint ? |
 |---|---|---|---|---|
-| A | 0 | ✅ (entrée) | ⬜ todo | ⬜ |
-| B | 0 | ⬜ (A_green) | ⬜ todo | ⬜ |
-| C | 1 | ⬜ (SPIKE_GREEN) | ⬜ todo | ⬜ |
-| D | 1 | ⬜ (SPIKE_GREEN) | ⬜ todo | ⬜ |
-| E | 1 | ⬜ (SPIKE_GREEN+D) | ⬜ todo | ⬜ |
-| F | 2 | ⬜ (D+humain) | ⬜ todo | ⬜ |
-| G | 2 | ⬜ (F) | ⬜ todo | ⬜ |
-| H | 2 | ⬜ (F) | ⬜ todo | ⬜ |
-| I | 3 | ⬜ (D+F) | ⬜ todo | ⬜ |
-| J | 3 | ⬜ (D+I) | ⬜ todo | ⬜ |
-| K | 3 | ⬜ (D+I+humain) | ⬜ todo | ⬜ |
-| L | 4 | ⬜ (D+E) | ⬜ todo | ⬜ |
-| M | 4 | ⬜ (E+L) | ⬜ todo | ⬜ |
-| N | 4 | ⬜ (E+M) | ⬜ todo | ⬜ |
-| O | 5 | ⬜ (F+B) | ⬜ todo | ⬜ |
+| A (#122 J1) | 0 | ✅ (entrée) | ✅ **done** | ✅ pixel-diff < 1 % |
+| B (#122 J2) | 0 | ✅ (A_green) | ✅ **done** | ✅ 331 ms < 900 ms |
+| C (#123) | 1 | ✅ (SPIKE_GREEN) | ✅ **done** | ✅ décision @sparticuz/chromium consignée |
+| D (#124) | 1 | ✅ (SPIKE_GREEN) | ✅ **done** | ✅ PublicationProfile + PagedRenderer mergés |
+| E (#125) | 1 | ✅ (SPIKE_GREEN+D) | 🔜 **en cours** | ⬜ |
+| F (#126) | 2 | ⬜ (D+humain) | ⬜ todo | ⬜ |
+| G (#127) | 2 | ⬜ (F) | ⬜ todo | ⬜ |
+| H (#128) | 2 | ⬜ (F) | ⬜ todo | ⬜ |
+| I (#129) | 3 | ⬜ (D+F) | ⬜ todo | ⬜ |
+| J (#130) | 3 | ⬜ (D+I) | ⬜ todo | ⬜ |
+| K (#131) | 3 | ⬜ (D+I+humain) | ⬜ todo | ⬜ |
+| L (#132) | 4 | ⬜ (D+E) | ⬜ todo | ⬜ |
+| M (#133) | 4 | ⬜ (E+L) | ⬜ todo | ⬜ |
+| N (#134) | 4 | ⬜ (E+M) | ⬜ todo | ⬜ |
+| O (#135) | 5 | ⬜ (F+B) | ⬜ todo | ⬜ |
 
-**Point d'entrée unique : commencer par l'issue A.** Tout le reste en découle.
+**Prochain pas : issue E (#125) — remplacer l'export PDF pdf-lib par le moteur paginé unique.**
