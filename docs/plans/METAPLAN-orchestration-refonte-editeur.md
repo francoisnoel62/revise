@@ -23,16 +23,16 @@ Les GitHub issues existent désormais (`francoisnoel62/revise`). **A et B ont é
 | C | **#123** | Déploiement Chromium sur Vercel | `done` | #122 | ✅ **FERMÉ** (décision : @sparticuz/chromium, 2026-06-28) |
 | D | **#124** | PublicationProfile + PagedRenderer | `done` | #122 | ✅ **MERGÉ** (2026-06-28) |
 | E | **#125** | Remplacer l'export PDF pdf-lib | `done` | #122, #124 | ✅ **MERGÉ** (2026-06-28) |
-| F | **#126** | Contenu sémantique + migration | `ready-for-agent` | #124 | 🔜 **DÉBLOQUÉ** (stratégie approuvée 2026-06-28) |
-| G | **#127** | Barre d'outils profil-adaptative | `needs-triage` | #126 | ⬜ |
-| H | **#128** | Surcharges de présentation | `needs-triage` | #126 | ⬜ |
-| I | **#129** | Sélecteur de profil + bascule à chaud | `needs-triage` | #124, #126 | ⬜ |
+| F | **#126** | Contenu sémantique + migration | `done` | #124 | ✅ **MERGÉ** (2026-06-28) |
+| G | **#127** | Barre d'outils profil-adaptative | `done` | #126 | ✅ **MERGÉ** (2026-06-28) |
+| H | **#128** | Surcharges de présentation | `done` | #126 | ✅ **MERGÉ** (2026-06-28) |
+| I | **#129** | Sélecteur de profil + bascule à chaud | `needs-triage` | #124, #126 | 🔜 **SUIVANT** (gate ouverte) |
 | J | **#130** | Profils additionnels (A5, Word…) | `ready-for-agent` | #124, #129 | ⬜ |
 | K | **#131** | Marketplaces + preflight | `ready-for-human` | #124, #129 | ⬜ |
-| L | **#132** | Liminaires + TOC | `ready-for-agent` | #124, #125 | 🔜 **DÉBLOQUÉ** (E_done) |
+| L | **#132** | Liminaires + TOC | `ready-for-agent` | #124, #125 | 🔜 **DÉBLOQUÉ** (D+E done) |
 | M | **#133** | Numérotation livre-entier | `needs-triage` | #125, #132 | ⬜ |
 | N | **#134** | Aperçu livre entier | `ready-for-agent` | #125, #133 | ⬜ |
-| O | **#135** | IA adaptée au modèle paginé | `ready-for-agent` | #126, #122 | ⬜ |
+| O | **#135** | IA adaptée au modèle paginé | `ready-for-agent` | #126, #122 | 🔜 **DÉBLOQUÉ** (F+B done) |
 
 > `SPIKE_GREEN` = ✅ (J1 : pixel-diff < 1 % · J2 : 331 ms < 900 ms · Paged.js retenu). Phase 1 débloquée.
 > Branche `feat/122-paged-renderer-spike` supprimée le 2026-06-28 (travail dans `main`).
@@ -305,16 +305,17 @@ L'orchestrateur **ne franchit pas seul** ces points :
 | D (#124) | 1 | ✅ (SPIKE_GREEN) | ✅ **done** | ✅ PublicationProfile + PagedRenderer mergés |
 | E (#125) | 1 | ✅ (SPIKE_GREEN+D) | ✅ **done** | ✅ PagedPdfExporter mergé ; parité E2E verte ; DOCX intact ; tests pdf-lib conservés |
 | F (#126) | 2 | ✅ (D+humain ✅) | ✅ **done** | ✅ schéma + migration + demigrator + script DB + banner ambiguïtés mergés (2026-06-28) |
-| G (#127) | 2 | ✅ (F ✅) | 🔜 **SUIVANT** | ⬜ |
-| H (#128) | 2 | ⬜ (F) | ⬜ todo | ⬜ |
-| I (#129) | 3 | ⬜ (D+F) | ⬜ todo | ⬜ |
+| G (#127) | 2 | ✅ (F ✅) | ✅ **done** | ✅ barre print-ready/passerelle ; styles sémantiques ; entrées IA préservées |
+| H (#128) | 2 | ✅ (F ✅) | ✅ **done** | ✅ couche séparée + API save/load/delete + 49 tests + isolation ownerId |
+| I (#129) | 3 | ✅ (D+F ✅) | 🔜 **SUIVANT** | ⬜ |
 | J (#130) | 3 | ⬜ (D+I) | ⬜ todo | ⬜ |
 | K (#131) | 3 | ⬜ (D+I+humain) | ⬜ todo | ⬜ |
-| L (#132) | 4 | ✅ (D+E) | 🔜 **SUIVANT** | ⬜ |
+| L (#132) | 4 | ✅ (D+E) | 🔜 **DÉBLOQUÉ** | ⬜ |
 | M (#133) | 4 | ⬜ (E+L) | ⬜ todo | ⬜ |
 | N (#134) | 4 | ⬜ (E+M) | ⬜ todo | ⬜ |
-| O (#135) | 5 | ⬜ (F+B) | ⬜ todo | ⬜ |
+| O (#135) | 5 | ✅ (F+B ✅) | 🔜 **DÉBLOQUÉ** | ⬜ |
 
-**Prochain pas :** deux fronts parallèles :
-- **G (#127)** — Barre d'outils profil-adaptative (gate ouverte : F_done ✅ 2026-06-28)
-- **L (#132)** — Liminaires + TOC (gate ouverte : D_done + E_done ✅)
+**Prochain pas :** trois fronts potentiels :
+- **I (#129)** — Sélecteur de profil + bascule à chaud (gate ouverte : D+F done ✅ — débloque J, K)
+- **L (#132)** — Liminaires + TOC (gate ouverte : D+E done ✅ — débloque M → N)
+- **O (#135)** — IA adaptée au modèle paginé (gate ouverte : F+B done ✅ — parallélisable avec I et L)

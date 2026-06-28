@@ -1,6 +1,6 @@
-# Issue — Barre d'outils profil-adaptative
+# Issue — Barre d'outils profil-adaptative ✅ DONE (2026-06-28)
 
-**Phase** 2 · **Dépend de** : `0007` · **Label** : `needs-triage` → `ready-for-agent`
+**Phase** 2 · **Dépend de** : `0007` · **Label** : `done`
 Réfs : [ADR 0005](../adr/0005-editeur-apercu-fidele-moteur-pagine-unique.md), [CONTEXT.md](../../CONTEXT.md) (Style sémantique, Profil print-ready/passerelle).
 
 ## Contexte
@@ -11,10 +11,10 @@ La partie *formatage* de `FormattingToolbar.tsx` passe de contrôles manuels (po
 **Out** : la mécanique des surcharges (`0009`) ; le sélecteur de profil (`0010`).
 
 ## Critères d'acceptation
-- [ ] En print-ready, impossible de poser police/taille/alignement manuels depuis la barre.
-- [ ] Les styles sémantiques sont appliqués et rendus via le profil.
-- [ ] Les entrées IA (réécrire, palette, etc.) sont préservées et fonctionnelles.
-- [ ] La barre reflète l'état (style actif) correctement.
+- [x] En print-ready, impossible de poser police/taille/alignement manuels depuis la barre.
+- [x] Les styles sémantiques sont appliqués et rendus via le profil.
+- [x] Les entrées IA (réécrire, palette, etc.) sont préservées et fonctionnelles.
+- [x] La barre reflète l'état (style actif) correctement.
 
 ## Ancre TDD
 Tests composant : rendu de la barre selon le profil (print-ready vs passerelle) ; appliquer un style sémantique modifie le doc attendu ; les contrôles manuels sont absents en print-ready.
