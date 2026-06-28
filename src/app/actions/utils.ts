@@ -27,6 +27,7 @@ import {
   getCharacterConversationRepository as getCharacterConversationRepositoryFromConfig,
   getProjectSettingsRepository as getProjectSettingsRepositoryFromConfig,
   getResearchDocumentRepository as getResearchDocumentRepositoryFromConfig,
+  getPresentationOverrideRepository as getPresentationOverrideRepositoryFromConfig,
   getBlobStorage as getBlobStorageFromConfig,
   getPromptRepository,
   getModelPricingRepository,
@@ -61,6 +62,7 @@ import { CharacterConversationRepository } from '@/domain/interfaces/CharacterCo
 import { ArticleViewRepository } from '@/domain/interfaces/ArticleViewRepository';
 import { ProjectSettingsRepository } from '@/domain/interfaces/ProjectSettingsRepository';
 import { ResearchDocumentRepository } from '@/domain/interfaces/ResearchDocumentRepository';
+import { PresentationOverrideRepository } from '@/domain/interfaces/PresentationOverrideRepository';
 import { BlobStorage } from '@/domain/interfaces/BlobStorage';
 import { LLMProviderFactory } from '@/domain/interfaces/LLMProviderFactory';
 import { IdGenerator } from '@/domain/interfaces/IdGenerator';
@@ -324,6 +326,13 @@ export async function getProjectSettingsRepo(): Promise<ProjectSettingsRepositor
  */
 export async function getResearchDocumentRepo(): Promise<ResearchDocumentRepository> {
   return await getResearchDocumentRepositoryFromConfig();
+}
+
+/**
+ * Get presentation override repository instance.
+ */
+export async function getPresentationOverrideRepo(): Promise<PresentationOverrideRepository> {
+  return await getPresentationOverrideRepositoryFromConfig();
 }
 
 /**

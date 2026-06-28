@@ -55,6 +55,8 @@ import { MongoDBCharacterConversationRepository } from '@/infrastructure/persist
 import { CharacterConversationRepository } from '@/domain/interfaces/CharacterConversationRepository';
 import { MongoDBProjectSettingsRepository } from '@/infrastructure/persistence/MongoDBProjectSettingsRepository';
 import { MongoDBResearchDocumentRepository } from '@/infrastructure/persistence/MongoDBResearchDocumentRepository';
+import { MongoDBPresentationOverrideRepository } from '@/infrastructure/persistence/MongoDBPresentationOverrideRepository';
+import { PresentationOverrideRepository } from '@/domain/interfaces/PresentationOverrideRepository';
 import { InMemoryProjectRepository } from '@/infrastructure/persistence/InMemoryProjectRepository';
 import { VercelBlobStorage } from '@/infrastructure/storage/VercelBlobStorage';
 import { FilePromptRepository } from '@/infrastructure/prompts/FilePromptRepository';
@@ -378,6 +380,20 @@ export async function getResearchDocumentRepository(): Promise<ResearchDocumentR
     await researchDocumentRepoInstance.ensureIndexes();
   }
   return researchDocumentRepoInstance;
+}
+
+/**
+ * Get the presentation override repository.
+ */
+let presentationOverrideRepoInstance: MongoDBPresentationOverrideRepository | null = null;
+
+export async function getPresentationOverrideRepository(): Promise<PresentationOverrideRepository> {
+  if (!presentationOverrideRepoInstance) {
+    const db = await getDatabase();
+    presentationOverrideRepoInstance = new MongoDBPresentationOverrideRepository(db);
+    await presentationOverrideRepoInstance.ensureIndexes();
+  }
+  return presentationOverrideRepoInstance;
 }
 
 /**
