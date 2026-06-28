@@ -1,5 +1,5 @@
-// ABOUTME: Legacy test suite for the deprecated PdfExporter (pdf-lib / A4 / Times).
-// ABOUTME: The active PDF exporter is PagedPdfExporter. These tests remain until PdfExporter is removed.
+// ABOUTME: Test suite for PdfExporter — validates pdf-lib A4/Times paragraph rendering and utilities.
+// ABOUTME: PdfExporter is retained during migration; these tests run until the class is removed.
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import {

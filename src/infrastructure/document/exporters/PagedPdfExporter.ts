@@ -1,5 +1,5 @@
-// ABOUTME: PDF exporter using the unified paged renderer (Paged.js + Chromium).
-// ABOUTME: Replaces pdf-lib: profil → HTML+CSS → Chromium → PDF guarantees preview parity.
+// ABOUTME: PDF exporter producing preview-parity output via the paged renderer (Paged.js + Chromium).
+// ABOUTME: Pipeline: TipTap JSON → semantic HTML → publication CSS → Chromium PDF.
 
 import { chromium } from '@playwright/test';
 import type { JSONContent } from '@tiptap/core';
@@ -106,7 +106,7 @@ export class PagedPdfExporter implements DocumentExporter {
     try {
       const page = await browser.newPage({ viewport: { width: 576, height: 864 } });
       await page.setContent(html, { waitUntil: 'networkidle' });
-      await page.waitForFunction(() => document.documentElement.dataset.pagedReady === 'true');
+      await page.waitForFunction(() => document.documentElement.dataset.pagedReady === 'true', { timeout: 30_000 });
       const pdf = await page.pdf({
         preferCSSPageSize: true,
         printBackground: true,
