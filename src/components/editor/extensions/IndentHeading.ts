@@ -1,7 +1,8 @@
-// ABOUTME: Custom heading node with first-line indent support
-// ABOUTME: Extends TipTap Heading to add indent attribute (1.27cm when enabled)
+// ABOUTME: Custom heading node with first-line indent and semantic role support.
+// ABOUTME: Extends TipTap Heading to add indent attribute (1.27cm when enabled).
 
 import { Node, mergeAttributes } from '@tiptap/core';
+import { isSemanticRole } from '@/domain/value-objects/SemanticRole';
 
 export interface IndentHeadingOptions {
   HTMLAttributes: Record<string, string>;
@@ -11,14 +12,10 @@ export interface IndentHeadingOptions {
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     indentHeading: {
-      /**
-       * Toggle first-line indent on current heading
-       */
       toggleHeadingIndent: () => ReturnType;
-      /**
-       * Set first-line indent on current heading
-       */
       setHeadingIndent: (indent: boolean) => ReturnType;
+      setHeading: (attrs: { level: number }) => ReturnType;
+      toggleHeading: (attrs: { level: number }) => ReturnType;
     };
   }
 }
@@ -46,6 +43,17 @@ export const IndentHeading = Node.create<IndentHeadingOptions>({
       level: {
         default: 1,
         rendered: false,
+      },
+      semanticRole: {
+        default: undefined,
+        parseHTML: (element) => {
+          const role = element.getAttribute('data-semantic-role');
+          return isSemanticRole(role) ? role : undefined;
+        },
+        renderHTML: (attributes) => {
+          if (!attributes.semanticRole) return {};
+          return { 'data-semantic-role': attributes.semanticRole };
+        },
       },
       indent: {
         default: undefined,
@@ -128,6 +136,27 @@ export const IndentHeading = Node.create<IndentHeadingOptions>({
           const newIndent = indent ? true : undefined;
 
           return commands.updateAttributes('heading', { indent: newIndent });
+        },
+      setHeading:
+        ({ level }: { level: number }) =>
+        ({ commands }) => {
+          if (!this.options.levels.includes(level)) {
+            return false;
+          }
+          return commands.setNode(this.name, { level });
+        },
+      toggleHeading:
+        ({ level }: { level: number }) =>
+        ({ commands, state }) => {
+          if (!this.options.levels.includes(level)) {
+            return false;
+          }
+          const { $from } = state.selection;
+          const node = $from.node();
+          if (node.type.name === 'heading' && node.attrs.level === level) {
+            return commands.setNode('paragraph', {});
+          }
+          return commands.setNode(this.name, { level });
         },
     };
   },

@@ -640,6 +640,7 @@ function EditorContent() {
           <div className="bg-white rounded-lg shadow border border-slate-200 px-1 md:px-2 py-1 overflow-x-auto">
             <FormattingToolbar
               editor={editor}
+              profile="print-ready"
               hasSelection={hasSelection}
               onRewrite={handleRewrite}
               rewriteLoading={rewriteLoading}

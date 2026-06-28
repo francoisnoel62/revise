@@ -414,6 +414,194 @@ describe('FormattingToolbar', () => {
     });
   });
 
+  describe('Profile-adaptive toolbar', () => {
+    const createSemanticEditor = (options: {
+      semanticRole?: string;
+      headingLevel?: number;
+      activeFormats?: string[];
+    } = {}): Editor => {
+      const { semanticRole = 'corps', headingLevel, activeFormats = [] } = options;
+
+      const createMockChain = () => {
+        const chain = {
+          focus: vi.fn().mockReturnThis(),
+          toggleBold: vi.fn().mockReturnThis(),
+          toggleItalic: vi.fn().mockReturnThis(),
+          toggleUnderline: vi.fn().mockReturnThis(),
+          toggleHighlight: vi.fn().mockReturnThis(),
+          setFontFamily: vi.fn().mockReturnThis(),
+          setFontSize: vi.fn().mockReturnThis(),
+          setTextAlign: vi.fn().mockReturnThis(),
+          toggleIndent: vi.fn().mockReturnThis(),
+          undo: vi.fn().mockReturnThis(),
+          redo: vi.fn().mockReturnThis(),
+          setSemanticRole: vi.fn().mockReturnThis(),
+          setNode: vi.fn().mockReturnThis(),
+          updateAttributes: vi.fn().mockReturnThis(),
+          setHorizontalRule: vi.fn().mockReturnThis(),
+          run: vi.fn().mockReturnThis(),
+        };
+        return chain;
+      };
+
+      return {
+        isActive: vi.fn((format: string, attrs?: Record<string, unknown>) => {
+          if (format === 'heading' && attrs?.level !== undefined) {
+            return headingLevel === attrs.level;
+          }
+          if (format === 'heading') return !!headingLevel;
+          if (format === 'paragraph') return !headingLevel;
+          return activeFormats.includes(format);
+        }),
+        getAttributes: vi.fn((type: string) => {
+          if (type === 'paragraph') return { semanticRole, textAlign: 'justify' };
+          if (type === 'textStyle') return { fontSize: '13pt' };
+          if (type === 'heading') return { level: headingLevel };
+          return {};
+        }),
+        can: vi.fn(() => ({
+          chain: () => ({
+            focus: () => ({
+              toggleBold: () => ({ run: vi.fn().mockReturnValue(true) }),
+              toggleItalic: () => ({ run: vi.fn().mockReturnValue(true) }),
+              toggleUnderline: () => ({ run: vi.fn().mockReturnValue(true) }),
+              toggleHighlight: () => ({ run: vi.fn().mockReturnValue(true) }),
+            }),
+          }),
+          undo: () => true,
+          redo: () => true,
+        })),
+        chain: vi.fn(() => createMockChain()),
+        view: {},
+        isDestroyed: false,
+      } as unknown as Editor;
+    };
+
+    describe('print-ready profile', () => {
+      it('shows semantic style dropdown', () => {
+        const editor = createSemanticEditor();
+        render(<FormattingToolbar editor={editor} profile="print-ready" />);
+        expect(screen.getByTitle(/Style sémantique/)).toBeInTheDocument();
+      });
+
+      it('hides font size control in print-ready', () => {
+        const editor = createSemanticEditor();
+        render(<FormattingToolbar editor={editor} profile="print-ready" />);
+        expect(screen.queryByTitle(/Taille de police/)).not.toBeInTheDocument();
+      });
+
+      it('hides alignment control in print-ready', () => {
+        const editor = createSemanticEditor();
+        render(<FormattingToolbar editor={editor} profile="print-ready" />);
+        expect(screen.queryByTitle(/Alignement/)).not.toBeInTheDocument();
+      });
+
+      it('hides font family control in print-ready', () => {
+        const editor = createSemanticEditor();
+        render(<FormattingToolbar editor={editor} profile="print-ready" />);
+        expect(screen.queryByTitle(/Police \(Georgia/)).not.toBeInTheDocument();
+      });
+
+      it('shows bold button in print-ready', () => {
+        const editor = createSemanticEditor();
+        render(<FormattingToolbar editor={editor} profile="print-ready" />);
+        expect(screen.getByTitle(/Bold/)).toBeInTheDocument();
+      });
+
+      it('shows italic button in print-ready', () => {
+        const editor = createSemanticEditor();
+        render(<FormattingToolbar editor={editor} profile="print-ready" />);
+        expect(screen.getByTitle(/Italic/)).toBeInTheDocument();
+      });
+
+      it('shows all semantic roles in dropdown', async () => {
+        const user = userEvent.setup();
+        const editor = createSemanticEditor();
+        render(<FormattingToolbar editor={editor} profile="print-ready" />);
+
+        await user.click(screen.getByTitle(/Style sémantique/));
+
+        await waitFor(() => {
+          expect(screen.getByRole('menuitem', { name: /Corps/ })).toBeInTheDocument();
+        });
+        expect(screen.getByRole('menuitem', { name: /Titre de chapitre/ })).toBeInTheDocument();
+        expect(screen.getByRole('menuitem', { name: /Sous-titre/ })).toBeInTheDocument();
+        expect(screen.getByRole('menuitem', { name: /Citation/ })).toBeInTheDocument();
+        expect(screen.getByRole('menuitem', { name: /Épigraphe/ })).toBeInTheDocument();
+        expect(screen.getByRole('menuitem', { name: /Séparateur/ })).toBeInTheDocument();
+      });
+
+      it('reflects active semantic role as dropdown label', () => {
+        const editor = createSemanticEditor({ semanticRole: 'citation' });
+        render(<FormattingToolbar editor={editor} profile="print-ready" />);
+        expect(screen.getByTitle(/Style sémantique/)).toHaveTextContent(/Citation/);
+      });
+
+      it('reflects titre-de-chapitre when cursor is on heading level 1', () => {
+        const editor = createSemanticEditor({ headingLevel: 1 });
+        render(<FormattingToolbar editor={editor} profile="print-ready" />);
+        expect(screen.getByTitle(/Style sémantique/)).toHaveTextContent(/Titre de chapitre/);
+      });
+
+      it('calls chain when Corps style is applied', async () => {
+        const user = userEvent.setup();
+        const editor = createSemanticEditor({ semanticRole: 'citation' });
+        render(<FormattingToolbar editor={editor} profile="print-ready" />);
+
+        await user.click(screen.getByTitle(/Style sémantique/));
+        await waitFor(() => {
+          expect(screen.getByRole('menuitem', { name: /Corps/ })).toBeInTheDocument();
+        });
+        await user.click(screen.getByRole('menuitem', { name: /Corps/ }));
+
+        expect(editor.chain).toHaveBeenCalled();
+      });
+
+      it('calls chain when Titre de chapitre is applied', async () => {
+        const user = userEvent.setup();
+        const editor = createSemanticEditor();
+        render(<FormattingToolbar editor={editor} profile="print-ready" />);
+
+        await user.click(screen.getByTitle(/Style sémantique/));
+        await waitFor(() => {
+          expect(screen.getByRole('menuitem', { name: /Titre de chapitre/ })).toBeInTheDocument();
+        });
+        await user.click(screen.getByRole('menuitem', { name: /Titre de chapitre/ }));
+
+        expect(editor.chain).toHaveBeenCalled();
+      });
+    });
+
+    describe('passerelle profile', () => {
+      it('shows font size control in passerelle', () => {
+        const editor = createSemanticEditor();
+        render(<FormattingToolbar editor={editor} profile="passerelle" />);
+        expect(screen.getByTitle(/Taille de police/)).toBeInTheDocument();
+      });
+
+      it('shows alignment control in passerelle', () => {
+        const editor = createSemanticEditor();
+        render(<FormattingToolbar editor={editor} profile="passerelle" />);
+        expect(screen.getByTitle(/Alignement/)).toBeInTheDocument();
+      });
+
+      it('does not show semantic style dropdown in passerelle', () => {
+        const editor = createSemanticEditor();
+        render(<FormattingToolbar editor={editor} profile="passerelle" />);
+        expect(screen.queryByTitle(/Style sémantique/)).not.toBeInTheDocument();
+      });
+    });
+
+    describe('default (no profile)', () => {
+      it('behaves like passerelle when no profile given', () => {
+        const editor = createSemanticEditor();
+        render(<FormattingToolbar editor={editor} />);
+        expect(screen.getByTitle(/Taille de police/)).toBeInTheDocument();
+        expect(screen.queryByTitle(/Style sémantique/)).not.toBeInTheDocument();
+      });
+    });
+  });
+
   describe('Analysis Props', () => {
     it('should pass onAnalyze to AIMenuDropdown when showAIFeatures is true', () => {
       const editor = createMockEditor();

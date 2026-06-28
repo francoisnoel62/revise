@@ -1,5 +1,5 @@
 // ABOUTME: Rich text formatting toolbar for TipTap editor
-// ABOUTME: Provides buttons for bold, italic, underline, highlight with keyboard shortcuts
+// ABOUTME: Profile-adaptive: semantic styles in print-ready, manual controls in passerelle
 
 'use client';
 
@@ -29,6 +29,74 @@ import {
   Redo2,
   Search,
 } from 'lucide-react';
+
+export type EditorProfile = 'print-ready' | 'passerelle';
+
+const SEMANTIC_STYLES = [
+  { role: 'corps', label: 'Corps' },
+  { role: 'titre-de-chapitre', label: 'Titre de chapitre' },
+  { role: 'sous-titre', label: 'Sous-titre' },
+  { role: 'citation', label: 'Citation' },
+  { role: 'epigraphe', label: 'Épigraphe' },
+  { role: 'separateur-de-scene', label: 'Séparateur de scène' },
+] as const;
+
+type SemanticStyleRole = (typeof SEMANTIC_STYLES)[number]['role'];
+
+function getActiveSemanticRole(editor: Editor): SemanticStyleRole {
+  if (editor.isActive('heading', { level: 1 })) return 'titre-de-chapitre';
+  if (editor.isActive('heading', { level: 2 })) return 'sous-titre';
+  const role = editor.getAttributes('paragraph').semanticRole as SemanticStyleRole | undefined;
+  return role ?? 'corps';
+}
+
+function applySemanticStyle(editor: Editor, role: SemanticStyleRole): void {
+  if (!editor.view || editor.isDestroyed) return;
+  if (role === 'titre-de-chapitre') {
+    editor.chain().focus().setNode('heading', { level: 1 }).run();
+    return;
+  }
+  if (role === 'sous-titre') {
+    editor.chain().focus().setNode('heading', { level: 2 }).run();
+    return;
+  }
+  if (role === 'separateur-de-scene') {
+    editor.chain().focus().setHorizontalRule().run();
+    return;
+  }
+  editor.chain().focus().setNode('paragraph', {}).updateAttributes('paragraph', { semanticRole: role }).run();
+}
+
+function SemanticStyleDropdown({ editor }: { editor: Editor }) {
+  const activeRole = getActiveSemanticRole(editor);
+  const activeLabel = SEMANTIC_STYLES.find((s) => s.role === activeRole)?.label ?? 'Corps';
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          title="Style sémantique"
+          className="w-auto px-2 text-xs md:text-sm font-medium min-w-24 justify-start"
+        >
+          {activeLabel}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        {SEMANTIC_STYLES.map(({ role, label }) => (
+          <DropdownMenuItem
+            key={role}
+            onClick={() => applySemanticStyle(editor, role)}
+            className={activeRole === role ? 'bg-slate-100' : ''}
+          >
+            {label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 // Common font sizes like in Word/Google Docs
 const COMMON_FONT_SIZES = [8, 9, 10, 11, 12, 13, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72, 100];
@@ -127,6 +195,7 @@ function FontSizeDropdown({ editor }: { editor: Editor }) {
 
 interface FormattingToolbarProps {
   editor: Editor | null;
+  profile?: EditorProfile;
   hasSelection?: boolean;
   onRewrite?: () => void;
   rewriteLoading?: boolean;
@@ -138,20 +207,19 @@ interface FormattingToolbarProps {
   autocompleteEnabled?: boolean;
   onAutocompleteChange?: (enabled: boolean) => void;
   showAIFeatures?: boolean;
-  // New props for AI menu
   isChapterEmpty?: boolean;
   onGenerate?: (type: ChapterGenerationTypeKey) => void;
   generationLoading?: boolean;
   activeGenerationType?: ChapterGenerationTypeKey | null;
   onOpenCommandPalette?: () => void;
   onSearchClick?: () => void;
-  // Chapter analysis
   onAnalyze?: () => void;
   analysisLoading?: boolean;
 }
 
 export function FormattingToolbar({
   editor,
+  profile,
   hasSelection = false,
   onRewrite,
   rewriteLoading = false,
@@ -176,6 +244,8 @@ export function FormattingToolbar({
 
   // Guard: Don't render until editor view is ready
   if (!editor.view || editor.isDestroyed) return null;
+
+  const isPrintReady = profile === 'print-ready';
 
   // Helper to get current alignment from selected node (paragraph or heading)
   const getCurrentAlignment = (): string => {
@@ -229,6 +299,108 @@ export function FormattingToolbar({
     }
   };
 
+  const aiMenu = showAIFeatures && onRewrite && onProviderChange && onHistoryClick && onAutocompleteChange && (
+    <div className="flex items-center ml-auto mt-1 md:mt-0">
+      <AIMenuDropdown
+        hasSelection={hasSelection}
+        onRewrite={onRewrite}
+        rewriteLoading={rewriteLoading}
+        isChapterEmpty={isChapterEmpty}
+        onGenerate={onGenerate || (() => {})}
+        generationLoading={generationLoading}
+        activeGenerationType={activeGenerationType}
+        providers={providers}
+        selectedProviderId={selectedProviderId}
+        onProviderChange={onProviderChange}
+        providersLoading={providersLoading}
+        onHistoryClick={onHistoryClick}
+        autocompleteEnabled={autocompleteEnabled}
+        onAutocompleteChange={onAutocompleteChange}
+        onOpenCommandPalette={onOpenCommandPalette}
+        onAnalyze={onAnalyze}
+        analysisLoading={analysisLoading}
+      />
+    </div>
+  );
+
+  if (isPrintReady) {
+    return (
+      <div className="border-b border-slate-200 p-1 md:p-2 flex gap-0.5 md:gap-1 bg-slate-50 justify-between flex-wrap md:flex-nowrap">
+        <div className="flex gap-0.5 md:gap-1 flex-wrap md:flex-nowrap items-center">
+          {/* Semantic style picker */}
+          <SemanticStyleDropdown editor={editor} />
+
+          <div className="hidden md:block w-px h-8 bg-slate-300 mx-1" />
+
+          {/* Fiction marks: bold and italic */}
+          <Button
+            variant={editor.isActive('bold') ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            disabled={!editor.can().chain().focus().toggleBold().run()}
+            title="Bold (Ctrl+B)"
+            className="w-8 h-8 md:w-9 md:h-9"
+          >
+            <Bold className="h-3.5 w-3.5 md:h-4 md:w-4" />
+          </Button>
+
+          <Button
+            variant={editor.isActive('italic') ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            disabled={!editor.can().chain().focus().toggleItalic().run()}
+            title="Italic (Ctrl+I)"
+            className="w-8 h-8 md:w-9 md:h-9"
+          >
+            <Italic className="h-3.5 w-3.5 md:h-4 md:w-4" />
+          </Button>
+
+          <div className="hidden md:block w-px h-8 bg-slate-300 mx-1" />
+
+          {/* Undo/Redo */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor.chain().focus().undo().run()}
+            disabled={!editor.can().undo()}
+            title="Annuler (Ctrl+Z)"
+            className="w-8 h-8 md:w-9 md:h-9"
+          >
+            <Undo2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor.chain().focus().redo().run()}
+            disabled={!editor.can().redo()}
+            title="Rétablir (Ctrl+Y)"
+            className="w-8 h-8 md:w-9 md:h-9"
+          >
+            <Redo2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
+          </Button>
+
+          {onSearchClick && (
+            <>
+              <div className="hidden md:block w-px h-8 bg-slate-300 mx-1" />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onSearchClick}
+                title="Rechercher/Remplacer (Ctrl+F)"
+                className="w-8 h-8 md:w-9 md:h-9"
+              >
+                <Search className="h-3.5 w-3.5 md:h-4 md:w-4" />
+              </Button>
+            </>
+          )}
+        </div>
+
+        {aiMenu}
+      </div>
+    );
+  }
+
   return (
     <div className="border-b border-slate-200 p-1 md:p-2 flex gap-0.5 md:gap-1 bg-slate-50 justify-between flex-wrap md:flex-nowrap">
       <div className="flex gap-0.5 md:gap-1 flex-wrap md:flex-nowrap">
@@ -280,7 +452,6 @@ export function FormattingToolbar({
         {/* Separator - hidden on mobile */}
         <div className="hidden md:block w-px h-8 bg-slate-300 mx-1" />
 
-        {/* Font controls - hidden on mobile, visible on tablet+ */}
         {/* Font Family Toggle */}
         <Button
           variant={
@@ -302,10 +473,10 @@ export function FormattingToolbar({
           <Type className="h-4 w-4" />
         </Button>
 
-        {/* Font Size Dropdown - hidden on small mobile */}
+        {/* Font Size Dropdown */}
         <FontSizeDropdown editor={editor} />
 
-        {/* Text Alignment Cycle - hidden on mobile */}
+        {/* Text Alignment Cycle */}
         <Button
           variant="ghost"
           size="sm"
@@ -316,7 +487,7 @@ export function FormattingToolbar({
           {getAlignmentIcon()}
         </Button>
 
-        {/* First-line Indent Toggle - hidden on mobile */}
+        {/* First-line Indent Toggle */}
         <Button
           variant={getCurrentIndent() ? 'default' : 'ghost'}
           size="sm"
@@ -370,29 +541,7 @@ export function FormattingToolbar({
         )}
       </div>
 
-      {showAIFeatures && onRewrite && onProviderChange && onHistoryClick && onAutocompleteChange && (
-        <div className="flex items-center ml-auto mt-1 md:mt-0">
-          <AIMenuDropdown
-            hasSelection={hasSelection}
-            onRewrite={onRewrite}
-            rewriteLoading={rewriteLoading}
-            isChapterEmpty={isChapterEmpty}
-            onGenerate={onGenerate || (() => {})}
-            generationLoading={generationLoading}
-            activeGenerationType={activeGenerationType}
-            providers={providers}
-            selectedProviderId={selectedProviderId}
-            onProviderChange={onProviderChange}
-            providersLoading={providersLoading}
-            onHistoryClick={onHistoryClick}
-            autocompleteEnabled={autocompleteEnabled}
-            onAutocompleteChange={onAutocompleteChange}
-            onOpenCommandPalette={onOpenCommandPalette}
-            onAnalyze={onAnalyze}
-            analysisLoading={analysisLoading}
-          />
-        </div>
-      )}
+      {aiMenu}
     </div>
   );
 }
