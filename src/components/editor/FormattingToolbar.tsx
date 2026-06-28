@@ -1,5 +1,5 @@
 // ABOUTME: Rich text formatting toolbar for TipTap editor
-// ABOUTME: Profile-adaptive: semantic styles in print-ready, manual controls in passerelle
+// ABOUTME: Renders semantic style picker in print-ready profile; manual formatting controls in passerelle
 
 'use client';
 
@@ -45,7 +45,7 @@ type SemanticStyleRole = (typeof SEMANTIC_STYLES)[number]['role'];
 
 function getActiveSemanticRole(editor: Editor): SemanticStyleRole {
   if (editor.isActive('heading', { level: 1 })) return 'titre-de-chapitre';
-  if (editor.isActive('heading', { level: 2 })) return 'sous-titre';
+  if (editor.isActive('heading')) return 'sous-titre';
   const role = editor.getAttributes('paragraph').semanticRole as SemanticStyleRole | undefined;
   return role ?? 'corps';
 }
@@ -452,6 +452,7 @@ export function FormattingToolbar({
         {/* Separator - hidden on mobile */}
         <div className="hidden md:block w-px h-8 bg-slate-300 mx-1" />
 
+        {/* Font controls - hidden on mobile, visible on tablet+ */}
         {/* Font Family Toggle */}
         <Button
           variant={
@@ -473,10 +474,10 @@ export function FormattingToolbar({
           <Type className="h-4 w-4" />
         </Button>
 
-        {/* Font Size Dropdown */}
+        {/* Font Size Dropdown - hidden on small mobile */}
         <FontSizeDropdown editor={editor} />
 
-        {/* Text Alignment Cycle */}
+        {/* Text Alignment Cycle - hidden on mobile */}
         <Button
           variant="ghost"
           size="sm"
@@ -487,7 +488,7 @@ export function FormattingToolbar({
           {getAlignmentIcon()}
         </Button>
 
-        {/* First-line Indent Toggle */}
+        {/* First-line Indent Toggle - hidden on mobile */}
         <Button
           variant={getCurrentIndent() ? 'default' : 'ghost'}
           size="sm"

@@ -12,9 +12,13 @@ export interface IndentHeadingOptions {
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     indentHeading: {
+      /** Toggle first-line indent on current heading */
       toggleHeadingIndent: () => ReturnType;
+      /** Set first-line indent on current heading */
       setHeadingIndent: (indent: boolean) => ReturnType;
+      /** Convert current block to a heading at the given level */
       setHeading: (attrs: { level: number }) => ReturnType;
+      /** Toggle between heading at the given level and paragraph */
       toggleHeading: (attrs: { level: number }) => ReturnType;
     };
   }
