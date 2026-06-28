@@ -22,14 +22,14 @@ Les GitHub issues existent désormais (`francoisnoel62/revise`). **A et B ont é
 | SPIKE (ex-A+B) | **#122** | Spike — parité pixel + re-pagination vivante | `done` | — | ✅ **MERGÉ** |
 | C | **#123** | Déploiement Chromium sur Vercel | `done` | #122 | ✅ **FERMÉ** (décision : @sparticuz/chromium, 2026-06-28) |
 | D | **#124** | PublicationProfile + PagedRenderer | `done` | #122 | ✅ **MERGÉ** (2026-06-28) |
-| E | **#125** | Remplacer l'export PDF pdf-lib | `ready-for-agent` | #122, #124 | 🔜 **SUIVANT** |
+| E | **#125** | Remplacer l'export PDF pdf-lib | `done` | #122, #124 | ✅ **MERGÉ** (2026-06-28) |
 | F | **#126** | Contenu sémantique + migration | `needs-triage` | #124 | ⬜ |
 | G | **#127** | Barre d'outils profil-adaptative | `needs-triage` | #126 | ⬜ |
 | H | **#128** | Surcharges de présentation | `needs-triage` | #126 | ⬜ |
 | I | **#129** | Sélecteur de profil + bascule à chaud | `needs-triage` | #124, #126 | ⬜ |
 | J | **#130** | Profils additionnels (A5, Word…) | `ready-for-agent` | #124, #129 | ⬜ |
 | K | **#131** | Marketplaces + preflight | `ready-for-human` | #124, #129 | ⬜ |
-| L | **#132** | Liminaires + TOC | `needs-triage` | #124, #125 | ⬜ |
+| L | **#132** | Liminaires + TOC | `ready-for-agent` | #124, #125 | 🔜 **DÉBLOQUÉ** (E_done) |
 | M | **#133** | Numérotation livre-entier | `needs-triage` | #125, #132 | ⬜ |
 | N | **#134** | Aperçu livre entier | `ready-for-agent` | #125, #133 | ⬜ |
 | O | **#135** | IA adaptée au modèle paginé | `ready-for-agent` | #126, #122 | ⬜ |
@@ -303,16 +303,16 @@ L'orchestrateur **ne franchit pas seul** ces points :
 | B (#122 J2) | 0 | ✅ (A_green) | ✅ **done** | ✅ 331 ms < 900 ms |
 | C (#123) | 1 | ✅ (SPIKE_GREEN) | ✅ **done** | ✅ décision @sparticuz/chromium consignée |
 | D (#124) | 1 | ✅ (SPIKE_GREEN) | ✅ **done** | ✅ PublicationProfile + PagedRenderer mergés |
-| E (#125) | 1 | ✅ (SPIKE_GREEN+D) | 🔜 **en cours** | ⬜ |
+| E (#125) | 1 | ✅ (SPIKE_GREEN+D) | ✅ **done** | ✅ PagedPdfExporter mergé ; parité E2E verte ; DOCX intact ; tests pdf-lib conservés |
 | F (#126) | 2 | ⬜ (D+humain) | ⬜ todo | ⬜ |
 | G (#127) | 2 | ⬜ (F) | ⬜ todo | ⬜ |
 | H (#128) | 2 | ⬜ (F) | ⬜ todo | ⬜ |
 | I (#129) | 3 | ⬜ (D+F) | ⬜ todo | ⬜ |
 | J (#130) | 3 | ⬜ (D+I) | ⬜ todo | ⬜ |
 | K (#131) | 3 | ⬜ (D+I+humain) | ⬜ todo | ⬜ |
-| L (#132) | 4 | ⬜ (D+E) | ⬜ todo | ⬜ |
+| L (#132) | 4 | ✅ (D+E) | 🔜 **SUIVANT** | ⬜ |
 | M (#133) | 4 | ⬜ (E+L) | ⬜ todo | ⬜ |
 | N (#134) | 4 | ⬜ (E+M) | ⬜ todo | ⬜ |
 | O (#135) | 5 | ⬜ (F+B) | ⬜ todo | ⬜ |
 
-**Prochain pas : issue E (#125) — remplacer l'export PDF pdf-lib par le moteur paginé unique.**
+**Prochain pas : issue L (#132) — Liminaires + TOC générés (gate D_done + E_done ✅).**
