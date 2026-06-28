@@ -1,6 +1,6 @@
 # Issue — Modèle de contenu sémantique + migration
 
-**Phase** 2 · **Dépend de** : `0005` · **Label** : `needs-triage` (risque migration de données)
+**Phase** 2 · **Dépend de** : `0005` · **Label** : `ready-for-agent` (stratégie approuvée 2026-06-28)
 Réfs : [ADR 0005](../adr/0005-editeur-apercu-fidele-moteur-pagine-unique.md), [CONTEXT.md](../../CONTEXT.md) (Style sémantique).
 
 ## Contexte
@@ -19,5 +19,9 @@ Pour que les profils soient des lentilles changeables sans perte, le manuscrit d
 ## Ancre TDD
 Tests unitaires de migration : un doc TipTap « legacy » (avec fontFamily/fontSize/align) → doc sémantique attendu. Couvrir les cas limites (titres dupliquant le titre de chapitre, paragraphes centrés = épigraphe, etc.).
 
-## Pourquoi `needs-triage`
-Migration de données de production = risque ; nécessite décision/validation humaine sur la stratégie (in-place vs versionnée) avant exécution.
+## Décisions de migration (approuvées 2026-06-28)
+
+- **Stratégie** : in-place — script idempotent qui réécrit le JSON, reversible par script inverse.
+- **Backup** : obligatoire avant toute exécution (manuscrit réel en prod).
+- **Cas ambigu — paragraphe centré** : ne pas inférer `épigraphe` automatiquement. Conserver comme `corps` + surcharge de présentation. Afficher une UI de confirmation au premier open si des ambigu"ïtés sont détectées, pour que l'auteur reclassifie.
+- **Autres mappings non ambigus** : `heading` level 1 → `titre-de-chapitre`, paragraphe normal → `corps`, `<hr>` → `séparateur-de-scène`.
