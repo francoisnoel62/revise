@@ -13,16 +13,32 @@ npm run lint
 - If lint fails → **FIX the lint errors** → re-run lint
 - **LOOP until lint passes completely**
 
-### 2. Test Suite
+### 2. Unit Tests
 ```bash
-npm test -- --run
+npm run test:unit
 ```
 - If tests fail → **FIX the failing tests** → re-run tests
-- **LOOP until ALL tests pass (100% green)**
+- **LOOP until ALL unit tests pass (100% green)**
 - NEVER delete a test to make it pass
 - NEVER skip failing tests
 
-### 3. Build Check
+### 3. Integration Tests
+```bash
+npm run test:integration
+```
+- If tests fail → **FIX the failing tests** → re-run tests
+- **LOOP until ALL integration tests pass (100% green)**
+- These tests require a running DB — run `npm run db:start` if they can't connect
+
+### 4. E2E Tests
+```bash
+npm run test:e2e
+```
+- If tests fail → **FIX the failing tests** → re-run tests
+- **LOOP until ALL E2E tests pass (100% green)**
+- NEVER implement mocks in E2E tests
+
+### 5. Build Check
 ```bash
 npm run build
 ```
@@ -33,10 +49,10 @@ npm run build
 
 1. **NEVER stop until everything is green**
 2. **Fix issues, don't skip them**
-3. **Run checks in order**: lint → tests → build
-4. After fixing an issue, **re-run from the beginning** (lint → tests → build)
+3. **Run checks in order**: lint → unit tests → integration tests → E2E → build
+4. After fixing an issue, **re-run from the failing step** (not from the beginning unless lint/earlier steps are affected)
 5. If a fix breaks something else, fix that too
-6. **Continue looping until all 3 checks pass consecutively**
+6. **Continue looping until all 5 checks pass**
 
 ## Fixing Strategy
 
@@ -58,11 +74,13 @@ After achieving 100% green:
 ```
 ## Verification Complete
 
-| Check | Status | Details |
-|-------|--------|---------|
-| Lint  | PASS | clean |
-| Tests | PASS | X tests passing |
-| Build | PASS | success |
+| Check             | Status | Details              |
+|-------------------|--------|----------------------|
+| Lint              | PASS   | clean                |
+| Unit Tests        | PASS   | X tests passing      |
+| Integration Tests | PASS   | X tests passing      |
+| E2E Tests         | PASS   | X tests passing      |
+| Build             | PASS   | success              |
 
 All checks passed. Code is ready for commit.
 ```
