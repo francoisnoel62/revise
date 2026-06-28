@@ -1,7 +1,8 @@
-// ABOUTME: Custom paragraph node with first-line indent support
-// ABOUTME: Extends TipTap Paragraph to add indent attribute (1.27cm when enabled)
+// ABOUTME: Custom paragraph node with first-line indent and semantic role support.
+// ABOUTME: Extends TipTap Paragraph to add indent and semanticRole attributes.
 
 import { Node, mergeAttributes } from '@tiptap/core';
+import { isSemanticRole, type SemanticRole } from '@/domain/value-objects/SemanticRole';
 
 export interface IndentParagraphOptions {
   HTMLAttributes: Record<string, string>;
@@ -10,14 +11,9 @@ export interface IndentParagraphOptions {
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     indentParagraph: {
-      /**
-       * Toggle first-line indent on current paragraph
-       */
       toggleIndent: () => ReturnType;
-      /**
-       * Set first-line indent on current paragraph
-       */
       setIndent: (indent: boolean) => ReturnType;
+      setSemanticRole: (role: SemanticRole) => ReturnType;
     };
   }
 }
@@ -39,9 +35,20 @@ export const IndentParagraph = Node.create<IndentParagraphOptions>({
 
   addAttributes() {
     return {
+      semanticRole: {
+        default: undefined,
+        parseHTML: (element) => {
+          const role = element.getAttribute('data-semantic-role');
+          return isSemanticRole(role) ? role : undefined;
+        },
+        renderHTML: (attributes) => {
+          if (!attributes.semanticRole) return {};
+          return { 'data-semantic-role': attributes.semanticRole };
+        },
+      },
       indent: {
         default: undefined,
-        keepOnSplit: true, // Inherit indent when creating new paragraph
+        keepOnSplit: true,
         parseHTML: (element) => {
           // Check for data-indent attribute (from TipTap export)
           const dataIndent = element.getAttribute('data-indent');
@@ -121,6 +128,18 @@ export const IndentParagraph = Node.create<IndentParagraphOptions>({
           const newIndent = indent ? true : undefined;
 
           return commands.updateAttributes('paragraph', { indent: newIndent });
+        },
+      setSemanticRole:
+        (role: SemanticRole) =>
+        ({ commands, state }) => {
+          const { $from } = state.selection;
+          const node = $from.node();
+
+          if (node.type.name !== 'paragraph') {
+            return false;
+          }
+
+          return commands.updateAttributes('paragraph', { semanticRole: role });
         },
     };
   },

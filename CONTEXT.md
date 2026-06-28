@@ -91,6 +91,10 @@ _Avoid_ : format, style de paragraphe, police
 Mise en forme manuelle (police, taille, alignement) posée en profil passerelle. Stockée en couche séparée, ignorée par les profils print-ready et restituée au retour en passerelle — jamais destructive.
 _Avoid_ : override, format manuel
 
+**Migration sémantique** :
+Script idempotent qui convertit le contenu TipTap legacy (portant des marques de présentation : fontFamily, fontSize, textAlign) en contenu sémantique pur (attribut `semanticRole` sur chaque bloc). Les cas ambigus (paragraphe centré pouvant être une épigraphe) sont conservés comme `corps` et signalés pour reclassification par l'auteur. Réversible par script inverse ; ne perd aucun texte.
+_Avoid_ : conversion, nettoyage, reformatage
+
 **Pagination vivante** :
 Affichage du chapitre en vraies pages au trim de la cible pendant l'écriture, re-paginées à la pause de frappe (débounce). Le curseur circule de page en page comme dans le livre imprimé.
 _Avoid_ : aperçu, preview, mode impression
