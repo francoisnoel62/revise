@@ -36,14 +36,6 @@ function paragraph(
   };
 }
 
-function heading(level: number, ...children: JSONContent[]): JSONContent {
-  return {
-    type: 'heading',
-    attrs: { level },
-    content: children,
-  };
-}
-
 function headingWithStyle(
   level: number,
   text: string,
