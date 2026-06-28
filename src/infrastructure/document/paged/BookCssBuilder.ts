@@ -7,8 +7,9 @@ export class BookCssBuilder {
   build(profile: PublicationProfile, assetBaseUrl: string): string {
     const value = profile.values;
     const assets = assetBaseUrl.replace(/\/$/, '');
-
-    return `
+    const embeddedFontFaces =
+      value.id === 'kdp-6x9'
+        ? `
       @font-face {
         font-family: '${value.bodyFontFamily}';
         src: url('${assets}/fonts/eb-garamond-400.woff2') format('woff2');
@@ -22,7 +23,12 @@ export class BookCssBuilder {
         font-style: normal;
         font-weight: 700;
         font-display: block;
-      }
+      }`
+        : '';
+    const fontFallback = value.id === 'passerelle' ? 'sans-serif' : 'serif';
+
+    return `
+      ${embeddedFontFaces}
       @page {
         size: ${value.pageWidthInches}in ${value.pageHeightInches}in;
         margin-top: ${value.marginTopCentimeters}cm;
@@ -39,7 +45,7 @@ export class BookCssBuilder {
       html, body { margin: 0; padding: 0; background: #e5e7eb; }
       body {
         color: #111827;
-        font-family: '${value.bodyFontFamily}', serif;
+        font-family: '${value.bodyFontFamily}', ${fontFallback};
         font-size: ${value.bodyFontSizePoints}pt;
         line-height: ${value.lineHeight};
         text-rendering: geometricPrecision;

@@ -149,6 +149,17 @@ describe('project-settings-serializer', () => {
   });
 
   describe('round-trip serialization', () => {
+    it('restores the persisted publication profile', () => {
+      const original = ProjectSettings.reconstruct({
+        ...validProps,
+        publicationProfileId: 'passerelle',
+      });
+
+      const restored = deserializeProjectSettings(serializeProjectSettings(original));
+
+      expect(restored.getPublicationProfileId()).toBe('passerelle');
+    });
+
     it('preserves data through serialize then deserialize', () => {
       const original = ProjectSettings.reconstruct(validProps);
       const doc = serializeProjectSettings(original);

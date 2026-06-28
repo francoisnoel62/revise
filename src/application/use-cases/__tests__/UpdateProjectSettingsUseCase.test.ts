@@ -35,6 +35,19 @@ describe('UpdateProjectSettingsUseCase', () => {
     expect(mockRepository.update).toHaveBeenCalled();
   });
 
+  it('persists a publication profile change', async () => {
+    const settings = ProjectSettings.create('id-1', 'project-1', 'user-1', 'Title');
+    mockRepository.findByProjectId.mockResolvedValue(settings);
+
+    const result = await useCase.execute({
+      userId: 'user-1',
+      projectId: 'project-1',
+      updates: { publicationProfileId: 'passerelle' },
+    });
+
+    expect(result.getPublicationProfileId()).toBe('passerelle');
+  });
+
   it('updates multiple fields at once', async () => {
     const settings = ProjectSettings.create('id-1', 'project-1', 'user-1', 'Title');
     mockRepository.findByProjectId.mockResolvedValue(settings);

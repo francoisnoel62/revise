@@ -8,6 +8,7 @@ import { RelatedWork } from '@/domain/value-objects/RelatedWork';
 import { PointOfView, NarrationTense, TargetAudience } from '@/domain/value-objects/NarrationSettings';
 import { AutocompletePreferences } from '@/domain/value-objects/AutocompletePreferences';
 import { CanonExtractionPreferences } from '@/domain/value-objects/CanonExtractionPreferences';
+import type { PublicationProfileId } from '@/domain/value-objects/PublicationProfile';
 
 export interface ProjectSettingsUpdates {
   title?: string;
@@ -25,6 +26,7 @@ export interface ProjectSettingsUpdates {
   canonExtractionPreferences?: Partial<CanonExtractionPreferences>;
   customDictionary?: string[];
   ignoredWords?: string[];
+  publicationProfileId?: PublicationProfileId;
 }
 
 export interface UpdateProjectSettingsInput {
@@ -104,6 +106,10 @@ export class UpdateProjectSettingsUseCase {
 
     if ('ignoredWords' in updates) {
       updated = updated.updateIgnoredWords(updates.ignoredWords!);
+    }
+
+    if ('publicationProfileId' in updates) {
+      updated = updated.updatePublicationProfile(updates.publicationProfileId!);
     }
 
     return this.repository.update(input.userId, updated);

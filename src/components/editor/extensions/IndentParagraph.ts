@@ -90,6 +90,18 @@ export const IndentParagraph = Node.create<IndentParagraphOptions>({
           };
         },
       },
+      fontFamily: {
+        default: undefined,
+        parseHTML: (element) => element.style.fontFamily || undefined,
+        renderHTML: (attributes) =>
+          attributes.fontFamily ? { style: `font-family: ${attributes.fontFamily}` } : {},
+      },
+      fontSize: {
+        default: undefined,
+        parseHTML: (element) => element.style.fontSize || undefined,
+        renderHTML: (attributes) =>
+          attributes.fontSize ? { style: `font-size: ${attributes.fontSize}` } : {},
+      },
     };
   },
 

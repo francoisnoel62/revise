@@ -8,6 +8,7 @@ import { RelatedWork } from '@/domain/value-objects/RelatedWork';
 import { PointOfView, NarrationTense, TargetAudience } from '@/domain/value-objects/NarrationSettings';
 import { SuggestionLength, AudaceLevel } from '@/domain/value-objects/AutocompletePreferences';
 import { CanonExtractionMode } from '@/domain/value-objects/CanonExtractionPreferences';
+import type { PublicationProfileId } from '@/domain/value-objects/PublicationProfile';
 
 export interface ContributorDocument {
   name: string;
@@ -46,6 +47,7 @@ export interface ProjectSettingsDocument {
   canonExtractionMode?: CanonExtractionMode;
   customDictionary?: string[];
   ignoredWords?: string[];
+  publicationProfileId?: PublicationProfileId;
 }
 
 export function serializeProjectSettings(
@@ -85,6 +87,7 @@ export function serializeProjectSettings(
     canonExtractionMode: props.canonExtractionMode,
     customDictionary: props.customDictionary ?? [],
     ignoredWords: props.ignoredWords ?? [],
+    publicationProfileId: props.publicationProfileId,
   };
 }
 
@@ -126,6 +129,7 @@ export function deserializeProjectSettings(doc: ProjectSettingsDocument): Projec
     canonExtractionMode: doc.canonExtractionMode,
     customDictionary: doc.customDictionary ?? [],
     ignoredWords: doc.ignoredWords ?? [],
+    publicationProfileId: doc.publicationProfileId,
   };
 
   return ProjectSettings.reconstruct(props);

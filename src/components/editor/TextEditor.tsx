@@ -29,6 +29,11 @@ import { generateCompletionAction } from '@/app/actions/completion-actions';
 import { sendAutocompleteEvent } from '@/lib/autocompleteTelemetryClient';
 import { SemanticAmbiguityBanner } from './SemanticAmbiguityBanner';
 import type { AutocompletePreferences } from '@/domain/value-objects/AutocompletePreferences';
+import type { ContentNode } from '@/domain/value-objects/ContentNode';
+import type { PresentationOverrideLayer } from '@/domain/value-objects/PresentationOverride';
+import type { PublicationProfileId } from '@/domain/value-objects/PublicationProfile';
+import { switchPublicationProfile } from '@/application/rendering/PublicationProfileSwitch';
+import { stripToSemantic } from '@/application/rendering/PresentationOverrideService';
 
 // Custom extension for em dash insertion with Ctrl+K
 const EmDashExtension = Extension.create({
@@ -51,6 +56,9 @@ interface TextEditorProps {
   projectId?: string;
   autocompleteEnabled?: boolean;
   autocompletePreferences?: AutocompletePreferences;
+  publicationProfileId?: PublicationProfileId;
+  presentationOverrides?: PresentationOverrideLayer;
+  onPresentationOverridesChange?: (overrides: PresentationOverrideLayer) => void;
 }
 
 export function TextEditor({
@@ -60,6 +68,9 @@ export function TextEditor({
   projectId,
   autocompleteEnabled = true,
   autocompletePreferences,
+  publicationProfileId = 'kdp-6x9',
+  presentationOverrides = [],
+  onPresentationOverridesChange,
 }: TextEditorProps) {
   const { activeContent, updateActiveContent, project } = useProjectStore();
 
@@ -67,6 +78,12 @@ export function TextEditor({
   const [dotState, setDotState] = useState<AutocompleteDotState>('idle');
   const dotStateRef = useRef<AutocompleteDotState>('idle');
   const dotTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const publicationProfileRef = useRef(publicationProfileId);
+  const presentationOverridesRef = useRef(presentationOverrides);
+  const onPresentationOverridesChangeRef = useRef(onPresentationOverridesChange);
+  publicationProfileRef.current = publicationProfileId;
+  presentationOverridesRef.current = presentationOverrides;
+  onPresentationOverridesChangeRef.current = onPresentationOverridesChange;
 
   // Handler for autocompletion requests
   const handleAutocomplete = useCallback(
@@ -139,8 +156,23 @@ export function TextEditor({
     ],
     content: activeContent ? JSON.parse(activeContent) : { type: 'doc', content: [] },
     onUpdate: ({ editor: e }) => {
-      const json = e.getJSON();
-      updateActiveContent(JSON.stringify(json));
+      const content = e.getJSON() as ContentNode;
+      if (publicationProfileRef.current === 'passerelle') {
+        const switched = switchPublicationProfile(
+          content,
+          'passerelle',
+          presentationOverridesRef.current
+        );
+        updateActiveContent(JSON.stringify(stripToSemantic(content)));
+        if (
+          JSON.stringify(switched.overrides) !==
+          JSON.stringify(presentationOverridesRef.current)
+        ) {
+          onPresentationOverridesChangeRef.current?.(switched.overrides);
+        }
+        return;
+      }
+      updateActiveContent(JSON.stringify(content));
     },
     onSelectionUpdate: ({ editor: e }) => {
       const { from, to } = e.state.selection;
@@ -189,15 +221,22 @@ export function TextEditor({
   useEffect(() => {
     if (!editor) return;
 
+    const semanticContent = activeContent
+      ? (JSON.parse(activeContent) as ContentNode)
+      : { type: 'doc', content: [] };
+    const displayedContent = switchPublicationProfile(
+      semanticContent,
+      publicationProfileId,
+      presentationOverrides
+    ).content;
     const currentJson = JSON.stringify(editor.getJSON());
-    if (activeContent !== currentJson) {
-      const newContent = activeContent ? JSON.parse(activeContent) : { type: 'doc', content: [] };
-      editor.commands.setContent(newContent, {
+    if (JSON.stringify(displayedContent) !== currentJson) {
+      editor.commands.setContent(displayedContent, {
         emitUpdate: false, // Don't trigger update event during switch
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editor, project?.activeChapterId]); // Trigger on activeChapterId change
+  }, [editor, project?.activeChapterId, publicationProfileId, presentationOverrides]);
 
   // Update autocomplete extension when enabled state changes
   useEffect(() => {

@@ -96,6 +96,16 @@ describe('ProjectSettings', () => {
   });
 
   describe('update methods', () => {
+    it('persists the active publication profile with a KDP default', () => {
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'My Title');
+
+      expect(settings.getPublicationProfileId()).toBe('kdp-6x9');
+      expect(settings.updatePublicationProfile('passerelle').getPublicationProfileId()).toBe(
+        'passerelle'
+      );
+      expect(settings.getPublicationProfileId()).toBe('kdp-6x9');
+    });
+
     it('updateTitle returns new instance with updated title', () => {
       const settings = ProjectSettings.reconstruct(validProps);
       const updated = settings.updateTitle('New Title');
@@ -245,7 +255,12 @@ describe('ProjectSettings', () => {
       const settings = ProjectSettings.reconstruct(validProps);
       const props = settings.toProperties();
 
-      expect(props).toEqual({ ...validProps, customDictionary: [], ignoredWords: [] });
+      expect(props).toMatchObject({
+        ...validProps,
+        customDictionary: [],
+        ignoredWords: [],
+        publicationProfileId: 'kdp-6x9',
+      });
     });
 
     it('returns a copy of arrays', () => {

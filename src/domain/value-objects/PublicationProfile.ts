@@ -1,8 +1,8 @@
 // ABOUTME: Immutable publication-profile value object for book rendering constraints.
-// ABOUTME: Defines the single KDP 6×9 preset shared by preview and export during the spike.
+// ABOUTME: Defines print-ready and passerelle presets shared by preview and export.
 
 export interface PublicationProfileProperties {
-  readonly id: string;
+  readonly id: PublicationProfileId;
   readonly pageWidthInches: number;
   readonly pageHeightInches: number;
   readonly marginTopCentimeters: number;
@@ -14,6 +14,8 @@ export interface PublicationProfileProperties {
   readonly lineHeight: number;
   readonly firstLineIndentCentimeters: number;
 }
+
+export type PublicationProfileId = 'kdp-6x9' | 'passerelle';
 
 export class PublicationProfile {
   private constructor(private readonly properties: PublicationProfileProperties) {}
@@ -32,6 +34,28 @@ export class PublicationProfile {
       lineHeight: 1.15,
       firstLineIndentCentimeters: 0.8,
     });
+  }
+
+  static passerelle(): PublicationProfile {
+    return new PublicationProfile({
+      id: 'passerelle',
+      pageWidthInches: 8.27,
+      pageHeightInches: 11.69,
+      marginTopCentimeters: 2.54,
+      marginBottomCentimeters: 2.54,
+      marginInsideCentimeters: 2.54,
+      marginOutsideCentimeters: 2.54,
+      bodyFontFamily: 'Arial',
+      bodyFontSizePoints: 12,
+      lineHeight: 1.5,
+      firstLineIndentCentimeters: 0,
+    });
+  }
+
+  static fromId(id: PublicationProfileId): PublicationProfile {
+    return id === 'passerelle'
+      ? PublicationProfile.passerelle()
+      : PublicationProfile.kdpSixByNine();
   }
 
   get values(): PublicationProfileProperties {

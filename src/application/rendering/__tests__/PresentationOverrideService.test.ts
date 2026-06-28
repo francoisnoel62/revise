@@ -174,6 +174,37 @@ describe('stripToSemantic', () => {
 });
 
 describe('extractOverrides', () => {
+  it('extracts the textStyle marks produced by the passerelle toolbar', () => {
+    const input = doc({
+      type: 'paragraph',
+      attrs: { semanticRole: 'corps', textAlign: 'center' },
+      content: [
+        {
+          type: 'text',
+          text: 'Hello',
+          marks: [
+            {
+              type: 'textStyle',
+              attrs: { fontFamily: 'Georgia', fontSize: '16pt' },
+            },
+          ],
+        },
+      ],
+    });
+
+    const overrides = extractOverrides(input);
+    const semantic = stripToSemantic(input);
+
+    expect(overrides).toEqual([
+      {
+        nodeIndex: 0,
+        props: { fontFamily: 'Georgia', fontSize: '16pt', textAlign: 'center' },
+      },
+    ]);
+    expect(semantic.content![0].content![0].marks).toBeUndefined();
+    expect(semantic.content![0].content![0].text).toBe('Hello');
+  });
+
   it('extracts fontFamily from a node', () => {
     const input = doc({
       type: 'paragraph',

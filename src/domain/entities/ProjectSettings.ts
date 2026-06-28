@@ -15,6 +15,7 @@ import {
   CanonExtractionMode,
   DEFAULT_CANON_EXTRACTION_PREFERENCES,
 } from '../value-objects/CanonExtractionPreferences';
+import type { PublicationProfileId } from '../value-objects/PublicationProfile';
 
 export interface ProjectSettingsProperties {
   id: string;
@@ -43,6 +44,7 @@ export interface ProjectSettingsProperties {
   canonExtractionMode?: CanonExtractionMode;
   customDictionary?: string[];
   ignoredWords?: string[];
+  publicationProfileId?: PublicationProfileId;
 }
 
 export class ProjectSettings {
@@ -72,6 +74,7 @@ export class ProjectSettings {
   private canonExtractionMode?: CanonExtractionMode;
   private customDictionary: string[];
   private ignoredWords: string[];
+  private publicationProfileId: PublicationProfileId;
 
   private constructor(props: ProjectSettingsProperties) {
     this.validate(props);
@@ -102,6 +105,7 @@ export class ProjectSettings {
     this.canonExtractionMode = props.canonExtractionMode;
     this.customDictionary = [...(props.customDictionary ?? [])];
     this.ignoredWords = [...(props.ignoredWords ?? [])];
+    this.publicationProfileId = props.publicationProfileId ?? 'kdp-6x9';
   }
 
   private validate(props: ProjectSettingsProperties): void {
@@ -220,6 +224,10 @@ export class ProjectSettings {
     return new Date(this.updatedAt.getTime());
   }
 
+  getPublicationProfileId(): PublicationProfileId {
+    return this.publicationProfileId;
+  }
+
   // Mutations (return new instance for immutability)
   updateTitle(title: string): ProjectSettings {
     const trimmedTitle = title.trim();
@@ -229,6 +237,14 @@ export class ProjectSettings {
     return new ProjectSettings({
       ...this.toProperties(),
       title: trimmedTitle,
+      updatedAt: new Date(),
+    });
+  }
+
+  updatePublicationProfile(profileId: PublicationProfileId): ProjectSettings {
+    return new ProjectSettings({
+      ...this.toProperties(),
+      publicationProfileId: profileId,
       updatedAt: new Date(),
     });
   }
@@ -450,6 +466,7 @@ export class ProjectSettings {
       canonExtractionMode: this.canonExtractionMode,
       customDictionary: [...this.customDictionary],
       ignoredWords: [...this.ignoredWords],
+      publicationProfileId: this.publicationProfileId,
     };
   }
 }

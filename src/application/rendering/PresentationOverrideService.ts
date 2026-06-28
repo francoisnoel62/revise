@@ -48,18 +48,33 @@ export function applyOverrides(
 export function stripToSemantic(doc: ContentNode): ContentNode {
   if (!doc.content) return doc;
 
-  const content = doc.content.map((node) => {
-    if (!node.attrs) return node;
-
-    const cleanAttrs = { ...node.attrs };
-    for (const attr of PRESENTATION_ATTRS) {
-      delete cleanAttrs[attr];
-    }
-
-    return { ...node, attrs: cleanAttrs };
-  });
+  const content = doc.content.map(stripNodeToSemantic);
 
   return { ...doc, content };
+}
+
+function stripNodeToSemantic(node: ContentNode): ContentNode {
+  const stripped: ContentNode = { ...node };
+
+  if (node.attrs) {
+    const cleanAttrs = { ...node.attrs };
+    for (const attr of PRESENTATION_ATTRS) delete cleanAttrs[attr];
+    stripped.attrs = cleanAttrs;
+  }
+
+  if (node.marks) {
+    const cleanMarks = node.marks.flatMap((mark) => {
+      if (mark.type !== 'textStyle' || !mark.attrs) return [mark];
+      const cleanAttrs = { ...mark.attrs };
+      for (const attr of PRESENTATION_ATTRS) delete cleanAttrs[attr];
+      return Object.keys(cleanAttrs).length > 0 ? [{ ...mark, attrs: cleanAttrs }] : [];
+    });
+    if (cleanMarks.length > 0) stripped.marks = cleanMarks;
+    else delete stripped.marks;
+  }
+
+  if (node.content) stripped.content = node.content.map(stripNodeToSemantic);
+  return stripped;
 }
 
 /**
@@ -72,15 +87,15 @@ export function extractOverrides(doc: ContentNode): PresentationOverrideLayer {
   const overrides: PresentationOverrideLayer = [];
 
   doc.content.forEach((node, i) => {
-    if (!node.attrs) return;
-
     const props: PresentationProps = {};
     for (const attr of PRESENTATION_ATTRS) {
-      const val = node.attrs[attr as PresentationAttr];
+      const val = node.attrs?.[attr as PresentationAttr];
       if (typeof val === 'string') {
         props[attr as PresentationAttr] = val;
       }
     }
+
+    collectTextStyleProps(node, props);
 
     if (Object.keys(props).length > 0) {
       overrides.push({ nodeIndex: i, props });
@@ -88,4 +103,15 @@ export function extractOverrides(doc: ContentNode): PresentationOverrideLayer {
   });
 
   return overrides;
+}
+
+function collectTextStyleProps(node: ContentNode, props: PresentationProps): void {
+  for (const mark of node.marks ?? []) {
+    if (mark.type !== 'textStyle') continue;
+    for (const attr of ['fontFamily', 'fontSize'] as const) {
+      const value = mark.attrs?.[attr];
+      if (props[attr] === undefined && typeof value === 'string') props[attr] = value;
+    }
+  }
+  for (const child of node.content ?? []) collectTextStyleProps(child, props);
 }

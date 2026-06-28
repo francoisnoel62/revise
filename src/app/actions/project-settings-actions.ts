@@ -15,6 +15,7 @@ import { RelatedWork } from '@/domain/value-objects/RelatedWork';
 import { PointOfView, NarrationTense, TargetAudience } from '@/domain/value-objects/NarrationSettings';
 import { AutocompletePreferences } from '@/domain/value-objects/AutocompletePreferences';
 import { CanonExtractionPreferences } from '@/domain/value-objects/CanonExtractionPreferences';
+import type { PublicationProfileId } from '@/domain/value-objects/PublicationProfile';
 
 export interface SerializedProjectSettings {
   id: string;
@@ -37,6 +38,7 @@ export interface SerializedProjectSettings {
   canonExtractionPreferences: CanonExtractionPreferences;
   customDictionary: string[];
   ignoredWords: string[];
+  publicationProfileId: PublicationProfileId;
 }
 
 function serializeProjectSettings(settings: ProjectSettings): SerializedProjectSettings {
@@ -61,6 +63,7 @@ function serializeProjectSettings(settings: ProjectSettings): SerializedProjectS
     canonExtractionPreferences: settings.getCanonExtractionPreferences(),
     customDictionary: settings.getCustomDictionary(),
     ignoredWords: settings.getIgnoredWords(),
+    publicationProfileId: settings.getPublicationProfileId(),
   };
 }
 

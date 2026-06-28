@@ -1,5 +1,5 @@
-// ABOUTME: Main editor page with project loading.
-// ABOUTME: Loads project from URL or creates new one.
+// ABOUTME: Main editor page with project loading and live publication-profile switching.
+// ABOUTME: Coordinates semantic editing, paged preview, toolbar mode, and persisted settings.
 
 'use client';
 
@@ -26,7 +26,14 @@ import { updateProjectProviderAction } from '@/app/actions/project-actions';
 import { generateChapterAction } from '@/app/actions/chapter-generation-actions';
 import { CorrectionHistoryDialog } from '@/components/history/CorrectionHistoryDialog';
 import { FloatingGenerationMenu } from '@/components/editor/FloatingGenerationMenu';
-import { loadProjectSettingsAction } from '@/app/actions/project-settings-actions';
+import {
+  loadProjectSettingsAction,
+  updateProjectSettingsAction,
+} from '@/app/actions/project-settings-actions';
+import {
+  loadPresentationOverridesAction,
+  savePresentationOverridesAction,
+} from '@/app/actions/presentation-override-actions';
 import {
   AutocompletePreferences,
   DEFAULT_AUTOCOMPLETE_PREFERENCES,
@@ -54,6 +61,11 @@ import {
 } from '@/app/actions/analysis-actions';
 import type { AnalysisIssueData } from '@/components/analysis/AnalysisIssueCard';
 import type { AnalysisSummaryStats } from '@/components/analysis/AnalysisSummaryCard';
+import { PublicationProfileSelector } from '@/components/editor/PublicationProfileSelector';
+import { PublicationPreview } from '@/components/editor/PublicationPreview';
+import type { PublicationProfileId } from '@/domain/value-objects/PublicationProfile';
+import type { PresentationOverrideLayer } from '@/domain/value-objects/PresentationOverride';
+import type { ContentNode } from '@/domain/value-objects/ContentNode';
 
 interface Proposal {
   content: string;
@@ -67,6 +79,7 @@ function EditorContent() {
 
   const {
     project,
+    activeContent,
     isLoading,
     error,
     loadProject,
@@ -98,6 +111,12 @@ function EditorContent() {
   const [autocompletePrefs, setAutocompletePrefs] = useState<AutocompletePreferences>(
     DEFAULT_AUTOCOMPLETE_PREFERENCES
   );
+  const [publicationProfileId, setPublicationProfileId] =
+    useState<PublicationProfileId>('kdp-6x9');
+  const [presentationOverrides, setPresentationOverrides] =
+    useState<PresentationOverrideLayer>([]);
+  const [isProfileSaving, setIsProfileSaving] = useState(false);
+  const overrideSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Canon extraction mode
   const [canonExtractionPrefs, setCanonExtractionPrefs] = useState<CanonExtractionPreferences>(
@@ -114,9 +133,75 @@ function EditorContent() {
         setAutocompletePrefs(result.settings.autocompletePreferences);
         setAutocompleteEnabled(result.settings.autocompletePreferences.enabled);
         setCanonExtractionPrefs(result.settings.canonExtractionPreferences);
+        setPublicationProfileId(result.settings.publicationProfileId);
       }
     });
   }, [project?.id]);
+
+  useEffect(() => {
+    const chapterId = project?.activeChapterId;
+    if (!chapterId) {
+      setPresentationOverrides([]);
+      return;
+    }
+
+    let cancelled = false;
+    setPresentationOverrides([]);
+    loadPresentationOverridesAction(chapterId).then((result) => {
+      if (!cancelled && result.success) setPresentationOverrides(result.data ?? []);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [project?.activeChapterId]);
+
+  useEffect(
+    () => () => {
+      if (overrideSaveTimerRef.current) clearTimeout(overrideSaveTimerRef.current);
+    },
+    []
+  );
+
+  const handlePresentationOverridesChange = (overrides: PresentationOverrideLayer) => {
+    setPresentationOverrides(overrides);
+    const chapterId = project?.activeChapterId;
+    if (!chapterId || publicationProfileId !== 'passerelle') return;
+
+    if (overrideSaveTimerRef.current) clearTimeout(overrideSaveTimerRef.current);
+    overrideSaveTimerRef.current = setTimeout(() => {
+      void savePresentationOverridesAction(chapterId, overrides);
+    }, 500);
+  };
+
+  const handlePublicationProfileChange = async (targetProfileId: PublicationProfileId) => {
+    if (!project || targetProfileId === publicationProfileId) return;
+
+    const previousProfileId = publicationProfileId;
+    setPublicationProfileId(targetProfileId);
+    setIsProfileSaving(true);
+
+    if (previousProfileId === 'passerelle' && project.activeChapterId) {
+      if (overrideSaveTimerRef.current) clearTimeout(overrideSaveTimerRef.current);
+      const overrideResult = await savePresentationOverridesAction(
+        project.activeChapterId,
+        presentationOverrides
+      );
+      if (!overrideResult.success) {
+        setPublicationProfileId(previousProfileId);
+        setIsProfileSaving(false);
+        return;
+      }
+    }
+
+    const result = await updateProjectSettingsAction(project.id, {
+      publicationProfileId: targetProfileId,
+    });
+
+    if (!result.success) {
+      setPublicationProfileId(previousProfileId);
+    }
+    setIsProfileSaving(false);
+  };
 
   const { notification: canonNotification, dismissNotification: dismissCanonNotification } =
     useSessionEndTrigger({
@@ -637,10 +722,17 @@ function EditorContent() {
       {/* Toolbar sticky - responsive positioning for 3 breakpoints */}
       <div className="sticky top-13 lg:top-18.25 z-40 flex flex-col items-center py-1 lg:py-2 bg-slate-50 px-2 gap-2">
         <div className="w-full max-w-198.5">
+          <div className="mb-2 flex justify-end">
+            <PublicationProfileSelector
+              value={publicationProfileId}
+              onChange={handlePublicationProfileChange}
+              isSaving={isProfileSaving}
+            />
+          </div>
           <div className="bg-white rounded-lg shadow border border-slate-200 px-1 md:px-2 py-1 overflow-x-auto">
             <FormattingToolbar
               editor={editor}
-              profile="print-ready"
+              profile={publicationProfileId === 'passerelle' ? 'passerelle' : 'print-ready'}
               hasSelection={hasSelection}
               onRewrite={handleRewrite}
               rewriteLoading={rewriteLoading}
@@ -675,13 +767,16 @@ function EditorContent() {
 
       {/* Editor container - responsive width */}
       <div className="flex justify-center px-2 md:px-4 pb-8">
-        <div className="w-full max-w-198.5">
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden relative">
+        <div className="grid w-full max-w-400 gap-4 xl:grid-cols-2">
+          <div className="min-w-0 bg-white rounded-lg shadow-lg overflow-hidden relative">
             <TextEditor
               onSelectionChange={handleSelectionChange}
               onEditorReady={(editorInstance) => setEditor(editorInstance)}
               autocompleteEnabled={autocompleteEnabled}
               autocompletePreferences={autocompletePrefs}
+              publicationProfileId={publicationProfileId}
+              presentationOverrides={presentationOverrides}
+              onPresentationOverridesChange={handlePresentationOverridesChange}
             />
             {/* Thesaurus palette — opens on right-click of a word in the editor */}
             <ThesaurusPalette
@@ -697,6 +792,13 @@ function EditorContent() {
               showAIFeatures={hasAIProviders}
             />
           </div>
+          <aside className="min-w-0 overflow-hidden rounded-lg bg-slate-200 shadow-lg">
+            <PublicationPreview
+              content={JSON.parse(activeContent) as ContentNode}
+              profileId={publicationProfileId}
+              overrides={presentationOverrides}
+            />
+          </aside>
         </div>
       </div>
 
