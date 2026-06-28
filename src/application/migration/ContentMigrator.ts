@@ -1,7 +1,7 @@
 // ABOUTME: Pure function to migrate legacy TipTap JSON (presentation marks) to semantic content.
 // ABOUTME: Idempotent: re-running on already-migrated content is a no-op.
 
-import type { JSONContent } from '@tiptap/core';
+import type { ContentNode } from '@/domain/value-objects/ContentNode';
 
 export interface MigrationAmbiguity {
   nodeIndex: number;
@@ -9,7 +9,7 @@ export interface MigrationAmbiguity {
 }
 
 export interface MigrationResult {
-  content: JSONContent;
+  content: ContentNode;
   ambiguities: MigrationAmbiguity[];
   wasAlreadyMigrated: boolean;
 }
@@ -17,13 +17,13 @@ export interface MigrationResult {
 const PRESENTATION_TEXT_ALIGN = ['left', 'right', 'justify'];
 const AMBIGUOUS_TEXT_ALIGN = ['center'];
 
-function hasTextStyleMarks(node: JSONContent): boolean {
+function hasTextStyleMarks(node: ContentNode): boolean {
   if (node.marks?.some((m) => m.type === 'textStyle')) return true;
   if (node.content) return node.content.some(hasTextStyleMarks);
   return false;
 }
 
-function isAlreadyMigrated(docNode: JSONContent): boolean {
+function isAlreadyMigrated(docNode: ContentNode): boolean {
   if (!docNode.content?.length) return true;
   return docNode.content.every((node) => {
     if (node.type === 'paragraph') {
@@ -37,7 +37,7 @@ function isAlreadyMigrated(docNode: JSONContent): boolean {
   });
 }
 
-function stripTextStyleFromNode(node: JSONContent): JSONContent {
+function stripTextStyleFromNode(node: ContentNode): ContentNode {
   const strippedMarks = node.marks?.filter((m) => m.type !== 'textStyle');
   const strippedContent = node.content?.map(stripTextStyleFromNode);
 
@@ -51,10 +51,10 @@ function stripTextStyleFromNode(node: JSONContent): JSONContent {
 }
 
 function migrateParagraph(
-  node: JSONContent,
+  node: ContentNode,
   nodeIndex: number,
   ambiguities: MigrationAmbiguity[]
-): JSONContent {
+): ContentNode {
   const textAlign = node.attrs?.textAlign as string | undefined;
   const isCenter = AMBIGUOUS_TEXT_ALIGN.includes(textAlign ?? '');
 
@@ -80,12 +80,23 @@ function migrateParagraph(
   };
 }
 
-function migrateHeading(node: JSONContent): JSONContent {
+function migrateHeading(
+  node: ContentNode,
+  nodeIndex: number,
+  ambiguities: MigrationAmbiguity[]
+): ContentNode {
   const attrs: Record<string, unknown> = { ...(node.attrs ?? {}) };
   delete attrs.textAlign;
 
   if (attrs.level === 1) {
     attrs.semanticRole = 'titre-de-chapitre';
+  } else {
+    // Headings level 2+ have no unambiguous semantic mapping — flag for manual classification.
+    // sous-titre, citation, and other roles cannot be inferred from presentation marks alone.
+    ambiguities.push({
+      nodeIndex,
+      reason: `Titre de niveau ${String(attrs.level)} — rôle non détectable automatiquement. Reclassifier manuellement (sous-titre, citation, etc.).`,
+    });
   }
 
   return {
@@ -94,7 +105,7 @@ function migrateHeading(node: JSONContent): JSONContent {
   };
 }
 
-export function migrateContent(content: JSONContent): MigrationResult {
+export function migrateContent(content: ContentNode): MigrationResult {
   if (isAlreadyMigrated(content)) {
     return {
       content,
@@ -110,8 +121,9 @@ export function migrateContent(content: JSONContent): MigrationResult {
       return migrateParagraph(node, index, ambiguities);
     }
     if (node.type === 'heading') {
-      return migrateHeading(node);
+      return migrateHeading(node, index, ambiguities);
     }
+    // horizontalRule is its own semantic marker (séparateur-de-scène) by node type — no attr needed.
     return node;
   });
 

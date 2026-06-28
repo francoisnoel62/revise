@@ -3,13 +3,13 @@
 
 import { describe, it, expect } from 'vitest';
 import { migrateContent } from '../ContentMigrator';
-import type { JSONContent } from '@tiptap/core';
+import type { ContentNode } from '@/domain/value-objects/ContentNode';
 
-function doc(...nodes: JSONContent[]): JSONContent {
+function doc(...nodes: ContentNode[]): ContentNode {
   return { type: 'doc', content: nodes };
 }
 
-function textNode(text: string, ...markTypes: string[]): JSONContent {
+function textNode(text: string, ...markTypes: string[]): ContentNode {
   const marks = markTypes.map((type) => ({ type }));
   return { type: 'text', text, ...(marks.length ? { marks } : {}) };
 }
@@ -17,7 +17,7 @@ function textNode(text: string, ...markTypes: string[]): JSONContent {
 function textNodeWithStyle(
   text: string,
   styleAttrs: Record<string, string>
-): JSONContent {
+): ContentNode {
   return {
     type: 'text',
     text,
@@ -27,8 +27,8 @@ function textNodeWithStyle(
 
 function paragraph(
   attrs: Record<string, unknown> | null,
-  ...children: JSONContent[]
-): JSONContent {
+  ...children: ContentNode[]
+): ContentNode {
   return {
     type: 'paragraph',
     ...(attrs ? { attrs } : {}),
@@ -40,7 +40,7 @@ function headingWithStyle(
   level: number,
   text: string,
   styleAttrs: Record<string, string>
-): JSONContent {
+): ContentNode {
   return {
     type: 'heading',
     attrs: { level, textAlign: 'left' },
@@ -48,7 +48,7 @@ function headingWithStyle(
   };
 }
 
-const hr: JSONContent = { type: 'horizontalRule' };
+const hr: ContentNode = { type: 'horizontalRule' };
 
 describe('migrateContent', () => {
   describe('empty document', () => {
@@ -296,7 +296,7 @@ describe('migrateContent', () => {
       expect(result.content.content![0].attrs?.semanticRole).toBe('corps');
     });
 
-    it('handles heading level 2+ — only strips textStyle, no semanticRole added', () => {
+    it('handles heading level 2+ — strips textStyle, no semanticRole added, flags as ambiguous', () => {
       const input = doc({
         type: 'heading',
         attrs: { level: 2 },
@@ -309,6 +309,21 @@ describe('migrateContent', () => {
       const node = result.content.content![0];
       expect(node.attrs?.level).toBe(2);
       expect(node.content![0].marks).toBeUndefined();
+      expect(result.ambiguities).toHaveLength(1);
+      expect(result.ambiguities[0].reason).toMatch(/niveau 2|level 2/i);
+    });
+
+    it('flags heading level 3+ as ambiguous with correct nodeIndex', () => {
+      const input = doc(
+        paragraph(null, textNode('Intro')),
+        {
+          type: 'heading',
+          attrs: { level: 3 },
+          content: [{ type: 'text', text: 'Section', marks: [{ type: 'textStyle', attrs: { fontFamily: 'Georgia' } }] }],
+        },
+      );
+      const result = migrateContent(input);
+      expect(result.ambiguities[0].nodeIndex).toBe(1);
     });
 
     it('heading that duplicates chapter title (same text as chapter) is still migrated normally', () => {
