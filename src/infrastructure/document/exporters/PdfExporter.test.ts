@@ -1,5 +1,5 @@
-// ABOUTME: Test suite for PdfExporter — validates pdf-lib A4/Times paragraph rendering and utilities.
-// ABOUTME: PdfExporter is retained during migration; these tests run until the class is removed.
+// ABOUTME: Test suite for PdfExporter — validates pdf-lib A4/Times paragraph rendering and format validation.
+// ABOUTME: Covers single-chapter, paragraph spacing, and utility methods for the legacy pdf-lib exporter.
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import {

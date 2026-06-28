@@ -28,6 +28,13 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
 
+    // ── Paged-spike tests (parity + live pagination + PDF export) ───────────
+    {
+      name: 'paged-spike',
+      testMatch: /paged-spike\/.+\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+
     // ── Auth setup : login → save storageState ──────────────────────────────
     {
       name: 'setup',
