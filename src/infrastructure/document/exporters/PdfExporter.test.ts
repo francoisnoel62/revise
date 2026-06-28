@@ -1,5 +1,5 @@
-// ABOUTME: Unit test suite for PdfExporter validating PDF file generation
-// ABOUTME: Tests document creation, paragraph handling, and format validation
+// ABOUTME: Legacy test suite for the deprecated PdfExporter (pdf-lib / A4 / Times).
+// ABOUTME: The active PDF exporter is PagedPdfExporter. These tests remain until PdfExporter is removed.
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
