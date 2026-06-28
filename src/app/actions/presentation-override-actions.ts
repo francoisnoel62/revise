@@ -8,7 +8,6 @@ import type { PresentationOverrideLayer } from '@/domain/value-objects/Presentat
 
 /**
  * Persist the presentation override layer for a chapter.
- * Passing an empty array clears the overrides for that chapter.
  */
 export async function savePresentationOverridesAction(
   chapterId: string,
@@ -19,11 +18,7 @@ export async function savePresentationOverridesAction(
 
   return withErrorHandling(async () => {
     const repo = await getPresentationOverrideRepo();
-    if (overrides.length === 0) {
-      await repo.delete(chapterId);
-    } else {
-      await repo.save(chapterId, overrides);
-    }
+    await repo.save(chapterId, auth.userId, overrides);
   });
 }
 
@@ -39,6 +34,21 @@ export async function loadPresentationOverridesAction(
 
   return withErrorHandling(async () => {
     const repo = await getPresentationOverrideRepo();
-    return await repo.load(chapterId);
+    return await repo.load(chapterId, auth.userId);
+  });
+}
+
+/**
+ * Remove all presentation overrides for a chapter (retrait).
+ */
+export async function deletePresentationOverridesAction(
+  chapterId: string
+): Promise<ActionResult<void>> {
+  const auth = await getAuthenticatedUserId();
+  if ('error' in auth) return auth.error;
+
+  return withErrorHandling(async () => {
+    const repo = await getPresentationOverrideRepo();
+    await repo.delete(chapterId, auth.userId);
   });
 }
