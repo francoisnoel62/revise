@@ -30,7 +30,8 @@ function isAlreadyMigrated(docNode: JSONContent): boolean {
       return typeof node.attrs?.semanticRole === 'string' && !hasTextStyleMarks(node);
     }
     if (node.type === 'heading') {
-      return !hasTextStyleMarks(node);
+      const hasRole = node.attrs?.level !== 1 || node.attrs?.semanticRole === 'titre-de-chapitre';
+      return hasRole && !hasTextStyleMarks(node);
     }
     return true;
   });
@@ -82,6 +83,10 @@ function migrateParagraph(
 function migrateHeading(node: JSONContent): JSONContent {
   const attrs: Record<string, unknown> = { ...(node.attrs ?? {}) };
   delete attrs.textAlign;
+
+  if (attrs.level === 1) {
+    attrs.semanticRole = 'titre-de-chapitre';
+  }
 
   return {
     ...stripTextStyleFromNode(node),

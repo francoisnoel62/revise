@@ -161,6 +161,16 @@ describe('migrateContent', () => {
   });
 
   describe('heading level 1 (titre-de-chapitre)', () => {
+    it('assigns semanticRole titre-de-chapitre to heading level 1', () => {
+      const input = doc(
+        headingWithStyle(1, 'Chapter One', { fontFamily: 'Georgia', fontSize: '14pt' })
+      );
+      const result = migrateContent(input);
+
+      const node = result.content.content![0];
+      expect(node.attrs?.semanticRole).toBe('titre-de-chapitre');
+    });
+
     it('strips textStyle marks from heading text', () => {
       const input = doc(
         headingWithStyle(1, 'Chapter One', { fontFamily: 'Georgia', fontSize: '14pt' })
@@ -181,6 +191,17 @@ describe('migrateContent', () => {
       const node = result.content.content![0];
       expect(node.attrs?.textAlign).toBeUndefined();
     });
+
+    it('does not assign semanticRole to heading level 2+', () => {
+      const input = doc({
+        type: 'heading',
+        attrs: { level: 2 },
+        content: [textNode('Section')],
+      });
+      const result = migrateContent(input);
+
+      expect(result.content.content![0].attrs?.semanticRole).toBeUndefined();
+    });
   });
 
   describe('horizontalRule (séparateur-de-scène)', () => {
@@ -188,6 +209,7 @@ describe('migrateContent', () => {
       const input = doc(hr);
       const result = migrateContent(input);
 
+      // horizontalRule's node type is itself the semantic marker for séparateur-de-scène
       expect(result.content.content![0]).toEqual(hr);
     });
   });
@@ -220,8 +242,9 @@ describe('migrateContent', () => {
       const result = migrateContent(input);
       const nodes = result.content.content!;
 
-      // Heading: textStyle stripped, textAlign removed
+      // Heading: titre-de-chapitre, textStyle stripped, textAlign removed
       expect(nodes[0].type).toBe('heading');
+      expect(nodes[0].attrs?.semanticRole).toBe('titre-de-chapitre');
       expect(nodes[0].attrs?.textAlign).toBeUndefined();
       expect(nodes[0].content![0].marks).toBeUndefined();
 
@@ -250,7 +273,7 @@ describe('migrateContent', () => {
   describe('idempotency', () => {
     it('does not change already-migrated content', () => {
       const alreadyMigrated = doc(
-        { type: 'heading', attrs: { level: 1 }, content: [textNode('Title')] },
+        { type: 'heading', attrs: { level: 1, semanticRole: 'titre-de-chapitre' }, content: [textNode('Title')] },
         paragraph({ semanticRole: 'corps' }, textNode('Body'))
       );
 

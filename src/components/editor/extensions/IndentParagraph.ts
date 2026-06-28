@@ -11,8 +11,17 @@ export interface IndentParagraphOptions {
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     indentParagraph: {
+      /**
+       * Toggle first-line indent on current paragraph
+       */
       toggleIndent: () => ReturnType;
+      /**
+       * Set first-line indent on current paragraph
+       */
       setIndent: (indent: boolean) => ReturnType;
+      /**
+       * Set semantic role on current paragraph
+       */
       setSemanticRole: (role: SemanticRole) => ReturnType;
     };
   }
