@@ -1,35 +1,37 @@
 // ABOUTME: Unit tests for PagedPdfExporter — verifies paged pipeline wiring and PDF output contract.
-// ABOUTME: Chromium is mocked so tests run without a real browser.
+// ABOUTME: Chromium is replaced by an injected fake launcher so tests run without a real browser.
 // @vitest-environment node
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-// --- Mock Playwright chromium using vi.hoisted so variables are available in the factory ---
-const { mockPage, mockBrowser, mockLaunch } = vi.hoisted(() => {
-  const mockPage = {
-    setContent: vi.fn().mockResolvedValue(undefined),
-    waitForFunction: vi.fn().mockResolvedValue(undefined),
-    pdf: vi.fn().mockResolvedValue(Buffer.from('%PDF-1.4 mock')),
-  };
-  const mockBrowser = {
-    newPage: vi.fn().mockResolvedValue(mockPage),
-    close: vi.fn().mockResolvedValue(undefined),
-  };
-  const mockLaunch = vi.fn().mockResolvedValue(mockBrowser);
-  return { mockPage, mockBrowser, mockLaunch };
-});
-
-vi.mock('@playwright/test', () => ({
-  chromium: {
-    launch: mockLaunch,
-  },
-}));
-
 import { PagedPdfExporter } from './PagedPdfExporter';
+import type { BrowserHandle, BrowserLauncher, PageHandle } from '../paged/BrowserLauncher';
 import { Project } from '@/domain/entities/Project';
 import { Chapter } from '@/domain/entities/Chapter';
 
 const ASSET_BASE_URL = 'http://localhost:3000';
+const MOCK_PDF = Buffer.from('%PDF-1.4 mock');
+
+function makeFakePage(): PageHandle & { _pdf: ReturnType<typeof vi.fn>; _close?: ReturnType<typeof vi.fn> } {
+  const _pdf = vi.fn().mockResolvedValue(MOCK_PDF);
+  return {
+    setContent: vi.fn().mockResolvedValue(undefined),
+    waitForFunction: vi.fn().mockResolvedValue(undefined),
+    pdf: _pdf,
+    _pdf,
+  };
+}
+
+function makeFakeLauncher(): { launcher: BrowserLauncher; page: ReturnType<typeof makeFakePage>; browser: BrowserHandle } {
+  const page = makeFakePage();
+  const browser: BrowserHandle = {
+    newPage: vi.fn().mockResolvedValue(page),
+    close: vi.fn().mockResolvedValue(undefined),
+  };
+  const launcher: BrowserLauncher = {
+    launch: vi.fn().mockResolvedValue(browser),
+  };
+  return { launcher, page, browser };
+}
 
 function makeChapter(id: string, title: string, content?: object): Chapter {
   const tipTap = JSON.stringify(
@@ -46,11 +48,12 @@ function makeProject(chapters: Chapter[]): Project {
 }
 
 describe('PagedPdfExporter', () => {
+  let fake: ReturnType<typeof makeFakeLauncher>;
   let exporter: PagedPdfExporter;
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    exporter = new PagedPdfExporter(ASSET_BASE_URL);
+    fake = makeFakeLauncher();
+    exporter = new PagedPdfExporter(ASSET_BASE_URL, fake.launcher);
   });
 
   describe('supports', () => {
@@ -67,31 +70,22 @@ describe('PagedPdfExporter', () => {
 
   describe('exportProject', () => {
     it('returns a Buffer', async () => {
-      const chapter = makeChapter('ch-1', 'Chapitre Un');
-      const project = makeProject([chapter]);
-
+      const project = makeProject([makeChapter('ch-1', 'Chapitre Un')]);
       const result = await exporter.exportProject(project, 'roman.pdf');
-
       expect(result).toBeInstanceOf(Buffer);
     });
 
-    it('launches Chromium with headless: true', async () => {
-      const chapter = makeChapter('ch-1', 'Chapitre Un');
-      const project = makeProject([chapter]);
-
+    it('launches with headless: true', async () => {
+      const project = makeProject([makeChapter('ch-1', 'Chapitre Un')]);
       await exporter.exportProject(project, 'roman.pdf');
-
-      expect(mockLaunch).toHaveBeenCalledWith({ headless: true });
+      expect(fake.launcher.launch).toHaveBeenCalledWith({ headless: true });
     });
 
-    it('closes the browser even if an error occurs', async () => {
-      mockPage.pdf.mockRejectedValueOnce(new Error('Chromium failure'));
-
-      const chapter = makeChapter('ch-1', 'Chapitre Un');
-      const project = makeProject([chapter]);
-
+    it('closes the browser even if pdf() throws', async () => {
+      fake.page._pdf.mockRejectedValueOnce(new Error('Chromium failure'));
+      const project = makeProject([makeChapter('ch-1', 'Chapitre Un')]);
       await expect(exporter.exportProject(project, 'roman.pdf')).rejects.toThrow('Chromium failure');
-      expect(mockBrowser.close).toHaveBeenCalled();
+      expect(fake.browser.close).toHaveBeenCalled();
     });
 
     it('throws for unsupported format', async () => {
@@ -105,16 +99,12 @@ describe('PagedPdfExporter', () => {
   describe('exportChapters', () => {
     it('returns a Buffer from paged pipeline', async () => {
       const chapters = [makeChapter('ch-1', 'Un'), makeChapter('ch-2', 'Deux')];
-
       const result = await exporter.exportChapters(chapters, 'export.pdf');
-
       expect(result).toBeInstanceOf(Buffer);
     });
 
     it('throws when chapter list is empty', async () => {
-      await expect(exporter.exportChapters([], 'export.pdf')).rejects.toThrow(
-        'No chapters to export'
-      );
+      await expect(exporter.exportChapters([], 'export.pdf')).rejects.toThrow('No chapters to export');
     });
 
     it('throws for unsupported format', async () => {
@@ -126,8 +116,7 @@ describe('PagedPdfExporter', () => {
 
   describe('exportChapter', () => {
     it('returns a Buffer', async () => {
-      const chapter = makeChapter('ch-1', 'Chapitre Un');
-      const result = await exporter.exportChapter(chapter, 'chapitre.pdf');
+      const result = await exporter.exportChapter(makeChapter('ch-1', 'Chapitre Un'), 'chapitre.pdf');
       expect(result).toBeInstanceOf(Buffer);
     });
 

@@ -3,6 +3,7 @@
 
 import { Project } from '../entities/Project';
 import { Chapter } from '../entities/Chapter';
+import type { PublicationProfile } from '../value-objects/PublicationProfile';
 
 /**
  * Visual rendering preset for DOCX export.
@@ -46,6 +47,11 @@ export interface ExportOptions {
    * KDP preset only. Ignored for neutral/structured presets.
    */
   frontMatter?: FrontMatterData;
+  /**
+   * Publication profile for PDF export (page size, margins, fonts).
+   * Defaults to KDP 6×9 when not provided.
+   */
+  publicationProfile?: PublicationProfile;
 }
 
 export interface DocumentExporter {

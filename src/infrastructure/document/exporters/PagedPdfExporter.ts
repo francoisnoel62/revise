@@ -1,18 +1,19 @@
 // ABOUTME: PDF exporter producing preview-parity output via the paged renderer (Paged.js + Chromium).
 // ABOUTME: Pipeline: TipTap JSON → semantic HTML → publication CSS → Chromium PDF.
 
-import { chromium } from '@playwright/test';
 import type { JSONContent } from '@tiptap/core';
 import type { DocumentExporter, ExportOptions } from '@/domain/interfaces/DocumentExporter';
 import type { Project } from '@/domain/entities/Project';
 import type { Chapter } from '@/domain/entities/Chapter';
 import { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
+import type { BrowserLauncher } from '../paged/BrowserLauncher';
 import { PagedJsRenderer } from '../paged/PagedJsRenderer';
 import { TipTapToBookHtml } from '../paged/TipTapToBookHtml';
 
 export class PagedPdfExporter implements DocumentExporter {
   constructor(
     private readonly assetBaseUrl: string,
+    private readonly launcher: BrowserLauncher,
     private readonly renderer = new PagedJsRenderer(),
     private readonly converter = new TipTapToBookHtml(),
   ) {}
@@ -40,7 +41,7 @@ export class PagedPdfExporter implements DocumentExporter {
     return this.renderToPdf([{ content: doc }]);
   }
 
-  async exportProject(project: Project, filename: string, _options?: ExportOptions): Promise<Buffer> {
+  async exportProject(project: Project, filename: string, options?: ExportOptions): Promise<Buffer> {
     if (!this.supports(filename)) {
       throw new Error(`Unsupported export format: ${filename}`);
     }
@@ -50,10 +51,10 @@ export class PagedPdfExporter implements DocumentExporter {
       content: JSON.parse(ch.getContent()) as JSONContent,
     }));
 
-    return this.renderToPdf(chapters);
+    return this.renderToPdf(chapters, options?.publicationProfile);
   }
 
-  async exportChapter(chapter: Chapter, filename: string, _options?: ExportOptions): Promise<Buffer> {
+  async exportChapter(chapter: Chapter, filename: string, options?: ExportOptions): Promise<Buffer> {
     if (!this.supports(filename)) {
       throw new Error(`Unsupported export format: ${filename}`);
     }
@@ -61,10 +62,10 @@ export class PagedPdfExporter implements DocumentExporter {
     return this.renderToPdf([{
       title: chapter.getTitle(),
       content: JSON.parse(chapter.getContent()) as JSONContent,
-    }]);
+    }], options?.publicationProfile);
   }
 
-  async exportChapters(chapters: Chapter[], filename: string, _options?: ExportOptions): Promise<Buffer> {
+  async exportChapters(chapters: Chapter[], filename: string, options?: ExportOptions): Promise<Buffer> {
     if (!this.supports(filename)) {
       throw new Error(`Unsupported export format: ${filename}`);
     }
@@ -78,14 +79,13 @@ export class PagedPdfExporter implements DocumentExporter {
       content: JSON.parse(ch.getContent()) as JSONContent,
     }));
 
-    return this.renderToPdf(chapterData);
+    return this.renderToPdf(chapterData, options?.publicationProfile);
   }
 
   private async renderToPdf(
     chapters: Array<{ title?: string; content: JSONContent }>,
+    profile: PublicationProfile = PublicationProfile.kdpSixByNine(),
   ): Promise<Buffer> {
-    const profile = PublicationProfile.kdpSixByNine();
-
     const bodyParts: string[] = [];
     for (const chapter of chapters) {
       if (chapter.title) {
@@ -102,7 +102,7 @@ export class PagedPdfExporter implements DocumentExporter {
       assetBaseUrl: this.assetBaseUrl,
     });
 
-    const browser = await chromium.launch({ headless: true });
+    const browser = await this.launcher.launch({ headless: true });
     try {
       const page = await browser.newPage({ viewport: { width: 576, height: 864 } });
       await page.setContent(html, { waitUntil: 'networkidle' });
