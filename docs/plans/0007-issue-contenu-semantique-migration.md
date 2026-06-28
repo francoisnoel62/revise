@@ -11,10 +11,31 @@ Pour que les profils soient des lentilles changeables sans perte, le manuscrit d
 **Out** : la couche surcharges elle-même (`0009`), la barre d'outils (`0008`).
 
 ## Critères d'acceptation
-- [ ] Le schéma sémantique est défini et documenté (ajouter les termes manquants à `CONTEXT.md` si besoin).
-- [ ] Un contenu existant migré rend à l'identique (ou mieux) sans perte de texte.
-- [ ] Migration idempotente, réversible/auditable, testée sur des cas réels.
-- [ ] Aucune logique métier dans l'UI.
+- [x] Le schéma sémantique est défini et documenté (`SemanticRole.ts`, `IndentParagraph.ts`, `CONTEXT.md`).
+- [x] Un contenu existant migré rend à l'identique (ou mieux) sans perte de texte (testé via ContentMigrator TDD).
+- [x] Migration idempotente (`isAlreadyMigrated`), réversible (`ContentDemigrator`), script DB (`scripts/migrate-semantic-content.ts`).
+- [x] Aucune logique métier dans l'UI (logique dans `ContentMigrator` + `MigrateProjectContentUseCase`, UI = `SemanticAmbiguityBanner` + `useSemanticMigration`).
+
+## Implémentation (2026-06-28)
+
+### Domaine
+- `src/domain/value-objects/SemanticRole.ts` — enum + type guard
+- `src/domain/value-objects/ContentNode.ts` — type structurel (découple Application de @tiptap/core)
+
+### Application
+- `src/application/migration/ContentMigrator.ts` — migration pure, idempotente
+- `src/application/migration/ContentDemigrator.ts` — inverse (rollback)
+- `src/application/migration/MigrateProjectContentUseCase.ts` — orchestration DB (dry-run supporté)
+
+### Infrastructure
+- `scripts/migrate-semantic-content.ts` — runner CLI (`npm run migrate:semantic-content`)
+  - Options : `--dry-run`, `--owner <userId>`
+  - Traite tous les projets d'un owner par défaut
+
+### UI
+- `src/components/editor/extensions/IndentParagraph.ts` — attribut `semanticRole` + commande `setSemanticRole`
+- `src/components/editor/SemanticAmbiguityBanner.tsx` — banner ambiguïtés
+- `src/hooks/useSemanticMigration.ts` — détecte et applique migration à l'ouverture d'un chapitre
 
 ## Ancre TDD
 Tests unitaires de migration : un doc TipTap « legacy » (avec fontFamily/fontSize/align) → doc sémantique attendu. Couvrir les cas limites (titres dupliquant le titre de chapitre, paragraphes centrés = épigraphe, etc.).

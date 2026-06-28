@@ -23,9 +23,11 @@ import { useSpellCheck } from '@/hooks/useSpellCheck';
 
 import { useEffect, useCallback, useState, useRef } from 'react';
 import { useAutosave } from '@/hooks/useAutosave';
+import { useSemanticMigration } from '@/hooks/useSemanticMigration';
 import { useProjectStore } from '@/store/projectStore';
 import { generateCompletionAction } from '@/app/actions/completion-actions';
 import { sendAutocompleteEvent } from '@/lib/autocompleteTelemetryClient';
+import { SemanticAmbiguityBanner } from './SemanticAmbiguityBanner';
 import type { AutocompletePreferences } from '@/domain/value-objects/AutocompletePreferences';
 
 // Custom extension for em dash insertion with Ctrl+K
@@ -234,10 +236,16 @@ export function TextEditor({
 
   const { ignoreWord, addToDictionary } = useSpellCheck(editor, projectId ?? project?.id);
 
+  const { ambiguities, dismissAmbiguities } = useSemanticMigration(
+    editor,
+    project?.activeChapterId
+  );
+
   if (!editor) return null;
 
   return (
     <div className="w-full bg-slate-50 relative">
+      <SemanticAmbiguityBanner ambiguities={ambiguities} onDismiss={dismissAmbiguities} />
       <AutocompleteDot state={dotState} />
       <SpellCheckPalette
         editor={editor}

@@ -304,8 +304,8 @@ L'orchestrateur **ne franchit pas seul** ces points :
 | C (#123) | 1 | ✅ (SPIKE_GREEN) | ✅ **done** | ✅ décision @sparticuz/chromium consignée |
 | D (#124) | 1 | ✅ (SPIKE_GREEN) | ✅ **done** | ✅ PublicationProfile + PagedRenderer mergés |
 | E (#125) | 1 | ✅ (SPIKE_GREEN+D) | ✅ **done** | ✅ PagedPdfExporter mergé ; parité E2E verte ; DOCX intact ; tests pdf-lib conservés |
-| F (#126) | 2 | ✅ (D+humain ✅) | 🔜 **SUIVANT** | ⬜ |
-| G (#127) | 2 | ⬜ (F) | ⬜ todo | ⬜ |
+| F (#126) | 2 | ✅ (D+humain ✅) | ✅ **done** | ✅ schéma + migration + demigrator + script DB + banner ambiguïtés mergés (2026-06-28) |
+| G (#127) | 2 | ✅ (F ✅) | 🔜 **SUIVANT** | ⬜ |
 | H (#128) | 2 | ⬜ (F) | ⬜ todo | ⬜ |
 | I (#129) | 3 | ⬜ (D+F) | ⬜ todo | ⬜ |
 | J (#130) | 3 | ⬜ (D+I) | ⬜ todo | ⬜ |
@@ -316,5 +316,5 @@ L'orchestrateur **ne franchit pas seul** ces points :
 | O (#135) | 5 | ⬜ (F+B) | ⬜ todo | ⬜ |
 
 **Prochain pas :** deux fronts parallèles :
-- **F (#126)** — Contenu sémantique + migration (gate ouverte : D_done ✅ + stratégie approuvée ✅ 2026-06-28)
+- **G (#127)** — Barre d'outils profil-adaptative (gate ouverte : F_done ✅ 2026-06-28)
 - **L (#132)** — Liminaires + TOC (gate ouverte : D_done + E_done ✅)
