@@ -124,6 +124,8 @@ export class PublicationProfile {
 
   static fromId(id: PublicationProfileId): PublicationProfile {
     switch (id) {
+      case 'kdp-6x9':
+        return PublicationProfile.kdpSixByNine();
       case 'kdp-5x8':
         return PublicationProfile.kdpFiveByEight();
       case 'kdp-5_25x8':
@@ -134,8 +136,6 @@ export class PublicationProfile {
         return PublicationProfile.a5();
       case 'passerelle':
         return PublicationProfile.passerelle();
-      default:
-        return PublicationProfile.kdpSixByNine();
     }
   }
 
