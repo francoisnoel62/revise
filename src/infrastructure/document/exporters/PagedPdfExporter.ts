@@ -105,7 +105,8 @@ export class PagedPdfExporter implements DocumentExporter {
       }
     }
 
-    const toc = frontMatter && tocEntries.length > 0 ? tocEntries : undefined;
+    // Show TOC whenever there are at least 2 titled chapters; does not require front matter.
+    const toc = tocEntries.length > 1 ? tocEntries : undefined;
 
     const html = this.renderer.render({
       bodyHtml: bodyParts.join('\n'),

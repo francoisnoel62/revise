@@ -2,6 +2,7 @@
 // ABOUTME: Entries link to chapter section IDs; Paged.js resolves page numbers via target-counter.
 
 import type { TocEntry } from '@/application/interfaces/PagedRenderer';
+import { escapeHtml } from './htmlEscape';
 
 export class TocHtmlBuilder {
   build(entries: TocEntry[]): string {
@@ -9,8 +10,8 @@ export class TocHtmlBuilder {
 
     const items = entries
       .map((entry) => {
-        const href = this.escapeAttr(entry.chapterId);
-        const title = this.escapeHtml(entry.title);
+        const href = this.escape(entry.chapterId);
+        const title = this.escape(entry.title);
         return `    <li><a href="#${href}">${title}</a></li>`;
       })
       .join('\n');
@@ -23,21 +24,7 @@ ${items}
 </nav>`;
   }
 
-  private escapeHtml(value: string): string {
-    return value
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#039;');
-  }
-
-  private escapeAttr(value: string): string {
-    return value
-      .replaceAll('&', '&amp;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#039;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;');
+  private escape(value: string): string {
+    return escapeHtml(value);
   }
 }

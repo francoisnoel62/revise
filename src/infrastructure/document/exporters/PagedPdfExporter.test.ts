@@ -181,6 +181,23 @@ describe('PagedPdfExporter', () => {
       await exporter.exportProject(project, 'roman.pdf');
       const html: string = (fake.page.setContent as ReturnType<typeof vi.fn>).mock.calls[0][0];
       expect(html).not.toContain('half-title');
+    });
+
+    it('includes TOC for 2+ chapters even without front matter', async () => {
+      const project = makeProject([
+        makeChapter('ch-1', 'Chapitre Un'),
+        makeChapter('ch-2', 'Chapitre Deux'),
+      ]);
+      await exporter.exportProject(project, 'roman.pdf');
+      const html: string = (fake.page.setContent as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(html).toContain('Table des matières');
+      expect(html).not.toContain('half-title');
+    });
+
+    it('omits TOC for a single chapter', async () => {
+      const project = makeProject([makeChapter('ch-1', 'Chapitre Un')]);
+      await exporter.exportProject(project, 'roman.pdf');
+      const html: string = (fake.page.setContent as ReturnType<typeof vi.fn>).mock.calls[0][0];
       expect(html).not.toContain('Table des matières');
     });
   });

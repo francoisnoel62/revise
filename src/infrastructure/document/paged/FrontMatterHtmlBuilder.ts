@@ -2,6 +2,7 @@
 // ABOUTME: Pages are in canonical order: half-title, title, copyright, dedication, epigraph.
 
 import type { FrontMatterData } from '@/domain/interfaces/DocumentExporter';
+import { escapeHtml } from './htmlEscape';
 
 export class FrontMatterHtmlBuilder {
   build(data: FrontMatterData): string {
@@ -79,11 +80,6 @@ ${parts.join('\n')}
   }
 
   private escape(value: string): string {
-    return value
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#039;');
+    return escapeHtml(value);
   }
 }
