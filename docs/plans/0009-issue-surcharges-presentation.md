@@ -11,12 +11,10 @@ En profil passerelle, l'auteur peut forcer police/taille/alignement. Ces **surch
 **Out** : l'UI de bascule (`0010`) ; la barre (`0008`).
 
 ## Critères d'acceptation
-- [ ] Poser une surcharge en passerelle puis basculer en KDP : rendu sémantique pur, **aucune perte** de la surcharge. *(intégration : dépend du sélecteur #129)*
-- [ ] Rebasculer en passerelle : la surcharge réapparaît à l'identique. *(intégration : dépend du sélecteur #129)*
+- [x] Poser une surcharge en passerelle puis basculer en KDP : rendu sémantique pur, **aucune perte** de la surcharge. *(prouvé par PublicationProfileSwitch.test : `printReady.content === semanticContent` + overrides dormantes — #129 ✅)*
+- [x] Rebasculer en passerelle : la surcharge réapparaît à l'identique. *(prouvé par PublicationProfileSwitch.test : `restored.overrides === dormantOverrides` — #129 ✅)*
 - [x] Les surcharges n'altèrent jamais le contenu sémantique de base. *(prouvé par TDD — 28 tests)*
-- [ ] Le contenu reste exportable proprement dans les deux profils. *(dépend du câblage PagedRenderer — #129)*
-
-> **Note** : la couche de stockage/API est implémentée (`PresentationOverrideService`, `MongoDBPresentationOverrideRepository`, actions serveur avec isolation `ownerId`). Les AC 1, 2, 4 nécessitent le sélecteur de profil (#129) pour être vérifiables end-to-end.
+- [x] Le contenu reste exportable proprement dans les deux profils. *(BookCssBuilder + TipTapToBookHtml câblés au profil actif — #129 ✅)*
 
 ## Ancre TDD
 Tests unitaires de l'aller-retour : `appliquer surcharge → basculer strict → rendu sans surcharge → rebasculer → surcharge restaurée`. Propriété : le contenu sémantique de base est invariant par ces opérations.

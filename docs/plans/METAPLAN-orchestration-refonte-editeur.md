@@ -26,9 +26,9 @@ Les GitHub issues existent désormais (`francoisnoel62/revise`). **A et B ont é
 | F | **#126** | Contenu sémantique + migration | `done` | #124 | ✅ **MERGÉ** (2026-06-28) |
 | G | **#127** | Barre d'outils profil-adaptative | `done` | #126 | ✅ **MERGÉ** (2026-06-28) |
 | H | **#128** | Surcharges de présentation | `done` | #126 | ✅ **MERGÉ** (2026-06-28) |
-| I | **#129** | Sélecteur de profil + bascule à chaud | `needs-triage` | #124, #126 | 🔜 **SUIVANT** (gate ouverte) |
-| J | **#130** | Profils additionnels (A5, Word…) | `ready-for-agent` | #124, #129 | ⬜ |
-| K | **#131** | Marketplaces + preflight | `ready-for-human` | #124, #129 | ⬜ |
+| I | **#129** | Sélecteur de profil + bascule à chaud | `done` | #124, #126 | ✅ **MERGÉ** (2026-06-28) |
+| J | **#130** | Profils additionnels (A5, Word…) | `ready-for-agent` | #124, #129 | 🔜 **DÉBLOQUÉ** (D+I done) |
+| K | **#131** | Marketplaces + preflight | `ready-for-human` | #124, #129 | 🔜 **DÉBLOQUÉ** (humain requis) |
 | L | **#132** | Liminaires + TOC | `ready-for-agent` | #124, #125 | 🔜 **DÉBLOQUÉ** (D+E done) |
 | M | **#133** | Numérotation livre-entier | `needs-triage` | #125, #132 | ⬜ |
 | N | **#134** | Aperçu livre entier | `ready-for-agent` | #125, #133 | ⬜ |
@@ -307,15 +307,16 @@ L'orchestrateur **ne franchit pas seul** ces points :
 | F (#126) | 2 | ✅ (D+humain ✅) | ✅ **done** | ✅ schéma + migration + demigrator + script DB + banner ambiguïtés mergés (2026-06-28) |
 | G (#127) | 2 | ✅ (F ✅) | ✅ **done** | ✅ barre print-ready/passerelle ; styles sémantiques ; entrées IA préservées |
 | H (#128) | 2 | ✅ (F ✅) | ✅ **done** | ✅ couche séparée + API save/load/delete + 49 tests + isolation ownerId |
-| I (#129) | 3 | ✅ (D+F ✅) | 🔜 **SUIVANT** | ⬜ |
-| J (#130) | 3 | ⬜ (D+I) | ⬜ todo | ⬜ |
-| K (#131) | 3 | ⬜ (D+I+humain) | ⬜ todo | ⬜ |
+| I (#129) | 3 | ✅ (D+F ✅) | ✅ **done** | ✅ sélecteur UI + bascule à chaud + surcharges dormantes/restaurées + profil persistant |
+| J (#130) | 3 | ✅ (D+I ✅) | 🔜 **DÉBLOQUÉ** | ⬜ |
+| K (#131) | 3 | ✅ (D+I ✅) — humain requis | 🔜 **DÉBLOQUÉ** (humain) | ⬜ |
 | L (#132) | 4 | ✅ (D+E) | 🔜 **DÉBLOQUÉ** | ⬜ |
 | M (#133) | 4 | ⬜ (E+L) | ⬜ todo | ⬜ |
 | N (#134) | 4 | ⬜ (E+M) | ⬜ todo | ⬜ |
 | O (#135) | 5 | ✅ (F+B ✅) | 🔜 **DÉBLOQUÉ** | ⬜ |
 
-**Prochain pas :** trois fronts potentiels :
-- **I (#129)** — Sélecteur de profil + bascule à chaud (gate ouverte : D+F done ✅ — débloque J, K)
+**Prochain pas :** quatre fronts potentiels (I ✅ débloque J+K) :
+- **J (#130)** — Profils additionnels A5, trims KDP, passerelle Word (gate ouverte : D+I done ✅ — `actor: agent`)
+- **K (#131)** — Marketplaces + preflight zéro-rejet (gate ouverte : D+I done ✅ — `actor: human`, comptes marketplaces réels)
 - **L (#132)** — Liminaires + TOC (gate ouverte : D+E done ✅ — débloque M → N)
-- **O (#135)** — IA adaptée au modèle paginé (gate ouverte : F+B done ✅ — parallélisable avec I et L)
+- **O (#135)** — IA adaptée au modèle paginé (gate ouverte : F+B done ✅ — parallélisable avec J/K et L)
