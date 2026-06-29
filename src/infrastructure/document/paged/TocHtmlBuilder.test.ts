@@ -4,7 +4,6 @@
 
 import { describe, it, expect } from 'vitest';
 import { TocHtmlBuilder } from './TocHtmlBuilder';
-import type { TocEntry } from '@/application/interfaces/PagedRenderer';
 
 const builder = new TocHtmlBuilder();
 
