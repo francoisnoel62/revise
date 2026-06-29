@@ -139,4 +139,49 @@ describe('PagedPdfExporter', () => {
       );
     });
   });
+
+  describe('front matter integration', () => {
+    it('includes front matter pages in rendered HTML when frontMatter option is provided', async () => {
+      const project = makeProject([makeChapter('ch-1', 'Chapitre Un')]);
+      await exporter.exportProject(project, 'roman.pdf', {
+        frontMatter: { title: 'Mon Roman', authorName: 'Auteur Test' },
+      });
+      const html: string = (fake.page.setContent as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(html).toContain('half-title');
+      expect(html).toContain('Mon Roman');
+      expect(html).toContain('Auteur Test');
+    });
+
+    it('includes TOC in rendered HTML when exporting multiple chapters', async () => {
+      const project = makeProject([
+        makeChapter('ch-1', 'Chapitre Un'),
+        makeChapter('ch-2', 'Chapitre Deux'),
+      ]);
+      await exporter.exportProject(project, 'roman.pdf', {
+        frontMatter: { title: 'Mon Roman' },
+      });
+      const html: string = (fake.page.setContent as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(html).toContain('Table des matières');
+      expect(html).toContain('Chapitre Un');
+      expect(html).toContain('Chapitre Deux');
+    });
+
+    it('wraps chapters in section elements with chapter IDs', async () => {
+      const project = makeProject([makeChapter('ch-1', 'Chapitre Un')]);
+      await exporter.exportProject(project, 'roman.pdf', {
+        frontMatter: { title: 'Mon Roman' },
+      });
+      const html: string = (fake.page.setContent as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(html).toMatch(/id="ch-\d+"/);
+      expect(html).toContain('class="chapter"');
+    });
+
+    it('does not include front matter when frontMatter option is absent', async () => {
+      const project = makeProject([makeChapter('ch-1', 'Chapitre Un')]);
+      await exporter.exportProject(project, 'roman.pdf');
+      const html: string = (fake.page.setContent as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(html).not.toContain('half-title');
+      expect(html).not.toContain('Table des matières');
+    });
+  });
 });

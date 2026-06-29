@@ -82,4 +82,31 @@ describe('BookCssBuilder', () => {
     expect(css).toContain('margin-left: 2cm');
     expect(css).toContain('margin-right: 1.5cm');
   });
+
+  describe('liminal (front matter) page rules', () => {
+    it('assigns liminal sections to a named page with roman numerals', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000'
+      );
+      expect(css).toContain('page: liminal-page');
+      expect(css).toContain('lower-roman');
+    });
+
+    it('makes chapters start on odd (right) pages', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000'
+      );
+      expect(css).toContain('break-before: right');
+    });
+
+    it('includes toc entry leader dots via CSS', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000'
+      );
+      expect(css).toContain('target-counter');
+    });
+  });
 });

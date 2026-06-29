@@ -68,6 +68,58 @@ export class BookCssBuilder {
         .pagedjs_pages { display: block; }
         .pagedjs_page { margin: 0 !important; box-shadow: none !important; break-after: page; }
       }
+
+      /* Liminal pages (front matter): roman numerals, each on its own page */
+      .liminal {
+        page: liminal-page;
+        break-before: page;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        text-align: center;
+      }
+      .liminal:first-child { break-before: right; }
+      @page liminal-page {
+        @bottom-center {
+          content: counter(page, lower-roman);
+          font-size: 9pt;
+          color: #555;
+        }
+      }
+
+      /* Chapter sections: start on odd (right-hand) pages */
+      .chapter { break-before: right; }
+      .chapter:first-child { break-before: auto; }
+
+      /* TOC: links with leader dots and auto page numbers */
+      .toc h2 {
+        font-size: 14pt;
+        font-weight: 700;
+        margin: 0 0 24pt;
+        text-align: center;
+      }
+      .toc ol {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        width: 100%;
+        max-width: 80%;
+        text-align: left;
+      }
+      .toc li { margin-bottom: 6pt; }
+      .toc a {
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        justify-content: space-between;
+      }
+      .toc a::after {
+        content: leader('.') target-counter(attr(href url), page);
+        white-space: nowrap;
+        padding-left: 4pt;
+      }
     `;
   }
 }

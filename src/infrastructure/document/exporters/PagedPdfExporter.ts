@@ -2,11 +2,12 @@
 // ABOUTME: Pipeline: TipTap JSON → semantic HTML → publication CSS → Chromium PDF.
 
 import type { JSONContent } from '@tiptap/core';
-import type { DocumentExporter, ExportOptions } from '@/domain/interfaces/DocumentExporter';
+import type { DocumentExporter, ExportOptions, FrontMatterData } from '@/domain/interfaces/DocumentExporter';
 import type { Project } from '@/domain/entities/Project';
 import type { Chapter } from '@/domain/entities/Chapter';
 import { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
 import type { BrowserLauncher } from '../paged/BrowserLauncher';
+import type { TocEntry } from '@/application/interfaces/PagedRenderer';
 import { PagedJsRenderer } from '../paged/PagedJsRenderer';
 import { TipTapToBookHtml } from '../paged/TipTapToBookHtml';
 
@@ -51,7 +52,7 @@ export class PagedPdfExporter implements DocumentExporter {
       content: JSON.parse(ch.getContent()) as JSONContent,
     }));
 
-    return this.renderToPdf(chapters, options?.publicationProfile);
+    return this.renderToPdf(chapters, options?.publicationProfile, options?.frontMatter);
   }
 
   async exportChapter(chapter: Chapter, filename: string, options?: ExportOptions): Promise<Buffer> {
@@ -85,21 +86,33 @@ export class PagedPdfExporter implements DocumentExporter {
   private async renderToPdf(
     chapters: Array<{ title?: string; content: JSONContent }>,
     profile: PublicationProfile = PublicationProfile.kdpSixByNine(),
+    frontMatter?: FrontMatterData,
   ): Promise<Buffer> {
     const bodyParts: string[] = [];
-    for (const chapter of chapters) {
+    const tocEntries: TocEntry[] = [];
+
+    for (let i = 0; i < chapters.length; i++) {
+      const chapter = chapters[i];
+      const chapterId = `ch-${i}`;
+      const chapterContent = chapter.title
+        ? `<h1>${this.escapeHtml(chapter.title)}</h1>\n${this.converter.convertChapter(chapter.content, chapter.title)}`
+        : this.converter.convert(chapter.content);
+
+      bodyParts.push(`<section id="${chapterId}" class="chapter">${chapterContent}</section>`);
+
       if (chapter.title) {
-        bodyParts.push(`<h1>${this.escapeHtml(chapter.title)}</h1>`);
-        bodyParts.push(this.converter.convertChapter(chapter.content, chapter.title));
-      } else {
-        bodyParts.push(this.converter.convert(chapter.content));
+        tocEntries.push({ title: chapter.title, chapterId });
       }
     }
+
+    const toc = frontMatter && tocEntries.length > 0 ? tocEntries : undefined;
 
     const html = this.renderer.render({
       bodyHtml: bodyParts.join('\n'),
       profile,
       assetBaseUrl: this.assetBaseUrl,
+      frontMatter,
+      toc,
     });
 
     const browser = await this.launcher.launch({ headless: true });
