@@ -7,9 +7,9 @@ export class BookCssBuilder {
   build(profile: PublicationProfile, assetBaseUrl: string): string {
     const value = profile.values;
     const assets = assetBaseUrl.replace(/\/$/, '');
-    const embeddedFontFaces =
-      value.id === 'kdp-6x9'
-        ? `
+    const usesEbGaramond = value.bodyFontFamily === 'EB Garamond';
+    const embeddedFontFaces = usesEbGaramond
+      ? `
       @font-face {
         font-family: '${value.bodyFontFamily}';
         src: url('${assets}/fonts/eb-garamond-400.woff2') format('woff2');
@@ -24,8 +24,8 @@ export class BookCssBuilder {
         font-weight: 700;
         font-display: block;
       }`
-        : '';
-    const fontFallback = value.id === 'passerelle' ? 'sans-serif' : 'serif';
+      : '';
+    const fontFallback = usesEbGaramond ? 'serif' : 'sans-serif';
 
     return `
       ${embeddedFontFaces}

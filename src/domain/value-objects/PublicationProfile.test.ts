@@ -16,4 +16,48 @@ describe('PublicationProfile', () => {
       bodyFontSizePoints: 12,
     });
   });
+
+  it('restores the KDP 5×8 profile with its trim dimensions', () => {
+    const profile = PublicationProfile.fromId('kdp-5x8');
+
+    expect(profile.values).toMatchObject({
+      id: 'kdp-5x8',
+      pageWidthInches: 5,
+      pageHeightInches: 8,
+      bodyFontFamily: 'EB Garamond',
+    });
+  });
+
+  it('restores the KDP 5.25×8 profile with its trim dimensions', () => {
+    const profile = PublicationProfile.fromId('kdp-5_25x8');
+
+    expect(profile.values).toMatchObject({
+      id: 'kdp-5_25x8',
+      pageWidthInches: 5.25,
+      pageHeightInches: 8,
+      bodyFontFamily: 'EB Garamond',
+    });
+  });
+
+  it('restores the KDP 5.5×8.5 profile with its trim dimensions', () => {
+    const profile = PublicationProfile.fromId('kdp-5_5x8_5');
+
+    expect(profile.values).toMatchObject({
+      id: 'kdp-5_5x8_5',
+      pageWidthInches: 5.5,
+      pageHeightInches: 8.5,
+      bodyFontFamily: 'EB Garamond',
+    });
+  });
+
+  it('restores the A5 profile with its trim dimensions', () => {
+    const profile = PublicationProfile.fromId('a5');
+
+    expect(profile.values).toMatchObject({
+      id: 'a5',
+      pageWidthInches: 5.83,
+      pageHeightInches: 8.27,
+      bodyFontFamily: 'EB Garamond',
+    });
+  });
 });
