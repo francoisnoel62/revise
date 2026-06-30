@@ -11,9 +11,9 @@ Réfs : [ADR 0005](../adr/0005-editeur-apercu-fidele-moteur-pagine-unique.md) (q
 **Out** : profils marketplaces spécifiques + preflight (`0012`).
 
 ## Critères d'acceptation
-- [ ] Chaque profil ajouté est une donnée déclarative, sans logique dédiée.
-- [ ] L'aperçu et l'export honorent chaque profil (parité conservée).
-- [ ] Le profil passerelle produit un rendu A4 confort refluable.
+- [x] Chaque profil ajouté est une donnée déclarative, sans logique dédiée.
+- [x] L'aperçu et l'export honorent chaque profil (parité conservée).
+- [x] Le profil passerelle produit un rendu A4 confort refluable.
 
 ## Ancre TDD
 Pour chaque preset : test que `BookCssBuilder` émet la CSS attendue (trim/marges) et que l'aperçu paginate au bon format. Test de non-régression de parité par profil.

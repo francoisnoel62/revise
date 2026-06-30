@@ -27,11 +27,11 @@ Les GitHub issues existent désormais (`francoisnoel62/revise`). **A et B ont é
 | G | **#127** | Barre d'outils profil-adaptative | `done` | #126 | ✅ **MERGÉ** (2026-06-28) |
 | H | **#128** | Surcharges de présentation | `done` | #126 | ✅ **MERGÉ** (2026-06-28) |
 | I | **#129** | Sélecteur de profil + bascule à chaud | `done` | #124, #126 | ✅ **MERGÉ** (2026-06-28) |
-| J | **#130** | Profils additionnels (A5, Word…) | `ready-for-agent` | #124, #129 | 🔜 **DÉBLOQUÉ** (D+I done) |
+| J | **#130** | Profils additionnels (A5, Word…) | `done` | #124, #129 | ✅ **MERGÉ** (2026-06-29) |
 | K | **#131** | Marketplaces + preflight | `ready-for-human` | #124, #129 | 🔜 **DÉBLOQUÉ** (humain requis) |
-| L | **#132** | Liminaires + TOC | `ready-for-agent` | #124, #125 | 🔜 **DÉBLOQUÉ** (D+E done) |
-| M | **#133** | Numérotation livre-entier | `needs-triage` | #125, #132 | ⬜ |
-| N | **#134** | Aperçu livre entier | `ready-for-agent` | #125, #133 | ⬜ |
+| L | **#132** | Liminaires + TOC | `done` | #124, #125 | ✅ **MERGÉ** (2026-06-29) |
+| M | **#133** | Numérotation livre-entier | `done` | #125, #132 | ✅ **MERGÉ** (2026-06-30) |
+| N | **#134** | Aperçu livre entier | `ready-for-agent` | #125, #133 | 🔜 **DÉBLOQUÉ** (E+M done) |
 | O | **#135** | IA adaptée au modèle paginé | `ready-for-agent` | #126, #122 | 🔜 **DÉBLOQUÉ** (F+B done) |
 
 > `SPIKE_GREEN` = ✅ (J1 : pixel-diff < 1 % · J2 : 331 ms < 900 ms · Paged.js retenu). Phase 1 débloquée.
@@ -308,15 +308,14 @@ L'orchestrateur **ne franchit pas seul** ces points :
 | G (#127) | 2 | ✅ (F ✅) | ✅ **done** | ✅ barre print-ready/passerelle ; styles sémantiques ; entrées IA préservées |
 | H (#128) | 2 | ✅ (F ✅) | ✅ **done** | ✅ couche séparée + API save/load/delete + 49 tests + isolation ownerId |
 | I (#129) | 3 | ✅ (D+F ✅) | ✅ **done** | ✅ sélecteur UI + bascule à chaud + surcharges dormantes/restaurées + profil persistant |
-| J (#130) | 3 | ✅ (D+I ✅) | 🔜 **DÉBLOQUÉ** | ⬜ |
+| J (#130) | 3 | ✅ (D+I ✅) | ✅ **done** | ✅ presets A5, KDP 5×8/5,25×8/5,5×8,5 ; chaque profil = donnée déclarative ; parité conservée (2026-06-29) |
 | K (#131) | 3 | ✅ (D+I ✅) — humain requis | 🔜 **DÉBLOQUÉ** (humain) | ⬜ |
-| L (#132) | 4 | ✅ (D+E) | 🔜 **DÉBLOQUÉ** | ⬜ |
-| M (#133) | 4 | ⬜ (E+L) | ⬜ todo | ⬜ |
-| N (#134) | 4 | ⬜ (E+M) | ⬜ todo | ⬜ |
+| L (#132) | 4 | ✅ (D+E) | ✅ **done** | ✅ liminaires + TOC dans aperçu + export ; sources annexes/métadonnées ; offsets numérotation (2026-06-29) |
+| M (#133) | 4 | ✅ (E+L ✅) | ✅ **done** | ✅ offsets cachés par chapitre ; cache invalidation contenu/profil ; parité numéro éditeur == export ; perf bornée (2026-06-30) |
+| N (#134) | 4 | ✅ (E+M ✅) | 🔜 **DÉBLOQUÉ** | ⬜ |
 | O (#135) | 5 | ✅ (F+B ✅) | 🔜 **DÉBLOQUÉ** | ⬜ |
 
-**Prochain pas :** quatre fronts potentiels (I ✅ débloque J+K) :
-- **J (#130)** — Profils additionnels A5, trims KDP, passerelle Word (gate ouverte : D+I done ✅ — `actor: agent`)
+**Prochain pas :** trois fronts potentiels (L+M ✅ débloquent N) :
 - **K (#131)** — Marketplaces + preflight zéro-rejet (gate ouverte : D+I done ✅ — `actor: human`, comptes marketplaces réels)
-- **L (#132)** — Liminaires + TOC (gate ouverte : D+E done ✅ — débloque M → N)
-- **O (#135)** — IA adaptée au modèle paginé (gate ouverte : F+B done ✅ — parallélisable avec J/K et L)
+- **N (#134)** — Aperçu « livre entier » continu (gate ouverte : E+M done ✅ — `actor: agent`)
+- **O (#135)** — IA adaptée au modèle paginé (gate ouverte : F+B done ✅ — parallélisable avec N)

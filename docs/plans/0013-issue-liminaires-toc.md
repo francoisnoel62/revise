@@ -11,9 +11,9 @@ Les **liminaires** (faux-titre, page de titre, copyright, dédicace, épigraphe)
 **Out** : numérotation arabique du corps (`0014`) ; édition inline des liminaires (explicitement écartée — elles restent générées).
 
 ## Critères d'acceptation
-- [ ] Liminaires + TOC apparaissent dans l'aperçu « livre entier » et l'export, pas dans la surface d'écriture du chapitre.
-- [ ] Le contenu provient des Annexes éditoriales/métadonnées (pas de double saisie).
-- [ ] Les liminaires occupent leurs pages et participent aux offsets de numérotation.
+- [x] Liminaires + TOC apparaissent dans l'aperçu « livre entier » et l'export, pas dans la surface d'écriture du chapitre.
+- [x] Le contenu provient des Annexes éditoriales/métadonnées (pas de double saisie).
+- [x] Les liminaires occupent leurs pages et participent aux offsets de numérotation.
 
 ## Ancre TDD
 Tests : à partir d'annexes/métadonnées de fixture, le rendu produit les bonnes pages liminaires + une TOC correcte (entrées, ordre). Test que la surface d'écriture n'inclut pas ces pages.

@@ -22,10 +22,10 @@ Le **spike (Phase 0) conditionne tout le reste**. Tant que le spike n'est pas ve
 | G | `0008-issue-toolbar-profil-adaptative.md` | Barre d'outils profil-adaptative | 2 | F | `needs-triage`→`ready-for-agent` |
 | H | `0009-issue-surcharges-presentation.md` | Couche de surcharges de présentation (passerelle) | 2 | F | `needs-triage`→`ready-for-agent` |
 | I | `0010-issue-selecteur-bascule-profil.md` | Sélecteur de profil + bascule à chaud sans perte | 3 | D, F | `needs-triage`→`ready-for-agent` |
-| J | `0011-issue-profils-additionnels.md` | Profils additionnels (A5, trims KDP, passerelle Word) | 3 | D, I | `ready-for-agent` |
+| J | `0011-issue-profils-additionnels.md` | Profils additionnels (A5, trims KDP, passerelle Word) | 3 | D, I | `done` |
 | K | `0012-issue-profils-marketplaces-preflight.md` | Profils marketplaces + preflight zéro-rejet | 3 | D, I | `ready-for-human` |
-| L | `0013-issue-liminaires-toc.md` | Liminaires + TOC générés | 4 | D, E | `needs-triage`→`ready-for-agent` |
-| M | `0014-issue-numerotation-livre-entier.md` | Numérotation livre-entier (offsets cachés) | 4 | E, L | `needs-triage`→`ready-for-agent` |
+| L | `0013-issue-liminaires-toc.md` | Liminaires + TOC générés | 4 | D, E | `done` |
+| M | `0014-issue-numerotation-livre-entier.md` | Numérotation livre-entier (offsets cachés) | 4 | E, L | `done` |
 | N | `0015-issue-apercu-livre-entier.md` | Aperçu « livre entier » continu | 4 | E, M | `ready-for-agent` |
 | O | `0016-issue-ia-adaptee-pagination.md` | Adapter l'intégration IA au modèle paginé/sémantique | 5 | F, B | `ready-for-agent` |
 
