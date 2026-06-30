@@ -73,7 +73,11 @@ export default [
         // DOM events
         KeyboardEvent: "readonly",
         MouseEvent: "readonly",
+        MessageEvent: "readonly",
         Event: "readonly",
+        // DOM element types
+        HTMLIFrameElement: "readonly",
+        Window: "readonly",
         // Test environment
         global: "readonly",
       },

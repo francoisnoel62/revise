@@ -1,7 +1,7 @@
 // ABOUTME: Manages a client-side page-count cache to compute book-wide page offsets.
 // ABOUTME: Cache is keyed by profileId so profile changes trigger a full recompute.
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { computeBookOffsets } from '@/application/services/BookOffsetCalculator';
 import type { PublicationProfileId } from '@/domain/value-objects/PublicationProfile';
 
@@ -34,6 +34,8 @@ interface UseBookPageOffsetResult {
   readonly nextChapterIdToRender: string | null;
 }
 
+type CacheEntry = { readonly count: number; readonly version: string };
+
 /**
  * Returns the correct first page number for the active chapter based on a
  * growing cache of per-chapter page counts.  Resets automatically when
@@ -44,47 +46,42 @@ export function useBookPageOffset({
   activeChapterId,
   profileId,
 }: UseBookPageOffsetOptions): UseBookPageOffsetResult {
-  // Cache: chapterId → pageCount (scoped to current profile)
-  const [pageCountMap, setPageCountMap] = useState<Map<string, number>>(new Map());
-  const prevProfileIdRef = useRef<PublicationProfileId>(profileId);
+  // Cache stores count + version so stale entries are detected at render time without effects
+  const [cache, setCache] = useState<Map<string, CacheEntry>>(new Map());
+  // Store prevProfileId in state so the comparison is a safe render-time setState (React docs pattern)
+  const [prevProfileId, setPrevProfileId] = useState<PublicationProfileId>(profileId);
 
   // Invalidate entire cache when profile changes
-  if (prevProfileIdRef.current !== profileId) {
-    prevProfileIdRef.current = profileId;
-    setPageCountMap(new Map());
+  if (prevProfileId !== profileId) {
+    setPrevProfileId(profileId);
+    setCache(new Map());
   }
 
-  // Track content versions; evict individual entries when upstream content changes
-  const prevVersionsRef = useRef<Map<string, string>>(new Map());
-  useEffect(() => {
-    const prevVersions = prevVersionsRef.current;
-    const changedIds: string[] = [];
-    for (const chapter of chapters) {
-      const version = chapter.contentVersion ?? '';
-      const prev = prevVersions.get(chapter.id);
-      if (prev !== undefined && prev !== version) changedIds.push(chapter.id);
-    }
-    // Build the new version map regardless of whether anything changed
-    const newVersions = new Map(chapters.map((c) => [c.id, c.contentVersion ?? '']));
-    prevVersionsRef.current = newVersions;
-
-    if (changedIds.length > 0) {
-      setPageCountMap((prev) => {
+  const onPageCountChange = useCallback(
+    (chapterId: string, count: number) => {
+      const version = chapters.find((c) => c.id === chapterId)?.contentVersion ?? '';
+      setCache((prev) => {
+        const existing = prev.get(chapterId);
+        if (existing?.count === count && existing.version === version) return prev;
         const next = new Map(prev);
-        for (const id of changedIds) next.delete(id);
+        next.set(chapterId, { count, version });
         return next;
       });
-    }
-  });
+    },
+    [chapters],
+  );
 
-  const onPageCountChange = useCallback((chapterId: string, count: number) => {
-    setPageCountMap((prev) => {
-      if (prev.get(chapterId) === count) return prev;
-      const next = new Map(prev);
-      next.set(chapterId, count);
-      return next;
-    });
-  }, []);
+  // Effective page count map: entries whose stored version matches the current chapter version
+  const pageCountMap = useMemo(() => {
+    const result = new Map<string, number>();
+    for (const chapter of chapters) {
+      const entry = cache.get(chapter.id);
+      if (entry && entry.version === (chapter.contentVersion ?? '')) {
+        result.set(chapter.id, entry.count);
+      }
+    }
+    return result;
+  }, [cache, chapters]);
 
   const offsets = computeBookOffsets(chapters, pageCountMap);
   const startPageNumber =
