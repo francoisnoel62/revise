@@ -25,6 +25,18 @@ function AutoSignOut() {
       const data = new FormData();
       data.append('callbackUrl', '/auth/signin');
 
+      // Auth.js v5 requires a CSRF token on the signout action.
+      // The token is stored in the authjs.csrf-token cookie as rawToken|hash;
+      // we extract the rawToken and send it back in the form body.
+      const csrfCookie = document.cookie
+        .split('; ')
+        .find((row) => row.startsWith('authjs.csrf-token='));
+      if (csrfCookie) {
+        const [, encoded] = csrfCookie.split('=');
+        const [rawToken] = decodeURIComponent(encoded).split('|');
+        data.append('csrfToken', rawToken);
+      }
+
       // sendBeacon guarantees the request is sent even as page closes
       navigator.sendBeacon(url, data);
     };

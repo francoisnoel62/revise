@@ -31,26 +31,33 @@ test.describe('Pipeline de contexte d\'autocomplétion (#107, #108, #109, #111)'
     let capturedMetadata: Record<string, unknown> | null = null;
 
     await page.route('**/api/completion/stream', async (route: Route, request: Request) => {
-      // Forward request to the real server
-      const response = await route.fetch();
-      const body = await response.text();
+      // Forward request to the real server to capture the metadata event
+      try {
+        const response = await route.fetch();
+        const body = await response.text();
+        const events = parseSseEvents(body);
+        capturedMetadata = events.find((e) => e.type === 'metadata') ?? null;
+      } catch {
+        // Server call failed or page closed mid-request — capturedMetadata stays null
+      }
 
-      const events = parseSseEvents(body);
-      capturedMetadata = events.find((e) => e.type === 'metadata') ?? null;
-
-      // Fulfill with a clean fake response so the client UI works regardless of LLM result
-      await route.fulfill({
-        status: 200,
-        headers: {
-          'content-type': 'text/event-stream',
-          'cache-control': 'no-cache',
-        },
-        body: [
-          `data: ${JSON.stringify({ type: 'metadata', providerType: 'openai', model: 'gpt-4o-mini', canonFactsCount: capturedMetadata?.canonFactsCount ?? 0 })}\n\n`,
-          `data: ${JSON.stringify({ text: ' continuation.' })}\n\n`,
-          `data: ${JSON.stringify({ type: 'done', firstTokenMs: 50 })}\n\n`,
-        ].join(''),
-      });
+      // Always fulfill with a clean fake response so the client UI works regardless of LLM result
+      try {
+        await route.fulfill({
+          status: 200,
+          headers: {
+            'content-type': 'text/event-stream',
+            'cache-control': 'no-cache',
+          },
+          body: [
+            `data: ${JSON.stringify({ type: 'metadata', providerType: 'openai', model: 'gpt-4o-mini', canonFactsCount: capturedMetadata?.canonFactsCount ?? 0 })}\n\n`,
+            `data: ${JSON.stringify({ text: ' continuation.' })}\n\n`,
+            `data: ${JSON.stringify({ type: 'done', firstTokenMs: 50 })}\n\n`,
+          ].join(''),
+        });
+      } catch {
+        // Route is dead if the page was already closed during cleanup
+      }
     });
 
     await page.goto(EDITOR_URL);

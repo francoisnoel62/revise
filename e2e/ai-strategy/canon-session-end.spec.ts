@@ -19,6 +19,11 @@ test.describe('Déclencheur de fin de session (#113)', () => {
     await page.goto(EDITOR_URL);
     await expect(page.locator('.ProseMirror')).toBeVisible({ timeout: 15_000 });
 
+    // Wait for project settings to load — the hook ignores activity while mode is still 'manual'
+    await expect(
+      page.locator('[data-testid="canon-mode-indicator"][data-canon-mode="session-end"]')
+    ).toBeAttached({ timeout: 10_000 });
+
     // Verify the editor loaded correctly (session-end mode is set in project settings)
     const editor = page.locator('.ProseMirror');
 

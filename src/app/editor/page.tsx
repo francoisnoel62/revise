@@ -711,6 +711,7 @@ function EditorContent() {
           </div>
           {/* Right: controls */}
           <div className="flex items-center justify-end gap-2">
+            <span data-testid="canon-mode-indicator" data-canon-mode={canonExtractionPrefs.mode} aria-hidden className="sr-only" />
             <NotificationBell />
             <PublishDialog projectId={project.id} projectTitle={project.title} chapters={project.chapters} />
             <ExportDialog />
