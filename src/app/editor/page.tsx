@@ -63,9 +63,11 @@ import type { AnalysisIssueData } from '@/components/analysis/AnalysisIssueCard'
 import type { AnalysisSummaryStats } from '@/components/analysis/AnalysisSummaryCard';
 import { PublicationProfileSelector } from '@/components/editor/PublicationProfileSelector';
 import { PublicationPreview } from '@/components/editor/PublicationPreview';
+import { BackgroundPageCounter } from '@/components/editor/BackgroundPageCounter';
 import type { PublicationProfileId } from '@/domain/value-objects/PublicationProfile';
 import type { PresentationOverrideLayer } from '@/domain/value-objects/PresentationOverride';
 import type { ContentNode } from '@/domain/value-objects/ContentNode';
+import { useBookPageOffset } from '@/hooks/useBookPageOffset';
 
 interface Proposal {
   content: string;
@@ -117,6 +119,20 @@ function EditorContent() {
     useState<PresentationOverrideLayer>([]);
   const [isProfileSaving, setIsProfileSaving] = useState(false);
   const overrideSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Book-wide page offset tracking
+  const { startPageNumber, onPageCountChange, nextChapterIdToRender } = useBookPageOffset({
+    chapters: (project?.chapters ?? []).map((c) => ({
+      id: c.id,
+      contentVersion: c.metadata.lastEdited,
+    })),
+    activeChapterId: project?.activeChapterId ?? null,
+    profileId: publicationProfileId,
+  });
+
+  // Content for the chapter being rendered in the background
+  const backgroundChapterContent =
+    project?.chapters.find((c) => c.id === nextChapterIdToRender)?.content ?? null;
 
   // Canon extraction mode
   const [canonExtractionPrefs, setCanonExtractionPrefs] = useState<CanonExtractionPreferences>(
@@ -798,10 +814,22 @@ function EditorContent() {
               content={JSON.parse(activeContent) as ContentNode}
               profileId={publicationProfileId}
               overrides={presentationOverrides}
+              startPageNumber={startPageNumber}
+              onPageCountChange={(count) => {
+                if (project.activeChapterId) onPageCountChange(project.activeChapterId, count);
+              }}
             />
           </aside>
         </div>
       </div>
+
+      {/* Background chapter renderer for book-wide page offset computation */}
+      <BackgroundPageCounter
+        chapterId={nextChapterIdToRender}
+        content={backgroundChapterContent}
+        profileId={publicationProfileId}
+        onPageCount={onPageCountChange}
+      />
 
       {/* Loading overlay with author quotes */}
       <RewriteLoadingOverlay isVisible={rewriteLoading} />

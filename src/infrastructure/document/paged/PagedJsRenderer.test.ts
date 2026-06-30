@@ -84,6 +84,40 @@ describe('PagedJsRenderer', () => {
     });
   });
 
+  describe('startPageNumber', () => {
+    it('emits counter-reset CSS when startPageNumber is greater than 1', () => {
+      const html = renderer.render({ bodyHtml: '<p>Texte</p>', profile, assetBaseUrl, startPageNumber: 42 });
+      expect(html).toContain('counter-reset: page 41');
+    });
+
+    it('does not emit counter-reset when startPageNumber is 1', () => {
+      const html = renderer.render({ bodyHtml: '<p>Texte</p>', profile, assetBaseUrl, startPageNumber: 1 });
+      expect(html).not.toContain('counter-reset: page');
+    });
+
+    it('does not emit counter-reset when startPageNumber is omitted', () => {
+      const html = renderer.render({ bodyHtml: '<p>Texte</p>', profile, assetBaseUrl });
+      expect(html).not.toContain('counter-reset: page');
+    });
+  });
+
+  describe('sourceId', () => {
+    it('includes sourceId in the paged-rendered postMessage when provided', () => {
+      const html = renderer.render({
+        bodyHtml: '<p>A</p>',
+        profile,
+        assetBaseUrl,
+        sourceId: 'background-ch3',
+      });
+      expect(html).toContain('"background-ch3"');
+    });
+
+    it('includes null as sourceId when not provided', () => {
+      const html = renderer.render({ bodyHtml: '<p>A</p>', profile, assetBaseUrl });
+      expect(html).toContain('sourceId:null');
+    });
+  });
+
   describe('render order', () => {
     it('renders: front matter → TOC → body', () => {
       const html = renderer.render({

@@ -83,6 +83,34 @@ describe('BookCssBuilder', () => {
     expect(css).toContain('margin-right: 1.5cm');
   });
 
+  describe('startPageNumber counter-reset', () => {
+    it('emits counter-reset when startPageNumber is greater than 1', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000',
+        84,
+      );
+      expect(css).toContain('counter-reset: page 83');
+    });
+
+    it('does not emit counter-reset when startPageNumber is 1', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000',
+        1,
+      );
+      expect(css).not.toContain('counter-reset: page');
+    });
+
+    it('does not emit counter-reset when startPageNumber is omitted', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000',
+      );
+      expect(css).not.toContain('counter-reset: page');
+    });
+  });
+
   describe('liminal (front matter) page rules', () => {
     it('assigns liminal sections to a named page with roman numerals', () => {
       const css = new BookCssBuilder().build(

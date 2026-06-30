@@ -15,6 +15,10 @@ export interface PagedRenderRequest {
   readonly assetBaseUrl: string;
   readonly frontMatter?: FrontMatterData;
   readonly toc?: TocEntry[];
+  /** First Arabic page number for this render (default 1). Used for single-chapter previews. */
+  readonly startPageNumber?: number;
+  /** Opaque identifier echoed back in the paged-rendered postMessage for routing. */
+  readonly sourceId?: string;
 }
 
 export interface PagedRenderer {

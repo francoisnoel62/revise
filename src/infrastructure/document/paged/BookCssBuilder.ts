@@ -4,7 +4,7 @@
 import type { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
 
 export class BookCssBuilder {
-  build(profile: PublicationProfile, assetBaseUrl: string): string {
+  build(profile: PublicationProfile, assetBaseUrl: string, startPageNumber?: number): string {
     const value = profile.values;
     const assets = assetBaseUrl.replace(/\/$/, '');
     const usesEbGaramond = value.bodyFontFamily === 'EB Garamond';
@@ -50,6 +50,7 @@ export class BookCssBuilder {
         line-height: ${value.lineHeight};
         text-rendering: geometricPrecision;
       }
+      ${startPageNumber && startPageNumber > 1 ? `body { counter-reset: page ${startPageNumber - 1}; }` : ''}
       main.book { widows: 2; orphans: 2; }
       p { margin: 0; text-align: justify; text-indent: ${value.firstLineIndentCentimeters}cm; }
       h1 + p, h2 + p { text-indent: 0; }

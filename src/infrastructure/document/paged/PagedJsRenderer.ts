@@ -15,7 +15,7 @@ export class PagedJsRenderer implements PagedRenderer {
 
   render(request: PagedRenderRequest): string {
     const assets = request.assetBaseUrl.replace(/\/$/, '');
-    const css = this.cssBuilder.build(request.profile, assets);
+    const css = this.cssBuilder.build(request.profile, assets, request.startPageNumber);
 
     const frontMatterHtml = request.frontMatter
       ? this.frontMatterBuilder.build(request.frontMatter)
@@ -39,6 +39,7 @@ export class PagedJsRenderer implements PagedRenderer {
       document.documentElement.dataset.pageCount=String(flow.total);
       document.documentElement.dataset.paginationMs=String(performance.now()-start);
       window.parent.postMessage({type:'paged-rendered',pageCount:flow.total,
+      sourceId:${JSON.stringify(request.sourceId ?? null)},
       paginationMs:performance.now()-start},'*')})()</script>
       </body></html>`;
   }
