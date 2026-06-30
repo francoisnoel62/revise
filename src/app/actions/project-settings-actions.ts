@@ -134,7 +134,7 @@ export async function updateProjectSettingsAction(
       return { success: false, error: 'Non authentifié' };
     }
 
-    const useCase = new UpdateProjectSettingsUseCase(await getProjectSettingsRepo());
+    const useCase = new UpdateProjectSettingsUseCase(await getProjectSettingsRepo(), await getIdGenerator());
 
     const settings = await useCase.execute({
       userId: authResult.userId,

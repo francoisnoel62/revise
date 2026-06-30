@@ -9,16 +9,23 @@ describe('UpdateProjectSettingsUseCase', () => {
   let useCase: UpdateProjectSettingsUseCase;
   let mockRepository: {
     findByProjectId: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
   };
+  let mockIdGenerator: { generate: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     mockRepository = {
       findByProjectId: vi.fn(),
+      create: vi.fn((userId, settings) => Promise.resolve(settings)),
       update: vi.fn((userId, settings) => Promise.resolve(settings)),
     };
+    mockIdGenerator = { generate: vi.fn().mockReturnValue('generated-id') };
 
-    useCase = new UpdateProjectSettingsUseCase(mockRepository as unknown as import('@/domain/interfaces/ProjectSettingsRepository').ProjectSettingsRepository);
+    useCase = new UpdateProjectSettingsUseCase(
+      mockRepository as unknown as import('@/domain/interfaces/ProjectSettingsRepository').ProjectSettingsRepository,
+      mockIdGenerator as unknown as import('@/domain/interfaces/IdGenerator').IdGenerator
+    );
   });
 
   it('updates title', async () => {
@@ -138,16 +145,17 @@ describe('UpdateProjectSettingsUseCase', () => {
     expect(result.getPointOfView()).toBeUndefined();
   });
 
-  it('throws error when settings not found', async () => {
+  it('creates settings and applies updates when settings not found', async () => {
     mockRepository.findByProjectId.mockResolvedValue(null);
 
-    await expect(
-      useCase.execute({
-        userId: 'user-1',
-        projectId: 'project-1',
-        updates: { title: 'New Title' },
-      })
-    ).rejects.toThrow('Project settings not found');
+    const result = await useCase.execute({
+      userId: 'user-1',
+      projectId: 'project-1',
+      updates: { publicationProfileId: 'kdp-5x8' },
+    });
+
+    expect(mockRepository.create).toHaveBeenCalled();
+    expect(result.getPublicationProfileId()).toBe('kdp-5x8');
   });
 
   it('throws error for empty title', async () => {

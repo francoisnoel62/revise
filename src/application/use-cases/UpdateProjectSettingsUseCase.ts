@@ -3,6 +3,7 @@
 
 import { ProjectSettings } from '@/domain/entities/ProjectSettings';
 import { ProjectSettingsRepository } from '@/domain/interfaces/ProjectSettingsRepository';
+import { IdGenerator } from '@/domain/interfaces/IdGenerator';
 import { Contributor } from '@/domain/value-objects/Contributor';
 import { RelatedWork } from '@/domain/value-objects/RelatedWork';
 import { PointOfView, NarrationTense, TargetAudience } from '@/domain/value-objects/NarrationSettings';
@@ -36,13 +37,23 @@ export interface UpdateProjectSettingsInput {
 }
 
 export class UpdateProjectSettingsUseCase {
-  constructor(private readonly repository: ProjectSettingsRepository) {}
+  constructor(
+    private readonly repository: ProjectSettingsRepository,
+    private readonly idGenerator: IdGenerator
+  ) {}
 
   async execute(input: UpdateProjectSettingsInput): Promise<ProjectSettings> {
-    const existing = await this.repository.findByProjectId(input.userId, input.projectId);
+    let existing = await this.repository.findByProjectId(input.userId, input.projectId);
 
     if (!existing) {
-      throw new Error('Project settings not found');
+      const title = 'title' in input.updates && input.updates.title ? input.updates.title : 'Sans titre';
+      const created = ProjectSettings.create(
+        this.idGenerator.generate(),
+        input.projectId,
+        input.userId,
+        title
+      );
+      existing = await this.repository.create(input.userId, created);
     }
 
     let updated = existing;
