@@ -31,8 +31,8 @@ Les GitHub issues existent désormais (`francoisnoel62/revise`). **A et B ont é
 | K | **#131** | Marketplaces + preflight | `ready-for-human` | #124, #129 | 🔜 **DÉBLOQUÉ** (humain requis) |
 | L | **#132** | Liminaires + TOC | `done` | #124, #125 | ✅ **MERGÉ** (2026-06-29) |
 | M | **#133** | Numérotation livre-entier | `done` | #125, #132 | ✅ **MERGÉ** (2026-06-30) |
-| N | **#134** | Aperçu livre entier | `ready-for-agent` | #125, #133 | 🔜 **DÉBLOQUÉ** (E+M done) |
-| O | **#135** | IA adaptée au modèle paginé | `ready-for-agent` | #126, #122 | 🔜 **DÉBLOQUÉ** (F+B done) |
+| N | **#134** | Aperçu livre entier | `done` | #125, #133 | ✅ **MERGÉ** (2026-06-30) |
+| O | **#135** | IA adaptée au modèle paginé | `done` | #126, #122 | ✅ **MERGÉ** (2026-06-30) |
 
 > `SPIKE_GREEN` = ✅ (J1 : pixel-diff < 1 % · J2 : 331 ms < 900 ms · Paged.js retenu). Phase 1 débloquée.
 > Branche `feat/122-paged-renderer-spike` supprimée le 2026-06-28 (travail dans `main`).
@@ -312,10 +312,8 @@ L'orchestrateur **ne franchit pas seul** ces points :
 | K (#131) | 3 | ✅ (D+I ✅) — humain requis | 🔜 **DÉBLOQUÉ** (humain) | ⬜ |
 | L (#132) | 4 | ✅ (D+E) | ✅ **done** | ✅ liminaires + TOC dans aperçu + export ; sources annexes/métadonnées ; offsets numérotation (2026-06-29) |
 | M (#133) | 4 | ✅ (E+L ✅) | ✅ **done** | ✅ offsets cachés par chapitre ; cache invalidation contenu/profil ; parité numéro éditeur == export ; perf bornée (2026-06-30) |
-| N (#134) | 4 | ✅ (E+M ✅) | 🔜 **DÉBLOQUÉ** | ⬜ |
-| O (#135) | 5 | ✅ (F+B ✅) | 🔜 **DÉBLOQUÉ** | ⬜ |
+| N (#134) | 4 | ✅ (E+M ✅) | ✅ **done** | ✅ aperçu lecture seule ; navigation chapitre fiable ; parité export vérifiée (2026-06-30) |
+| O (#135) | 5 | ✅ (F+B ✅) | ✅ **done** | ✅ insertion sémantique ; sélection trans-page ; autocomplétion + re-pagination cohabitent ; aucune régression IA (2026-06-30) |
 
-**Prochain pas :** trois fronts potentiels (L+M ✅ débloquent N) :
-- **K (#131)** — Marketplaces + preflight zéro-rejet (gate ouverte : D+I done ✅ — `actor: human`, comptes marketplaces réels)
-- **N (#134)** — Aperçu « livre entier » continu (gate ouverte : E+M done ✅ — `actor: agent`)
-- **O (#135)** — IA adaptée au modèle paginé (gate ouverte : F+B done ✅ — parallélisable avec N)
+**État de l'épopée :** toutes les issues `actor: agent` sont **done**. Reste uniquement :
+- **K (#131)** — Marketplaces + preflight zéro-rejet (`actor: human`, gate ouverte : D+I done ✅ — comptes marketplaces réels requis)

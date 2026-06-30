@@ -26,8 +26,8 @@ Le **spike (Phase 0) conditionne tout le reste**. Tant que le spike n'est pas ve
 | K | `0012-issue-profils-marketplaces-preflight.md` | Profils marketplaces + preflight zéro-rejet | 3 | D, I | `ready-for-human` |
 | L | `0013-issue-liminaires-toc.md` | Liminaires + TOC générés | 4 | D, E | `done` |
 | M | `0014-issue-numerotation-livre-entier.md` | Numérotation livre-entier (offsets cachés) | 4 | E, L | `done` |
-| N | `0015-issue-apercu-livre-entier.md` | Aperçu « livre entier » continu | 4 | E, M | `ready-for-agent` |
-| O | `0016-issue-ia-adaptee-pagination.md` | Adapter l'intégration IA au modèle paginé/sémantique | 5 | F, B | `ready-for-agent` |
+| N | `0015-issue-apercu-livre-entier.md` | Aperçu « livre entier » continu | 4 | E, M | `done` |
+| O | `0016-issue-ia-adaptee-pagination.md` | Adapter l'intégration IA au modèle paginé/sémantique | 5 | F, B | `done` |
 
 Détail du spike : `0001-spike-editeur-apercu-kdp-parite-pixel.md`.
 Process pour un agent frais : `handoff-editeur-refonte-issues.md`.
