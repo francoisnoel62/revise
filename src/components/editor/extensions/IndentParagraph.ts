@@ -46,6 +46,7 @@ export const IndentParagraph = Node.create<IndentParagraphOptions>({
     return {
       semanticRole: {
         default: undefined,
+        keepOnSplit: true,
         parseHTML: (element) => {
           const role = element.getAttribute('data-semantic-role');
           return isSemanticRole(role) ? role : undefined;

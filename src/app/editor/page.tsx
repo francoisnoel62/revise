@@ -68,6 +68,10 @@ import type { PublicationProfileId } from '@/domain/value-objects/PublicationPro
 import type { PresentationOverrideLayer } from '@/domain/value-objects/PresentationOverride';
 import type { ContentNode } from '@/domain/value-objects/ContentNode';
 import { useBookPageOffset } from '@/hooks/useBookPageOffset';
+import {
+  buildSemanticInsertContent,
+  getSemanticRoleFromAttrs,
+} from '@/application/services/PropositionInserter';
 
 interface Proposal {
   content: string;
@@ -443,30 +447,43 @@ function EditorContent() {
     if (editor) {
       const { from, to } = selection;
 
-      // Insert the new text
+      // Determine the semantic role of the host block; validation logic stays in the
+      // Application layer (getSemanticRoleFromAttrs).
+      const $pos = editor.state.doc.resolve(from);
+      const hostNode = $pos.node($pos.depth);
+      const semanticRole = getSemanticRoleFromAttrs(
+        hostNode.attrs as Record<string, unknown> | undefined
+      );
+
+      const content = buildSemanticInsertContent(newText, semanticRole);
+
       editor
         .chain()
         .focus()
         .setTextSelection({ from, to })
-        .insertContent(newText)
+        .insertContent(content)
         .run();
 
-      // Calculate the new selection range (inserted text)
-      const newTo = from + newText.length;
+      // Highlight the inserted region so the author can see what changed.
+      // For strings, use text length. For node arrays, use the current cursor
+      // as end (TipTap places it after the last inserted node).
+      const highlightFrom = from;
+      const highlightTo =
+        typeof content === 'string'
+          ? from + content.length
+          : editor.state.selection.to;
 
-      // Highlight the inserted text with yellow color
       editor
         .chain()
-        .setTextSelection({ from, to: newTo })
-        .setHighlight({ color: '#fef08a' }) // Tailwind yellow-200
+        .setTextSelection({ from: highlightFrom, to: highlightTo })
+        .setHighlight({ color: '#fef08a' })
         .run();
 
-      // Remove highlight after 3 seconds
       setTimeout(() => {
         if (editor) {
           editor
             .chain()
-            .setTextSelection({ from, to: newTo })
+            .setTextSelection({ from: highlightFrom, to: highlightTo })
             .unsetHighlight()
             .run();
         }

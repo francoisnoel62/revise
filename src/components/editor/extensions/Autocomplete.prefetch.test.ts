@@ -3,6 +3,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import {
+  Autocomplete,
   endsWithSentenceBoundary,
   shouldTriggerSmartPrefetch,
   flushDiscardedPrefetch,
@@ -178,6 +179,76 @@ describe('clampBeforeText', () => {
 
   it('MAX_BEFORE_CHARS equals the server limit of 8000', () => {
     expect(MAX_BEFORE_CHARS).toBe(8000);
+  });
+});
+
+/**
+ * Issue #135 — Autocomplete ghost text must survive a live-pagination re-render.
+ * Repagination dispatches NO TipTap transaction (it runs in a separate Paged.js
+ * iframe). The Autocomplete extension's `apply()` is never called, so ghost text
+ * is untouched. Separately, ghost text is also designed to persist through typing
+ * (docChanged) — only Tab/Escape dismisses it.
+ */
+describe('autocomplete + live pagination coexistence (#135)', () => {
+  function createAutocompleteEditor() {
+    return new Editor({
+      extensions: [
+        Document,
+        Paragraph,
+        Text,
+        Autocomplete.configure({
+          enabled: true,
+          onComplete: async () => null,
+          useStreaming: false,
+          telemetryEnabled: false,
+        }),
+      ],
+      content: '<p>Il faisait nuit noire.</p>',
+    });
+  }
+
+  function getStorage(editor: Editor): AutocompleteStorage {
+    return (editor.storage as Record<string, unknown>)['autocomplete'] as AutocompleteStorage;
+  }
+
+  it('repagination (no TipTap transaction) leaves ghost text intact', () => {
+    const editor = createAutocompleteEditor();
+    const storage = getStorage(editor);
+
+    // Seed a visible suggestion directly in storage (as the Tab path would)
+    storage.suggestion = 'Suite de la phrase.';
+    storage.runState = 'visible';
+
+    // Repagination happens entirely outside TipTap — no transaction is dispatched.
+    // We verify that an unrelated (metadata-only) transaction leaves the suggestion alone.
+    const tr = editor.state.tr;
+    expect(tr.docChanged).toBe(false);
+    expect(tr.selectionSet).toBe(false);
+    editor.view.dispatch(tr);
+
+    expect(storage.suggestion).toBe('Suite de la phrase.');
+    expect(storage.runState).toBe('visible');
+
+    editor.destroy();
+  });
+
+  it('typing (docChanged) does NOT clear ghost text — only Tab/Escape can dismiss it', () => {
+    const editor = createAutocompleteEditor();
+    const storage = getStorage(editor);
+
+    // Seed a visible suggestion
+    storage.suggestion = 'Suite de la phrase.';
+    storage.runState = 'visible';
+    storage.acceptingInsertion = false;
+
+    // Simulate the author continuing to type (inserts a character — docChanged = true)
+    editor.commands.setTextSelection(editor.state.doc.content.size - 1);
+    editor.commands.insertContent('x');
+
+    // Ghost text must survive: the author hasn't accepted or rejected it
+    expect(storage.suggestion).toBe('Suite de la phrase.');
+
+    editor.destroy();
   });
 });
 
