@@ -98,4 +98,58 @@ describe('WholeBookHtmlAssembler', () => {
     ]);
     expect(bodyHtml).toContain('id="safe-id-123"');
   });
+
+  describe('parity with PDF exporter pipeline', () => {
+    // Replicates the exact logic from PagedPdfExporter.renderToPdf() so the comparison
+    // is an apples-to-apples structural check: same HTML after normalising section IDs.
+    function escapeHtml(text: string): string {
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
+    }
+
+    function buildPdfExporterBody(
+      chapters: Array<{ title: string; content: JSONContent }>,
+    ): string {
+      return chapters
+        .map((ch, i) => {
+          const chapterId = `ch-${i}`;
+          const chapterContent = `<h1>${escapeHtml(ch.title)}</h1>\n${converter.convertChapter(ch.content, ch.title)}`;
+          return `<section id="${chapterId}" class="chapter">${chapterContent}</section>`;
+        })
+        .join('\n');
+    }
+
+    // Normalise section IDs so we can compare structure independent of ID format
+    const normalizeIds = (html: string) => html.replace(/id="[^"]*"/g, 'id="X"');
+
+    it('produces chapter HTML identical to the PDF exporter pipeline for a single chapter', () => {
+      const fixture = [{ id: 'ch-real', title: 'Chapitre Un', content: paragraphDoc('Premier contenu.') }];
+      const { bodyHtml } = assembler.assemble(fixture);
+      const exportBody = buildPdfExporterBody(fixture);
+      expect(normalizeIds(bodyHtml)).toBe(normalizeIds(exportBody));
+    });
+
+    it('produces chapter HTML identical to the PDF exporter pipeline for multiple chapters', () => {
+      const fixture = [
+        { id: 'ch-001', title: 'Chapitre Un', content: paragraphDoc('Contenu premier.') },
+        { id: 'ch-002', title: 'Chapitre Deux', content: paragraphDoc('Contenu second.') },
+      ];
+      const { bodyHtml } = assembler.assemble(fixture);
+      const exportBody = buildPdfExporterBody(fixture);
+      expect(normalizeIds(bodyHtml)).toBe(normalizeIds(exportBody));
+    });
+
+    it('preserves special characters identically between both pipelines', () => {
+      const fixture = [
+        { id: 'ch-001', title: "L'Été & l'Hiver", content: paragraphDoc('Texte avec <balise> & apostrophe\'s.') },
+      ];
+      const { bodyHtml } = assembler.assemble(fixture);
+      const exportBody = buildPdfExporterBody(fixture);
+      expect(normalizeIds(bodyHtml)).toBe(normalizeIds(exportBody));
+    });
+  });
 });

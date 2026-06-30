@@ -124,8 +124,12 @@ describe('PagedJsRenderer', () => {
       expect(html).toContain('navigate-to-chapter');
     });
 
-    it('scrolls the target element into view on navigate-to-chapter message', () => {
+    it('walks up to the pagedjs_page ancestor before scrolling', () => {
       const html = renderer.render({ bodyHtml: '<p>A</p>', profile, assetBaseUrl });
+      // The handler must climb to .pagedjs_page, not call scrollIntoView on the
+      // original section element (which sits inside a clipped page box after Paged.js renders)
+      expect(html).toContain('pagedjs_page');
+      expect(html).toContain('parentElement');
       expect(html).toContain('scrollIntoView');
     });
   });

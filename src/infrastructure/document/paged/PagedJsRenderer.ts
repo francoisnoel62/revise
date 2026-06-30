@@ -44,7 +44,12 @@ export class PagedJsRenderer implements PagedRenderer {
       window.addEventListener('message',(e)=>{
         if(e.data?.type==='navigate-to-chapter'){
           const el=document.getElementById(e.data.chapterId);
-          if(el)el.scrollIntoView({behavior:'smooth'});
+          if(!el)return;
+          let target=el;
+          while(target.parentElement&&!target.classList.contains('pagedjs_page')){
+            target=target.parentElement;
+          }
+          target.scrollIntoView({behavior:'smooth'});
         }
       })})()</script>
       </body></html>`;
