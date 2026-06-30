@@ -42,6 +42,11 @@ export const TEST_CANON_SESSION_PROJECT_ID = 'e2e-canon-session-project-001';
 export const TEST_CANON_SESSION_CHAPTER_ID = 'e2e-canon-session-chapter-001';
 export const TEST_CANON_SESSION_SETTINGS_ID = '6475a8f3c1234567890abce0';
 
+// Book-preview E2E fixtures — multi-chapter project for whole-book preview tests
+export const TEST_BOOK_PREVIEW_PROJECT_ID = 'e2e-book-preview-project-001';
+export const TEST_BOOK_PREVIEW_CHAPTER_1_ID = 'e2e-book-preview-chapter-001';
+export const TEST_BOOK_PREVIEW_CHAPTER_2_ID = 'e2e-book-preview-chapter-002';
+
 // ── Chapter content seedé ─────────────────────────────────────────────────────
 
 export const TEST_CHAPTER_TITLE = 'Chapitre 1';
@@ -485,6 +490,55 @@ export async function seedAll(): Promise<void> {
       autocompletePartialAcceptance: true,
       autocompleteSmartPrefetch: false,
       canonExtractionMode: 'session-end',
+    },
+    { upsert: true }
+  );
+
+  // 5b. Book-preview project — two chapters for whole-book aperçu tests.
+  const bookPreviewChapter1Content = JSON.stringify({
+    type: 'doc',
+    content: [
+      { type: 'paragraph', content: [{ type: 'text', text: 'La nuit tombait sur la vieille ville quand Élise poussa la porte de la librairie.' }] },
+      { type: 'paragraph', content: [{ type: 'text', text: 'Les rayonnages débordaient de livres anciens dont certains n\'avaient pas été ouverts depuis des décennies.' }] },
+    ],
+  });
+  const bookPreviewChapter2Content = JSON.stringify({
+    type: 'doc',
+    content: [
+      { type: 'paragraph', content: [{ type: 'text', text: 'Le lendemain matin, la lumière dorée filtrait à travers les rideaux de dentelle.' }] },
+      { type: 'paragraph', content: [{ type: 'text', text: 'Élise se souvint du livre mystérieux qu\'elle avait découvert la veille et se leva précipitamment.' }] },
+    ],
+  });
+  await db.collection('projects').replaceOne(
+    { _id: TEST_BOOK_PREVIEW_PROJECT_ID } as object,
+    {
+      _id: TEST_BOOK_PREVIEW_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      title: 'Roman Test Aperçu',
+      chapters: [
+        {
+          id: TEST_BOOK_PREVIEW_CHAPTER_1_ID,
+          title: 'Chapitre 1 — La Librairie',
+          content: bookPreviewChapter1Content,
+          order: 0,
+          metadata: { wordCount: 25, characterCount: 165, lastEdited: past },
+        },
+        {
+          id: TEST_BOOK_PREVIEW_CHAPTER_2_ID,
+          title: 'Chapitre 2 — Le Lendemain',
+          content: bookPreviewChapter2Content,
+          order: 1,
+          metadata: { wordCount: 22, characterCount: 155, lastEdited: past },
+        },
+      ],
+      activeChapterId: TEST_BOOK_PREVIEW_CHAPTER_1_ID,
+      providerId: null,
+      createdAt: past,
+      updatedAt: now,
+      isPublished: false,
+      shareToken: null,
+      publishedAt: null,
+      publishedChapterIds: null,
     },
     { upsert: true }
   );

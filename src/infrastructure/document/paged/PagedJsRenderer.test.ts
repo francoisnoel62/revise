@@ -118,6 +118,18 @@ describe('PagedJsRenderer', () => {
     });
   });
 
+  describe('chapter navigation', () => {
+    it('includes a message listener for navigate-to-chapter events', () => {
+      const html = renderer.render({ bodyHtml: '<p>A</p>', profile, assetBaseUrl });
+      expect(html).toContain('navigate-to-chapter');
+    });
+
+    it('scrolls the target element into view on navigate-to-chapter message', () => {
+      const html = renderer.render({ bodyHtml: '<p>A</p>', profile, assetBaseUrl });
+      expect(html).toContain('scrollIntoView');
+    });
+  });
+
   describe('render order', () => {
     it('renders: front matter → TOC → body', () => {
       const html = renderer.render({

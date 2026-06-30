@@ -42,6 +42,20 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
 
+    // ── Book-preview tests : authenticated, full-book rendering ────────────
+    {
+      name: 'book-preview',
+      testMatch: /book-preview\/.+\.spec\.ts/,
+      dependencies: ['setup'],
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: AUTH_FILE,
+        headless: !!process.env.CI,
+        actionTimeout: 30_000,
+        navigationTimeout: 45_000,
+      },
+    },
+
     // ── AI strategy tests : headed, authenticated ───────────────────────────
     {
       name: 'ai-strategy',

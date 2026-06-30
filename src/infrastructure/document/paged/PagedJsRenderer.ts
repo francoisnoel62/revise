@@ -40,7 +40,13 @@ export class PagedJsRenderer implements PagedRenderer {
       document.documentElement.dataset.paginationMs=String(performance.now()-start);
       window.parent.postMessage({type:'paged-rendered',pageCount:flow.total,
       sourceId:${JSON.stringify(request.sourceId ?? null)},
-      paginationMs:performance.now()-start},'*')})()</script>
+      paginationMs:performance.now()-start},'*')
+      window.addEventListener('message',(e)=>{
+        if(e.data?.type==='navigate-to-chapter'){
+          const el=document.getElementById(e.data.chapterId);
+          if(el)el.scrollIntoView({behavior:'smooth'});
+        }
+      })})()</script>
       </body></html>`;
   }
 }
