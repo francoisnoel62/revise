@@ -111,6 +111,36 @@ describe('BookCssBuilder', () => {
     });
   });
 
+  describe('visible page number on body pages', () => {
+    it('declares an @bottom-center rule printing the Arabic page counter on the main @page rule', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000'
+      );
+      const mainPageBlock = css.slice(0, css.indexOf('@page liminal-page'));
+      expect(mainPageBlock).toContain('@bottom-center');
+      expect(mainPageBlock).toContain('content: counter(page)');
+    });
+
+    it('does not use lower-roman numerals for the main page rule (reserved for liminal pages)', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000'
+      );
+      const mainPageBlock = css.slice(0, css.indexOf('@page liminal-page'));
+      expect(mainPageBlock).not.toContain('lower-roman');
+    });
+
+    it('prints the visible page number for every profile, not just KDP 6×9', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.passerelle(),
+        'http://localhost:3000'
+      );
+      const mainPageBlock = css.slice(0, css.indexOf('@page liminal-page'));
+      expect(mainPageBlock).toContain('content: counter(page)');
+    });
+  });
+
   describe('liminal (front matter) page rules', () => {
     it('assigns liminal sections to a named page with roman numerals', () => {
       const css = new BookCssBuilder().build(

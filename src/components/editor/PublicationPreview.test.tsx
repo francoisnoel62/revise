@@ -52,6 +52,15 @@ describe('PublicationPreview', () => {
     );
   });
 
+  it('includes a visible page-number rule in srcdoc so the author sees the printed page number', () => {
+    render(<PublicationPreview content={content} profileId="kdp-6x9" overrides={[]} />);
+
+    expect(screen.getByTestId('publication-preview')).toHaveAttribute(
+      'srcdoc',
+      expect.stringContaining('content: counter(page)')
+    );
+  });
+
   it('does not add counter-reset when startPageNumber is 1', () => {
     render(
       <PublicationPreview

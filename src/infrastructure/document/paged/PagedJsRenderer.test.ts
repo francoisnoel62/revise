@@ -134,6 +134,25 @@ describe('PagedJsRenderer', () => {
     });
   });
 
+  describe('visible page numbers', () => {
+    it('prints an Arabic page number on body pages, distinct from the liminal roman-numeral rule', () => {
+      const html = renderer.render({ bodyHtml: '<p>Texte</p>', profile, assetBaseUrl });
+      // Everything up to the liminal @page rule is the main @page block: it must
+      // already declare a visible counter(page), not just the roman-numeral one
+      // scoped to liminal pages.
+      const mainPageBlock = html.slice(html.indexOf('@page {'), html.indexOf('@page liminal-page'));
+      expect(mainPageBlock).toContain('@bottom-center');
+      expect(mainPageBlock).toContain('content: counter(page)');
+    });
+
+    it('keeps the visible page number alongside the counter-reset offset', () => {
+      const html = renderer.render({ bodyHtml: '<p>Texte</p>', profile, assetBaseUrl, startPageNumber: 42 });
+      expect(html).toContain('counter-reset: page 41');
+      const mainPageBlock = html.slice(html.indexOf('@page {'), html.indexOf('@page liminal-page'));
+      expect(mainPageBlock).toContain('content: counter(page)');
+    });
+  });
+
   describe('render order', () => {
     it('renders: front matter → TOC → body', () => {
       const html = renderer.render({

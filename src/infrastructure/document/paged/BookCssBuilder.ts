@@ -33,6 +33,11 @@ export class BookCssBuilder {
         size: ${value.pageWidthInches}in ${value.pageHeightInches}in;
         margin-top: ${value.marginTopCentimeters}cm;
         margin-bottom: ${value.marginBottomCentimeters}cm;
+        @bottom-center {
+          content: counter(page);
+          font-size: 9pt;
+          color: #555;
+        }
       }
       @page :right {
         margin-left: ${value.marginInsideCentimeters}cm;
