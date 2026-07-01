@@ -24,6 +24,9 @@ interface RenderMetrics {
   readonly paginationMs: number;
 }
 
+/** Matches the 30s budget PagedPdfExporter already grants Paged.js server-side. */
+const RENDER_TIMEOUT_MS = 30_000;
+
 function BookPreviewContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -33,6 +36,8 @@ function BookPreviewContent() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<RenderMetrics | null>(null);
   const [isRendering, setIsRendering] = useState(true);
+  const [renderTimedOut, setRenderTimedOut] = useState(false);
+  const [retryToken, setRetryToken] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
@@ -51,17 +56,34 @@ function BookPreviewContent() {
     });
   }, [projectId, router]);
 
+  // Guards against a stuck or failed Paged.js render: without this, a render that
+  // never posts 'paged-rendered' leaves the author staring at an infinite spinner
+  // with no way to tell a slow render from a broken one.
+  useEffect(() => {
+    if (!data) return;
+    const timer = setTimeout(() => setRenderTimedOut(true), RENDER_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [data, retryToken]);
+
   const handleMessage = useCallback((event: MessageEvent) => {
     if (event.data?.type !== 'paged-rendered') return;
     if (event.source !== iframeRef.current?.contentWindow) return;
     setMetrics({ pageCount: event.data.pageCount as number, paginationMs: event.data.paginationMs as number });
     setIsRendering(false);
+    setRenderTimedOut(false);
   }, []);
 
   useEffect(() => {
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, [handleMessage]);
+
+  const retryRender = useCallback(() => {
+    setIsRendering(true);
+    setRenderTimedOut(false);
+    setMetrics(null);
+    setRetryToken((token) => token + 1);
+  }, []);
 
   const documentHtml = useMemo(() => {
     if (!data) return null;
@@ -121,7 +143,15 @@ function BookPreviewContent() {
           </div>
         </div>
         <div className="text-sm text-slate-400" data-testid="book-preview-status">
-          {isRendering && data && (
+          {isRendering && data && renderTimedOut && (
+            <span className="flex items-center gap-3 text-amber-400" data-testid="book-preview-error">
+              Le rendu a pris trop de temps.
+              <Button variant="outline" size="sm" onClick={retryRender}>
+                Réessayer
+              </Button>
+            </span>
+          )}
+          {isRendering && data && !renderTimedOut && (
             <span className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
               Pagination en cours…
@@ -176,6 +206,7 @@ function BookPreviewContent() {
         <main className="relative flex-1 overflow-hidden bg-slate-900">
           {documentHtml ? (
             <iframe
+              key={retryToken}
               ref={iframeRef}
               className="h-full w-full border-0"
               data-testid="book-preview-iframe"
