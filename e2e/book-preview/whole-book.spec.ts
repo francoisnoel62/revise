@@ -87,4 +87,46 @@ test.describe('whole-book preview', () => {
     // But we verify the page remains stable (no error/navigation)
     await expect(page).toHaveURL(new RegExp(TEST_BOOK_PREVIEW_PROJECT_ID));
   });
+
+  test('prints a visible Arabic page number on the first rendered page', async ({ page }) => {
+    await page.goto(BOOK_PREVIEW_URL);
+
+    const status = page.getByTestId('book-preview-status');
+    await expect(status).toContainText('pages', { timeout: 30_000 });
+
+    const iframeFrame = page.frameLocator('[data-testid="book-preview-iframe"]');
+    const firstPageNumber = iframeFrame
+      .locator('.pagedjs_page')
+      .first()
+      .locator('.pagedjs_margin-bottom-center');
+
+    await expect(firstPageNumber).toHaveText('1');
+  });
+
+  test('shows a retry option instead of spinning forever when pagination never completes', async ({ page }) => {
+    // Break the Paged.js polyfill so the iframe script throws before it can ever
+    // postMessage 'paged-rendered' back to the parent — simulates a hung/failed render.
+    await page.route('**/vendor/paged.polyfill.min.js', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/javascript', body: '' })
+    );
+
+    // Fake the clock so the client-side render-timeout fires instantly instead of
+    // requiring a real multi-second wait, keeping this test fast and deterministic.
+    await page.clock.install();
+    await page.goto(BOOK_PREVIEW_URL);
+
+    const status = page.getByTestId('book-preview-status');
+    await expect(status).toContainText('Pagination en cours');
+
+    await page.clock.runFor(31_000);
+
+    await expect(page.getByTestId('book-preview-error')).toBeVisible();
+    const retryButton = page.getByRole('button', { name: /réessayer/i });
+    await expect(retryButton).toBeVisible();
+
+    // Restore a working polyfill and retry: the page should recover and render normally.
+    await page.unroute('**/vendor/paged.polyfill.min.js');
+    await retryButton.click();
+    await expect(status).toContainText('pages', { timeout: 30_000 });
+  });
 });

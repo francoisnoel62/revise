@@ -56,6 +56,20 @@ export default defineConfig({
       },
     },
 
+    // ── Editor tests : authenticated, live publication preview ──────────────
+    {
+      name: 'editor',
+      testMatch: /editor\/.+\.spec\.ts/,
+      dependencies: ['setup'],
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: AUTH_FILE,
+        headless: !!process.env.CI,
+        actionTimeout: 30_000,
+        navigationTimeout: 45_000,
+      },
+    },
+
     // ── AI strategy tests : headed, authenticated ───────────────────────────
     {
       name: 'ai-strategy',
