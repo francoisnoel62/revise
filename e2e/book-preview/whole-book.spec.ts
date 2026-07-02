@@ -88,19 +88,33 @@ test.describe('whole-book preview', () => {
     await expect(page).toHaveURL(new RegExp(TEST_BOOK_PREVIEW_PROJECT_ID));
   });
 
-  test('prints a visible Arabic page number on the first rendered page', async ({ page }) => {
+  test('prints a visible Arabic page number on the first body page', async ({ page }) => {
     await page.goto(BOOK_PREVIEW_URL);
 
     const status = page.getByTestId('book-preview-status');
     await expect(status).toContainText('pages', { timeout: 30_000 });
 
     const iframeFrame = page.frameLocator('[data-testid="book-preview-iframe"]');
-    const firstPageNumber = iframeFrame
-      .locator('.pagedjs_page')
-      .first()
-      .locator('.pagedjs_margin-bottom-center');
+    // The whole-book render starts with liminal front-matter/TOC pages (roman
+    // numerals via the `liminal-page` named page), so the first *body* page —
+    // the one printing the Arabic counter — isn't the very first rendered page.
+    const firstPage = iframeFrame.locator('.pagedjs_page:not([class*="liminal-page"])').first();
 
-    await expect(firstPageNumber).toHaveText('1');
+    // Paged.js paints the counter as CSS-generated content (::after) on the margin
+    // box, not as real DOM text — toHaveText() would never see it, so we read the
+    // computed pseudo-element content instead.
+    await expect
+      .poll(
+        () =>
+          firstPage.evaluate((el) => {
+            const marginContent = el.querySelector(
+              '.pagedjs_margin-bottom-center .pagedjs_margin-content'
+            );
+            return marginContent ? getComputedStyle(marginContent, '::after').content : null;
+          }),
+        { timeout: 15_000 }
+      )
+      .toBe('counter(page)');
   });
 
   test('shows a retry option instead of spinning forever when pagination never completes', async ({ page }) => {

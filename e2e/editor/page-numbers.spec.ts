@@ -14,7 +14,20 @@ test.describe('page numbers in the editor preview', () => {
     const firstPage = previewFrame.locator('.pagedjs_page').first();
     await expect(firstPage).toBeVisible({ timeout: 15_000 });
 
-    const pageNumber = firstPage.locator('.pagedjs_margin-bottom-center');
-    await expect(pageNumber).toHaveText('1');
+    // Paged.js paints the counter as CSS-generated content (::after) on the margin
+    // box, not as real DOM text — toHaveText() would never see it, so we read the
+    // computed pseudo-element content instead.
+    await expect
+      .poll(
+        () =>
+          firstPage.evaluate((el) => {
+            const marginContent = el.querySelector(
+              '.pagedjs_margin-bottom-center .pagedjs_margin-content'
+            );
+            return marginContent ? getComputedStyle(marginContent, '::after').content : null;
+          }),
+        { timeout: 15_000 }
+      )
+      .toBe('counter(page)');
   });
 });
