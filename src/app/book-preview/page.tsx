@@ -16,8 +16,12 @@ const PROFILE_LABELS: Record<BookPreviewProfileId, string> = {
   a5: 'A5',
 };
 
-/** Generating a 300-page PDF in Chromium can take several seconds; guard against a stuck render. */
-const GENERATION_TIMEOUT_MS = 60_000;
+/**
+ * Cold generation of a 300-400 page book in Chromium is slow (Paged.js paginates the
+ * whole book once, then it is cached). Keep this above the server render budget so the
+ * client doesn't give up mid-generation; it only guards against a truly stuck request.
+ */
+const GENERATION_TIMEOUT_MS = 150_000;
 
 function BookPreviewContent() {
   const searchParams = useSearchParams();

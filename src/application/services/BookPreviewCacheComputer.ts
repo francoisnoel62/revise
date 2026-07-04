@@ -31,7 +31,10 @@ interface ExtractedMetrics {
   readonly chapterOffsets: ChapterPageOffset[];
 }
 
-const PAGE_READY_TIMEOUT_MS = 30_000;
+// Paged.js paginating a whole 300-400 page book in Chromium is inherently slow
+// (this is the cold-cache cost paid once; warm reads are served straight from GridFS).
+// The 30s single-chapter budget is far too low here.
+const PAGE_READY_TIMEOUT_MS = 120_000;
 
 export class BookPreviewCacheComputer {
   constructor(

@@ -119,7 +119,7 @@ describe('BookPreviewPage', () => {
     render(<BookPreviewPage />);
     await flushMicrotasks();
 
-    await advanceTimers(60_000);
+    await advanceTimers(150_000);
 
     expect(screen.getByTestId('book-preview-error')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /réessayer/i })).toBeInTheDocument();
@@ -131,7 +131,7 @@ describe('BookPreviewPage', () => {
     render(<BookPreviewPage />);
     await flushMicrotasks();
 
-    await advanceTimers(60_000);
+    await advanceTimers(150_000);
     expect(screen.getByTestId('book-preview-error')).toBeInTheDocument();
 
     act(() => {
@@ -142,7 +142,7 @@ describe('BookPreviewPage', () => {
     expect(screen.queryByTestId('book-preview-error')).not.toBeInTheDocument();
     expect(screen.getByText(/génération en cours/i)).toBeInTheDocument();
 
-    await advanceTimers(60_000);
+    await advanceTimers(150_000);
     expect(screen.getByTestId('book-preview-error')).toBeInTheDocument();
   });
 
@@ -153,6 +153,6 @@ describe('BookPreviewPage', () => {
 
     unmount();
 
-    await expect(advanceTimers(60_000)).resolves.not.toThrow();
+    await expect(advanceTimers(150_000)).resolves.not.toThrow();
   });
 });
