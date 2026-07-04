@@ -79,6 +79,26 @@ describe('BookCssBuilder', () => {
     });
   });
 
+  describe('body-matter Arabic numbering restart (whole book)', () => {
+    it('resets the page counter at the body-matter boundary so the first body page is Arabic 1', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000',
+        undefined,
+        true,
+      );
+      expect(css).toContain('.body-matter { counter-reset: page 0; }');
+    });
+
+    it('omits the body-matter reset for single-chapter preview/export (no liminals)', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000',
+      );
+      expect(css).not.toContain('.body-matter { counter-reset');
+    });
+  });
+
   describe('visible page number on body pages', () => {
     it('declares an @bottom-center rule printing the Arabic page counter on the main @page rule', () => {
       const css = new BookCssBuilder().build(

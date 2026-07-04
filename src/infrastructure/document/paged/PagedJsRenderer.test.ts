@@ -101,6 +101,23 @@ describe('PagedJsRenderer', () => {
     });
   });
 
+  describe('body-matter Arabic numbering restart (whole book)', () => {
+    it('resets the page counter at the body-matter boundary when liminals precede the body', () => {
+      const html = renderer.render({
+        bodyHtml: '<section class="chapter"><p>Corps.</p></section>',
+        profile,
+        assetBaseUrl,
+        frontMatter: { title: 'Mon Roman' },
+      });
+      expect(html).toContain('.body-matter { counter-reset: page 0; }');
+    });
+
+    it('does not reset body-matter numbering when there are no liminals', () => {
+      const html = renderer.render({ bodyHtml: '<p>Texte</p>', profile, assetBaseUrl });
+      expect(html).not.toContain('.body-matter { counter-reset');
+    });
+  });
+
   describe('sourceId', () => {
     it('includes sourceId in the paged-rendered postMessage when provided', () => {
       const html = renderer.render({

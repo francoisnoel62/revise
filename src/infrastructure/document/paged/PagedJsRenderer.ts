@@ -15,7 +15,6 @@ export class PagedJsRenderer implements PagedRenderer {
 
   render(request: PagedRenderRequest): string {
     const assets = request.assetBaseUrl.replace(/\/$/, '');
-    const css = this.cssBuilder.build(request.profile, assets, request.startPageNumber);
 
     const frontMatterHtml = request.frontMatter
       ? this.frontMatterBuilder.build(request.frontMatter)
@@ -23,7 +22,12 @@ export class PagedJsRenderer implements PagedRenderer {
     const tocHtml =
       request.toc && request.toc.length > 0 ? this.tocBuilder.build(request.toc) : '';
 
-    const hasLiminals = frontMatterHtml || tocHtml;
+    const hasLiminals = Boolean(frontMatterHtml || tocHtml);
+
+    // When roman-numeral liminal pages precede the body, restart the Arabic page
+    // counter at the body-matter boundary so the first chapter page reads "1".
+    const css = this.cssBuilder.build(request.profile, assets, request.startPageNumber, hasLiminals);
+
     const fullBodyHtml = hasLiminals
       ? `${frontMatterHtml}\n${tocHtml}\n<div class="body-matter">${request.bodyHtml}</div>`
       : request.bodyHtml;
