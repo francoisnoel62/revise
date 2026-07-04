@@ -714,11 +714,13 @@ function EditorContent() {
           </div>
           <div className="flex items-center gap-1 shrink-0">
             <NotificationBell />
-            <Link href={`/book-preview?project=${project.id}`}>
-              <Button variant="ghost" size="icon" title="Aperçu livre entier">
-                <BookOpen className="h-4 w-4" />
-              </Button>
-            </Link>
+            {publicationProfileId !== 'passerelle' && (
+              <Link href={`/book-preview?project=${project.id}`}>
+                <Button variant="ghost" size="icon" title="Aperçu livre entier">
+                  <BookOpen className="h-4 w-4" />
+                </Button>
+              </Link>
+            )}
             <PublishDialog projectId={project.id} projectTitle={project.title} chapters={project.chapters} />
             <ExportDialog publicationProfileId={publicationProfileId} />
             <UserMenu />
@@ -752,11 +754,13 @@ function EditorContent() {
           <div className="flex items-center justify-end gap-2">
             <span data-testid="canon-mode-indicator" data-canon-mode={canonExtractionPrefs.mode} aria-hidden className="sr-only" />
             <NotificationBell />
-            <Link href={`/book-preview?project=${project.id}`}>
-              <Button variant="ghost" size="icon" title="Aperçu livre entier">
-                <BookOpen className="h-4 w-4" />
-              </Button>
-            </Link>
+            {publicationProfileId !== 'passerelle' && (
+              <Link href={`/book-preview?project=${project.id}`}>
+                <Button variant="ghost" size="icon" title="Aperçu livre entier">
+                  <BookOpen className="h-4 w-4" />
+                </Button>
+              </Link>
+            )}
             <PublishDialog projectId={project.id} projectTitle={project.title} chapters={project.chapters} />
             <ExportDialog publicationProfileId={publicationProfileId} />
             <UserMenu />
