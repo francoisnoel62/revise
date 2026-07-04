@@ -63,7 +63,9 @@ export class BookPreviewCacheComputer {
     const browser = await this.launcher.launch({ headless: true });
     try {
       const page = await browser.newPage({ viewport });
-      await page.setContent(html, { waitUntil: 'networkidle' });
+      // 'domcontentloaded' is enough: the blocking polyfill <script> has run by then,
+      // and we wait for pagedReady below. 'networkidle' would add a needless stall.
+      await page.setContent(html, { waitUntil: 'domcontentloaded' });
       await page.waitForFunction(
         () => document.documentElement.dataset.pagedReady === 'true',
         { timeout: PAGE_READY_TIMEOUT_MS },
