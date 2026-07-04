@@ -60,6 +60,11 @@ Deux défauts distincts affectent l'aperçu « livre entier » (`src/app/book-pr
 
 ## Ancre TDD
 
+> **Discipline TDD (obligatoire).** Test **rouge avant** toute implémentation ; jamais supprimer un test qui échoue ; **aucun mock en E2E**. Écrire les tests en **outside-in**, dans l'ordre **E2E → intégration → unit**.
+> **E2E d'abord :** l'aperçu livre-entier affiche le PDF avec la 1ʳᵉ page du corps à « 1 » (valeur résolue) ; `passerelle` sans aperçu ; perf **froid/chaud** tenue sur la fixture réaliste ; navigation `#page=N`.
+> **Puis intégration :** `getBookPreviewDataAction` (cache frais/périmé, invalidation liminaires) ; `MongoDBBookPreviewCacheRepository` (GridFS + métriques).
+> **Puis unit :** `BookCssBuilder` (numérotation `counter-reset`), `BookPreviewCacheComputer` (deux passes).
+
 Tests (rouge avant implémentation) :
 1. **Numérotation** : pipeline avec liminaires de `N` pages → `startPageNumber = N+1` → `counter-reset: page N` → 1ʳᵉ page du corps résout à « 1 » (test de **valeur**, pas seulement de présence).
 2. `BookPreviewCacheComputer` : les deux passes produisent un `totalPageCount` cohérent ; changer de profil change le résultat (géométrie différente → pagination différente).

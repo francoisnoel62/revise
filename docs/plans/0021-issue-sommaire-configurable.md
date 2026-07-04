@@ -43,6 +43,11 @@ Le sommaire actuel est **plat, à un seul niveau** : une entrée par chapitre, t
 
 ## Ancre TDD
 
+> **Discipline TDD (obligatoire).** Test **rouge avant** toute implémentation ; jamais supprimer un test qui échoue ; **aucun mock en E2E**. Écrire les tests en **outside-in**, autant que le sujet le permet, dans l'ordre **E2E → intégration → unit**.
+> **E2E d'abord :** activer les sous-titres et changer de design se reflètent dans l'aperçu ; une sous-entrée du sommaire est **cliquable** et **navigable** (`#page=N`).
+> **Puis intégration :** persistance globale de `tocDepth`/`tocStyle` dans `ProjectSettings` ; invalidation du cache `0019`.
+> **Puis unit :** collecte hiérarchique + ancres, `TocHtmlBuilder` (imbrication + design), `BookCssBuilder` (3 variantes).
+
 - `ProjectSettings` : lecture/écriture de `tocDepth`/`tocStyle` (globaux), défauts = comportement actuel, isolés par `ownerId`, sérialiseur round-trip.
 - Collecte hiérarchique : un chapitre avec sous-titres produit un `TocEntry` niveau 1 + sous-entrées niveau 2 ; profondeur « chapitres seuls » ignore les sous-titres.
 - Ancres : chaque `sous-titre` inclus reçoit un `id` unique et stable ; lien du sommaire pointe dessus.

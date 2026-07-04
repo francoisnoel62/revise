@@ -33,6 +33,10 @@ Masquage **CSS uniquement** : `PublicationPreview` reste **monté** et continue 
 
 ## Ancre TDD
 
+> **Discipline TDD (obligatoire).** Test **rouge avant** toute implémentation ; jamais supprimer un test qui échoue ; **aucun mock en E2E**. Écrire les tests en **outside-in**, autant que le sujet le permet, dans l'ordre **E2E → intégration/composant → unit**.
+> **E2E d'abord :** dans l'éditeur réel, masquer l'aperçu élargit la zone d'écriture, et le choix **persiste après rechargement** (`localStorage`).
+> **Puis composant :** montage/démontage de `PublicationPreview`, bascule de grille, lecture/écriture `localStorage`.
+
 Test composant sur `editor/page.tsx` (ou un sous-composant extrait pour l'isolation) vérifiant que :
 - le clic sur le bouton toggle masque/affiche l'`<aside>` **sans démonter** `PublicationPreview` (vérifiable via un mock comptant les montages/rendus du composant) ;
 - la grille passe en une colonne pleine largeur quand l'aperçu est masqué et revient à deux colonnes quand il est réaffiché ;

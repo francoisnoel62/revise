@@ -42,6 +42,11 @@ La couche `PresentationOverride` (par-nœud) ne concerne que `passerelle` ; comm
 
 ## Ancre TDD
 
+> **Discipline TDD (obligatoire).** Test **rouge avant** toute implémentation ; jamais supprimer un test qui échoue ; **aucun mock en E2E**. Écrire les tests en **outside-in**, autant que le sujet le permet, dans l'ordre **E2E → intégration → unit**.
+> **E2E d'abord :** régler un attribut de titre dans le panneau se reflète immédiatement dans l'aperçu du **profil actif** (et pas sur les autres profils).
+> **Puis intégration :** persistance de la table `{profileId → LevelStyleSet}` dans `ProjectSettings` (isolée `ownerId`) ; invalidation du cache `0019` du bon profil.
+> **Puis unit :** `LevelStyleSet` (bornes), `BookCssBuilder` (CSS par rôle sémantique, défauts).
+
 - `LevelStyleSet` : bornes appliquées (valeur hors intervalle → clampée) ; listes fermées rejettent l'invalide.
 - `ProjectSettings` : lecture/écriture de la table `{profileId → LevelStyleSet}`, isolée par `ownerId`, tolérante à l'absence (défauts) ; sérialiseur round-trip.
 - `BookCssBuilder` : avec des styles fournis, le CSS reflète chaque attribut par rôle sémantique ; sans styles, il émet les défauts actuels (non-régression) ; `sous-titre` reste stylable indépendamment de `titre-de-chapitre`.

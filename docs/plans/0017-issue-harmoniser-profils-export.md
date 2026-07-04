@@ -52,6 +52,11 @@ Le sélecteur de profil (`PublicationProfileSelector.tsx`) propose 6 profils (`k
 
 ## Ancre TDD
 
+> **Discipline TDD (obligatoire).** Test **rouge avant** toute implémentation ; jamais supprimer un test qui échoue ; **aucun mock en E2E**. Écrire les tests en **outside-in**, autant que le sujet le permet, dans l'ordre **E2E → intégration → unit**.
+> **E2E d'abord :** un projet en `kdp-6x9`/`a5` n'exporte qu'un **PDF** au bon format ; un projet `passerelle` qu'un **DOCX** ; aucun titre de chapitre injecté distinct du corps.
+> **Puis intégration :** server action d'export liée au profil actif ; migration de contenu (H1) ; migration de profils supprimés.
+> **Puis unit :** `PublicationProfile.fromId`, `TipTapToBookHtml` (titre depuis le corps), `DocxExporter`, `ExportDialog`.
+
 Tests à écrire/adapter (rouge avant implémentation) :
 - `PublicationProfile.test.ts` : `fromId('kdp-5x8' | 'kdp-5_25x8' | 'kdp-5_5x8_5')` retombe sur `kdp-6x9` (cas `default`), ne renvoie jamais `undefined`.
 - Migration de données : un projet stocké sur un profil supprimé est repassé en `kdp-6x9`.
