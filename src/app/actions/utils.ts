@@ -406,7 +406,7 @@ export async function getBookPreviewCacheRepo() {
 /**
  * Build the whole-book preview computer (headless Chromium render pipeline).
  */
-export function getBookPreviewCacheComputer() {
+export async function getBookPreviewCacheComputer() {
   return getBookPreviewCacheComputerFromConfig();
 }
 

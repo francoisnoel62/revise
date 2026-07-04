@@ -110,7 +110,7 @@ export async function getBookPreviewDataAction(
 
     if (!entry || entry.getContentHash() !== contentHash) {
       const assetBaseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000';
-      const computer = getBookPreviewCacheComputer();
+      const computer = await getBookPreviewCacheComputer();
       const { entry: computed, pdf } = await computer.compute({
         projectId,
         ownerId: auth.userId,
