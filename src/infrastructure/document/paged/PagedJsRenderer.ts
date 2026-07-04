@@ -37,14 +37,18 @@ export class PagedJsRenderer implements PagedRenderer {
       <script>window.PagedConfig={auto:false}</script>
       <script src='${assets}/vendor/paged.polyfill.min.js'></script>
       </head><body><main class='book'>${fullBodyHtml}</main>
-      <script>(async()=>{await document.fonts.ready;const start=performance.now();
+      <script>(async()=>{
+      try{
+      if(!window.PagedPolyfill){throw new Error('PagedPolyfill non chargé ('+String((document.currentScript&&document.currentScript.src)||'')+')');}
+      await document.fonts.ready;const start=performance.now();
       const flow=await window.PagedPolyfill.preview();
-      document.documentElement.dataset.pagedReady='true';
       document.documentElement.dataset.pageCount=String(flow.total);
       document.documentElement.dataset.paginationMs=String(performance.now()-start);
+      document.documentElement.dataset.pagedReady='true';
       window.parent.postMessage({type:'paged-rendered',pageCount:flow.total,
       sourceId:${JSON.stringify(request.sourceId ?? null)},
       paginationMs:performance.now()-start},'*')
+      }catch(err){document.documentElement.dataset.pagedError=String((err&&err.message)||err);}
       window.addEventListener('message',(e)=>{
         if(e.data?.type==='navigate-to-chapter'){
           const el=document.getElementById(e.data.chapterId);

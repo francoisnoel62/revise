@@ -25,7 +25,8 @@ function makeFake() {
     setContent,
     waitForFunction: vi.fn().mockResolvedValue(undefined),
     pdf,
-    evaluate: vi.fn().mockResolvedValue(CANNED_METRICS),
+    // First evaluate = pagedError probe (null = no error); second = metrics extraction.
+    evaluate: vi.fn().mockResolvedValueOnce(null).mockResolvedValue(CANNED_METRICS),
   };
   const browser: BrowserHandle = {
     newPage: vi.fn().mockResolvedValue(page),

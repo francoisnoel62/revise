@@ -67,9 +67,18 @@ export class BookPreviewCacheComputer {
       // and we wait for pagedReady below. 'networkidle' would add a needless stall.
       await page.setContent(html, { waitUntil: 'domcontentloaded' });
       await page.waitForFunction(
-        () => document.documentElement.dataset.pagedReady === 'true',
+        () =>
+          document.documentElement.dataset.pagedReady === 'true' ||
+          typeof document.documentElement.dataset.pagedError === 'string',
         { timeout: PAGE_READY_TIMEOUT_MS },
       );
+
+      const pagedError = await page.evaluate(
+        () => document.documentElement.dataset.pagedError ?? null,
+      );
+      if (pagedError) {
+        throw new Error(`Échec de pagination (Paged.js) : ${pagedError}`);
+      }
 
       const metrics = await page.evaluate(extractMetricsFromPagedDom);
 
