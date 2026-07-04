@@ -141,6 +141,28 @@ describe('BookCssBuilder', () => {
     });
   });
 
+  describe('heading hierarchy', () => {
+    function selectorFontSizePt(css: string, selector: string): number {
+      for (const block of css.split('}')) {
+        const braceIndex = block.indexOf('{');
+        if (braceIndex === -1) continue;
+        if (block.slice(0, braceIndex).trim() !== selector) continue;
+        const match = block.match(/font-size:\s*([\d.]+)pt/);
+        if (match) return Number.parseFloat(match[1]);
+      }
+      throw new Error(`No font-size declared for selector "${selector}"`);
+    }
+
+    it('renders subtitles (h2) smaller than chapter titles (h1)', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000'
+      );
+
+      expect(selectorFontSizePt(css, 'h2')).toBeLessThan(selectorFontSizePt(css, 'h1'));
+    });
+  });
+
   describe('liminal (front matter) page rules', () => {
     it('assigns liminal sections to a named page with roman numerals', () => {
       const css = new BookCssBuilder().build(

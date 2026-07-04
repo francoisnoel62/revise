@@ -67,6 +67,12 @@ export class BookCssBuilder {
         text-align: center;
       }
       h1:first-child { break-before: auto; }
+      h2 {
+        font-size: 12pt;
+        font-weight: 700;
+        margin: 24pt 0 12pt;
+        text-align: center;
+      }
       .pagedjs_pages { display: flex; flex-direction: column; align-items: center; gap: 24px; }
       .pagedjs_page { background: white; box-shadow: 0 4px 18px rgb(15 23 42 / 18%); }
       @media print {
