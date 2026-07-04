@@ -8,11 +8,8 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, BookOpen, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  getBookPreviewDataAction,
-  type BookPreviewData,
-  type BookPreviewProfileId,
-} from '@/app/actions/book-preview-actions';
+import { getBookPreviewDataAction } from '@/app/actions/book-preview-actions';
+import type { BookPreviewData, BookPreviewProfileId } from '@/app/actions/book-preview-types';
 
 const PROFILE_LABELS: Record<BookPreviewProfileId, string> = {
   'kdp-6x9': 'KDP 6×9',

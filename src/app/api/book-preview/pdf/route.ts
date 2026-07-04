@@ -4,7 +4,7 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/infrastructure/auth/auth-config';
 import { getBookPreviewCacheRepo } from '@/app/actions/utils';
-import { BOOK_PREVIEW_PROFILES, type BookPreviewProfileId } from '@/app/actions/book-preview-actions';
+import { BOOK_PREVIEW_PROFILES, type BookPreviewProfileId } from '@/app/actions/book-preview-types';
 
 export const runtime = 'nodejs';
 
