@@ -38,14 +38,19 @@ describe('AddChapterUseCase', () => {
     expect(chapter.getOrder()).toBe(2);
   });
 
-  it('should create chapter with empty TipTap content', () => {
+  it('should create chapter starting with a titre-de-chapitre H1 (no fallback needed at export)', () => {
     const useCase = new AddChapterUseCase();
     const project = Project.create('test-user', 'Test Project', []);
 
     const chapter = useCase.execute(project);
 
     const content = JSON.parse(chapter.getContent());
-    expect(content).toEqual({ type: 'doc', content: [] });
+    expect(content.type).toBe('doc');
+    expect(content.content).toHaveLength(1);
+    expect(content.content[0]).toMatchObject({
+      type: 'heading',
+      attrs: { level: 1, semanticRole: 'titre-de-chapitre' },
+    });
   });
 
   it('should generate unique chapter IDs', () => {

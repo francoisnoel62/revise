@@ -52,37 +52,20 @@ describe('TipTapToBookHtml', () => {
     });
   });
 
-  describe('convertChapter', () => {
-    it('strips a leading heading that exactly matches the chapter title', () => {
-      const content = doc(heading(1, 'Chapitre Un'), paragraph('Corps du chapitre.'));
-      const html = converter.convertChapter(content, 'Chapitre Un');
-      expect(html).not.toMatch(/<h1[^>]*>Chapitre Un<\/h1>/);
-      expect(html).toMatch(/<p[^>]*>Corps du chapitre\.<\/p>/);
+  describe('convert — title fidelity (no injection, no fallback)', () => {
+    it('renders the semantic titre-de-chapitre heading exactly as authored in the body', () => {
+      const content = doc(
+        { ...heading(1, 'Chapitre Un'), attrs: { level: 1, semanticRole: 'titre-de-chapitre' } },
+        paragraph('Corps du chapitre.')
+      );
+      const html = converter.convert(content);
+      expect(html).toMatch(/<h1[^>]*data-semantic-role="titre-de-chapitre"[^>]*>Chapitre Un<\/h1>/);
     });
 
-    it('strips leading heading case-insensitively and ignoring surrounding whitespace', () => {
-      const content = doc(heading(1, '  chapitre un  '), paragraph('Texte.'));
-      const html = converter.convertChapter(content, 'Chapitre Un');
+    it('renders no heading at all when the chapter body has none (no fallback title)', () => {
+      const content = doc(paragraph('Corps sans titre.'));
+      const html = converter.convert(content);
       expect(html).not.toMatch(/<h1/);
-      expect(html).toMatch(/Texte\./);
-    });
-
-    it('keeps a leading heading that differs from the chapter title', () => {
-      const content = doc(heading(2, 'Partie I'), paragraph('Texte.'));
-      const html = converter.convertChapter(content, 'Chapitre Un');
-      expect(html).toMatch(/<h2/);
-    });
-
-    it('keeps a non-heading leading node unchanged', () => {
-      const content = doc(paragraph('Premier paragraphe.'), paragraph('Deuxième.'));
-      const html = converter.convertChapter(content, 'Chapitre Un');
-      expect(html).toMatch(/Premier paragraphe\./);
-      expect(html).toMatch(/Deuxième\./);
-    });
-
-    it('handles an empty document without throwing', () => {
-      const html = converter.convertChapter(doc(), 'Titre');
-      expect(typeof html).toBe('string');
     });
   });
 });

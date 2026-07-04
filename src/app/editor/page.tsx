@@ -688,7 +688,7 @@ function EditorContent() {
           </div>
           <div className="flex items-center shrink-0">
             <NotificationBell />
-            <ExportDialog />
+            <ExportDialog publicationProfileId={publicationProfileId} />
             <UserMenu />
           </div>
         </div>
@@ -720,7 +720,7 @@ function EditorContent() {
               </Button>
             </Link>
             <PublishDialog projectId={project.id} projectTitle={project.title} chapters={project.chapters} />
-            <ExportDialog />
+            <ExportDialog publicationProfileId={publicationProfileId} />
             <UserMenu />
           </div>
         </div>
@@ -758,7 +758,7 @@ function EditorContent() {
               </Button>
             </Link>
             <PublishDialog projectId={project.id} projectTitle={project.title} chapters={project.chapters} />
-            <ExportDialog />
+            <ExportDialog publicationProfileId={publicationProfileId} />
             <UserMenu />
           </div>
         </div>

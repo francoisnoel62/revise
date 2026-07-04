@@ -151,11 +151,11 @@ describe('UpdateProjectSettingsUseCase', () => {
     const result = await useCase.execute({
       userId: 'user-1',
       projectId: 'project-1',
-      updates: { publicationProfileId: 'kdp-5x8' },
+      updates: { publicationProfileId: 'a5' },
     });
 
     expect(mockRepository.create).toHaveBeenCalled();
-    expect(result.getPublicationProfileId()).toBe('kdp-5x8');
+    expect(result.getPublicationProfileId()).toBe('a5');
   });
 
   it('throws error for empty title', async () => {

@@ -12,19 +12,6 @@ export class TipTapToBookHtml {
     return this.renderChildren(content);
   }
 
-  convertChapter(content: JSONContent, chapterTitle: string): string {
-    if (content.type !== 'doc') {
-      throw new Error('Paged rendering requires a TipTap document root');
-    }
-
-    const children = content.content ?? [];
-    const stripped = this.startsWithTitleHeading(children, chapterTitle)
-      ? { ...content, content: children.slice(1) }
-      : content;
-
-    return this.renderChildren(stripped);
-  }
-
   private renderChildren(node: JSONContent): string {
     return (node.content ?? []).map((child) => this.renderNode(child)).join('');
   }
@@ -148,15 +135,5 @@ export class TipTapToBookHtml {
       .replaceAll('>', '&gt;')
       .replaceAll('"', '&quot;')
       .replaceAll("'", '&#039;');
-  }
-
-  private startsWithTitleHeading(nodes: JSONContent[], title: string): boolean {
-    const first = nodes[0];
-    if (!first || first.type !== 'heading') return false;
-    const text = (first.content ?? [])
-      .filter((n) => n.type === 'text')
-      .map((n) => n.text ?? '')
-      .join('');
-    return text.trim().toLowerCase() === title.trim().toLowerCase();
   }
 }

@@ -6,14 +6,6 @@ import { Chapter } from '../entities/Chapter';
 import type { PublicationProfile } from '../value-objects/PublicationProfile';
 
 /**
- * Visual rendering preset for DOCX export.
- * - 'kdp': Amazon KDP print format (6"×9", Garamond 11pt, mirrored margins, ODD_PAGE chapter breaks)
- * - 'neutral': Same structure as 'structured' but heading colors forced to black
- * - 'structured': Native LibreOffice/Word styles (default theme colors applied by the reader)
- */
-export type DocxStylePreset = 'kdp' | 'neutral' | 'structured';
-
-/**
  * Front matter pages data for KDP export (half-title, title page, copyright, dedication, epigraph).
  * All fields are optional — missing content skips that page, except copyrightContent which
  * falls back to a generated placeholder.
@@ -38,10 +30,6 @@ export interface ExportOptions {
    * If provided, a cover page will be added before the content
    */
   coverImageUrl?: string;
-  /**
-   * Visual rendering preset for DOCX export. Defaults to 'kdp'.
-   */
-  stylePreset?: DocxStylePreset;
   /**
    * Front matter pages (half-title, title, copyright, dedication, epigraph).
    * KDP preset only. Ignored for neutral/structured presets.

@@ -13,7 +13,7 @@ import { TextSelection } from '@/domain/value-objects/TextSelection';
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
 import { RewriteTextUseCase } from '@/application/use-cases/RewriteTextUseCase';
 import { ExportProjectUseCase, ExportMode } from '@/application/use-cases/ExportProjectUseCase';
-import { DocxStylePreset, FrontMatterData } from '@/domain/interfaces/DocumentExporter';
+import { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
 import { getPromptRepository } from '@/infrastructure/config/providers';
 import {
   type ActionResult,
@@ -23,7 +23,6 @@ import {
   getFolderParser,
   getDocumentExporter,
   getProjectSettingsRepo,
-  getMetadataRepo,
   withErrorHandling,
 } from './actions/utils';
 import { type SerializedProject } from './actions/project-actions';
@@ -131,8 +130,7 @@ export async function importFolder(
  */
 export async function exportProject(
   projectId: string,
-  chapterIds?: string[],
-  stylePreset?: DocxStylePreset
+  chapterIds?: string[]
 ): Promise<ActionResult<{ buffer: number[]; filename: string }>> {
   const auth = await getAuthenticatedUserId();
   if ('error' in auth) return auth.error;
@@ -145,29 +143,17 @@ export async function exportProject(
       throw new Error('Project not found');
     }
 
-    // Get project settings for cover image and book metadata
+    // Get project settings for cover image and the active publication profile
     const settingsRepo = await getProjectSettingsRepo();
     const settings = await settingsRepo.findByProjectId(auth.userId, projectId);
     const coverImageUrl = settings?.getCoverImageUrl();
+    const profileId = settings?.getPublicationProfileId() ?? 'kdp-6x9';
 
-    // Build front matter data for KDP export
-    const metadataRepo = await getMetadataRepo();
-    const authorContributor = settings?.getContributors().find((c) => c.role === 'author');
-    const [dedicationMeta, copyrightMeta, epigraphMeta] = await Promise.all([
-      metadataRepo.findByProjectAndType(auth.userId, projectId, 'dedication'),
-      metadataRepo.findByProjectAndType(auth.userId, projectId, 'copyright'),
-      metadataRepo.findByProjectAndType(auth.userId, projectId, 'epigraph'),
-    ]);
-
-    const frontMatter: FrontMatterData = {
-      title: settings?.getTitle() ?? project.getTitle(),
-      subtitle: settings?.getSubtitle(),
-      authorName: authorContributor?.name,
-      isbn: settings?.getIsbn(),
-      dedicationContent: dedicationMeta?.getContent() || undefined,
-      copyrightContent: copyrightMeta?.getContent() || undefined,
-      epigraphContent: epigraphMeta?.getContent() || undefined,
-    };
+    if (profileId !== 'passerelle') {
+      throw new Error(
+        'Le profil de publication actif exporte en PDF. Changez de profil pour exporter en DOCX.'
+      );
+    }
 
     const exporter = await getDocumentExporter('docx');
     const useCase = new ExportProjectUseCase(exporter);
@@ -176,8 +162,6 @@ export async function exportProject(
     const mode: ExportMode = chapterIds && chapterIds.length > 0 ? 'selected' : 'all';
     const buffer = await useCase.execute(project, filename, mode, chapterIds, {
       coverImageUrl,
-      stylePreset,
-      frontMatter,
     });
 
     return {
@@ -209,17 +193,29 @@ export async function exportProjectPdf(
       throw new Error('Project not found');
     }
 
-    // Get project settings for cover image
+    // Get project settings for cover image and the active publication profile
     const settingsRepo = await getProjectSettingsRepo();
     const settings = await settingsRepo.findByProjectId(auth.userId, projectId);
     const coverImageUrl = settings?.getCoverImageUrl();
+    const profileId = settings?.getPublicationProfileId() ?? 'kdp-6x9';
+
+    if (profileId === 'passerelle') {
+      throw new Error(
+        'Le profil de publication actif exporte en DOCX. Changez de profil pour exporter en PDF.'
+      );
+    }
+
+    const publicationProfile = PublicationProfile.fromId(profileId);
 
     const exporter = await getDocumentExporter('pdf');
     const useCase = new ExportProjectUseCase(exporter);
     const filename = `${project.getTitle()}.pdf`;
 
     const mode: ExportMode = chapterIds && chapterIds.length > 0 ? 'selected' : 'all';
-    const buffer = await useCase.execute(project, filename, mode, chapterIds, { coverImageUrl });
+    const buffer = await useCase.execute(project, filename, mode, chapterIds, {
+      coverImageUrl,
+      publicationProfile,
+    });
 
     return {
       buffer: Array.from(buffer),

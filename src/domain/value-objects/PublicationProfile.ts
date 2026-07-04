@@ -15,13 +15,7 @@ export interface PublicationProfileProperties {
   readonly firstLineIndentCentimeters: number;
 }
 
-export type PublicationProfileId =
-  | 'kdp-6x9'
-  | 'kdp-5x8'
-  | 'kdp-5_25x8'
-  | 'kdp-5_5x8_5'
-  | 'a5'
-  | 'passerelle';
+export type PublicationProfileId = 'kdp-6x9' | 'a5' | 'passerelle';
 
 export class PublicationProfile {
   private constructor(private readonly properties: PublicationProfileProperties) {}
@@ -34,54 +28,6 @@ export class PublicationProfile {
       marginTopCentimeters: 1.8,
       marginBottomCentimeters: 1.8,
       marginInsideCentimeters: 2,
-      marginOutsideCentimeters: 1.5,
-      bodyFontFamily: 'EB Garamond',
-      bodyFontSizePoints: 11,
-      lineHeight: 1.15,
-      firstLineIndentCentimeters: 0.8,
-    });
-  }
-
-  static kdpFiveByEight(): PublicationProfile {
-    return new PublicationProfile({
-      id: 'kdp-5x8',
-      pageWidthInches: 5,
-      pageHeightInches: 8,
-      marginTopCentimeters: 1.5,
-      marginBottomCentimeters: 1.5,
-      marginInsideCentimeters: 1.8,
-      marginOutsideCentimeters: 1.3,
-      bodyFontFamily: 'EB Garamond',
-      bodyFontSizePoints: 10.5,
-      lineHeight: 1.15,
-      firstLineIndentCentimeters: 0.7,
-    });
-  }
-
-  static kdpFiveQuarterByEight(): PublicationProfile {
-    return new PublicationProfile({
-      id: 'kdp-5_25x8',
-      pageWidthInches: 5.25,
-      pageHeightInches: 8,
-      marginTopCentimeters: 1.6,
-      marginBottomCentimeters: 1.6,
-      marginInsideCentimeters: 1.8,
-      marginOutsideCentimeters: 1.4,
-      bodyFontFamily: 'EB Garamond',
-      bodyFontSizePoints: 11,
-      lineHeight: 1.15,
-      firstLineIndentCentimeters: 0.8,
-    });
-  }
-
-  static kdpFiveHalfByEightHalf(): PublicationProfile {
-    return new PublicationProfile({
-      id: 'kdp-5_5x8_5',
-      pageWidthInches: 5.5,
-      pageHeightInches: 8.5,
-      marginTopCentimeters: 1.7,
-      marginBottomCentimeters: 1.7,
-      marginInsideCentimeters: 1.9,
       marginOutsideCentimeters: 1.5,
       bodyFontFamily: 'EB Garamond',
       bodyFontSizePoints: 11,
@@ -122,20 +68,21 @@ export class PublicationProfile {
     });
   }
 
+  /**
+   * Restores a profile by id. Unknown/removed ids (e.g. legacy KDP trims dropped
+   * from the catalogue) fall back to kdp-6x9 instead of throwing, so a project
+   * stored on a removed profile still opens.
+   */
   static fromId(id: PublicationProfileId): PublicationProfile {
     switch (id) {
-      case 'kdp-6x9':
-        return PublicationProfile.kdpSixByNine();
-      case 'kdp-5x8':
-        return PublicationProfile.kdpFiveByEight();
-      case 'kdp-5_25x8':
-        return PublicationProfile.kdpFiveQuarterByEight();
-      case 'kdp-5_5x8_5':
-        return PublicationProfile.kdpFiveHalfByEightHalf();
       case 'a5':
         return PublicationProfile.a5();
       case 'passerelle':
         return PublicationProfile.passerelle();
+      case 'kdp-6x9':
+        return PublicationProfile.kdpSixByNine();
+      default:
+        return PublicationProfile.kdpSixByNine();
     }
   }
 
