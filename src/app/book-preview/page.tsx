@@ -1,31 +1,26 @@
-// ABOUTME: Whole-book preview page — read-only paginated view of the complete manuscript.
-// ABOUTME: Renders front matter, TOC, and all chapters via the shared PagedJsRenderer.
+// ABOUTME: Whole-book preview page — displays the real export PDF (server-generated, cached) in a viewer.
+// ABOUTME: Lazy generation with a spinner; sidebar jumps to chapters via the PDF #page=N anchor.
 
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from 'react';
+import { useCallback, useEffect, useRef, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import type { JSONContent } from '@tiptap/core';
 import { ArrowLeft, BookOpen, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getBookPreviewDataAction, type BookPreviewData } from '@/app/actions/book-preview-actions';
-import { WholeBookHtmlAssembler } from '@/application/services/WholeBookHtmlAssembler';
-import { PagedJsRenderer } from '@/infrastructure/document/paged/PagedJsRenderer';
-import { TipTapToBookHtml } from '@/infrastructure/document/paged/TipTapToBookHtml';
-import { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
+import {
+  getBookPreviewDataAction,
+  type BookPreviewData,
+  type BookPreviewProfileId,
+} from '@/app/actions/book-preview-actions';
 
-const renderer = new PagedJsRenderer();
-const converter = new TipTapToBookHtml();
-const assembler = new WholeBookHtmlAssembler(converter);
+const PROFILE_LABELS: Record<BookPreviewProfileId, string> = {
+  'kdp-6x9': 'KDP 6×9',
+  a5: 'A5',
+};
 
-interface RenderMetrics {
-  readonly pageCount: number;
-  readonly paginationMs: number;
-}
-
-/** Matches the 30s budget PagedPdfExporter already grants Paged.js server-side. */
-const RENDER_TIMEOUT_MS = 30_000;
+/** Generating a 300-page PDF in Chromium can take several seconds; guard against a stuck render. */
+const GENERATION_TIMEOUT_MS = 60_000;
 
 function BookPreviewContent() {
   const searchParams = useSearchParams();
@@ -33,88 +28,73 @@ function BookPreviewContent() {
   const projectId = searchParams.get('project');
 
   const [data, setData] = useState<BookPreviewData | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<BookPreviewProfileId | null>(null);
+  const [isGenerating, setIsGenerating] = useState(true);
+  const [timedOut, setTimedOut] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [metrics, setMetrics] = useState<RenderMetrics | null>(null);
-  const [isRendering, setIsRendering] = useState(true);
-  const [renderTimedOut, setRenderTimedOut] = useState(false);
+  const [pdfPage, setPdfPage] = useState(1);
   const [retryToken, setRetryToken] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
+  // Resets that mark "a new request is starting" live in the event handlers below
+  // (selectProfile / retry); the initial request relies on the default state. The
+  // effect only mutates state from async callbacks and the timeout — never synchronously.
   useEffect(() => {
     if (!projectId) {
       router.replace('/dashboard');
       return;
     }
 
-    getBookPreviewDataAction(projectId).then((result) => {
-      if (!result.success) {
-        setLoadError(result.error ?? 'Erreur de chargement');
-      } else {
-        setData(result.data);
-        setIsRendering(true);
-      }
-    });
-  }, [projectId, router]);
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      if (!cancelled) setTimedOut(true);
+    }, GENERATION_TIMEOUT_MS);
 
-  // Guards against a stuck or failed Paged.js render: without this, a render that
-  // never posts 'paged-rendered' leaves the author staring at an infinite spinner
-  // with no way to tell a slow render from a broken one.
-  useEffect(() => {
-    if (!data) return;
-    const timer = setTimeout(() => setRenderTimedOut(true), RENDER_TIMEOUT_MS);
-    return () => clearTimeout(timer);
-  }, [data, retryToken]);
+    getBookPreviewDataAction(projectId, selectedProfile ?? undefined)
+      .then((result) => {
+        if (cancelled) return;
+        if (!result.success) {
+          setLoadError(result.error ?? 'Erreur de chargement');
+        } else {
+          setData(result.data);
+        }
+        setIsGenerating(false);
+      })
+      .finally(() => {
+        clearTimeout(timer);
+      });
 
-  const handleMessage = useCallback((event: MessageEvent) => {
-    if (event.data?.type !== 'paged-rendered') return;
-    if (event.source !== iframeRef.current?.contentWindow) return;
-    setMetrics({ pageCount: event.data.pageCount as number, paginationMs: event.data.paginationMs as number });
-    setIsRendering(false);
-    setRenderTimedOut(false);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [projectId, selectedProfile, router, retryToken]);
+
+  const selectProfile = useCallback((profile: BookPreviewProfileId) => {
+    setSelectedProfile(profile);
+    setIsGenerating(true);
+    setTimedOut(false);
+    setLoadError(null);
+    setPdfPage(1);
   }, []);
 
-  useEffect(() => {
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [handleMessage]);
-
-  const retryRender = useCallback(() => {
-    setIsRendering(true);
-    setRenderTimedOut(false);
-    setMetrics(null);
+  const retry = useCallback(() => {
     setRetryToken((token) => token + 1);
+    setIsGenerating(true);
+    setTimedOut(false);
+    setLoadError(null);
   }, []);
 
-  const documentHtml = useMemo(() => {
-    if (!data) return null;
-    const chapters = data.chapters.map((ch) => ({
-      id: ch.id,
-      title: ch.title,
-      content: JSON.parse(ch.content) as JSONContent,
-    }));
-    const { bodyHtml, tocEntries } = assembler.assemble(chapters);
-    const profile = PublicationProfile.fromId(data.profileId);
-    return renderer.render({
-      bodyHtml,
-      profile,
-      assetBaseUrl: typeof window === 'undefined' ? 'http://localhost:3000' : window.location.origin,
-      frontMatter: data.frontMatter,
-      toc: tocEntries.length > 0 ? [...tocEntries] : undefined,
-    });
-  }, [data]);
-
-  const navigateToChapter = useCallback((chapterId: string) => {
-    iframeRef.current?.contentWindow?.postMessage(
-      { type: 'navigate-to-chapter', chapterId },
-      '*',
-    );
-  }, []);
+  const pdfSrc =
+    projectId && data && !data.isPasserelle
+      ? `/api/book-preview/pdf?project=${encodeURIComponent(projectId)}&profile=${data.profileId}#page=${pdfPage}`
+      : null;
 
   if (loadError) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex h-screen items-center justify-center bg-slate-900">
         <div className="text-center">
-          <p className="mb-4 text-red-600">{loadError}</p>
+          <p className="mb-4 text-red-400">{loadError}</p>
           <Link href="/dashboard">
             <Button variant="outline">Retour au tableau de bord</Button>
           </Link>
@@ -125,7 +105,6 @@ function BookPreviewContent() {
 
   return (
     <div className="flex h-screen flex-col bg-slate-900">
-      {/* Header */}
       <header className="flex items-center justify-between border-b border-slate-700 bg-slate-800 px-4 py-3">
         <div className="flex items-center gap-3">
           {projectId && (
@@ -142,38 +121,51 @@ function BookPreviewContent() {
             </h1>
           </div>
         </div>
-        <div className="text-sm text-slate-400" data-testid="book-preview-status">
-          {isRendering && data && renderTimedOut && (
-            <span className="flex items-center gap-3 text-amber-400" data-testid="book-preview-error">
-              Le rendu a pris trop de temps.
-              <Button variant="outline" size="sm" onClick={retryRender}>
-                Réessayer
-              </Button>
-            </span>
+
+        <div className="flex items-center gap-4">
+          {/* Preview-only profile selector — does NOT change the project's active profile */}
+          {data && !data.isPasserelle && (
+            <div className="flex items-center gap-1" data-testid="preview-profile-selector">
+              {data.availableProfiles.map((profile) => (
+                <button
+                  key={profile}
+                  data-profile={profile}
+                  aria-pressed={data.profileId === profile}
+                  onClick={() => selectProfile(profile)}
+                  className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
+                    data.profileId === profile
+                      ? 'bg-amber-500 text-slate-900'
+                      : 'text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  {PROFILE_LABELS[profile]}
+                </button>
+              ))}
+            </div>
           )}
-          {isRendering && data && !renderTimedOut && (
-            <span className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Pagination en cours…
-            </span>
-          )}
-          {!isRendering && metrics && (
-            <span data-page-count={metrics.pageCount} data-pagination-ms={metrics.paginationMs}>
-              {metrics.pageCount} pages · {metrics.paginationMs.toFixed(0)} ms
-            </span>
-          )}
-          {!data && !loadError && (
-            <span className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Chargement…
-            </span>
-          )}
+          <div className="text-sm text-slate-400" data-testid="book-preview-status">
+            {isGenerating && timedOut && (
+              <span className="flex items-center gap-3 text-amber-400" data-testid="book-preview-error">
+                La génération a pris trop de temps.
+                <Button variant="outline" size="sm" onClick={retry}>
+                  Réessayer
+                </Button>
+              </span>
+            )}
+            {isGenerating && !timedOut && (
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Génération en cours…
+              </span>
+            )}
+            {!isGenerating && data && !data.isPasserelle && (
+              <span data-page-count={data.totalPageCount}>{data.totalPageCount} pages</span>
+            )}
+          </div>
         </div>
       </header>
 
-      {/* Body: sidebar + iframe */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Chapter navigation sidebar */}
         <aside
           className="w-56 shrink-0 overflow-y-auto border-r border-slate-700 bg-slate-800 p-4"
           data-testid="chapter-navigation"
@@ -181,7 +173,7 @@ function BookPreviewContent() {
           <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-400">
             Chapitres
           </p>
-          {data ? (
+          {data && !data.isPasserelle ? (
             <nav>
               <ul className="space-y-1">
                 {data.chapters.map((ch) => (
@@ -189,7 +181,8 @@ function BookPreviewContent() {
                     <button
                       className="w-full rounded px-2 py-1.5 text-left text-sm text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
                       data-chapter-id={ch.id}
-                      onClick={() => navigateToChapter(ch.id)}
+                      data-page-number={ch.pageNumber}
+                      onClick={() => setPdfPage(ch.pageNumber)}
                     >
                       {ch.title || 'Sans titre'}
                     </button>
@@ -198,20 +191,32 @@ function BookPreviewContent() {
               </ul>
             </nav>
           ) : (
-            <p className="text-sm text-slate-500">Chargement…</p>
+            <p className="text-sm text-slate-500">
+              {data?.isPasserelle ? 'Indisponible' : 'Chargement…'}
+            </p>
           )}
         </aside>
 
-        {/* Paged.js iframe */}
         <main className="relative flex-1 overflow-hidden bg-slate-900">
-          {documentHtml ? (
+          {data?.isPasserelle ? (
+            <div className="flex h-full items-center justify-center p-8 text-center">
+              <div>
+                <p className="mb-2 text-slate-300">
+                  L&apos;aperçu livre entier n&apos;est pas disponible pour le profil{' '}
+                  <span className="font-semibold">passerelle</span>.
+                </p>
+                <p className="text-sm text-slate-500">
+                  Ce profil sert au partage (Google Docs / DOCX), sans mise en page paginée.
+                </p>
+              </div>
+            </div>
+          ) : pdfSrc ? (
             <iframe
-              key={retryToken}
+              key={`${data?.profileId}-${retryToken}`}
               ref={iframeRef}
-              className="h-full w-full border-0"
-              data-testid="book-preview-iframe"
-              sandbox="allow-same-origin allow-scripts"
-              srcDoc={documentHtml}
+              className="h-full w-full border-0 bg-slate-200"
+              data-testid="book-preview-pdf"
+              src={pdfSrc}
               title="Aperçu livre entier"
             />
           ) : (

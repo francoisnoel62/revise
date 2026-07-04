@@ -1,36 +1,52 @@
-// ABOUTME: Server actions for the whole-book preview page.
-// ABOUTME: Loads chapters, front matter, and publication profile for client-side rendering.
+// ABOUTME: Server action for the whole-book preview: lazily generates and caches the export PDF.
+// ABOUTME: Returns navigation metrics (chapter page offsets, counts); the PDF bytes are served by a route.
 
 'use server';
 
+import type { JSONContent } from '@tiptap/core';
 import type { FrontMatterData } from '@/domain/interfaces/DocumentExporter';
-import type { PublicationProfileId } from '@/domain/value-objects/PublicationProfile';
+import { PublicationProfile, type PublicationProfileId } from '@/domain/value-objects/PublicationProfile';
+import { computeBookPreviewContentHash } from '@/application/services/bookPreviewContentHash';
 import {
   type ActionResult,
   getAuthenticatedUserId,
   getRepository,
   getMetadataRepo,
   getProjectSettingsRepo,
+  getBookPreviewCacheRepo,
+  getBookPreviewCacheComputer,
   withErrorHandling,
 } from './utils';
 
-export interface BookPreviewChapter {
+/** The whole-book preview offers only the print (PDF) profiles; passerelle is excluded. */
+export type BookPreviewProfileId = Extract<PublicationProfileId, 'kdp-6x9' | 'a5'>;
+export const BOOK_PREVIEW_PROFILES: readonly BookPreviewProfileId[] = ['kdp-6x9', 'a5'];
+
+export interface BookPreviewChapterNav {
   readonly id: string;
   readonly title: string;
-  /** Stringified TipTap JSON content. */
-  readonly content: string;
-  readonly order: number;
+  /** Physical 1-indexed PDF page where the chapter starts (for #page=N navigation). */
+  readonly pageNumber: number;
 }
 
 export interface BookPreviewData {
   readonly projectTitle: string;
-  readonly chapters: BookPreviewChapter[];
-  readonly frontMatter: FrontMatterData;
   readonly profileId: PublicationProfileId;
+  /** True when the project's active profile is passerelle — no paginated whole-book preview. */
+  readonly isPasserelle: boolean;
+  readonly availableProfiles: readonly BookPreviewProfileId[];
+  readonly chapters: readonly BookPreviewChapterNav[];
+  readonly totalPageCount: number;
+  readonly frontMatterPageCount: number;
+}
+
+function isPreviewProfile(id: PublicationProfileId): id is BookPreviewProfileId {
+  return (BOOK_PREVIEW_PROFILES as readonly string[]).includes(id);
 }
 
 export async function getBookPreviewDataAction(
   projectId: string,
+  requestedProfileId?: BookPreviewProfileId,
 ): Promise<ActionResult<BookPreviewData>> {
   const auth = await getAuthenticatedUserId();
   if ('error' in auth) return auth.error;
@@ -38,7 +54,6 @@ export async function getBookPreviewDataAction(
   return withErrorHandling(async () => {
     const repository = await getRepository();
     const project = await repository.loadProject(auth.userId, projectId);
-
     if (!project) throw new Error('Projet non trouvé');
 
     const settingsRepo = await getProjectSettingsRepo();
@@ -52,7 +67,6 @@ export async function getBookPreviewDataAction(
     ]);
 
     const authorContributor = settings?.getContributors().find((c) => c.role === 'author');
-
     const frontMatter: FrontMatterData = {
       title: settings?.getTitle() ?? project.getTitle(),
       subtitle: settings?.getSubtitle(),
@@ -63,23 +77,72 @@ export async function getBookPreviewDataAction(
       epigraphContent: epigraphMeta?.getContent() || undefined,
     };
 
-    const profileId: PublicationProfileId = settings?.getPublicationProfileId() ?? 'kdp-6x9';
+    const activeProfileId: PublicationProfileId = settings?.getPublicationProfileId() ?? 'kdp-6x9';
 
-    const chapters: BookPreviewChapter[] = project
+    // passerelle has no paginated whole-book preview (share/DOCX target).
+    if (!requestedProfileId && activeProfileId === 'passerelle') {
+      return {
+        projectTitle: project.getTitle(),
+        profileId: 'passerelle',
+        isPasserelle: true,
+        availableProfiles: BOOK_PREVIEW_PROFILES,
+        chapters: [],
+        totalPageCount: 0,
+        frontMatterPageCount: 0,
+      };
+    }
+
+    const profileId: BookPreviewProfileId =
+      requestedProfileId ?? (isPreviewProfile(activeProfileId) ? activeProfileId : 'kdp-6x9');
+
+    const orderedChapters = project
       .getChapters()
-      .map((ch) => ({
-        id: ch.getId(),
-        title: ch.getTitle(),
-        content: ch.getContent(),
-        order: ch.getOrder(),
-      }))
-      .sort((a, b) => a.order - b.order);
+      .slice()
+      .sort((a, b) => a.getOrder() - b.getOrder());
+
+    const contentHash = computeBookPreviewContentHash({
+      chapters: orderedChapters.map((ch) => ({ id: ch.getId(), content: ch.getContent() })),
+      frontMatter,
+    });
+
+    const cacheRepo = await getBookPreviewCacheRepo();
+    let entry = await cacheRepo.loadMetrics(projectId, profileId, auth.userId);
+
+    if (!entry || entry.getContentHash() !== contentHash) {
+      const assetBaseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000';
+      const computer = getBookPreviewCacheComputer();
+      const { entry: computed, pdf } = await computer.compute({
+        projectId,
+        ownerId: auth.userId,
+        profile: PublicationProfile.fromId(profileId),
+        chapters: orderedChapters.map((ch) => ({
+          id: ch.getId(),
+          title: ch.getTitle(),
+          content: JSON.parse(ch.getContent()) as JSONContent,
+        })),
+        frontMatter,
+        contentHash,
+        assetBaseUrl,
+      });
+      await cacheRepo.save(computed, pdf);
+      entry = computed;
+    }
+
+    const titleById = new Map(orderedChapters.map((ch) => [ch.getId(), ch.getTitle()]));
+    const chapters: BookPreviewChapterNav[] = entry.getChapterOffsets().map((offset) => ({
+      id: offset.chapterId,
+      title: titleById.get(offset.chapterId) ?? '',
+      pageNumber: offset.pageNumber,
+    }));
 
     return {
       projectTitle: project.getTitle(),
-      chapters,
-      frontMatter,
       profileId,
+      isPasserelle: false,
+      availableProfiles: BOOK_PREVIEW_PROFILES,
+      chapters,
+      totalPageCount: entry.getTotalPageCount(),
+      frontMatterPageCount: entry.getFrontMatterPageCount(),
     };
   });
 }

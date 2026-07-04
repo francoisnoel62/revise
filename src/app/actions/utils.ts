@@ -35,6 +35,8 @@ import {
   getDocumentParser as getDocumentParserFromConfig,
   getFolderParser as getFolderParserFromConfig,
   getDocumentExporter as getExporterFromConfig,
+  getBookPreviewCacheRepository as getBookPreviewCacheRepositoryFromConfig,
+  getBookPreviewCacheComputer as getBookPreviewCacheComputerFromConfig,
   type ExportFormat,
 } from '@/infrastructure/config/providers';
 import { LLMProviderFactoryImpl } from '@/infrastructure/ai/LLMProviderFactoryImpl';
@@ -392,6 +394,20 @@ export async function getFolderParser(): Promise<FolderParser> {
  */
 export async function getDocumentExporter(format: ExportFormat = 'docx'): Promise<DocumentExporter> {
   return getExporterFromConfig(format);
+}
+
+/**
+ * Get the whole-book PDF preview cache repository (metrics + GridFS PDF).
+ */
+export async function getBookPreviewCacheRepo() {
+  return getBookPreviewCacheRepositoryFromConfig();
+}
+
+/**
+ * Build the whole-book preview computer (headless Chromium render pipeline).
+ */
+export function getBookPreviewCacheComputer() {
+  return getBookPreviewCacheComputerFromConfig();
 }
 
 /**
