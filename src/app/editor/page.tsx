@@ -10,6 +10,7 @@ import { ArrowLeft, BookOpen } from 'lucide-react';
 import { useProjectStore } from '@/store/projectStore';
 import { TextEditor } from '@/components/editor/TextEditor';
 import { FormattingToolbar } from '@/components/editor/FormattingToolbar';
+import { EditorPreviewLayout } from '@/components/editor/EditorPreviewLayout';
 import { RewriteLoadingOverlay } from '@/components/editor/RewriteLoadingOverlay';
 import { ChaptersSheet } from '@/components/navigation/ChaptersSheet';
 import { ProjectSettingsMenu } from '@/components/navigation/ProjectSettingsMenu';
@@ -810,9 +811,9 @@ function EditorContent() {
       </div>
 
       {/* Editor container - responsive width */}
-      <div className="flex justify-center px-2 md:px-4 pb-8">
-        <div className="grid w-full max-w-400 gap-4 xl:grid-cols-2">
-          <div className="min-w-0 bg-white rounded-lg shadow-lg overflow-hidden relative">
+      <EditorPreviewLayout
+        editorSlot={
+          <>
             <TextEditor
               onSelectionChange={handleSelectionChange}
               onEditorReady={(editorInstance) => setEditor(editorInstance)}
@@ -835,20 +836,20 @@ function EditorContent() {
               isVisible={editor?.isEmpty ?? false}
               showAIFeatures={hasAIProviders}
             />
-          </div>
-          <aside className="min-w-0 overflow-hidden rounded-lg bg-slate-200 shadow-lg">
-            <PublicationPreview
-              content={JSON.parse(activeContent) as ContentNode}
-              profileId={publicationProfileId}
-              overrides={presentationOverrides}
-              startPageNumber={startPageNumber}
-              onPageCountChange={(count) => {
-                if (project.activeChapterId) onPageCountChange(project.activeChapterId, count);
-              }}
-            />
-          </aside>
-        </div>
-      </div>
+          </>
+        }
+        previewSlot={
+          <PublicationPreview
+            content={JSON.parse(activeContent) as ContentNode}
+            profileId={publicationProfileId}
+            overrides={presentationOverrides}
+            startPageNumber={startPageNumber}
+            onPageCountChange={(count) => {
+              if (project.activeChapterId) onPageCountChange(project.activeChapterId, count);
+            }}
+          />
+        }
+      />
 
       {/* Background chapter renderer for book-wide page offset computation */}
       <BackgroundPageCounter
