@@ -17,6 +17,7 @@ function makeFakePage(): PageHandle & { _pdf: ReturnType<typeof vi.fn>; _close?:
     setContent: vi.fn().mockResolvedValue(undefined),
     waitForFunction: vi.fn().mockResolvedValue(undefined),
     pdf: _pdf,
+    evaluate: vi.fn().mockResolvedValue(undefined),
     _pdf,
   };
 }
