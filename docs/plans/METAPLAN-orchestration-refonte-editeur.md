@@ -326,7 +326,7 @@ L'orchestrateur **ne franchit pas seul** ces points :
 
 | Nœud | Issue | Fiche | Titre | Label | Dépend de | actor | État |
 |---|---|---|---|---|---|---|---|
-| P | **#142** | [`0018`](0018-issue-toggle-apercu-editeur.md) | Toggle de l'aperçu éditeur (masquage CSS + persistance `localStorage`) | `ready-for-agent` | `0005` | agent | 📝 fiche prête |
+| P | **#142** | [`0018`](0018-issue-toggle-apercu-editeur.md) | Toggle de l'aperçu éditeur (masquage CSS + persistance `localStorage`) | `done` | `0005` | agent | ✅ **done** (2026-07-04, branche `feat/142-toggle-apercu-editeur`) |
 | Q | **#143** | [`0017`](0017-issue-harmoniser-profils-export.md) | Harmoniser profils ↔ export (3 profils, titre depuis le corps, format dérivé du profil) | `ready-for-agent` | `0005`,`0006`,`0007`,`0011` | agent | 📝 fiche prête |
 | R | **#144** | [`0019`](0019-issue-numerotation-perf-livre-entier.md) | Aperçu livre entier = PDF d'export (numérotation + rapidité, cache GridFS lazy) | `ready-for-agent` | `0006`,`0013`,`0014`,`0015`,**`0017`** | agent | 📝 fiche prête |
 | S | **#145** | [`0020`](0020-issue-styles-globaux-par-niveau.md) | Typographie par niveau de texte (réglable par l'auteur, par profil PDF) | `ready-for-agent` | `0007`,`0017` | agent | 📝 fiche prête (grillé 2026-07-04) |
