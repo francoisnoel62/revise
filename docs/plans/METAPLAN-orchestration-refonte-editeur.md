@@ -315,5 +315,38 @@ L'orchestrateur **ne franchit pas seul** ces points :
 | N (#134) | 4 | ✅ (E+M ✅) | ✅ **done** | ✅ aperçu lecture seule ; navigation chapitre fiable ; parité export vérifiée (2026-06-30) |
 | O (#135) | 5 | ✅ (F+B ✅) | ✅ **done** | ✅ insertion sémantique ; sélection trans-page ; autocomplétion + re-pagination cohabitent ; aucune régression IA (2026-06-30) |
 
-**État de l'épopée :** toutes les issues `actor: agent` sont **done**. Reste uniquement :
+**État de l'épopée (Phases 0-5) :** toutes les issues `actor: agent` sont **done**. Reste uniquement :
 - **K (#131)** — Marketplaces + preflight zéro-rejet (`actor: human`, gate ouverte : D+I done ✅ — comptes marketplaces réels requis)
+
+---
+
+## 9. Phase 6 — Harmonisation post-épopée (défauts constatés à l'usage réel)
+
+> **Contexte.** Après la mise en service du moteur paginé (Phases 0-5), l'usage réel de l'éditeur a révélé des écarts entre l'aperçu et l'export, et des défauts de numérotation/perf sur l'aperçu livre-entier. Une session de cadrage (grilling du 2026-07-04) a produit puis **retravaillé** quatre fiches. **Sources de vérité = les fiches elles-mêmes**, ce tableau ne fait que piloter l'ordre.
+
+| Nœud | Issue | Fiche | Titre | Label | Dépend de | actor | État |
+|---|---|---|---|---|---|---|---|
+| P | **#142** | [`0018`](0018-issue-toggle-apercu-editeur.md) | Toggle de l'aperçu éditeur (masquage CSS + persistance `localStorage`) | `ready-for-agent` | `0005` | agent | 📝 fiche prête |
+| Q | **#143** | [`0017`](0017-issue-harmoniser-profils-export.md) | Harmoniser profils ↔ export (3 profils, titre depuis le corps, format dérivé du profil) | `ready-for-agent` | `0005`,`0006`,`0007`,`0011` | agent | 📝 fiche prête |
+| R | **#144** | [`0019`](0019-issue-numerotation-perf-livre-entier.md) | Aperçu livre entier = PDF d'export (numérotation + rapidité, cache GridFS lazy) | `ready-for-agent` | `0006`,`0013`,`0014`,`0015`,**`0017`** | agent | 📝 fiche prête |
+| S | **#145** | [`0020`](0020-issue-styles-globaux-par-niveau.md) | Typographie par niveau de texte (réglable par l'auteur, par profil PDF) | `ready-for-agent` | `0007`,`0017` | agent | 📝 fiche prête (grillé 2026-07-04) |
+| T | **#146** | [`0021`](0021-issue-sommaire-configurable.md) | Sommaire configurable (profondeur 2 niveaux + 3 designs) | `ready-for-agent` | `0013`,`0017` | agent | 📝 fiche prête (grillé 2026-07-04) |
+| U | **#147** | [`0022`](0022-issue-documentation-phase-6.md) | Mise à jour de toute la documentation (clôture Phase 6) | `ready-for-agent` | `0017`–`0021` | agent | 📝 fiche prête — **à exécuter en dernier** |
+
+**Décisions structurantes actées au grilling du 2026-07-04 (détail dans les fiches, ne pas rouvrir sans raison forte) :**
+- `0019` : l'aperçu livre-entier **devient le PDF d'export** (généré serveur, cache **GridFS** + métriques, **lazy** à l'ouverture) — abandon du cache métriques-seules et du recalcul éager `after()` (le risque serverless disparaît). `passerelle` sans aperçu livre-entier.
+- `0017` : titre de chapitre en **fidélité stricte** (depuis le corps, **pas de repli** `chapter.title`) + **migration unique** + H1 par défaut ; suppression des 3 profils KDP **sécurisée** (repli `default` dans `fromId` + vérif base + migration).
+- `0018` : toggle avec **persistance `localStorage`**.
+- `0020` / `0021` : issue « styles globaux » **grillée le 2026-07-04 puis scindée** — `0020` = typographie par niveau (**par profil PDF**, dans `ProjectSettings`, jeu riche borné sans couleur) ; `0021` = sommaire configurable (**global** : profondeur 2 niveaux + 3 designs Classique/Épuré/Littéraire). Les deux dépendent de `0017` et invalident le cache `0019`.
+
+**Ordre d'exécution recommandé :** `P (0018)` ∥ `Q (0017)` → `R (0019)` (dépendance dure `0017` avant `0019`). `S (0020)` et `T (0021)` après `Q` (titres sémantiques + profils figés), parallélisables entre eux.
+
+```
+Vague 6 :  P (0018) ∥ Q (0017)  →  R (0019)
+                        └─────────→  S (0020) ∥ T (0021)   [après Q]
+           puis, quand P/Q/R/S/T sont done :  U (0022) — passe de documentation, en dernier
+```
+
+**Correctif ponctuel déjà livré (2026-07-04, hors issue) :** `BookCssBuilder` — règle `h2` (sous-titre 12pt) plus petite que `h1` (titre 14pt), corrigeant un sous-titre rendu plus gros que le titre (aucune règle `h2` n'existait). TDD rouge→vert, 242 tests du rendu documentaire verts. `0020` rendra ces valeurs configurables.
+
+**Frontière humaine (rappel §6) :** les GitHub issues de Phase 6 ne sont créées qu'après feu vert explicite de Fanfan.
