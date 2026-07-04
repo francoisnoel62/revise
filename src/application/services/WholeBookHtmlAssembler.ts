@@ -27,10 +27,9 @@ export class WholeBookHtmlAssembler {
 
     for (const chapter of chapters) {
       const { id, title, content } = chapter;
-      const h1 = `<h1>${this.escapeHtml(title)}</h1>`;
-      const bodyContent = this.converter.convertChapter(content, title);
+      const bodyContent = this.converter.convert(content);
       bodyParts.push(
-        `<section id="${this.escapeAttr(id)}" class="chapter">${h1}\n${bodyContent}</section>`,
+        `<section id="${this.escapeAttr(id)}" class="chapter">${bodyContent}</section>`,
       );
       tocEntries.push({ chapterId: id, title });
     }
@@ -39,15 +38,6 @@ export class WholeBookHtmlAssembler {
     const toc: readonly TocEntry[] = tocEntries.length > 1 ? tocEntries : [];
 
     return { bodyHtml: bodyParts.join('\n'), tocEntries: toc };
-  }
-
-  private escapeHtml(text: string): string {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#x27;');
   }
 
   private escapeAttr(text: string): string {

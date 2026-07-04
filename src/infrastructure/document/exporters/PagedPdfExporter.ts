@@ -94,9 +94,7 @@ export class PagedPdfExporter implements DocumentExporter {
     for (let i = 0; i < chapters.length; i++) {
       const chapter = chapters[i];
       const chapterId = `ch-${i}`;
-      const chapterContent = chapter.title
-        ? `<h1>${this.escapeHtml(chapter.title)}</h1>\n${this.converter.convertChapter(chapter.content, chapter.title)}`
-        : this.converter.convert(chapter.content);
+      const chapterContent = this.converter.convert(chapter.content);
 
       bodyParts.push(`<section id="${chapterId}" class="chapter">${chapterContent}</section>`);
 
@@ -132,14 +130,5 @@ export class PagedPdfExporter implements DocumentExporter {
     } finally {
       await browser.close();
     }
-  }
-
-  private escapeHtml(text: string): string {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#x27;');
   }
 }

@@ -1,5 +1,5 @@
 // ABOUTME: Tests for WholeBookHtmlAssembler — book-wide body HTML and TOC assembly.
-// ABOUTME: Verifies chapter wrapping, title injection, TOC entries, and ordering.
+// ABOUTME: Verifies chapter wrapping, TOC entries/ordering, and title fidelity (no injection, no fallback).
 
 import { describe, it, expect } from 'vitest';
 import { WholeBookHtmlAssembler } from '../WholeBookHtmlAssembler';
@@ -12,6 +12,14 @@ const assembler = new WholeBookHtmlAssembler(converter);
 const paragraphDoc = (text: string): JSONContent => ({
   type: 'doc',
   content: [{ type: 'paragraph', content: [{ type: 'text', text }] }],
+});
+
+const chapterDoc = (title: string, bodyText: string): JSONContent => ({
+  type: 'doc',
+  content: [
+    { type: 'heading', attrs: { level: 1, semanticRole: 'titre-de-chapitre' }, content: [{ type: 'text', text: title }] },
+    { type: 'paragraph', content: [{ type: 'text', text: bodyText }] },
+  ],
 });
 
 describe('WholeBookHtmlAssembler', () => {
@@ -29,21 +37,20 @@ describe('WholeBookHtmlAssembler', () => {
     expect(bodyHtml).toContain('class="chapter"');
   });
 
-  it('prepends an h1 with the escaped chapter title inside the section', () => {
+  it('never injects an h1: the body renders exactly what the converter produces', () => {
     const { bodyHtml } = assembler.assemble([
-      { id: 'ch1', title: 'Chapter & One', content: paragraphDoc('text') },
+      { id: 'ch1', title: 'Chapter & One', content: chapterDoc('Chapter One', 'Hello world') },
     ]);
-    expect(bodyHtml).toContain('<h1>Chapter &amp; One</h1>');
+    expect(bodyHtml).toContain('<h1 data-semantic-role="titre-de-chapitre">Chapter One</h1>');
+    expect(bodyHtml).not.toContain('Chapter &amp; One');
   });
 
-  it('includes the chapter body content after the h1', () => {
+  it('renders no heading at all when the chapter body has none (no fallback to chapter.title)', () => {
     const { bodyHtml } = assembler.assemble([
       { id: 'ch1', title: 'Chapter 1', content: paragraphDoc('Hello world') },
     ]);
+    expect(bodyHtml).not.toContain('<h1');
     expect(bodyHtml).toContain('<p>Hello world</p>');
-    const h1Pos = bodyHtml.indexOf('<h1>Chapter 1</h1>');
-    const bodyPos = bodyHtml.indexOf('<p>Hello world</p>');
-    expect(h1Pos).toBeLessThan(bodyPos);
   });
 
   it('returns an empty tocEntries for a single chapter', () => {
@@ -53,7 +60,7 @@ describe('WholeBookHtmlAssembler', () => {
     expect(tocEntries).toEqual([]);
   });
 
-  it('returns tocEntries for multiple chapters', () => {
+  it('returns tocEntries for multiple chapters, labeled from chapter.title regardless of body heading', () => {
     const { tocEntries } = assembler.assemble([
       { id: 'ch1', title: 'Chapter 1', content: paragraphDoc('text') },
       { id: 'ch2', title: 'Chapter 2', content: paragraphDoc('text') },
@@ -75,24 +82,15 @@ describe('WholeBookHtmlAssembler', () => {
     expect(ch1Pos).toBeLessThan(ch2Pos);
   });
 
-  it('strips a duplicate title heading from TipTap content to avoid repeating the h1', () => {
-    const contentWithHeading: JSONContent = {
-      type: 'doc',
-      content: [
-        { type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: 'Chapter 1' }] },
-        { type: 'paragraph', content: [{ type: 'text', text: 'Body text' }] },
-      ],
-    };
+  it('renders the body heading exactly once when the content already has a titre-de-chapitre heading', () => {
     const { bodyHtml } = assembler.assemble([
-      { id: 'ch1', title: 'Chapter 1', content: contentWithHeading },
+      { id: 'ch1', title: 'Chapter 1', content: chapterDoc('Chapter 1', 'Body text') },
     ]);
-    // The h1 should appear exactly once (from the injected title, not from the content)
-    const h1Count = (bodyHtml.match(/<h1>/g) ?? []).length;
+    const h1Count = (bodyHtml.match(/<h1/g) ?? []).length;
     expect(h1Count).toBe(1);
   });
 
   it('escapes the chapter id in the section attribute', () => {
-    // IDs should not contain quotes, but the assembler should escape them defensively
     const { bodyHtml } = assembler.assemble([
       { id: 'safe-id-123', title: 'Safe', content: paragraphDoc('text') },
     ]);
@@ -100,25 +98,13 @@ describe('WholeBookHtmlAssembler', () => {
   });
 
   describe('parity with PDF exporter pipeline', () => {
-    // Replicates the exact logic from PagedPdfExporter.renderToPdf() so the comparison
-    // is an apples-to-apples structural check: same HTML after normalising section IDs.
-    function escapeHtml(text: string): string {
-      return text
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#x27;');
-    }
-
     function buildPdfExporterBody(
-      chapters: Array<{ title: string; content: JSONContent }>,
+      chapters: Array<{ content: JSONContent }>,
     ): string {
       return chapters
         .map((ch, i) => {
           const chapterId = `ch-${i}`;
-          const chapterContent = `<h1>${escapeHtml(ch.title)}</h1>\n${converter.convertChapter(ch.content, ch.title)}`;
-          return `<section id="${chapterId}" class="chapter">${chapterContent}</section>`;
+          return `<section id="${chapterId}" class="chapter">${converter.convert(ch.content)}</section>`;
         })
         .join('\n');
     }
@@ -127,7 +113,7 @@ describe('WholeBookHtmlAssembler', () => {
     const normalizeIds = (html: string) => html.replace(/id="[^"]*"/g, 'id="X"');
 
     it('produces chapter HTML identical to the PDF exporter pipeline for a single chapter', () => {
-      const fixture = [{ id: 'ch-real', title: 'Chapitre Un', content: paragraphDoc('Premier contenu.') }];
+      const fixture = [{ id: 'ch-real', title: 'Chapitre Un', content: chapterDoc('Chapitre Un', 'Premier contenu.') }];
       const { bodyHtml } = assembler.assemble(fixture);
       const exportBody = buildPdfExporterBody(fixture);
       expect(normalizeIds(bodyHtml)).toBe(normalizeIds(exportBody));
@@ -135,8 +121,8 @@ describe('WholeBookHtmlAssembler', () => {
 
     it('produces chapter HTML identical to the PDF exporter pipeline for multiple chapters', () => {
       const fixture = [
-        { id: 'ch-001', title: 'Chapitre Un', content: paragraphDoc('Contenu premier.') },
-        { id: 'ch-002', title: 'Chapitre Deux', content: paragraphDoc('Contenu second.') },
+        { id: 'ch-001', title: 'Chapitre Un', content: chapterDoc('Chapitre Un', 'Contenu premier.') },
+        { id: 'ch-002', title: 'Chapitre Deux', content: chapterDoc('Chapitre Deux', 'Contenu second.') },
       ];
       const { bodyHtml } = assembler.assemble(fixture);
       const exportBody = buildPdfExporterBody(fixture);

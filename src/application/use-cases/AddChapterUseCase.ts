@@ -10,16 +10,23 @@ export class AddChapterUseCase {
     const order = chapterCount;
     const title = `Chapitre ${chapterCount + 1}`;
 
-    // Empty TipTap document
-    const emptyContent = JSON.stringify({
+    // New chapters always start with a titre-de-chapitre H1 so the body never
+    // needs a title fallback at preview/export time (fidélité stricte, #143).
+    const initialContent = JSON.stringify({
       type: 'doc',
-      content: [],
+      content: [
+        {
+          type: 'heading',
+          attrs: { level: 1, semanticRole: 'titre-de-chapitre' },
+          content: [{ type: 'text', text: title }],
+        },
+      ],
     });
 
     const chapter = new Chapter(
       crypto.randomUUID(), // eslint-disable-line no-undef
       title,
-      emptyContent,
+      initialContent,
       order
     );
 

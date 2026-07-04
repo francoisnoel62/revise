@@ -27,7 +27,7 @@ describe('PublicationProfileSelector', () => {
     ).toBeInTheDocument();
   });
 
-  it('lists all KDP trim profiles and A5', () => {
+  it('lists exactly the 3 exportable profiles', () => {
     render(
       <PublicationProfileSelector
         value="kdp-6x9"
@@ -37,13 +37,11 @@ describe('PublicationProfileSelector', () => {
     );
 
     expect(screen.getByRole('option', { name: 'KDP 6×9' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'KDP 5×8' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'KDP 5,25×8' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'KDP 5,5×8,5' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'A5 (148×210 mm)' })).toBeInTheDocument();
     expect(
       screen.getByRole('option', { name: 'Passerelle Word / Google Docs' })
     ).toBeInTheDocument();
+    expect(screen.getAllByRole('option')).toHaveLength(3);
   });
 
   it('fires onChange with the new profile id when an option is selected', async () => {
@@ -57,7 +55,7 @@ describe('PublicationProfileSelector', () => {
       />
     );
 
-    await user.selectOptions(screen.getByLabelText('Profil de publication'), 'kdp-5x8');
-    expect(onChange).toHaveBeenCalledWith('kdp-5x8');
+    await user.selectOptions(screen.getByLabelText('Profil de publication'), 'a5');
+    expect(onChange).toHaveBeenCalledWith('a5');
   });
 });

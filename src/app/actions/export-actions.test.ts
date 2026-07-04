@@ -26,7 +26,8 @@ import { Chapter } from '@/domain/entities/Chapter';
 import { DocumentExporter } from '@/domain/interfaces/DocumentExporter';
 
 // Import after mocks are set up
-import { exportProject, exportProjectLegacy } from '../actions';
+import { exportProject, exportProjectPdf, exportProjectLegacy } from '../actions';
+import { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
 
 describe('export-actions', () => {
   let mockRepository: {
@@ -49,9 +50,12 @@ describe('export-actions', () => {
     };
     vi.mocked(getRepository).mockResolvedValue(mockRepository as never);
 
-    // Mock settings repository
+    // Mock settings repository — defaults to the passerelle profile (DOCX-exportable)
     mockSettingsRepository = {
-      findByProjectId: vi.fn().mockResolvedValue(null),
+      findByProjectId: vi.fn().mockResolvedValue({
+        getCoverImageUrl: () => undefined,
+        getPublicationProfileId: () => 'passerelle',
+      }),
     };
     vi.mocked(getProjectSettingsRepo).mockResolvedValue(mockSettingsRepository as never);
 
@@ -154,6 +158,90 @@ describe('export-actions', () => {
       if (!result.success) {
         expect(result.error).toBe('Export failed');
       }
+    });
+
+    it('rejects DOCX export when the active profile is not passerelle', async () => {
+      vi.mocked(getAuthenticatedUserId).mockResolvedValue({ userId: 'user-123' });
+      mockSettingsRepository.findByProjectId.mockResolvedValue({
+        getCoverImageUrl: () => undefined,
+        getPublicationProfileId: () => 'kdp-6x9',
+      });
+
+      const chapter = new Chapter('ch-1', 'Chapter 1', '{"type":"doc","content":[]}', 0);
+      const project = new Project(
+        'proj-123',
+        'user-123',
+        'My Novel',
+        [chapter],
+        'ch-1',
+        null,
+        new Date(),
+        new Date()
+      );
+      mockRepository.loadProject.mockResolvedValue(project);
+
+      const result = await exportProject('proj-123');
+
+      expect(result.success).toBe(false);
+      expect(mockExporter.exportProject).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('exportProjectPdf', () => {
+    it('exports with the PublicationProfile derived from the active profile setting', async () => {
+      vi.mocked(getAuthenticatedUserId).mockResolvedValue({ userId: 'user-123' });
+      mockSettingsRepository.findByProjectId.mockResolvedValue({
+        getCoverImageUrl: () => undefined,
+        getPublicationProfileId: () => 'a5',
+      });
+
+      const chapter = new Chapter('ch-1', 'Chapter 1', '{"type":"doc","content":[]}', 0);
+      const project = new Project(
+        'proj-123',
+        'user-123',
+        'My Novel',
+        [chapter],
+        'ch-1',
+        null,
+        new Date(),
+        new Date()
+      );
+      mockRepository.loadProject.mockResolvedValue(project);
+
+      const result = await exportProjectPdf('proj-123');
+
+      expect(result.success).toBe(true);
+      expect(mockExporter.exportProject).toHaveBeenCalledWith(
+        project,
+        'My Novel.pdf',
+        expect.objectContaining({ publicationProfile: PublicationProfile.fromId('a5') })
+      );
+    });
+
+    it('rejects PDF export when the active profile is passerelle', async () => {
+      vi.mocked(getAuthenticatedUserId).mockResolvedValue({ userId: 'user-123' });
+      mockSettingsRepository.findByProjectId.mockResolvedValue({
+        getCoverImageUrl: () => undefined,
+        getPublicationProfileId: () => 'passerelle',
+      });
+
+      const chapter = new Chapter('ch-1', 'Chapter 1', '{"type":"doc","content":[]}', 0);
+      const project = new Project(
+        'proj-123',
+        'user-123',
+        'My Novel',
+        [chapter],
+        'ch-1',
+        null,
+        new Date(),
+        new Date()
+      );
+      mockRepository.loadProject.mockResolvedValue(project);
+
+      const result = await exportProjectPdf('proj-123');
+
+      expect(result.success).toBe(false);
+      expect(mockExporter.exportProject).not.toHaveBeenCalled();
     });
   });
 

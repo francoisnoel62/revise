@@ -27,9 +27,6 @@ export function PublicationProfileSelector({
         value={value}
       >
         <option value="kdp-6x9">KDP 6×9</option>
-        <option value="kdp-5x8">KDP 5×8</option>
-        <option value="kdp-5_25x8">KDP 5,25×8</option>
-        <option value="kdp-5_5x8_5">KDP 5,5×8,5</option>
         <option value="a5">A5 (148×210 mm)</option>
         <option value="passerelle">Passerelle Word / Google Docs</option>
       </select>

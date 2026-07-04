@@ -1,5 +1,5 @@
 // ABOUTME: Dialog for exporting projects with chapter selection.
-// ABOUTME: Allows users to choose which chapters to include, export format, and DOCX style preset.
+// ABOUTME: Export format is derived from the project's active publication profile — no free choice.
 
 'use client';
 
@@ -19,7 +19,7 @@ import { Label } from '@/components/ui/label';
 import { useProjectStore } from '@/store/projectStore';
 import { exportProject, exportProjectPdf } from '@/app/actions';
 import { Download, Loader2, FileText, File } from 'lucide-react';
-import type { DocxStylePreset } from '@/domain/interfaces/DocumentExporter';
+import type { PublicationProfileId } from '@/domain/value-objects/PublicationProfile';
 
 type ExportFormat = 'docx' | 'pdf';
 
@@ -36,32 +36,23 @@ const FORMAT_CONFIG = {
   },
 } as const;
 
-const DOCX_PRESETS: { value: DocxStylePreset; label: string; description: string }[] = [
-  {
-    value: 'kdp',
-    label: 'KDP (6×9")',
-    description: 'Format impression Amazon KDP — Garamond 11pt, marges miroir, chapitres sur pages impaires',
-  },
-  {
-    value: 'neutral',
-    label: 'Neutre',
-    description: 'Titres en noir, styles natifs LibreOffice / Word sinon',
-  },
-  {
-    value: 'structured',
-    label: 'Structuré',
-    description: 'Styles par défaut du lecteur (titres bleus LibreOffice)',
-  },
-];
+function formatForProfile(profileId: PublicationProfileId): ExportFormat {
+  return profileId === 'passerelle' ? 'docx' : 'pdf';
+}
 
-export function ExportDialog() {
+interface ExportDialogProps {
+  readonly publicationProfileId: PublicationProfileId;
+}
+
+export function ExportDialog({ publicationProfileId }: ExportDialogProps) {
   const router = useRouter();
   const { projectId, project, isExporting, setIsExporting } = useProjectStore();
 
   const [open, setOpen] = useState(false);
-  const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('docx');
-  const [selectedPreset, setSelectedPreset] = useState<DocxStylePreset>('kdp');
   const [selectedChapterIds, setSelectedChapterIds] = useState<Set<string>>(new Set());
+
+  const format = formatForProfile(publicationProfileId);
+  const config = FORMAT_CONFIG[format];
 
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen);
@@ -110,8 +101,8 @@ export function ExportDialog() {
       const chaptersArg = allSelected ? undefined : chapterIds;
 
       const result =
-        selectedFormat === 'docx'
-          ? await exportProject(projectId, chaptersArg, selectedPreset)
+        format === 'docx'
+          ? await exportProject(projectId, chaptersArg)
           : await exportProjectPdf(projectId, chaptersArg);
 
       if (!result.success) {
@@ -122,7 +113,6 @@ export function ExportDialog() {
         throw new Error(result.error);
       }
 
-      const config = FORMAT_CONFIG[selectedFormat];
       const blob = new Blob([new Uint8Array(result.data.buffer)], { type: config.mimeType });
 
       const url = URL.createObjectURL(blob);
@@ -172,65 +162,23 @@ export function ExportDialog() {
             Exporter le projet
           </DialogTitle>
           <DialogDescription>
-            Sélectionnez les chapitres à inclure et le format d&apos;export.
+            Sélectionnez les chapitres à inclure. Le format d&apos;export est déterminé par le
+            profil de publication actif du projet.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Format Selection */}
+          {/* Format — derived from the active publication profile, read-only */}
           <div className="space-y-2">
             <Label>Format</Label>
-            <div className="flex gap-2">
-              {(Object.keys(FORMAT_CONFIG) as ExportFormat[]).map((format) => {
-                const config = FORMAT_CONFIG[format];
-                const Icon = config.icon;
-                return (
-                  <Button
-                    key={format}
-                    variant={selectedFormat === format ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedFormat(format)}
-                    className="flex-1"
-                  >
-                    <Icon className="mr-2 h-4 w-4" />
-                    {config.label}
-                  </Button>
-                );
-              })}
+            <div className="flex items-center gap-2 rounded-lg border p-3 text-sm">
+              <config.icon className="h-4 w-4" />
+              <span>{config.label}</span>
+              <span className="text-xs text-muted-foreground">
+                (déterminé par le profil de publication actif)
+              </span>
             </div>
           </div>
-
-          {/* DOCX Style Preset — only shown for DOCX format */}
-          {selectedFormat === 'docx' && (
-            <div className="space-y-2">
-              <Label>Style de sortie</Label>
-              <div className="space-y-2">
-                {DOCX_PRESETS.map((preset) => (
-                  <label
-                    key={preset.value}
-                    className={`flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
-                      selectedPreset === preset.value
-                        ? 'border-primary bg-primary/5'
-                        : 'hover:bg-muted'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="stylePreset"
-                      value={preset.value}
-                      checked={selectedPreset === preset.value}
-                      onChange={() => setSelectedPreset(preset.value)}
-                      className="mt-0.5 accent-primary"
-                    />
-                    <div>
-                      <p className="text-sm font-medium">{preset.label}</p>
-                      <p className="text-xs text-muted-foreground">{preset.description}</p>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Chapter Selection */}
           <div className="space-y-2">
@@ -296,7 +244,7 @@ export function ExportDialog() {
             ) : (
               <>
                 <Download className="h-4 w-4" />
-                Exporter ({FORMAT_CONFIG[selectedFormat].label})
+                Exporter ({config.label})
               </>
             )}
           </Button>
