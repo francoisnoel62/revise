@@ -87,4 +87,60 @@ test.describe('whole-book preview', () => {
     // But we verify the page remains stable (no error/navigation)
     await expect(page).toHaveURL(new RegExp(TEST_BOOK_PREVIEW_PROJECT_ID));
   });
+
+  test('prints a visible Arabic page number on the first body page', async ({ page }) => {
+    await page.goto(BOOK_PREVIEW_URL);
+
+    const status = page.getByTestId('book-preview-status');
+    await expect(status).toContainText('pages', { timeout: 30_000 });
+
+    const iframeFrame = page.frameLocator('[data-testid="book-preview-iframe"]');
+    // The whole-book render starts with liminal front-matter/TOC pages (roman
+    // numerals via the `liminal-page` named page), so the first *body* page —
+    // the one printing the Arabic counter — isn't the very first rendered page.
+    const firstPage = iframeFrame.locator('.pagedjs_page:not([class*="liminal-page"])').first();
+
+    // Paged.js paints the counter as CSS-generated content (::after) on the margin
+    // box, not as real DOM text — toHaveText() would never see it, so we read the
+    // computed pseudo-element content instead.
+    await expect
+      .poll(
+        () =>
+          firstPage.evaluate((el) => {
+            const marginContent = el.querySelector(
+              '.pagedjs_margin-bottom-center .pagedjs_margin-content'
+            );
+            return marginContent ? getComputedStyle(marginContent, '::after').content : null;
+          }),
+        { timeout: 15_000 }
+      )
+      .toBe('counter(page)');
+  });
+
+  test('shows a retry option instead of spinning forever when pagination never completes', async ({ page }) => {
+    // Break the Paged.js polyfill so the iframe script throws before it can ever
+    // postMessage 'paged-rendered' back to the parent — simulates a hung/failed render.
+    await page.route('**/vendor/paged.polyfill.min.js', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/javascript', body: '' })
+    );
+
+    // Fake the clock so the client-side render-timeout fires instantly instead of
+    // requiring a real multi-second wait, keeping this test fast and deterministic.
+    await page.clock.install();
+    await page.goto(BOOK_PREVIEW_URL);
+
+    const status = page.getByTestId('book-preview-status');
+    await expect(status).toContainText('Pagination en cours');
+
+    await page.clock.runFor(31_000);
+
+    await expect(page.getByTestId('book-preview-error')).toBeVisible();
+    const retryButton = page.getByRole('button', { name: /réessayer/i });
+    await expect(retryButton).toBeVisible();
+
+    // Restore a working polyfill and retry: the page should recover and render normally.
+    await page.unroute('**/vendor/paged.polyfill.min.js');
+    await retryButton.click();
+    await expect(status).toContainText('pages', { timeout: 30_000 });
+  });
 });
