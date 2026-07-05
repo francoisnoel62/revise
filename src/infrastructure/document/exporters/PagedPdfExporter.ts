@@ -52,7 +52,12 @@ export class PagedPdfExporter implements DocumentExporter {
       content: JSON.parse(ch.getContent()) as JSONContent,
     }));
 
-    return this.renderToPdf(chapters, options?.publicationProfile, options?.frontMatter);
+    return this.renderToPdf(
+      chapters,
+      options?.publicationProfile,
+      options?.frontMatter,
+      options?.levelStyles,
+    );
   }
 
   async exportChapter(chapter: Chapter, filename: string, options?: ExportOptions): Promise<Buffer> {
@@ -63,7 +68,7 @@ export class PagedPdfExporter implements DocumentExporter {
     return this.renderToPdf([{
       title: chapter.getTitle(),
       content: JSON.parse(chapter.getContent()) as JSONContent,
-    }], options?.publicationProfile);
+    }], options?.publicationProfile, undefined, options?.levelStyles);
   }
 
   async exportChapters(chapters: Chapter[], filename: string, options?: ExportOptions): Promise<Buffer> {
@@ -80,13 +85,14 @@ export class PagedPdfExporter implements DocumentExporter {
       content: JSON.parse(ch.getContent()) as JSONContent,
     }));
 
-    return this.renderToPdf(chapterData, options?.publicationProfile);
+    return this.renderToPdf(chapterData, options?.publicationProfile, undefined, options?.levelStyles);
   }
 
   private async renderToPdf(
     chapters: Array<{ title?: string; content: JSONContent }>,
     profile: PublicationProfile = PublicationProfile.kdpSixByNine(),
     frontMatter?: FrontMatterData,
+    levelStyles?: ExportOptions['levelStyles'],
   ): Promise<Buffer> {
     const bodyParts: string[] = [];
     const tocEntries: TocEntry[] = [];
@@ -112,6 +118,7 @@ export class PagedPdfExporter implements DocumentExporter {
       assetBaseUrl: this.assetBaseUrl,
       frontMatter,
       toc,
+      levelStyles,
     });
 
     const browser = await this.launcher.launch({ headless: true });

@@ -78,6 +78,7 @@ export async function getBookPreviewDataAction(
 
     const profileId: BookPreviewProfileId =
       requestedProfileId ?? (isPreviewProfile(activeProfileId) ? activeProfileId : 'kdp-6x9');
+    const levelStyles = settings?.getLevelStyleSet(profileId)?.values;
 
     const orderedChapters = project
       .getChapters()
@@ -87,6 +88,7 @@ export async function getBookPreviewDataAction(
     const contentHash = computeBookPreviewContentHash({
       chapters: orderedChapters.map((ch) => ({ id: ch.getId(), content: ch.getContent() })),
       frontMatter,
+      levelStyles,
     });
 
     const cacheRepo = await getBookPreviewCacheRepo();
@@ -106,6 +108,7 @@ export async function getBookPreviewDataAction(
         })),
         frontMatter,
         contentHash,
+        levelStyles,
         assetBaseUrl,
       });
       await cacheRepo.save(computed, pdf);

@@ -3,6 +3,7 @@
 
 import type { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
 import type { FrontMatterData } from '@/domain/interfaces/DocumentExporter';
+import type { LevelStyleSetProperties } from '@/domain/value-objects/LevelStyleSet';
 
 export interface TocEntry {
   readonly title: string;
@@ -19,6 +20,8 @@ export interface PagedRenderRequest {
   readonly startPageNumber?: number;
   /** Opaque identifier echoed back in the paged-rendered postMessage for routing. */
   readonly sourceId?: string;
+  /** Typography overrides for the rendered PDF profile. */
+  readonly levelStyles?: LevelStyleSetProperties;
 }
 
 export interface PagedRenderer {

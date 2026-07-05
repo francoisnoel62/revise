@@ -161,6 +161,10 @@ describe('MongoDBProjectSettingsRepository', () => {
       expect(result?.getSubtitle()).toBe('A Subtitle');
       expect(result?.getGenre()).toBe('Fantasy');
       expect(result?.getPointOfView()).toBe('first_person');
+      expect(mockCollection.findOne).toHaveBeenCalledWith({
+        projectId: 'project-1',
+        ownerId: 'user-1',
+      });
     });
 
     it('returns null when not found', async () => {

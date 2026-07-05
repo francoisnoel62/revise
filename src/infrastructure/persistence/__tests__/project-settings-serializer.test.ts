@@ -9,6 +9,8 @@ import {
   ProjectSettingsDocument,
 } from '../project-settings-serializer';
 import { ProjectSettings } from '@/domain/entities/ProjectSettings';
+import { LevelStyleSet } from '@/domain/value-objects/LevelStyleSet';
+import { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
 
 describe('project-settings-serializer', () => {
   const validObjectId = new ObjectId();
@@ -149,6 +151,34 @@ describe('project-settings-serializer', () => {
   });
 
   describe('round-trip serialization', () => {
+    it('preserves sparse level typography independently for each PDF profile', () => {
+      const kdpDefaults = LevelStyleSet.defaultsFor(PublicationProfile.kdpSixByNine()).values;
+      const a5Defaults = LevelStyleSet.defaultsFor(PublicationProfile.a5()).values;
+      const original = ProjectSettings.reconstruct(validProps)
+        .updateLevelStyleSet('kdp-6x9', {
+          ...kdpDefaults,
+          'titre-de-chapitre': {
+            ...kdpDefaults['titre-de-chapitre'],
+            fontSizePoints: 22,
+          },
+        })
+        .updateLevelStyleSet('a5', {
+          ...a5Defaults,
+          corps: { ...a5Defaults.corps, lineHeight: 1.4 },
+        });
+
+      const restored = deserializeProjectSettings(serializeProjectSettings(original));
+
+      expect(restored.getLevelStyleSet('kdp-6x9')?.values['titre-de-chapitre'].fontSizePoints).toBe(22);
+      expect(restored.getLevelStyleSet('a5')?.values.corps.lineHeight).toBe(1.4);
+    });
+
+    it('tolerates legacy documents without level typography', () => {
+      const restored = deserializeProjectSettings(validDocument);
+
+      expect(restored.getLevelStylesByProfile()).toEqual({});
+    });
+
     it('restores the persisted publication profile', () => {
       const original = ProjectSettings.reconstruct({
         ...validProps,

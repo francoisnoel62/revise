@@ -32,6 +32,8 @@ import { Project } from '@/domain/entities/Project';
 import { Chapter } from '@/domain/entities/Chapter';
 import { BookPreviewCacheEntry } from '@/domain/entities/BookPreviewCacheEntry';
 import { computeBookPreviewContentHash } from '@/application/services/bookPreviewContentHash';
+import { LevelStyleSet, type LevelStyleSetProperties } from '@/domain/value-objects/LevelStyleSet';
+import { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
 
 const CONTENT = '{"type":"doc","content":[{"type":"paragraph"}]}';
 
@@ -55,13 +57,14 @@ function frontMatterFor(dedication?: string) {
   };
 }
 
-function hashFor(dedication?: string): string {
+function hashFor(dedication?: string, levelStyles?: LevelStyleSetProperties): string {
   return computeBookPreviewContentHash({
     chapters: [
       { id: 'ch-1', content: CONTENT },
       { id: 'ch-2', content: CONTENT },
     ],
     frontMatter: frontMatterFor(dedication),
+    levelStyles,
   });
 }
 
@@ -88,11 +91,13 @@ describe('getBookPreviewDataAction', () => {
   let computer: { compute: ReturnType<typeof vi.fn> };
   let profileId: string;
   let dedication: string | undefined;
+  let kdpLevelStyles: LevelStyleSetProperties | undefined;
 
   beforeEach(() => {
     vi.clearAllMocks();
     profileId = 'kdp-6x9';
     dedication = undefined;
+    kdpLevelStyles = undefined;
 
     vi.mocked(getAuthenticatedUserId).mockResolvedValue({ userId: 'user-1' } as never);
     vi.mocked(getRepository).mockResolvedValue({ loadProject: vi.fn().mockResolvedValue(makeProject()) } as never);
@@ -103,6 +108,10 @@ describe('getBookPreviewDataAction', () => {
         getSubtitle: () => undefined,
         getIsbn: () => undefined,
         getContributors: () => [{ role: 'author', name: 'Fanfan' }],
+        getLevelStyleSet: (requestedProfileId: string) =>
+          requestedProfileId === 'kdp-6x9' && kdpLevelStyles
+            ? LevelStyleSet.create(kdpLevelStyles)
+            : undefined,
       }),
     } as never);
     vi.mocked(getMetadataRepo).mockResolvedValue({
@@ -166,6 +175,30 @@ describe('getBookPreviewDataAction', () => {
     await getBookPreviewDataAction('proj-1');
 
     expect(computer.compute).toHaveBeenCalledTimes(1);
+  });
+
+  it('invalidates only the cache profile whose typography changed', async () => {
+    const defaults = LevelStyleSet.defaultsFor(PublicationProfile.kdpSixByNine()).values;
+    kdpLevelStyles = LevelStyleSet.create({
+      ...defaults,
+      'titre-de-chapitre': { ...defaults['titre-de-chapitre'], fontSizePoints: 22 },
+    }).values;
+
+    cacheRepo.loadMetrics.mockImplementation(async (_projectId, requestedProfileId) =>
+      requestedProfileId === 'kdp-6x9'
+        ? cachedEntry(hashFor(undefined, defaults))
+        : cachedEntry(hashFor(undefined)),
+    );
+
+    await getBookPreviewDataAction('proj-1');
+    expect(computer.compute).toHaveBeenCalledTimes(1);
+    expect(computer.compute).toHaveBeenCalledWith(
+      expect.objectContaining({ levelStyles: kdpLevelStyles }),
+    );
+
+    computer.compute.mockClear();
+    await getBookPreviewDataAction('proj-1', 'a5');
+    expect(computer.compute).not.toHaveBeenCalled();
   });
 
   it('returns isPasserelle without generating when the active profile is passerelle', async () => {
