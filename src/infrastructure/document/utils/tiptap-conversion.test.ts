@@ -19,6 +19,7 @@ describe('tiptap-conversion utilities', () => {
       expect(json.type).toBe('doc');
       expect(json.content).toHaveLength(1);
       expect(json.content[0].type).toBe('paragraph');
+      expect(json.content[0].attrs.semanticRole).toBe('corps');
     });
 
     it('should preserve bold formatting', () => {
@@ -72,6 +73,20 @@ describe('tiptap-conversion utilities', () => {
 
       expect(json.content[0].type).toBe('heading');
       expect(json.content[0].attrs.level).toBe(1);
+      expect(json.content[0].attrs.semanticRole).toBe('titre-de-chapitre');
+    });
+
+    it('assigns imported heading levels 2+ to the subtitle semantic role', () => {
+      const json = htmlToTipTapJSON('<h2>Premiere section</h2><h3>Sous-section</h3>');
+
+      expect(json.content[0].attrs).toMatchObject({
+        level: 2,
+        semanticRole: 'sous-titre',
+      });
+      expect(json.content[1].attrs).toMatchObject({
+        level: 3,
+        semanticRole: 'sous-titre',
+      });
     });
 
     it('should handle invalid HTML gracefully', () => {

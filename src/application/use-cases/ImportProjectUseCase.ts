@@ -5,6 +5,8 @@ import { randomUUID } from 'crypto';
 import { DocumentParser } from '@/domain/interfaces/DocumentParser';
 import { ProjectRepository } from '@/domain/interfaces/ProjectRepository';
 import { Project } from '@/domain/entities/Project';
+import type { ContentNode } from '@/domain/value-objects/ContentNode';
+import { ensureChapterTitleHeading } from '@/application/migration/ChapterTitleHeadingMigration';
 
 export class ImportProjectUseCase {
   constructor(
@@ -31,6 +33,10 @@ export class ImportProjectUseCase {
       if (!chapter.getTitle() || chapter.getTitle().trim() === '') {
         chapter.updateTitle(`Chapitre ${index + 1}`);
       }
+
+      const content = JSON.parse(chapter.getContent()) as ContentNode;
+      const normalized = ensureChapterTitleHeading(content, chapter.getTitle());
+      chapter.updateContent(JSON.stringify(normalized.content));
     });
 
     // Create project with ownership if userId provided
