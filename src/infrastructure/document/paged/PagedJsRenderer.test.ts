@@ -101,20 +101,26 @@ describe('PagedJsRenderer', () => {
     });
   });
 
-  describe('body-matter Arabic numbering restart (whole book)', () => {
-    it('resets the page counter at the body-matter boundary when liminals precede the body', () => {
+  describe('liminal page numbering (whole book)', () => {
+    it('suppresses the Arabic page increment on liminal pages so the first body page reads 1', () => {
       const html = renderer.render({
         bodyHtml: '<section class="chapter"><p>Corps.</p></section>',
         profile,
         assetBaseUrl,
         frontMatter: { title: 'Mon Roman' },
       });
-      expect(html).toContain('.body-matter { counter-reset: page 0; }');
+      const liminalBlock = html.slice(html.indexOf('@page liminal-page'));
+      expect(liminalBlock).toContain('counter-increment: page 0');
     });
 
-    it('does not reset body-matter numbering when there are no liminals', () => {
-      const html = renderer.render({ bodyHtml: '<p>Texte</p>', profile, assetBaseUrl });
-      expect(html).not.toContain('.body-matter { counter-reset');
+    it('numbers liminaires with a lower-roman folio counter', () => {
+      const html = renderer.render({
+        bodyHtml: '<section class="chapter"><p>Corps.</p></section>',
+        profile,
+        assetBaseUrl,
+        frontMatter: { title: 'Mon Roman' },
+      });
+      expect(html).toContain('content: counter(folio, lower-roman)');
     });
   });
 

@@ -72,7 +72,7 @@ describe('BookPreviewCacheComputer', () => {
     expect(entry.getComputedAt()).toEqual(new Date('2026-07-05T10:00:00Z'));
   });
 
-  it('renders liminals and restarts body numbering (front matter + body-matter reset present)', async () => {
+  it('renders liminals and restarts body numbering (front matter + folio numbering present)', async () => {
     const { launcher, setContent } = makeFake();
     const computer = new BookPreviewCacheComputer(launcher, () => new Date());
 
@@ -81,7 +81,11 @@ describe('BookPreviewCacheComputer', () => {
     const html = setContent.mock.calls[0][0] as string;
     expect(html).toContain('Mon Roman'); // front matter title page
     expect(html).toContain('Table des matières'); // TOC (2 chapters)
-    expect(html).toContain('.body-matter { counter-reset: page 0; }'); // Arabic restart
+    // Liminal pages suppress the Arabic page increment (so the body restarts at 1) and
+    // carry lower-roman folio numbers.
+    const liminalBlock = html.slice(html.indexOf('@page liminal-page'));
+    expect(liminalBlock).toContain('counter-increment: page 0');
+    expect(html).toContain('content: counter(folio, lower-roman)');
   });
 
   it('prints the PDF at the active profile geometry (A5 differs from KDP)', async () => {

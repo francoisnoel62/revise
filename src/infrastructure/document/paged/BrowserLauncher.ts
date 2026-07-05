@@ -13,8 +13,12 @@ export interface PageHandle {
   setContent(html: string, options?: { waitUntil?: string }): Promise<void>;
   waitForFunction(fn: () => boolean, options?: { timeout?: number }): Promise<void>;
   pdf(options?: PdfPrintOptions): Promise<Buffer>;
-  /** Run a function in the page context and return its serializable result. */
-  evaluate<T>(fn: () => T): Promise<T>;
+  /**
+   * Run code in the page context and return its serializable result. Accepts a
+   * string expression (bundler-safe — no transpiler helpers leak into the page)
+   * or a self-contained function.
+   */
+  evaluate<T>(pageFunction: string | (() => T)): Promise<T>;
 }
 
 export interface BrowserHandle {

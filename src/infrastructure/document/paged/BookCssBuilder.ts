@@ -8,7 +8,6 @@ export class BookCssBuilder {
     profile: PublicationProfile,
     assetBaseUrl: string,
     startPageNumber?: number,
-    resetBodyMatterCounter = false,
   ): string {
     const value = profile.values;
     const assets = assetBaseUrl.replace(/\/$/, '');
@@ -61,8 +60,7 @@ export class BookCssBuilder {
         text-rendering: geometricPrecision;
       }
       ${startPageNumber && startPageNumber > 1 ? `body { counter-reset: page ${startPageNumber - 1}; }` : ''}
-      ${resetBodyMatterCounter ? '.body-matter { counter-reset: page 0; }' : ''}
-      main.book { widows: 2; orphans: 2; }
+      main.book { widows: 2; orphans: 2; counter-reset: folio 1; }
       p { margin: 0; text-align: justify; text-indent: ${value.firstLineIndentCentimeters}cm; }
       h1 + p, h2 + p { text-indent: 0; }
       h1 {
@@ -87,9 +85,18 @@ export class BookCssBuilder {
         .pagedjs_page { margin: 0 !important; box-shadow: none !important; break-after: page; }
       }
 
-      /* Liminal pages (front matter): roman numerals, each on its own page */
+      /* Liminal pages (front matter): lowercase roman numerals, each on its own page.
+         The body's Arabic numbering must restart at 1, but Paged.js honours neither a
+         mid-document reset of the page counter (non-persistent) nor a custom counter
+         driven from an @page rule. The reliable levers, established empirically:
+           - suppressing 'page' increment on liminal pages keeps the first body page at 1;
+           - a content-driven 'folio' counter numbers the liminaires in roman.
+         A margin box reads a custom counter as of the END of the PREVIOUS page, so the
+         very first page can never see a seed — the half-title therefore carries no printed
+         number (book convention anyway) while still advancing folio for the pages after it. */
       .liminal {
         page: liminal-page;
+        counter-increment: folio 1;
         break-before: page;
         display: flex;
         flex-direction: column;
@@ -98,10 +105,15 @@ export class BookCssBuilder {
         min-height: 100vh;
         text-align: center;
       }
-      .liminal:first-child { break-before: right; }
+      .liminal:first-child { page: half-title-page; break-before: right; }
+      @page half-title-page {
+        counter-increment: page 0;
+        @bottom-center { content: none; }
+      }
       @page liminal-page {
+        counter-increment: page 0;
         @bottom-center {
-          content: counter(page, lower-roman);
+          content: counter(folio, lower-roman);
           font-size: 9pt;
           color: #555;
         }

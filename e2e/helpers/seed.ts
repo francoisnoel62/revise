@@ -47,6 +47,18 @@ export const TEST_BOOK_PREVIEW_PROJECT_ID = 'e2e-book-preview-project-001';
 export const TEST_BOOK_PREVIEW_CHAPTER_1_ID = 'e2e-book-preview-chapter-001';
 export const TEST_BOOK_PREVIEW_CHAPTER_2_ID = 'e2e-book-preview-chapter-002';
 
+// Book-preview E2E fixtures — passerelle project (no whole-book preview)
+export const TEST_BOOK_PREVIEW_PASSERELLE_PROJECT_ID = 'e2e-book-preview-passerelle-001';
+export const TEST_BOOK_PREVIEW_PASSERELLE_CHAPTER_ID = 'e2e-book-preview-passerelle-ch-001';
+export const TEST_BOOK_PREVIEW_PASSERELLE_SETTINGS_ID = '6475a8f3c1234567890abce1';
+
+// Book-preview E2E fixtures — a "realistic" multi-page manuscript for the cold/hot perf
+// test. Sized to render in a handful of seconds (CI-safe) while still exercising real
+// front matter + TOC + a multi-page body with per-chapter page offsets. It is a smaller,
+// deterministic stand-in for the production target of a ~300-400 page novel.
+export const TEST_BOOK_PREVIEW_LARGE_PROJECT_ID = 'e2e-book-preview-large-001';
+export const TEST_BOOK_PREVIEW_LARGE_CHAPTER_COUNT = 6;
+
 // ── Chapter content seedé ─────────────────────────────────────────────────────
 
 export const TEST_CHAPTER_TITLE = 'Chapitre 1';
@@ -168,6 +180,33 @@ export async function seedSpellCheckProject(): Promise<void> {
   } finally {
     await client.close();
   }
+}
+
+// ── Realistic manuscript generator (cold/hot perf fixture) ──────────────────────
+
+// A chapter opens with an H1 (so the title is read from the body per profile 0017 and
+// each chapter break-before: page starts a fresh page) followed by several dense
+// paragraphs. Deterministic content keeps pagination — and therefore page offsets and
+// the perf profile — stable across runs.
+function buildLargeChapterContent(chapterNumber: number, paragraphCount: number): string {
+  const filler =
+    'La lumière déclinait lentement sur les toits de la vieille ville tandis que les cloches ' +
+    'égrenaient les heures. Chacun portait en soi le poids des mots tus et des promesses à ' +
+    'tenir, et la nuit venue rendait plus vives encore les silences entre les êtres. ';
+  return JSON.stringify({
+    type: 'doc',
+    content: [
+      {
+        type: 'heading',
+        attrs: { level: 1 },
+        content: [{ type: 'text', text: `Chapitre ${chapterNumber}` }],
+      },
+      ...Array.from({ length: paragraphCount }, (_, i) => ({
+        type: 'paragraph',
+        content: [{ type: 'text', text: `${filler.repeat(4)}(§${chapterNumber}.${i + 1})` }],
+      })),
+    ],
+  });
 }
 
 // ── Seed all test fixtures ────────────────────────────────────────────────────
@@ -543,6 +582,77 @@ export async function seedAll(): Promise<void> {
     { upsert: true }
   );
 
+  // 5c. Passerelle project — its active profile is passerelle, which has no whole-book
+  //     preview (the button/PDF is hidden). Needs a project_settings doc carrying the profile.
+  await db.collection('projects').replaceOne(
+    { _id: TEST_BOOK_PREVIEW_PASSERELLE_PROJECT_ID } as object,
+    {
+      _id: TEST_BOOK_PREVIEW_PASSERELLE_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      title: 'Roman Test Passerelle',
+      chapters: [{
+        id: TEST_BOOK_PREVIEW_PASSERELLE_CHAPTER_ID,
+        title: 'Chapitre 1',
+        content: bookPreviewChapter1Content,
+        order: 0,
+        metadata: { wordCount: 25, characterCount: 165, lastEdited: past },
+      }],
+      activeChapterId: TEST_BOOK_PREVIEW_PASSERELLE_CHAPTER_ID,
+      providerId: null,
+      createdAt: past,
+      updatedAt: now,
+      isPublished: false,
+      shareToken: null,
+      publishedAt: null,
+      publishedChapterIds: null,
+    },
+    { upsert: true }
+  );
+  await db.collection('project_settings').replaceOne(
+    { _id: new ObjectId(TEST_BOOK_PREVIEW_PASSERELLE_SETTINGS_ID) },
+    {
+      _id: new ObjectId(TEST_BOOK_PREVIEW_PASSERELLE_SETTINGS_ID),
+      projectId: TEST_BOOK_PREVIEW_PASSERELLE_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      title: 'Roman Test Passerelle',
+      summary: '',
+      genre: '',
+      synopsis: '',
+      contributors: [],
+      relatedWorks: [],
+      createdAt: past,
+      updatedAt: now,
+      publicationProfileId: 'passerelle',
+    },
+    { upsert: true }
+  );
+
+  // 5d. Realistic manuscript for the cold/hot rendering-budget test.
+  await db.collection('projects').replaceOne(
+    { _id: TEST_BOOK_PREVIEW_LARGE_PROJECT_ID } as object,
+    {
+      _id: TEST_BOOK_PREVIEW_LARGE_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      title: 'Grand Roman Test Aperçu',
+      chapters: Array.from({ length: TEST_BOOK_PREVIEW_LARGE_CHAPTER_COUNT }, (_, i) => ({
+        id: `e2e-book-preview-large-ch-${String(i + 1).padStart(3, '0')}`,
+        title: `Chapitre ${i + 1}`,
+        content: buildLargeChapterContent(i + 1, 12),
+        order: i,
+        metadata: { wordCount: 600, characterCount: 3600, lastEdited: past },
+      })),
+      activeChapterId: 'e2e-book-preview-large-ch-001',
+      providerId: null,
+      createdAt: past,
+      updatedAt: now,
+      isPublished: false,
+      shareToken: null,
+      publishedAt: null,
+      publishedChapterIds: null,
+    },
+    { upsert: true }
+  );
+
   // 6. Autocomplete telemetry fixtures for cockpit usage metrics.
   await db.collection('autocompleteEvents').deleteMany({
     ownerId: TEST_USER_ID,
@@ -597,7 +707,37 @@ export async function cleanupAll(): Promise<void> {
     db.collection('autocompleteEvents').deleteMany({ ownerId: TEST_USER_ID }),
     db.collection('canonFacts').deleteMany({ ownerId: TEST_USER_ID }),
     db.collection('canonExtractionState').deleteMany({ ownerId: TEST_USER_ID }),
+    db.collection('book_preview_cache').deleteMany({ ownerId: TEST_USER_ID }),
   ]);
 
+  // Whole-book preview PDFs live in a GridFS bucket (files + chunks); remove both.
+  await dropBookPreviewPdfs(db, { 'metadata.ownerId': TEST_USER_ID });
+
   await client.close();
+}
+
+// Delete GridFS PDF blobs (files + their chunks) matching a metadata filter.
+async function dropBookPreviewPdfs(
+  db: import('mongodb').Db,
+  filter: Record<string, unknown>
+): Promise<void> {
+  const files = await db.collection('book_preview_pdf.files').find(filter).toArray();
+  if (files.length === 0) return;
+  const ids = files.map((f) => f._id);
+  await db.collection('book_preview_pdf.chunks').deleteMany({ files_id: { $in: ids } });
+  await db.collection('book_preview_pdf.files').deleteMany({ _id: { $in: ids } });
+}
+
+// Force a cold cache for one project: remove its cached metrics + PDF so the next
+// open re-generates. Used by the cold/hot rendering-budget E2E test.
+export async function clearBookPreviewCache(projectId: string): Promise<void> {
+  const client = new MongoClient(MONGODB_URI);
+  await client.connect();
+  try {
+    const db = client.db(MONGODB_DB_NAME);
+    await db.collection('book_preview_cache').deleteMany({ projectId });
+    await dropBookPreviewPdfs(db, { 'metadata.projectId': projectId });
+  } finally {
+    await client.close();
+  }
 }

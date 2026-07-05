@@ -73,14 +73,14 @@ export class BookPreviewCacheComputer {
         { timeout: PAGE_READY_TIMEOUT_MS },
       );
 
-      const pagedError = await page.evaluate(
-        () => document.documentElement.dataset.pagedError ?? null,
+      const pagedError = await page.evaluate<string | null>(
+        'document.documentElement.dataset.pagedError || null',
       );
       if (pagedError) {
         throw new Error(`Échec de pagination (Paged.js) : ${pagedError}`);
       }
 
-      const metrics = await page.evaluate(extractMetricsFromPagedDom);
+      const metrics = await page.evaluate<ExtractedMetrics>(EXTRACT_METRICS_JS);
 
       const pdf = await page.pdf({
         preferCSSPageSize: true,
@@ -111,35 +111,31 @@ export class BookPreviewCacheComputer {
 }
 
 /**
- * Runs inside the paginated page. Reads the Paged.js page boxes to find, for each
- * chapter section, the 1-indexed physical page it starts on, and how many liminal
- * pages precede the body. Self-contained (no closure refs) so it serializes to the browser.
+ * Runs inside the paginated page (passed as a string so no transpiler helpers leak
+ * into the browser context). Reads the Paged.js page boxes to find, for each chapter
+ * section, the 1-indexed physical page it starts on, and how many liminal pages precede
+ * the body. Paged.js keeps the real `id` on the first fragment of a split section, so
+ * `section.chapter[id]` yields one element per chapter.
  */
-function extractMetricsFromPagedDom(): ExtractedMetrics {
-  const pages = Array.from(document.querySelectorAll('.pagedjs_pages .pagedjs_page'));
-  const totalPageCount = pages.length;
-
-  const pageIndexOf = (el: Element | null): number | null => {
-    let node: Element | null = el;
-    while (node && !node.classList?.contains('pagedjs_page')) {
+const EXTRACT_METRICS_JS = `(function () {
+  var pages = Array.prototype.slice.call(document.querySelectorAll('.pagedjs_pages .pagedjs_page'));
+  var totalPageCount = pages.length;
+  function pageIndexOf(el) {
+    var node = el;
+    while (node && !(node.classList && node.classList.contains('pagedjs_page'))) {
       node = node.parentElement;
     }
     return node ? pages.indexOf(node) + 1 : null;
-  };
-
-  // Paged.js keeps the real `id` on the first fragment of a split section; later
-  // fragments carry data-* markers instead, so `section.chapter[id]` yields one per chapter.
-  const chapterEls = Array.from(document.querySelectorAll('section.chapter[id]'));
-  const chapterOffsets: ChapterPageOffset[] = [];
-  for (const el of chapterEls) {
-    const pageNumber = pageIndexOf(el);
+  }
+  var chapterEls = Array.prototype.slice.call(document.querySelectorAll('section.chapter[id]'));
+  var chapterOffsets = [];
+  for (var i = 0; i < chapterEls.length; i++) {
+    var pageNumber = pageIndexOf(chapterEls[i]);
     if (pageNumber !== null) {
-      chapterOffsets.push({ chapterId: el.id, pageNumber });
+      chapterOffsets.push({ chapterId: chapterEls[i].id, pageNumber: pageNumber });
     }
   }
-
-  const firstBodyPage = chapterOffsets.length > 0 ? chapterOffsets[0].pageNumber : 1;
-  const frontMatterPageCount = Math.max(0, firstBodyPage - 1);
-
-  return { totalPageCount, frontMatterPageCount, chapterOffsets };
-}
+  var firstBodyPage = chapterOffsets.length > 0 ? chapterOffsets[0].pageNumber : 1;
+  var frontMatterPageCount = Math.max(0, firstBodyPage - 1);
+  return { totalPageCount: totalPageCount, frontMatterPageCount: frontMatterPageCount, chapterOffsets: chapterOffsets };
+})()`;
