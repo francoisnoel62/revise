@@ -134,3 +134,15 @@ _Avoid_ : WYSIWYG, fidélité
 **Liminaires** :
 Pages d'entrée du livre (faux-titre, page de titre, copyright, dédicace, épigraphe) et table des matières. Générés automatiquement depuis les annexes éditoriales et les métadonnées ; comptés dans la numérotation mais hors de la surface d'écriture.
 _Avoid_ : front matter, préliminaires, en-têtes
+
+**Aperçu livre entier** :
+Le livre complet (liminaires + sommaire + corps) rendu comme **le vrai PDF d'export**, généré côté serveur et affiché dans un lecteur PDF. Généré **paresseusement** à l'ouverture puis mis en cache : aperçu et export sont le même artefact. Le profil `passerelle` n'a pas d'aperçu livre entier (cible partage/DOCX).
+_Avoid_ : rendu navigateur, preview client, aperçu Paged.js
+
+**Cache d'aperçu livre entier** (`BookPreviewCacheEntry`) :
+Entrée de cache par `{projet, profil, auteur}` : le **PDF** dans GridFS et les **métriques** (nombre de pages, pages liminaires, offsets de chapitres, empreinte de contenu) dans un document. Recalculé quand tout ce qui se voit dans le PDF change (contenu, ordre des chapitres, liminaires). Les offsets pilotent la navigation par `#page=N`.
+_Avoid_ : cache métriques seules, recalcul éager
+
+**Folio** :
+Numéro de page des liminaires en **chiffres romains bas de casse** (i, ii, iii…). Le faux-titre (1ʳᵉ page) ne porte pas de numéro imprimé ; le corps redémarre en **chiffres arabes à « 1 »**. Une seule correction dans le pipeline paginé sert aperçu et export.
+_Avoid_ : numéro de page liminaire, pagination romaine

@@ -1,146 +1,131 @@
-// ABOUTME: E2E tests for the whole-book preview page.
-// ABOUTME: Verifies parity with PDF export structure, chapter navigation, and rendering budget.
+// ABOUTME: E2E tests for the whole-book preview — the real export PDF, generated server-side and cached.
+// ABOUTME: Covers PDF parity, resolved Arabic "1" on the first body page, passerelle guard, #page nav, cold/hot budget.
 
 import { test, expect } from '@playwright/test';
+import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import {
   TEST_BOOK_PREVIEW_PROJECT_ID,
-  TEST_BOOK_PREVIEW_CHAPTER_1_ID,
-  TEST_BOOK_PREVIEW_CHAPTER_2_ID,
+  TEST_BOOK_PREVIEW_PASSERELLE_PROJECT_ID,
+  TEST_BOOK_PREVIEW_LARGE_PROJECT_ID,
+  clearBookPreviewCache,
 } from '../helpers/seed';
 
 const BOOK_PREVIEW_URL = `/book-preview?project=${TEST_BOOK_PREVIEW_PROJECT_ID}`;
 
+// Reads the bottom-most text run (the footer page number) on a given 1-indexed PDF page.
+async function footerOf(pdf: Uint8Array, pageNumber: number): Promise<string> {
+  const doc = await getDocument({ data: pdf }).promise;
+  const page = await doc.getPage(pageNumber);
+  const content = await page.getTextContent();
+  const items = content.items.filter((i: { str?: string }) => i.str && i.str.trim());
+  if (items.length === 0) return '';
+  const bottom = items.reduce(
+    (min: { transform: number[]; str: string }, i: { transform: number[]; str: string }) =>
+      i.transform[5] < min.transform[5] ? i : min,
+    items[0] as { transform: number[]; str: string }
+  );
+  return bottom.str.trim();
+}
+
 test.describe('whole-book preview', () => {
-  test('loads and renders the complete manuscript in an iframe', async ({ page }) => {
+  test('renders the export PDF in the viewer and reports a page count', async ({ page }) => {
     await page.goto(BOOK_PREVIEW_URL);
 
-    const iframe = page.getByTestId('book-preview-iframe');
-    await expect(iframe).toBeVisible({ timeout: 10_000 });
+    const status = page.getByTestId('book-preview-status');
+    await expect(status).toContainText('pages', { timeout: 60_000 });
+
+    const iframe = page.getByTestId('book-preview-pdf');
+    await expect(iframe).toBeVisible();
+    expect(await iframe.getAttribute('src')).toContain('/api/book-preview/pdf');
   });
 
   test('shows chapter titles in the navigation sidebar', async ({ page }) => {
     await page.goto(BOOK_PREVIEW_URL);
 
     const nav = page.getByTestId('chapter-navigation');
-    await expect(nav).toBeVisible();
-
-    await expect(nav.getByText('Chapitre 1 — La Librairie')).toBeVisible();
+    await expect(nav.getByText('Chapitre 1 — La Librairie')).toBeVisible({ timeout: 60_000 });
     await expect(nav.getByText('Chapitre 2 — Le Lendemain')).toBeVisible();
   });
 
-  test('renders pages and reports page count after pagination', async ({ page }) => {
+  test('prints the resolved Arabic "1" on the first body page of the export PDF', async ({ page }) => {
     await page.goto(BOOK_PREVIEW_URL);
 
     const status = page.getByTestId('book-preview-status');
+    await expect(status).toContainText('pages', { timeout: 60_000 });
 
-    // Wait for Paged.js to finish rendering (status shows page count)
-    await expect(status).toContainText('pages', { timeout: 30_000 });
+    // The sidebar reports the physical page where the first chapter starts — i.e. the
+    // first body page, the one that must read Arabic "1" after the roman-numeral liminaires.
+    const firstChapter = page.getByTestId('chapter-navigation').locator('[data-chapter-id]').first();
+    const firstBodyPage = Number(await firstChapter.getAttribute('data-page-number'));
+    expect(firstBodyPage).toBeGreaterThan(1); // liminaires precede the body
 
-    const statusText = await status.innerText();
-    const pageCount = parseInt(statusText.match(/(\d+)\s+pages?/)?.[1] ?? '0', 10);
-    expect(pageCount).toBeGreaterThanOrEqual(1);
+    // Fetch the actual cached PDF (auth cookies ride along) and read the resolved footer.
+    const src = await page.getByTestId('book-preview-pdf').getAttribute('src');
+    const pdfUrl = (src ?? '').split('#')[0];
+    const response = await page.request.get(pdfUrl);
+    expect(response.ok()).toBeTruthy();
+    const pdf = new Uint8Array(await response.body());
+
+    expect(await footerOf(pdf, firstBodyPage)).toBe('1');
   });
 
-  test('rendering completes within the 5-second performance budget', async ({ page }) => {
+  test('offers only the kdp-6x9 and a5 profiles in the preview selector', async ({ page }) => {
     await page.goto(BOOK_PREVIEW_URL);
 
-    const status = page.getByTestId('book-preview-status');
-    await expect(status).toContainText('pages', { timeout: 30_000 });
+    const selector = page.getByTestId('preview-profile-selector');
+    await expect(selector).toBeVisible({ timeout: 60_000 });
 
-    const statusText = await status.innerText();
-    const paginationMs = parseFloat(statusText.match(/(\d+(?:\.\d+)?)\s+ms/)?.[1] ?? 'Infinity');
-    // 5-second budget for the full book (vs 900ms single-chapter budget)
-    expect(paginationMs).toBeLessThan(5_000);
+    await expect(selector.locator('[data-profile]')).toHaveCount(2);
+    await expect(selector.locator('[data-profile="kdp-6x9"]')).toBeVisible();
+    await expect(selector.locator('[data-profile="a5"]')).toBeVisible();
   });
 
-  test('both chapter sections exist in the rendered iframe DOM', async ({ page }) => {
+  test('jumps to a chapter page via the PDF #page anchor', async ({ page }) => {
     await page.goto(BOOK_PREVIEW_URL);
 
     const status = page.getByTestId('book-preview-status');
-    await expect(status).toContainText('pages', { timeout: 30_000 });
+    await expect(status).toContainText('pages', { timeout: 60_000 });
 
-    const iframeEl = page.getByTestId('book-preview-iframe');
-    const iframeFrame = page.frameLocator('[data-testid="book-preview-iframe"]');
+    const ch2 = page.getByTestId('chapter-navigation').locator('[data-chapter-id]').nth(1);
+    const ch2Page = await ch2.getAttribute('data-page-number');
+    await ch2.click();
 
-    // Chapters are rendered as .chapter sections inside the iframe
-    const ch1 = iframeFrame.locator(`#${TEST_BOOK_PREVIEW_CHAPTER_1_ID}`);
-    const ch2 = iframeFrame.locator(`#${TEST_BOOK_PREVIEW_CHAPTER_2_ID}`);
-
-    await expect(iframeEl).toBeVisible();
-    await expect(ch1).toBeAttached({ timeout: 10_000 });
-    await expect(ch2).toBeAttached({ timeout: 10_000 });
+    await expect(page.getByTestId('book-preview-pdf')).toHaveAttribute('src', new RegExp(`#page=${ch2Page}$`));
   });
 
-  test('clicking a chapter in the sidebar triggers navigation', async ({ page }) => {
-    await page.goto(BOOK_PREVIEW_URL);
+  test('offers no whole-book preview for the passerelle profile', async ({ page }) => {
+    await page.goto(`/book-preview?project=${TEST_BOOK_PREVIEW_PASSERELLE_PROJECT_ID}`);
 
-    const status = page.getByTestId('book-preview-status');
-    await expect(status).toContainText('pages', { timeout: 30_000 });
-
-    const nav = page.getByTestId('chapter-navigation');
-    const ch2Button = nav.getByText('Chapitre 2 — Le Lendemain');
-    await expect(ch2Button).toBeVisible();
-
-    // Clicking should not throw; the iframe handles scrollIntoView
-    await ch2Button.click();
-    // No assertion on scroll position since Paged.js DOM is internal to iframe
-    // But we verify the page remains stable (no error/navigation)
-    await expect(page).toHaveURL(new RegExp(TEST_BOOK_PREVIEW_PROJECT_ID));
+    await expect(page.getByText(/pas disponible pour le profil/i)).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByTestId('book-preview-pdf')).toHaveCount(0);
   });
 
-  test('prints a visible Arabic page number on the first body page', async ({ page }) => {
-    await page.goto(BOOK_PREVIEW_URL);
+  // Cold (first open → server generation) and hot (cached read) are measured separately.
+  // Budgets are deliberately generous for a dev server: the realistic fixture (~6 chapters)
+  // stands in for the production ~300-400 page target, generated once then served from cache.
+  // The meaningful invariant is that the hot read is dramatically faster than cold generation.
+  test('serves a cold render then a fast hot read within budget', async ({ page }) => {
+    test.setTimeout(150_000);
 
+    const COLD_BUDGET_MS = 90_000;
+    const HOT_BUDGET_MS = 10_000;
+    const largeUrl = `/book-preview?project=${TEST_BOOK_PREVIEW_LARGE_PROJECT_ID}`;
     const status = page.getByTestId('book-preview-status');
-    await expect(status).toContainText('pages', { timeout: 30_000 });
 
-    const iframeFrame = page.frameLocator('[data-testid="book-preview-iframe"]');
-    // The whole-book render starts with liminal front-matter/TOC pages (roman
-    // numerals via the `liminal-page` named page), so the first *body* page —
-    // the one printing the Arabic counter — isn't the very first rendered page.
-    const firstPage = iframeFrame.locator('.pagedjs_page:not([class*="liminal-page"])').first();
+    // Force a cold cache, then time the generation.
+    await clearBookPreviewCache(TEST_BOOK_PREVIEW_LARGE_PROJECT_ID);
+    const coldStart = Date.now();
+    await page.goto(largeUrl);
+    await expect(status).toContainText('pages', { timeout: COLD_BUDGET_MS });
+    const coldMs = Date.now() - coldStart;
 
-    // Paged.js paints the counter as CSS-generated content (::after) on the margin
-    // box, not as real DOM text — toHaveText() would never see it, so we read the
-    // computed pseudo-element content instead.
-    await expect
-      .poll(
-        () =>
-          firstPage.evaluate((el) => {
-            const marginContent = el.querySelector(
-              '.pagedjs_margin-bottom-center .pagedjs_margin-content'
-            );
-            return marginContent ? getComputedStyle(marginContent, '::after').content : null;
-          }),
-        { timeout: 15_000 }
-      )
-      .toBe('counter(page)');
-  });
+    // Reopen: the cache is warm, so this must be much faster (no Chromium repagination).
+    const hotStart = Date.now();
+    await page.goto(largeUrl);
+    await expect(status).toContainText('pages', { timeout: HOT_BUDGET_MS });
+    const hotMs = Date.now() - hotStart;
 
-  test('shows a retry option instead of spinning forever when pagination never completes', async ({ page }) => {
-    // Break the Paged.js polyfill so the iframe script throws before it can ever
-    // postMessage 'paged-rendered' back to the parent — simulates a hung/failed render.
-    await page.route('**/vendor/paged.polyfill.min.js', (route) =>
-      route.fulfill({ status: 200, contentType: 'application/javascript', body: '' })
-    );
-
-    // Fake the clock so the client-side render-timeout fires instantly instead of
-    // requiring a real multi-second wait, keeping this test fast and deterministic.
-    await page.clock.install();
-    await page.goto(BOOK_PREVIEW_URL);
-
-    const status = page.getByTestId('book-preview-status');
-    await expect(status).toContainText('Pagination en cours');
-
-    await page.clock.runFor(31_000);
-
-    await expect(page.getByTestId('book-preview-error')).toBeVisible();
-    const retryButton = page.getByRole('button', { name: /réessayer/i });
-    await expect(retryButton).toBeVisible();
-
-    // Restore a working polyfill and retry: the page should recover and render normally.
-    await page.unroute('**/vendor/paged.polyfill.min.js');
-    await retryButton.click();
-    await expect(status).toContainText('pages', { timeout: 30_000 });
+    expect(hotMs).toBeLessThan(HOT_BUDGET_MS);
+    expect(hotMs).toBeLessThan(coldMs);
   });
 });

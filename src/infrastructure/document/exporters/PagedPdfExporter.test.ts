@@ -17,6 +17,7 @@ function makeFakePage(): PageHandle & { _pdf: ReturnType<typeof vi.fn>; _close?:
     setContent: vi.fn().mockResolvedValue(undefined),
     waitForFunction: vi.fn().mockResolvedValue(undefined),
     pdf: _pdf,
+    evaluate: vi.fn().mockResolvedValue(undefined),
     _pdf,
   };
 }
@@ -180,7 +181,7 @@ describe('PagedPdfExporter', () => {
       const project = makeProject([makeChapter('ch-1', 'Chapitre Un')]);
       await exporter.exportProject(project, 'roman.pdf');
       const html: string = (fake.page.setContent as ReturnType<typeof vi.fn>).mock.calls[0][0];
-      expect(html).not.toContain('half-title');
+      expect(html).not.toContain('book-half-title');
     });
 
     it('includes TOC for 2+ chapters even without front matter', async () => {
@@ -191,7 +192,7 @@ describe('PagedPdfExporter', () => {
       await exporter.exportProject(project, 'roman.pdf');
       const html: string = (fake.page.setContent as ReturnType<typeof vi.fn>).mock.calls[0][0];
       expect(html).toContain('Table des matières');
-      expect(html).not.toContain('half-title');
+      expect(html).not.toContain('book-half-title');
     });
 
     it('omits TOC for a single chapter', async () => {

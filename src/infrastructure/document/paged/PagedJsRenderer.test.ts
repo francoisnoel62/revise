@@ -101,6 +101,29 @@ describe('PagedJsRenderer', () => {
     });
   });
 
+  describe('liminal page numbering (whole book)', () => {
+    it('suppresses the Arabic page increment on liminal pages so the first body page reads 1', () => {
+      const html = renderer.render({
+        bodyHtml: '<section class="chapter"><p>Corps.</p></section>',
+        profile,
+        assetBaseUrl,
+        frontMatter: { title: 'Mon Roman' },
+      });
+      const liminalBlock = html.slice(html.indexOf('@page liminal-page'));
+      expect(liminalBlock).toContain('counter-increment: page 0');
+    });
+
+    it('numbers liminaires with a lower-roman folio counter', () => {
+      const html = renderer.render({
+        bodyHtml: '<section class="chapter"><p>Corps.</p></section>',
+        profile,
+        assetBaseUrl,
+        frontMatter: { title: 'Mon Roman' },
+      });
+      expect(html).toContain('content: counter(folio, lower-roman)');
+    });
+  });
+
   describe('sourceId', () => {
     it('includes sourceId in the paged-rendered postMessage when provided', () => {
       const html = renderer.render({

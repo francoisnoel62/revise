@@ -27,11 +27,12 @@ export class WholeBookHtmlAssembler {
 
     for (const chapter of chapters) {
       const { id, title, content } = chapter;
+      const anchorId = `chapter-${id}`;
       const bodyContent = this.converter.convert(content);
       bodyParts.push(
-        `<section id="${this.escapeAttr(id)}" class="chapter">${bodyContent}</section>`,
+        `<section id="${this.escapeAttr(anchorId)}" data-chapter-id="${this.escapeAttr(id)}" class="chapter">${bodyContent}</section>`,
       );
-      tocEntries.push({ chapterId: id, title });
+      tocEntries.push({ chapterId: anchorId, title });
     }
 
     // TOC only when there are at least 2 titled chapters (matches PDF exporter rule)

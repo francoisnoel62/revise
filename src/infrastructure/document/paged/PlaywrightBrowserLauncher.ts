@@ -17,6 +17,8 @@ export class PlaywrightBrowserLauncher implements BrowserLauncher {
             await page.waitForFunction(fn as () => unknown, opts);
           },
           pdf: (opts?: PdfPrintOptions) => page.pdf(opts),
+          evaluate: <T>(pageFunction: string | (() => T)) =>
+            page.evaluate(pageFunction as string) as Promise<T>,
         };
         return handle;
       },

@@ -79,6 +79,44 @@ describe('BookCssBuilder', () => {
     });
   });
 
+  describe('liminal page numbering (whole book)', () => {
+    it('suppresses the Arabic page increment on liminal pages so the first body page reads 1', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000',
+      );
+      // Zeroing the page increment on liminal pages (rather than a non-persistent
+      // mid-document counter-reset) leaves the first body page at Arabic 1.
+      const liminalBlock = css.slice(css.indexOf('@page liminal-page'));
+      expect(liminalBlock).toContain('counter-increment: page 0');
+    });
+
+    it('numbers liminaires with a seeded lower-roman folio counter', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000',
+      );
+      expect(css).toContain('counter-reset: folio 1');
+      expect(css).toContain('counter-increment: folio 1');
+      const liminalBlock = css.slice(css.indexOf('@page liminal-page'));
+      expect(liminalBlock).toContain('content: counter(folio, lower-roman)');
+    });
+
+    it('leaves the half-title (first liminal page) without a printed number', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000',
+      );
+      expect(css).toContain('page: half-title-page');
+      const halfTitleBlock = css.slice(
+        css.indexOf('@page half-title-page'),
+        css.indexOf('@page liminal-page'),
+      );
+      expect(halfTitleBlock).toContain('counter-increment: page 0');
+      expect(halfTitleBlock).toContain('content: none');
+    });
+  });
+
   describe('visible page number on body pages', () => {
     it('declares an @bottom-center rule printing the Arabic page counter on the main @page rule', () => {
       const css = new BookCssBuilder().build(

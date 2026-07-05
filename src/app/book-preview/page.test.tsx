@@ -1,5 +1,5 @@
-// ABOUTME: Tests for the whole-book preview page's render-timeout guard.
-// ABOUTME: Verifies a stuck/failed Paged.js render surfaces a retry UI instead of spinning forever.
+// ABOUTME: Tests for the whole-book preview page (PDF viewer over the server-generated export).
+// ABOUTME: Covers the generation spinner, timeout/retry guard, passerelle, page-count, and #page nav.
 
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -21,17 +21,18 @@ import { getBookPreviewDataAction } from '@/app/actions/book-preview-actions';
 
 const bookPreviewData = {
   projectTitle: 'Mon Roman',
-  chapters: [
-    {
-      id: 'ch-1',
-      title: 'Chapitre 1',
-      content: JSON.stringify({ type: 'doc', content: [] }),
-      order: 0,
-    },
-  ],
-  frontMatter: { title: 'Mon Roman' },
   profileId: 'kdp-6x9' as const,
+  isPasserelle: false,
+  availableProfiles: ['kdp-6x9', 'a5'] as const,
+  chapters: [
+    { id: 'ch-1', title: 'Chapitre 1', pageNumber: 5 },
+    { id: 'ch-2', title: 'Chapitre 2', pageNumber: 41 },
+  ],
+  totalPageCount: 120,
+  frontMatterPageCount: 4,
 };
+
+const PENDING = new Promise(() => {}); // never resolves — simulates an in-flight generation
 
 async function flushMicrotasks() {
   await act(async () => {
@@ -45,108 +46,113 @@ async function advanceTimers(ms: number) {
   });
 }
 
-function postPagedRendered(pageCount = 12, paginationMs = 300) {
-  const iframe = document.querySelector('iframe')!;
-  const fakeWindow = {};
-  Object.defineProperty(iframe, 'contentWindow', { value: fakeWindow, writable: true });
-  act(() => {
-    window.dispatchEvent(
-      new MessageEvent('message', {
-        data: { type: 'paged-rendered', pageCount, sourceId: null, paginationMs },
-        source: fakeWindow as Window,
-      })
-    );
-  });
-}
-
-describe('BookPreviewPage — render timeout guard', () => {
+describe('BookPreviewPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
-    vi.mocked(getBookPreviewDataAction).mockResolvedValue({
-      success: true,
-      data: bookPreviewData,
-    });
   });
 
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  it('shows the spinner while pagination is in progress, before the timeout', async () => {
+  it('shows a generation spinner while the PDF is being produced', async () => {
+    vi.mocked(getBookPreviewDataAction).mockReturnValue(PENDING as never);
     render(<BookPreviewPage />);
     await flushMicrotasks();
 
-    expect(screen.getByText(/pagination en cours/i)).toBeInTheDocument();
+    expect(screen.getByText(/génération en cours/i)).toBeInTheDocument();
     expect(screen.queryByTestId('book-preview-error')).not.toBeInTheDocument();
   });
 
-  it('does not show an error when paged-rendered arrives before the timeout', async () => {
+  it('shows the PDF viewer and page count once generation completes', async () => {
+    vi.mocked(getBookPreviewDataAction).mockResolvedValue({ success: true, data: bookPreviewData } as never);
     render(<BookPreviewPage />);
     await flushMicrotasks();
 
-    postPagedRendered(12, 300);
-
-    expect(screen.getByText('12 pages · 300 ms')).toBeInTheDocument();
-
-    // Advance well past the timeout budget: since the render already succeeded,
-    // no error should ever appear.
-    await advanceTimers(60_000);
-    expect(screen.queryByTestId('book-preview-error')).not.toBeInTheDocument();
+    const iframe = screen.getByTestId('book-preview-pdf');
+    expect(iframe).toBeInTheDocument();
+    expect(iframe.getAttribute('src')).toContain('/api/book-preview/pdf?project=proj-1&profile=kdp-6x9');
+    expect(screen.getByText('120 pages')).toBeInTheDocument();
+    expect(screen.queryByText(/génération en cours/i)).not.toBeInTheDocument();
   });
 
-  it('shows a retry option instead of spinning forever when paged-rendered never arrives', async () => {
+  it('offers only the kdp-6x9 and a5 profiles in the preview selector', async () => {
+    vi.mocked(getBookPreviewDataAction).mockResolvedValue({ success: true, data: bookPreviewData } as never);
     render(<BookPreviewPage />);
     await flushMicrotasks();
 
-    await advanceTimers(30_000);
+    const selector = screen.getByTestId('preview-profile-selector');
+    expect(selector.querySelectorAll('[data-profile]')).toHaveLength(2);
+    expect(selector.querySelector('[data-profile="kdp-6x9"]')).not.toBeNull();
+    expect(selector.querySelector('[data-profile="a5"]')).not.toBeNull();
+  });
+
+  it('jumps to the chapter page via the #page anchor when a chapter is clicked', async () => {
+    vi.mocked(getBookPreviewDataAction).mockResolvedValue({ success: true, data: bookPreviewData } as never);
+    render(<BookPreviewPage />);
+    await flushMicrotasks();
+
+    expect(screen.getByTestId('book-preview-pdf').getAttribute('src')).toContain('#page=1');
+
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Chapitre 2' }));
+    });
+
+    expect(screen.getByTestId('book-preview-pdf').getAttribute('src')).toContain('#page=41');
+  });
+
+  it('hides the PDF preview and explains why for the passerelle profile', async () => {
+    vi.mocked(getBookPreviewDataAction).mockResolvedValue({
+      success: true,
+      data: { ...bookPreviewData, isPasserelle: true, profileId: 'passerelle', chapters: [], totalPageCount: 0 },
+    } as never);
+    render(<BookPreviewPage />);
+    await flushMicrotasks();
+
+    expect(screen.queryByTestId('book-preview-pdf')).not.toBeInTheDocument();
+    expect(screen.getByText(/passerelle/i)).toBeInTheDocument();
+  });
+
+  it('shows a retry option instead of spinning forever when generation stalls', async () => {
+    vi.mocked(getBookPreviewDataAction).mockReturnValue(PENDING as never);
+    render(<BookPreviewPage />);
+    await flushMicrotasks();
+
+    await advanceTimers(150_000);
 
     expect(screen.getByTestId('book-preview-error')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /réessayer/i })).toBeInTheDocument();
-    expect(screen.queryByText(/pagination en cours/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/génération en cours/i)).not.toBeInTheDocument();
   });
 
-  it('retrying resets to the pagination-in-progress state and restarts the timeout', async () => {
+  it('retrying resets to the generating state and restarts the timeout', async () => {
+    vi.mocked(getBookPreviewDataAction).mockReturnValue(PENDING as never);
     render(<BookPreviewPage />);
     await flushMicrotasks();
 
-    await advanceTimers(30_000);
+    await advanceTimers(150_000);
     expect(screen.getByTestId('book-preview-error')).toBeInTheDocument();
 
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: /réessayer/i }));
     });
-
-    expect(screen.queryByTestId('book-preview-error')).not.toBeInTheDocument();
-    expect(screen.getByText(/pagination en cours/i)).toBeInTheDocument();
-
-    // Still stuck after retry: the timeout must fire again, proving it actually restarted.
-    await advanceTimers(30_000);
-    expect(screen.getByTestId('book-preview-error')).toBeInTheDocument();
-  });
-
-  it('recovers from the error state if paged-rendered arrives after a retry', async () => {
-    render(<BookPreviewPage />);
     await flushMicrotasks();
 
-    await advanceTimers(30_000);
-    expect(screen.getByTestId('book-preview-error')).toBeInTheDocument();
-
-    act(() => {
-      fireEvent.click(screen.getByRole('button', { name: /réessayer/i }));
-    });
-    postPagedRendered(8, 250);
-
-    expect(screen.getByText('8 pages · 250 ms')).toBeInTheDocument();
     expect(screen.queryByTestId('book-preview-error')).not.toBeInTheDocument();
+    expect(screen.getByText(/génération en cours/i)).toBeInTheDocument();
+
+    await advanceTimers(150_000);
+    expect(screen.getByTestId('book-preview-error')).toBeInTheDocument();
   });
 
   it('clears the pending timeout on unmount without throwing', async () => {
+    vi.mocked(getBookPreviewDataAction).mockReturnValue(PENDING as never);
     const { unmount } = render(<BookPreviewPage />);
     await flushMicrotasks();
 
     unmount();
 
-    await expect(advanceTimers(60_000)).resolves.not.toThrow();
+    await expect(advanceTimers(150_000)).resolves.not.toThrow();
   });
 });

@@ -71,6 +71,8 @@ import { FolderParser } from '@/domain/interfaces/FolderParser';
 import { DocxExporter } from '@/infrastructure/document/exporters/DocxExporter';
 import { PagedPdfExporter } from '@/infrastructure/document/exporters/PagedPdfExporter';
 import { PlaywrightBrowserLauncher } from '@/infrastructure/document/paged/PlaywrightBrowserLauncher';
+import { MongoDBBookPreviewCacheRepository } from '@/infrastructure/persistence/MongoDBBookPreviewCacheRepository';
+import { BookPreviewCacheComputer } from '@/application/services/BookPreviewCacheComputer';
 import { TipTapContentService } from '@/infrastructure/document/utils/TipTapContentService';
 import { Provider } from '@/domain/entities/Provider';
 import { getDatabase } from './database';
@@ -491,6 +493,28 @@ export function getDocumentExporter(format: ExportFormat = 'docx'): DocumentExpo
     return new PagedPdfExporter(assetBaseUrl, new PlaywrightBrowserLauncher());
   }
   return new DocxExporter();
+}
+
+/**
+ * Get the whole-book PDF preview cache repository (metrics document + GridFS blob).
+ */
+let bookPreviewCacheRepoInstance: MongoDBBookPreviewCacheRepository | null = null;
+
+export async function getBookPreviewCacheRepository(): Promise<MongoDBBookPreviewCacheRepository> {
+  if (!bookPreviewCacheRepoInstance) {
+    const db = await getDatabase();
+    bookPreviewCacheRepoInstance = new MongoDBBookPreviewCacheRepository(db);
+    await bookPreviewCacheRepoInstance.ensureIndexes();
+  }
+  return bookPreviewCacheRepoInstance;
+}
+
+/**
+ * Build the whole-book preview computer wired to headless Chromium.
+ * Stateless per call; the browser is launched and closed inside compute().
+ */
+export function getBookPreviewCacheComputer(): BookPreviewCacheComputer {
+  return new BookPreviewCacheComputer(new PlaywrightBrowserLauncher());
 }
 
 /**
