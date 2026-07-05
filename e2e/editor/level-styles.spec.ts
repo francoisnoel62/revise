@@ -2,7 +2,11 @@
 // ABOUTME: Proves an author change affects only the active PDF publication profile.
 
 import { test, expect } from '@playwright/test';
-import { TEST_LEVEL_STYLES_PROJECT_ID, TEST_PROJECT_ID } from '../helpers/seed';
+import {
+  TEST_BOOK_PREVIEW_LARGE_PROJECT_ID,
+  TEST_LEVEL_STYLES_PROJECT_ID,
+  TEST_PROJECT_ID,
+} from '../helpers/seed';
 
 const EDITOR_URL = `/editor?project=${TEST_LEVEL_STYLES_PROJECT_ID}`;
 
@@ -74,5 +78,22 @@ test.describe('typographie par niveau', () => {
     await expect
       .poll(() => bodyParagraph.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize)))
       .toBeCloseTo(20 * (96 / 72), 1);
+  });
+
+  test('applies subtitle alignment and italic in a large manuscript', async ({ page }) => {
+    await page.goto(`/editor?project=${TEST_BOOK_PREVIEW_LARGE_PROJECT_ID}`);
+
+    await page.getByRole('button', { name: 'Typographie' }).click();
+    await page.getByLabel('Niveau de texte').selectOption('sous-titre');
+    await page.getByLabel('Alignement').selectOption('right');
+    await page.getByLabel('Italique').click();
+
+    const subtitle = page
+      .frameLocator('[data-testid="publication-preview"]')
+      .locator('[data-semantic-role="sous-titre"]')
+      .first();
+    await expect(subtitle).toBeVisible({ timeout: 20_000 });
+    await expect(subtitle).toHaveCSS('text-align', 'right');
+    await expect(subtitle).toHaveCSS('font-style', 'italic');
   });
 });

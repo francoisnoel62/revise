@@ -207,11 +207,17 @@ function buildLargeChapterContent(chapterNumber: number, paragraphCount: number)
     content: [
       {
         type: 'heading',
-        attrs: { level: 1 },
+        attrs: { level: 1, semanticRole: 'titre-de-chapitre' },
         content: [{ type: 'text', text: `Chapitre ${chapterNumber}` }],
+      },
+      {
+        type: 'heading',
+        attrs: { level: 2, semanticRole: 'sous-titre' },
+        content: [{ type: 'text', text: `Section ${chapterNumber}` }],
       },
       ...Array.from({ length: paragraphCount }, (_, i) => ({
         type: 'paragraph',
+        attrs: { semanticRole: 'corps' },
         content: [{ type: 'text', text: `${filler.repeat(4)}(§${chapterNumber}.${i + 1})` }],
       })),
     ],

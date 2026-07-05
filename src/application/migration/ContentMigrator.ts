@@ -30,7 +30,10 @@ function isAlreadyMigrated(docNode: ContentNode): boolean {
       return typeof node.attrs?.semanticRole === 'string' && !hasTextStyleMarks(node);
     }
     if (node.type === 'heading') {
-      const hasRole = node.attrs?.level !== 1 || node.attrs?.semanticRole === 'titre-de-chapitre';
+      const hasRole =
+        node.attrs?.level === 1
+          ? node.attrs?.semanticRole === 'titre-de-chapitre'
+          : typeof node.attrs?.semanticRole === 'string';
       return hasRole && !hasTextStyleMarks(node);
     }
     return true;
