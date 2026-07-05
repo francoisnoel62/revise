@@ -132,7 +132,10 @@ const EXTRACT_METRICS_JS = `(function () {
   for (var i = 0; i < chapterEls.length; i++) {
     var pageNumber = pageIndexOf(chapterEls[i]);
     if (pageNumber !== null) {
-      chapterOffsets.push({ chapterId: chapterEls[i].id, pageNumber: pageNumber });
+      chapterOffsets.push({
+        chapterId: chapterEls[i].getAttribute('data-chapter-id') || chapterEls[i].id,
+        pageNumber: pageNumber
+      });
     }
   }
   var firstBodyPage = chapterOffsets.length > 0 ? chapterOffsets[0].pageNumber : 1;

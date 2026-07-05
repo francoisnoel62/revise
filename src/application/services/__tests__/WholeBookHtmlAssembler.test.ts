@@ -29,11 +29,12 @@ describe('WholeBookHtmlAssembler', () => {
     expect(tocEntries).toEqual([]);
   });
 
-  it('wraps each chapter in a section with class "chapter" and the chapter id', () => {
+  it('wraps each chapter in a section with a CSS-safe anchor and the domain chapter id', () => {
     const { bodyHtml } = assembler.assemble([
       { id: 'ch-abc', title: 'Prologue', content: paragraphDoc('Once upon a time') },
     ]);
-    expect(bodyHtml).toContain('id="ch-abc"');
+    expect(bodyHtml).toContain('id="chapter-ch-abc"');
+    expect(bodyHtml).toContain('data-chapter-id="ch-abc"');
     expect(bodyHtml).toContain('class="chapter"');
   });
 
@@ -66,8 +67,8 @@ describe('WholeBookHtmlAssembler', () => {
       { id: 'ch2', title: 'Chapter 2', content: paragraphDoc('text') },
     ]);
     expect(tocEntries).toEqual([
-      { chapterId: 'ch1', title: 'Chapter 1' },
-      { chapterId: 'ch2', title: 'Chapter 2' },
+      { chapterId: 'chapter-ch1', title: 'Chapter 1' },
+      { chapterId: 'chapter-ch2', title: 'Chapter 2' },
     ]);
   });
 
@@ -76,8 +77,8 @@ describe('WholeBookHtmlAssembler', () => {
       { id: 'ch1', title: 'Chapter 1', content: paragraphDoc('First') },
       { id: 'ch2', title: 'Chapter 2', content: paragraphDoc('Second') },
     ]);
-    const ch1Pos = bodyHtml.indexOf('id="ch1"');
-    const ch2Pos = bodyHtml.indexOf('id="ch2"');
+    const ch1Pos = bodyHtml.indexOf('id="chapter-ch1"');
+    const ch2Pos = bodyHtml.indexOf('id="chapter-ch2"');
     expect(ch1Pos).toBeGreaterThanOrEqual(0);
     expect(ch1Pos).toBeLessThan(ch2Pos);
   });
@@ -90,11 +91,12 @@ describe('WholeBookHtmlAssembler', () => {
     expect(h1Count).toBe(1);
   });
 
-  it('escapes the chapter id in the section attribute', () => {
+  it('prefixes UUID anchors so a leading digit remains a valid CSS selector', () => {
     const { bodyHtml } = assembler.assemble([
-      { id: 'safe-id-123', title: 'Safe', content: paragraphDoc('text') },
+      { id: '004bee1e-9ba3-48c3-aedd-2c0a026598dd', title: 'Safe', content: paragraphDoc('text') },
     ]);
-    expect(bodyHtml).toContain('id="safe-id-123"');
+    expect(bodyHtml).toContain('id="chapter-004bee1e-9ba3-48c3-aedd-2c0a026598dd"');
+    expect(bodyHtml).toContain('data-chapter-id="004bee1e-9ba3-48c3-aedd-2c0a026598dd"');
   });
 
   describe('parity with PDF exporter pipeline', () => {
@@ -110,7 +112,9 @@ describe('WholeBookHtmlAssembler', () => {
     }
 
     // Normalise section IDs so we can compare structure independent of ID format
-    const normalizeIds = (html: string) => html.replace(/id="[^"]*"/g, 'id="X"');
+    const normalizeIds = (html: string) => html
+      .replace(/ data-chapter-id="[^"]*"/g, '')
+      .replace(/id="[^"]*"/g, 'id="X"');
 
     it('produces chapter HTML identical to the PDF exporter pipeline for a single chapter', () => {
       const fixture = [{ id: 'ch-real', title: 'Chapitre Un', content: chapterDoc('Chapitre Un', 'Premier contenu.') }];
