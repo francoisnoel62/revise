@@ -59,6 +59,13 @@ export const TEST_BOOK_PREVIEW_PASSERELLE_SETTINGS_ID = '6475a8f3c1234567890abce
 export const TEST_BOOK_PREVIEW_LARGE_PROJECT_ID = 'e2e-book-preview-large-001';
 export const TEST_BOOK_PREVIEW_LARGE_CHAPTER_COUNT = 6;
 
+// Book-preview E2E fixtures — a genuinely large manuscript (~90k words / ~200 pages),
+// matching the production target. Seeded ON DEMAND by the opt-in heavy test (not in
+// seedAll), so routine runs stay fast; exercises the real cold-generation cost.
+export const TEST_BOOK_PREVIEW_HUGE_PROJECT_ID = 'e2e-book-preview-huge-001';
+export const TEST_BOOK_PREVIEW_HUGE_CHAPTER_COUNT = 20;
+export const TEST_BOOK_PREVIEW_HUGE_PARAGRAPHS_PER_CHAPTER = 70;
+
 // ── Chapter content seedé ─────────────────────────────────────────────────────
 
 export const TEST_CHAPTER_TITLE = 'Chapitre 1';
@@ -726,6 +733,46 @@ async function dropBookPreviewPdfs(
   const ids = files.map((f) => f._id);
   await db.collection('book_preview_pdf.chunks').deleteMany({ files_id: { $in: ids } });
   await db.collection('book_preview_pdf.files').deleteMany({ _id: { $in: ids } });
+}
+
+// Seed (on demand) a large ~90k-word manuscript for the opt-in heavy preview test.
+// Kept out of seedAll so routine e2e runs don't pay for it. Also clears any cached
+// PDF so the caller can measure a true cold generation.
+export async function seedHugeManuscript(): Promise<void> {
+  const client = new MongoClient(MONGODB_URI);
+  await client.connect();
+  try {
+    const db = client.db(MONGODB_DB_NAME);
+    const past = new Date('2025-01-01T10:00:00Z');
+    const now = new Date();
+    await db.collection('projects').replaceOne(
+      { _id: TEST_BOOK_PREVIEW_HUGE_PROJECT_ID } as object,
+      {
+        _id: TEST_BOOK_PREVIEW_HUGE_PROJECT_ID,
+        ownerId: TEST_USER_ID,
+        title: 'Manuscrit Volumineux Test',
+        chapters: Array.from({ length: TEST_BOOK_PREVIEW_HUGE_CHAPTER_COUNT }, (_, i) => ({
+          id: `e2e-book-preview-huge-ch-${String(i + 1).padStart(3, '0')}`,
+          title: `Chapitre ${i + 1}`,
+          content: buildLargeChapterContent(i + 1, TEST_BOOK_PREVIEW_HUGE_PARAGRAPHS_PER_CHAPTER),
+          order: i,
+          metadata: { wordCount: 4600, characterCount: 27600, lastEdited: past },
+        })),
+        activeChapterId: 'e2e-book-preview-huge-ch-001',
+        providerId: null,
+        createdAt: past,
+        updatedAt: now,
+        isPublished: false,
+        shareToken: null,
+        publishedAt: null,
+        publishedChapterIds: null,
+      },
+      { upsert: true }
+    );
+  } finally {
+    await client.close();
+  }
+  await clearBookPreviewCache(TEST_BOOK_PREVIEW_HUGE_PROJECT_ID);
 }
 
 // Force a cold cache for one project: remove its cached metrics + PDF so the next
