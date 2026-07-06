@@ -82,6 +82,27 @@ describe('PagedJsRenderer', () => {
       });
       expect(html).not.toContain('Table des matières');
     });
+
+    it('applies the classique design class to the nav element by default', () => {
+      const html = renderer.render({
+        bodyHtml: '<section id="ch-0" class="chapter"><h1>Ch 1</h1></section>',
+        profile,
+        assetBaseUrl,
+        toc: [{ title: 'Chapitre Un', chapterId: 'ch-0' }],
+      });
+      expect(html).toMatch(/<nav[^>]*class="[^"]*toc--classique/);
+    });
+
+    it('applies the requested tocStyle design class to the nav element', () => {
+      const html = renderer.render({
+        bodyHtml: '<section id="ch-0" class="chapter"><h1>Ch 1</h1></section>',
+        profile,
+        assetBaseUrl,
+        toc: [{ title: 'Chapitre Un', chapterId: 'ch-0' }],
+        tocStyle: 'litteraire',
+      });
+      expect(html).toMatch(/<nav[^>]*class="[^"]*toc--litteraire/);
+    });
   });
 
   describe('startPageNumber', () => {

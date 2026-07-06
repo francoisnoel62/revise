@@ -160,6 +160,11 @@ export class BookCssBuilder {
         text-align: left;
       }
       .toc li { margin-bottom: 6pt; }
+      .toc li ol {
+        list-style: none;
+        margin: 4pt 0 0;
+        padding-left: 18pt;
+      }
       .toc a {
         text-decoration: none;
         color: inherit;
@@ -170,6 +175,21 @@ export class BookCssBuilder {
         content: leader('.') target-counter(attr(href url), page);
         white-space: nowrap;
         padding-left: 4pt;
+      }
+
+      /* Épuré: page numbers right-aligned, no leader dots */
+      .toc--epure a::after {
+        content: target-counter(attr(href url), page);
+        white-space: nowrap;
+        padding-left: 4pt;
+      }
+
+      /* Littéraire: centered titles, no page numbers */
+      .toc--litteraire a {
+        justify-content: center;
+      }
+      .toc--litteraire a::after {
+        content: none;
       }
     `;
   }

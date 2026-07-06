@@ -101,6 +101,10 @@ export class TipTapToBookHtml {
 
   private renderBlockAttributes(node: JSONContent): string {
     const attributes: string[] = [];
+    const id = node.attrs?.id;
+    if (typeof id === 'string' && id.length > 0) {
+      attributes.push(`id="${this.escapeHtml(id)}"`);
+    }
     const semanticRole = node.attrs?.semanticRole;
     if (typeof semanticRole === 'string') {
       attributes.push(`data-semantic-role="${this.escapeHtml(semanticRole)}"`);

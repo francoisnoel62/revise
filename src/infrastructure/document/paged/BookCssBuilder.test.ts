@@ -249,4 +249,26 @@ describe('BookCssBuilder', () => {
       expect(css).toContain('target-counter');
     });
   });
+
+  describe('toc design variants (3 presets, always emitted statically)', () => {
+    const css = new BookCssBuilder().build(PublicationProfile.kdpSixByNine(), 'http://localhost:3000');
+
+    it('classique (default/unchanged): leader dots + page numbers', () => {
+      expect(css).toMatch(/\.toc a::after\s*\{[^}]*leader\('\.'\)[^}]*target-counter/);
+    });
+
+    it('epure: page numbers without leader dots', () => {
+      expect(css).toMatch(/\.toc--epure a::after\s*\{[^}]*target-counter/);
+      expect(css).not.toMatch(/\.toc--epure a::after\s*\{[^}]*leader/);
+    });
+
+    it('litteraire: no page numbers, titles centered', () => {
+      expect(css).toMatch(/\.toc--litteraire a::after\s*\{[^}]*content:\s*none/);
+      expect(css).toMatch(/\.toc--litteraire a\s*\{[^}]*justify-content:\s*center/);
+    });
+
+    it('indents nested sub-entries', () => {
+      expect(css).toMatch(/\.toc li ol\s*\{/);
+    });
+  });
 });

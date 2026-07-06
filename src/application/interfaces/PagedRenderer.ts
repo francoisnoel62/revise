@@ -4,10 +4,18 @@
 import type { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
 import type { FrontMatterData } from '@/domain/interfaces/DocumentExporter';
 import type { LevelStyleSetProperties } from '@/domain/value-objects/LevelStyleSet';
+import type { TocStyle } from '@/domain/value-objects/TocPreferences';
+
+/** A sous-titre entry nested under its chapter's TOC entry. */
+export interface TocSubEntry {
+  readonly title: string;
+  readonly anchorId: string;
+}
 
 export interface TocEntry {
   readonly title: string;
   readonly chapterId: string;
+  readonly subEntries?: readonly TocSubEntry[];
 }
 
 export interface PagedRenderRequest {
@@ -16,6 +24,8 @@ export interface PagedRenderRequest {
   readonly assetBaseUrl: string;
   readonly frontMatter?: FrontMatterData;
   readonly toc?: TocEntry[];
+  /** TOC design; defaults to 'classique' (the historical rendering). */
+  readonly tocStyle?: TocStyle;
   /** First Arabic page number for this render (default 1). Used for single-chapter previews. */
   readonly startPageNumber?: number;
   /** Opaque identifier echoed back in the paged-rendered postMessage for routing. */
