@@ -30,11 +30,9 @@ function isAlreadyMigrated(docNode: ContentNode): boolean {
       return typeof node.attrs?.semanticRole === 'string' && !hasTextStyleMarks(node);
     }
     if (node.type === 'heading') {
-      const hasRole =
-        node.attrs?.level === 1
-          ? node.attrs?.semanticRole === 'titre-de-chapitre'
-          : typeof node.attrs?.semanticRole === 'string';
-      return hasRole && !hasTextStyleMarks(node);
+      const expectedRole =
+        node.attrs?.level === 1 ? 'titre-de-chapitre' : 'sous-titre';
+      return node.attrs?.semanticRole === expectedRole && !hasTextStyleMarks(node);
     }
     return true;
   });
@@ -83,24 +81,14 @@ function migrateParagraph(
   };
 }
 
-function migrateHeading(
-  node: ContentNode,
-  nodeIndex: number,
-  ambiguities: MigrationAmbiguity[]
-): ContentNode {
+function migrateHeading(node: ContentNode): ContentNode {
   const attrs: Record<string, unknown> = { ...(node.attrs ?? {}) };
   delete attrs.textAlign;
 
-  if (attrs.level === 1) {
-    attrs.semanticRole = 'titre-de-chapitre';
-  } else {
-    // Headings level 2+ have no unambiguous semantic mapping — flag for manual classification.
-    // sous-titre, citation, and other roles cannot be inferred from presentation marks alone.
-    ambiguities.push({
-      nodeIndex,
-      reason: `Titre de niveau ${String(attrs.level)} — rôle non détectable automatiquement. Reclassifier manuellement (sous-titre, citation, etc.).`,
-    });
-  }
+  // A level-1 heading is a chapter title; every deeper heading is a subtitle.
+  // Citation and epigraphe are body text (paragraphs), never headings, so a
+  // heading's role is always unambiguous.
+  attrs.semanticRole = attrs.level === 1 ? 'titre-de-chapitre' : 'sous-titre';
 
   return {
     ...stripTextStyleFromNode(node),
@@ -124,7 +112,7 @@ export function migrateContent(content: ContentNode): MigrationResult {
       return migrateParagraph(node, index, ambiguities);
     }
     if (node.type === 'heading') {
-      return migrateHeading(node, index, ambiguities);
+      return migrateHeading(node);
     }
     // horizontalRule is its own semantic marker (séparateur-de-scène) by node type — no attr needed.
     return node;
