@@ -7,6 +7,7 @@ import type { JSONContent } from '@tiptap/core';
 import type { FrontMatterData } from '@/domain/interfaces/DocumentExporter';
 import type { BookPreviewCacheEntry } from '@/domain/entities/BookPreviewCacheEntry';
 import { PublicationProfile, type PublicationProfileId } from '@/domain/value-objects/PublicationProfile';
+import { DEFAULT_TOC_PREFERENCES } from '@/domain/value-objects/TocPreferences';
 import { computeBookPreviewContentHash } from '@/application/services/bookPreviewContentHash';
 import { tagSubtitleHeadings } from '@/application/services/subtitleAnchors';
 import {
@@ -81,7 +82,7 @@ export async function getBookPreviewDataAction(
     const profileId: BookPreviewProfileId =
       requestedProfileId ?? (isPreviewProfile(activeProfileId) ? activeProfileId : 'kdp-6x9');
     const levelStyles = settings?.getLevelStyleSet(profileId)?.values;
-    const tocPreferences = settings?.getTocPreferences() ?? { depth: 'chapters', style: 'classique' };
+    const tocPreferences = settings?.getTocPreferences() ?? DEFAULT_TOC_PREFERENCES;
 
     const orderedChapters = project
       .getChapters()
