@@ -403,7 +403,7 @@ export function ProjectSettingsForm({ projectId, initialSettings }: ProjectSetti
                 }
                 disabled={isSaving}
               >
-                <SelectTrigger>
+                <SelectTrigger data-testid="toc-depth-select">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -425,7 +425,7 @@ export function ProjectSettingsForm({ projectId, initialSettings }: ProjectSetti
                 }
                 disabled={isSaving}
               >
-                <SelectTrigger>
+                <SelectTrigger data-testid="toc-style-select">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

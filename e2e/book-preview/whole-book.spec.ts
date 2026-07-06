@@ -14,6 +14,30 @@ import {
 
 const BOOK_PREVIEW_URL = `/book-preview?project=${TEST_BOOK_PREVIEW_PROJECT_ID}`;
 const TOC_BOOK_PREVIEW_URL = `/book-preview?project=${TEST_BOOK_PREVIEW_TOC_PROJECT_ID}`;
+const TOC_SETTINGS_URL = `/project/${TEST_BOOK_PREVIEW_TOC_PROJECT_ID}/cockpit/settings`;
+
+// Drives the real "Sommaire" settings card (Profondeur/Design selects) end to end,
+// per the fiche's "E2E d'abord : activer les sous-titres et changer de design se
+// reflètent dans l'aperçu" requirement — no direct DB seeding of the setting under test.
+async function setTocStyleViaSettingsUi(page: import('@playwright/test').Page, label: string): Promise<void> {
+  await page.goto(TOC_SETTINGS_URL);
+  await page.getByTestId('toc-style-select').click();
+  await page.getByRole('option', { name: label }).click();
+  // The settings page stacks several independent "Enregistrer" buttons (Sommaire card,
+  // autocomplete, canon extraction); the Sommaire form's is the first one in the DOM.
+  await page.getByRole('button', { name: /enregistrer/i }).first().click();
+  await expect(page.getByText('Modifications enregistrées')).toBeVisible();
+}
+
+async function setTocDepthViaSettingsUi(page: import('@playwright/test').Page, label: string): Promise<void> {
+  await page.goto(TOC_SETTINGS_URL);
+  await page.getByTestId('toc-depth-select').click();
+  await page.getByRole('option', { name: label }).click();
+  // The settings page stacks several independent "Enregistrer" buttons (Sommaire card,
+  // autocomplete, canon extraction); the Sommaire form's is the first one in the DOM.
+  await page.getByRole('button', { name: /enregistrer/i }).first().click();
+  await expect(page.getByText('Modifications enregistrées')).toBeVisible();
+}
 
 // Reads all text on a given 1-indexed PDF page (unlike footerOf, which isolates the footer).
 async function textOf(pdf: Uint8Array, pageNumber: number): Promise<string> {
@@ -195,7 +219,8 @@ test.describe('whole-book preview', () => {
       await expect(status).toContainText('pages', { timeout: 60_000 });
 
       // The first chapter's physical page tells us how many liminal pages (half-title + TOC) precede it.
-      const firstChapterButton = page.getByTestId('chapter-navigation').locator('[data-chapter-id]').first();
+      const nav = page.getByTestId('chapter-navigation');
+      const firstChapterButton = nav.locator('[data-chapter-id]').first();
       const firstBodyPage = Number(await firstChapterButton.getAttribute('data-page-number'));
 
       const src = await page.getByTestId('book-preview-pdf').getAttribute('src');
@@ -208,6 +233,66 @@ test.describe('whole-book preview', () => {
 
       expect(tocText).toBeDefined();
       expect(tocText).toContain(TEST_BOOK_PREVIEW_TOC_SUBTITLE);
+
+      // Littéraire suppresses target-counter entirely: no digit trails the sous-titre entry.
+      expect(tocText).not.toMatch(new RegExp(`${TEST_BOOK_PREVIEW_TOC_SUBTITLE}\\s+\\d`));
+      // No leader('.') run either (classique/épuré both would print one).
+      expect(tocText).not.toMatch(/\.{4,}/);
+    });
+
+    test('toggling tocStyle to épuré via the settings UI reflects in the aperçu: page numbers, no leader dots', async ({ page }) => {
+      await setTocStyleViaSettingsUi(page, 'Épuré');
+
+      try {
+        await page.goto(TOC_BOOK_PREVIEW_URL);
+        const status = page.getByTestId('book-preview-status');
+        await expect(status).toContainText('pages', { timeout: 60_000 });
+
+        const nav = page.getByTestId('chapter-navigation');
+        const firstChapterButton = nav.locator('[data-chapter-id]').first();
+        const firstBodyPage = Number(await firstChapterButton.getAttribute('data-page-number'));
+
+        const src = await page.getByTestId('book-preview-pdf').getAttribute('src');
+        const pdfUrl = (src ?? '').split('#')[0];
+        const response = await page.request.get(pdfUrl);
+        const pdf = new Uint8Array(await response.body());
+
+        const liminalPages = await textOfPages(pdf, firstBodyPage - 1);
+        const tocText = liminalPages.find((t) => t.includes('Table des matières'));
+
+        expect(tocText).toBeDefined();
+        expect(tocText).toContain(TEST_BOOK_PREVIEW_TOC_SUBTITLE);
+        // Épuré: a page number DOES trail the sous-titre entry (target-counter), but no leader('.') run.
+        expect(tocText).toMatch(new RegExp(`${TEST_BOOK_PREVIEW_TOC_SUBTITLE}\\s+\\d`));
+        expect(tocText).not.toMatch(/\.{4,}/);
+      } finally {
+        // Restore the seeded default so this test doesn't leak state into later runs.
+        await setTocStyleViaSettingsUi(page, 'Littéraire');
+      }
+    });
+
+    test('toggling tocDepth off via the settings UI hides the sous-titre from the aperçu nav, toggling it back restores it', async ({ page }) => {
+      await setTocDepthViaSettingsUi(page, 'Chapitres seuls');
+
+      try {
+        await page.goto(TOC_BOOK_PREVIEW_URL);
+        const status = page.getByTestId('book-preview-status');
+        await expect(status).toContainText('pages', { timeout: 60_000 });
+
+        await expect(
+          page.getByTestId('chapter-navigation').getByRole('button', { name: TEST_BOOK_PREVIEW_TOC_SUBTITLE }),
+        ).toHaveCount(0);
+      } finally {
+        // Restore the seeded default (chapters-and-subtitles) for later runs.
+        await setTocDepthViaSettingsUi(page, 'Chapitres et sous-titres');
+      }
+
+      await page.goto(TOC_BOOK_PREVIEW_URL);
+      const status = page.getByTestId('book-preview-status');
+      await expect(status).toContainText('pages', { timeout: 60_000 });
+      await expect(
+        page.getByTestId('chapter-navigation').getByRole('button', { name: TEST_BOOK_PREVIEW_TOC_SUBTITLE }),
+      ).toBeVisible();
     });
   });
 });
