@@ -7,10 +7,34 @@ import {
   TEST_BOOK_PREVIEW_PROJECT_ID,
   TEST_BOOK_PREVIEW_PASSERELLE_PROJECT_ID,
   TEST_BOOK_PREVIEW_LARGE_PROJECT_ID,
+  TEST_BOOK_PREVIEW_TOC_PROJECT_ID,
+  TEST_BOOK_PREVIEW_TOC_SUBTITLE,
   clearBookPreviewCache,
 } from '../helpers/seed';
 
 const BOOK_PREVIEW_URL = `/book-preview?project=${TEST_BOOK_PREVIEW_PROJECT_ID}`;
+const TOC_BOOK_PREVIEW_URL = `/book-preview?project=${TEST_BOOK_PREVIEW_TOC_PROJECT_ID}`;
+
+// Reads all text on a given 1-indexed PDF page (unlike footerOf, which isolates the footer).
+async function textOf(pdf: Uint8Array, pageNumber: number): Promise<string> {
+  const doc = await getDocument({ data: pdf }).promise;
+  const page = await doc.getPage(pageNumber);
+  const content = await page.getTextContent();
+  return content.items.map((i: { str?: string }) => i.str ?? '').join(' ');
+}
+
+// Reads text from every page 1..count of the same PDF. Loading one shared pdfjs document and
+// walking pages sequentially avoids a DataCloneError from opening the same buffer concurrently.
+async function textOfPages(pdf: Uint8Array, count: number): Promise<string[]> {
+  const doc = await getDocument({ data: pdf }).promise;
+  const pages: string[] = [];
+  for (let i = 1; i <= count; i++) {
+    const page = await doc.getPage(i);
+    const content = await page.getTextContent();
+    pages.push(content.items.map((it: { str?: string }) => it.str ?? '').join(' '));
+  }
+  return pages;
+}
 
 // Reads the bottom-most text run (the footer page number) on a given 1-indexed PDF page.
 async function footerOf(pdf: Uint8Array, pageNumber: number): Promise<string> {
@@ -127,5 +151,63 @@ test.describe('whole-book preview', () => {
 
     expect(hotMs).toBeLessThan(HOT_BUDGET_MS);
     expect(hotMs).toBeLessThan(coldMs);
+  });
+
+  // Serial: both tests hit the same project's cold cache; running them concurrently
+  // races two Chromium generations against each other and can starve either past its budget.
+  test.describe.serial('configurable sommaire (tocDepth: chapters-and-subtitles, tocStyle: litteraire)', () => {
+    test('renders the sous-titre in the sidebar, nested under its chapter, and navigates to its real PDF page', async ({ page }) => {
+      await clearBookPreviewCache(TEST_BOOK_PREVIEW_TOC_PROJECT_ID);
+      await page.goto(TOC_BOOK_PREVIEW_URL);
+
+      const status = page.getByTestId('book-preview-status');
+      await expect(status).toContainText('pages', { timeout: 60_000 });
+
+      const subtitleButton = page.getByTestId('chapter-navigation').getByRole('button', {
+        name: TEST_BOOK_PREVIEW_TOC_SUBTITLE,
+      });
+      await expect(subtitleButton).toBeVisible();
+
+      const subtitlePage = Number(await subtitleButton.getAttribute('data-page-number'));
+      expect(subtitlePage).toBeGreaterThan(0);
+
+      await subtitleButton.click();
+      await expect(page.getByTestId('book-preview-pdf')).toHaveAttribute(
+        'src',
+        new RegExp(`#page=${subtitlePage}$`),
+      );
+
+      // Prove the click lands on the page where the sous-titre is actually printed —
+      // not just that the UI produced *a* #page=N anchor.
+      const src = await page.getByTestId('book-preview-pdf').getAttribute('src');
+      const pdfUrl = (src ?? '').split('#')[0];
+      const response = await page.request.get(pdfUrl);
+      expect(response.ok()).toBeTruthy();
+      const pdf = new Uint8Array(await response.body());
+
+      expect(await textOf(pdf, subtitlePage)).toContain(TEST_BOOK_PREVIEW_TOC_SUBTITLE);
+    });
+
+    test('prints the TOC in the littéraire design: sous-titre entry, no leader dots/page numbers next to it', async ({ page }) => {
+      await page.goto(TOC_BOOK_PREVIEW_URL);
+
+      const status = page.getByTestId('book-preview-status');
+      await expect(status).toContainText('pages', { timeout: 60_000 });
+
+      // The first chapter's physical page tells us how many liminal pages (half-title + TOC) precede it.
+      const firstChapterButton = page.getByTestId('chapter-navigation').locator('[data-chapter-id]').first();
+      const firstBodyPage = Number(await firstChapterButton.getAttribute('data-page-number'));
+
+      const src = await page.getByTestId('book-preview-pdf').getAttribute('src');
+      const pdfUrl = (src ?? '').split('#')[0];
+      const response = await page.request.get(pdfUrl);
+      const pdf = new Uint8Array(await response.body());
+
+      const liminalPages = await textOfPages(pdf, firstBodyPage - 1);
+      const tocText = liminalPages.find((t) => t.includes('Table des matières'));
+
+      expect(tocText).toBeDefined();
+      expect(tocText).toContain(TEST_BOOK_PREVIEW_TOC_SUBTITLE);
+    });
   });
 });

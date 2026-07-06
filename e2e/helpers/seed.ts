@@ -54,6 +54,13 @@ export const TEST_BOOK_PREVIEW_PASSERELLE_PROJECT_ID = 'e2e-book-preview-passere
 export const TEST_BOOK_PREVIEW_PASSERELLE_CHAPTER_ID = 'e2e-book-preview-passerelle-ch-001';
 export const TEST_BOOK_PREVIEW_PASSERELLE_SETTINGS_ID = '6475a8f3c1234567890abce1';
 
+// Book-preview E2E fixtures — configurable sommaire (tocDepth: chapters-and-subtitles, tocStyle: litteraire)
+export const TEST_BOOK_PREVIEW_TOC_PROJECT_ID = 'e2e-book-preview-toc-001';
+export const TEST_BOOK_PREVIEW_TOC_CHAPTER_1_ID = 'e2e-book-preview-toc-chapter-001';
+export const TEST_BOOK_PREVIEW_TOC_CHAPTER_2_ID = 'e2e-book-preview-toc-chapter-002';
+export const TEST_BOOK_PREVIEW_TOC_SETTINGS_ID = '6475a8f3c1234567890abce2';
+export const TEST_BOOK_PREVIEW_TOC_SUBTITLE = 'Le Secret Retrouvé';
+
 // Book-preview E2E fixtures — a "realistic" multi-page manuscript for the cold/hot perf
 // test. Sized to render in a handful of seconds (CI-safe) while still exercising real
 // front matter + TOC + a multi-page body with per-chapter page offsets. It is a smaller,
@@ -678,6 +685,78 @@ export async function seedAll(): Promise<void> {
       createdAt: past,
       updatedAt: now,
       publicationProfileId: 'passerelle',
+    },
+    { upsert: true }
+  );
+
+  // 5d2. Configurable sommaire project — sous-titre heading + tocDepth/tocStyle settings,
+  //      for the "sub-entry cliquable et navigable (#page=N)" acceptance criterion.
+  const bookPreviewTocChapter1Content = JSON.stringify({
+    type: 'doc',
+    content: [
+      { type: 'heading', attrs: { level: 1, semanticRole: 'titre-de-chapitre' }, content: [{ type: 'text', text: 'Chapitre 1 — La Librairie' }] },
+      { type: 'paragraph', content: [{ type: 'text', text: 'La nuit tombait sur la vieille ville quand Élise poussa la porte de la librairie.' }] },
+      { type: 'heading', attrs: { level: 2, semanticRole: 'sous-titre' }, content: [{ type: 'text', text: TEST_BOOK_PREVIEW_TOC_SUBTITLE }] },
+      { type: 'paragraph', content: [{ type: 'text', text: 'Les rayonnages débordaient de livres anciens dont certains n\'avaient pas été ouverts depuis des décennies.' }] },
+    ],
+  });
+  const bookPreviewTocChapter2Content = JSON.stringify({
+    type: 'doc',
+    content: [
+      { type: 'heading', attrs: { level: 1, semanticRole: 'titre-de-chapitre' }, content: [{ type: 'text', text: 'Chapitre 2 — Le Lendemain' }] },
+      { type: 'paragraph', content: [{ type: 'text', text: 'Le lendemain matin, la lumière dorée filtrait à travers les rideaux de dentelle.' }] },
+    ],
+  });
+  await db.collection('projects').replaceOne(
+    { _id: TEST_BOOK_PREVIEW_TOC_PROJECT_ID } as object,
+    {
+      _id: TEST_BOOK_PREVIEW_TOC_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      title: 'Roman Test Sommaire Configurable',
+      chapters: [
+        {
+          id: TEST_BOOK_PREVIEW_TOC_CHAPTER_1_ID,
+          title: 'Chapitre 1 — La Librairie',
+          content: bookPreviewTocChapter1Content,
+          order: 0,
+          metadata: { wordCount: 30, characterCount: 200, lastEdited: past },
+        },
+        {
+          id: TEST_BOOK_PREVIEW_TOC_CHAPTER_2_ID,
+          title: 'Chapitre 2 — Le Lendemain',
+          content: bookPreviewTocChapter2Content,
+          order: 1,
+          metadata: { wordCount: 15, characterCount: 100, lastEdited: past },
+        },
+      ],
+      activeChapterId: TEST_BOOK_PREVIEW_TOC_CHAPTER_1_ID,
+      providerId: null,
+      createdAt: past,
+      updatedAt: now,
+      isPublished: false,
+      shareToken: null,
+      publishedAt: null,
+      publishedChapterIds: null,
+    },
+    { upsert: true }
+  );
+  await db.collection('project_settings').replaceOne(
+    { _id: new ObjectId(TEST_BOOK_PREVIEW_TOC_SETTINGS_ID) },
+    {
+      _id: new ObjectId(TEST_BOOK_PREVIEW_TOC_SETTINGS_ID),
+      projectId: TEST_BOOK_PREVIEW_TOC_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      title: 'Roman Test Sommaire Configurable',
+      summary: '',
+      genre: '',
+      synopsis: '',
+      contributors: [],
+      relatedWorks: [],
+      createdAt: past,
+      updatedAt: now,
+      publicationProfileId: 'kdp-6x9',
+      tocDepth: 'chapters-and-subtitles',
+      tocStyle: 'litteraire',
     },
     { upsert: true }
   );
