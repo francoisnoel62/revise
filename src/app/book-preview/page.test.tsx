@@ -102,6 +102,62 @@ describe('BookPreviewPage', () => {
     expect(screen.getByTestId('book-preview-pdf').getAttribute('src')).toContain('#page=41');
   });
 
+  it('renders indented sous-titre sub-entries under their chapter when present', async () => {
+    vi.mocked(getBookPreviewDataAction).mockResolvedValue({
+      success: true,
+      data: {
+        ...bookPreviewData,
+        chapters: [
+          {
+            id: 'ch-1',
+            title: 'Chapitre 1',
+            pageNumber: 5,
+            subEntries: [{ anchorId: 'chapter-ch-1-soustitre-0', title: 'Sous-titre A', pageNumber: 6 }],
+          },
+          { id: 'ch-2', title: 'Chapitre 2', pageNumber: 41 },
+        ],
+      },
+    } as never);
+    render(<BookPreviewPage />);
+    await flushMicrotasks();
+
+    expect(screen.getByRole('button', { name: 'Sous-titre A' })).toBeInTheDocument();
+  });
+
+  it('jumps to the sous-titre page via the #page anchor when a sub-entry is clicked', async () => {
+    vi.mocked(getBookPreviewDataAction).mockResolvedValue({
+      success: true,
+      data: {
+        ...bookPreviewData,
+        chapters: [
+          {
+            id: 'ch-1',
+            title: 'Chapitre 1',
+            pageNumber: 5,
+            subEntries: [{ anchorId: 'chapter-ch-1-soustitre-0', title: 'Sous-titre A', pageNumber: 6 }],
+          },
+          { id: 'ch-2', title: 'Chapitre 2', pageNumber: 41 },
+        ],
+      },
+    } as never);
+    render(<BookPreviewPage />);
+    await flushMicrotasks();
+
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Sous-titre A' }));
+    });
+
+    expect(screen.getByTestId('book-preview-pdf').getAttribute('src')).toContain('#page=6');
+  });
+
+  it('renders no sub-entries when a chapter has none', async () => {
+    vi.mocked(getBookPreviewDataAction).mockResolvedValue({ success: true, data: bookPreviewData } as never);
+    render(<BookPreviewPage />);
+    await flushMicrotasks();
+
+    expect(screen.queryByRole('button', { name: 'Sous-titre A' })).not.toBeInTheDocument();
+  });
+
   it('hides the PDF preview and explains why for the passerelle profile', async () => {
     vi.mocked(getBookPreviewDataAction).mockResolvedValue({
       success: true,

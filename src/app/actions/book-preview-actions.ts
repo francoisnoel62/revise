@@ -5,8 +5,10 @@
 
 import type { JSONContent } from '@tiptap/core';
 import type { FrontMatterData } from '@/domain/interfaces/DocumentExporter';
+import type { BookPreviewCacheEntry } from '@/domain/entities/BookPreviewCacheEntry';
 import { PublicationProfile, type PublicationProfileId } from '@/domain/value-objects/PublicationProfile';
 import { computeBookPreviewContentHash } from '@/application/services/bookPreviewContentHash';
+import { tagSubtitleHeadings } from '@/application/services/subtitleAnchors';
 import {
   BOOK_PREVIEW_PROFILES,
   type BookPreviewProfileId,
@@ -79,6 +81,7 @@ export async function getBookPreviewDataAction(
     const profileId: BookPreviewProfileId =
       requestedProfileId ?? (isPreviewProfile(activeProfileId) ? activeProfileId : 'kdp-6x9');
     const levelStyles = settings?.getLevelStyleSet(profileId)?.values;
+    const tocPreferences = settings?.getTocPreferences() ?? { depth: 'chapters', style: 'classique' };
 
     const orderedChapters = project
       .getChapters()
@@ -89,6 +92,8 @@ export async function getBookPreviewDataAction(
       chapters: orderedChapters.map((ch) => ({ id: ch.getId(), content: ch.getContent() })),
       frontMatter,
       levelStyles,
+      tocDepth: tocPreferences.depth,
+      tocStyle: tocPreferences.style,
     });
 
     const cacheRepo = await getBookPreviewCacheRepo();
@@ -109,18 +114,29 @@ export async function getBookPreviewDataAction(
         frontMatter,
         contentHash,
         levelStyles,
+        tocDepth: tocPreferences.depth,
+        tocStyle: tocPreferences.style,
         assetBaseUrl,
       });
       await cacheRepo.save(computed, pdf);
       entry = computed;
     }
 
+    const resolvedEntry = entry;
     const titleById = new Map(orderedChapters.map((ch) => [ch.getId(), ch.getTitle()]));
-    const chapters: BookPreviewChapterNav[] = entry.getChapterOffsets().map((offset) => ({
-      id: offset.chapterId,
-      title: titleById.get(offset.chapterId) ?? '',
-      pageNumber: offset.pageNumber,
-    }));
+    const contentById = new Map(orderedChapters.map((ch) => [ch.getId(), ch.getContent()]));
+    const chapters: BookPreviewChapterNav[] = resolvedEntry.getChapterOffsets().map((offset) => {
+      const subEntries =
+        tocPreferences.depth === 'chapters-and-subtitles'
+          ? buildSubtitleNav(resolvedEntry, contentById.get(offset.chapterId), offset.chapterId)
+          : [];
+      return {
+        id: offset.chapterId,
+        title: titleById.get(offset.chapterId) ?? '',
+        pageNumber: offset.pageNumber,
+        ...(subEntries.length > 0 ? { subEntries } : {}),
+      };
+    });
 
     return {
       projectTitle: project.getTitle(),
@@ -128,8 +144,23 @@ export async function getBookPreviewDataAction(
       isPasserelle: false,
       availableProfiles: BOOK_PREVIEW_PROFILES,
       chapters,
-      totalPageCount: entry.getTotalPageCount(),
-      frontMatterPageCount: entry.getFrontMatterPageCount(),
+      totalPageCount: resolvedEntry.getTotalPageCount(),
+      frontMatterPageCount: resolvedEntry.getFrontMatterPageCount(),
     };
+  });
+}
+
+/** Sous-titre nav entries for a chapter, with resolved page numbers; empty when unresolved or absent. */
+function buildSubtitleNav(
+  entry: BookPreviewCacheEntry,
+  content: string | undefined,
+  chapterId: string,
+): Array<{ anchorId: string; title: string; pageNumber: number }> {
+  if (!content) return [];
+  const { subEntries } = tagSubtitleHeadings(JSON.parse(content) as JSONContent, `chapter-${chapterId}`);
+
+  return subEntries.flatMap((sub) => {
+    const pageNumber = entry.pageForSubtitle(sub.anchorId);
+    return pageNumber === null ? [] : [{ anchorId: sub.anchorId, title: sub.title, pageNumber }];
   });
 }
