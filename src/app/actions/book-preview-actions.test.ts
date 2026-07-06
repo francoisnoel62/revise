@@ -313,5 +313,18 @@ describe('getBookPreviewDataAction', () => {
       const data = result.success ? result.data : null;
       expect(data!.chapters[0].subEntries).toBeUndefined();
     });
+
+    it('invalidates every profile cache entry when toc settings change (global setting, unlike per-profile typography)', async () => {
+      // Both profiles were cached under the old toc preferences.
+      cacheRepo.loadMetrics.mockImplementation(async () => cachedEntry(hashFor(undefined, undefined, DEFAULT_TOC_PREFS)));
+      tocPreferences = { depth: 'chapters-and-subtitles', style: 'litteraire' };
+
+      await getBookPreviewDataAction('proj-1');
+      expect(computer.compute).toHaveBeenCalledTimes(1);
+
+      computer.compute.mockClear();
+      await getBookPreviewDataAction('proj-1', 'a5');
+      expect(computer.compute).toHaveBeenCalledTimes(1);
+    });
   });
 });
