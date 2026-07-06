@@ -6,6 +6,7 @@ import type { BookPreviewCacheRepository } from '@/domain/interfaces/BookPreview
 import {
   BookPreviewCacheEntry,
   type ChapterPageOffset,
+  type SubtitlePageOffset,
 } from '@/domain/entities/BookPreviewCacheEntry';
 import type { PublicationProfileId } from '@/domain/value-objects/PublicationProfile';
 
@@ -20,6 +21,7 @@ interface BookPreviewCacheDocument {
   frontMatterPageCount: number;
   totalPageCount: number;
   chapterOffsets: ChapterPageOffset[];
+  subtitleOffsets?: SubtitlePageOffset[];
   computedAt: Date;
 }
 
@@ -54,6 +56,7 @@ export class MongoDBBookPreviewCacheRepository implements BookPreviewCacheReposi
         frontMatterPageCount: entry.getFrontMatterPageCount(),
         totalPageCount: entry.getTotalPageCount(),
         chapterOffsets: [...entry.getChapterOffsets()],
+        subtitleOffsets: [...entry.getSubtitleOffsets()],
         computedAt: entry.getComputedAt(),
       },
       { upsert: true },
@@ -78,6 +81,7 @@ export class MongoDBBookPreviewCacheRepository implements BookPreviewCacheReposi
       frontMatterPageCount: doc.frontMatterPageCount,
       totalPageCount: doc.totalPageCount,
       chapterOffsets: doc.chapterOffsets,
+      subtitleOffsets: doc.subtitleOffsets ?? [],
       computedAt: doc.computedAt,
     });
   }

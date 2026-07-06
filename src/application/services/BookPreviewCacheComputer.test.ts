@@ -16,6 +16,7 @@ const CANNED_METRICS = {
     { chapterId: 'ch-1', pageNumber: 5 },
     { chapterId: 'ch-2', pageNumber: 41 },
   ],
+  subtitleOffsets: [{ anchorId: 'chapter-ch-1-soustitre-0', pageNumber: 6 }],
 };
 
 function makeFake() {
@@ -97,5 +98,62 @@ describe('BookPreviewCacheComputer', () => {
     const opts = pdf.mock.calls[0][0] as PdfPrintOptions;
     expect(opts.width).toBe('5.83in');
     expect(opts.height).toBe('8.27in');
+  });
+
+  describe('toc settings (depth + style)', () => {
+    const subtitleDoc = (title: string, subtitle: string): JSONContent => ({
+      type: 'doc',
+      content: [
+        { type: 'heading', attrs: { level: 1, semanticRole: 'titre-de-chapitre' }, content: [{ type: 'text', text: title }] },
+        { type: 'heading', attrs: { level: 2, semanticRole: 'sous-titre' }, content: [{ type: 'text', text: subtitle }] },
+      ],
+    });
+
+    it('tags sous-titre headings with anchors when tocDepth is "chapters-and-subtitles"', async () => {
+      const { launcher, setContent } = makeFake();
+      const computer = new BookPreviewCacheComputer(launcher, () => new Date());
+
+      await computer.compute({
+        ...input(),
+        chapters: [{ id: 'ch-1', title: 'Chapitre 1', content: subtitleDoc('Chapitre 1', 'Sous-titre A') }],
+        tocDepth: 'chapters-and-subtitles',
+      });
+
+      const html = setContent.mock.calls[0][0] as string;
+      expect(html).toContain('id="chapter-ch-1-soustitre-0"');
+    });
+
+    it('does not tag sous-titre headings when tocDepth is omitted (unchanged default)', async () => {
+      const { launcher, setContent } = makeFake();
+      const computer = new BookPreviewCacheComputer(launcher, () => new Date());
+
+      await computer.compute({
+        ...input(),
+        chapters: [{ id: 'ch-1', title: 'Chapitre 1', content: subtitleDoc('Chapitre 1', 'Sous-titre A') }],
+      });
+
+      const html = setContent.mock.calls[0][0] as string;
+      expect(html).not.toContain('id="chapter-ch-1-soustitre-0"');
+    });
+
+    it('passes tocStyle through to the rendered nav design class', async () => {
+      const { launcher, setContent } = makeFake();
+      const computer = new BookPreviewCacheComputer(launcher, () => new Date());
+
+      await computer.compute({ ...input(), tocStyle: 'epure' });
+
+      const html = setContent.mock.calls[0][0] as string;
+      expect(html).toMatch(/<nav[^>]*class="[^"]*toc--epure/);
+    });
+
+    it('extracts subtitleOffsets metrics into the cache entry', async () => {
+      const { launcher } = makeFake();
+      const computer = new BookPreviewCacheComputer(launcher, () => new Date());
+
+      const { entry } = await computer.compute({ ...input(), tocDepth: 'chapters-and-subtitles' });
+
+      expect(entry.getSubtitleOffsets()).toEqual([{ anchorId: 'chapter-ch-1-soustitre-0', pageNumber: 6 }]);
+      expect(entry.pageForSubtitle('chapter-ch-1-soustitre-0')).toBe(6);
+    });
   });
 });

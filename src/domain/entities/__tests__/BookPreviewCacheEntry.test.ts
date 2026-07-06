@@ -70,4 +70,34 @@ describe('BookPreviewCacheEntry', () => {
       BookPreviewCacheEntry.create({ ...baseProps, contentHash: '' }, new Date()),
     ).toThrow(/contentHash/);
   });
+
+  describe('subtitleOffsets (sous-titre navigation, #page=N)', () => {
+    const withSubtitles = {
+      ...baseProps,
+      subtitleOffsets: [
+        { anchorId: 'chapter-ch-1-soustitre-0', pageNumber: 6 },
+        { anchorId: 'chapter-ch-2-soustitre-0', pageNumber: 42 },
+      ],
+    };
+
+    it('defaults to an empty array when omitted', () => {
+      const entry = BookPreviewCacheEntry.create(baseProps, new Date());
+      expect(entry.getSubtitleOffsets()).toEqual([]);
+    });
+
+    it('stores and returns subtitle offsets when provided', () => {
+      const entry = BookPreviewCacheEntry.create(withSubtitles, new Date());
+      expect(entry.getSubtitleOffsets()).toEqual(withSubtitles.subtitleOffsets);
+    });
+
+    it('resolves the physical PDF page for a known subtitle anchor', () => {
+      const entry = BookPreviewCacheEntry.create(withSubtitles, new Date());
+      expect(entry.pageForSubtitle('chapter-ch-2-soustitre-0')).toBe(42);
+    });
+
+    it('returns null when asked for an unknown subtitle anchor', () => {
+      const entry = BookPreviewCacheEntry.create(withSubtitles, new Date());
+      expect(entry.pageForSubtitle('unknown-anchor')).toBeNull();
+    });
+  });
 });
