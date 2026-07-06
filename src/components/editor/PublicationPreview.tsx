@@ -14,6 +14,7 @@ import {
 } from '@/domain/value-objects/PublicationProfile';
 import { PagedJsRenderer } from '@/infrastructure/document/paged/PagedJsRenderer';
 import { TipTapToBookHtml } from '@/infrastructure/document/paged/TipTapToBookHtml';
+import type { LevelStyleSetProperties } from '@/domain/value-objects/LevelStyleSet';
 
 const renderer = new PagedJsRenderer();
 const converter = new TipTapToBookHtml();
@@ -33,6 +34,7 @@ interface PublicationPreviewProps {
   readonly startPageNumber?: number;
   /** Called with the total page count whenever the iframe finishes rendering. */
   readonly onPageCountChange?: (count: number) => void;
+  readonly levelStyles?: LevelStyleSetProperties;
 }
 
 export function PublicationPreview({
@@ -41,6 +43,7 @@ export function PublicationPreview({
   overrides,
   startPageNumber,
   onPageCountChange,
+  levelStyles,
 }: PublicationPreviewProps) {
   const [renderedContent, setRenderedContent] = useState(content);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -72,8 +75,9 @@ export function PublicationPreview({
       assetBaseUrl:
         typeof window === 'undefined' ? 'http://localhost:3000' : window.location.origin,
       startPageNumber,
+      levelStyles,
     });
-  }, [overrides, profileId, renderedContent, startPageNumber]);
+  }, [levelStyles, overrides, profileId, renderedContent, startPageNumber]);
 
   const label = profileId === 'passerelle' ? 'Passerelle' : 'KDP 6×9';
 

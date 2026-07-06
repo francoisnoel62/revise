@@ -6,6 +6,8 @@ import {
   computeBookPreviewContentHash,
   type BookPreviewContentHashInput,
 } from './bookPreviewContentHash';
+import { LevelStyleSet } from '@/domain/value-objects/LevelStyleSet';
+import { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
 
 const base: BookPreviewContentHashInput = {
   chapters: [
@@ -66,6 +68,21 @@ describe('computeBookPreviewContentHash', () => {
   it('changes when the author name changes', () => {
     const changed = { ...base, frontMatter: { ...base.frontMatter, authorName: 'Quelqu’un' } };
     expect(computeBookPreviewContentHash(changed)).not.toBe(computeBookPreviewContentHash(base));
+  });
+
+  it('changes when typography for the cache profile changes', () => {
+    const defaults = LevelStyleSet.defaultsFor(PublicationProfile.kdpSixByNine()).values;
+    const customized = LevelStyleSet.create({
+      ...defaults,
+      'titre-de-chapitre': {
+        ...defaults['titre-de-chapitre'],
+        fontSizePoints: 22,
+      },
+    }).values;
+
+    expect(
+      computeBookPreviewContentHash({ ...base, levelStyles: customized }),
+    ).not.toBe(computeBookPreviewContentHash({ ...base, levelStyles: defaults }));
   });
 
   it('treats an absent optional field differently from an empty string', () => {

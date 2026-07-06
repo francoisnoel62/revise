@@ -26,7 +26,12 @@ export class PagedJsRenderer implements PagedRenderer {
 
     // Liminal pages suppress the Arabic 'page' increment (see BookCssBuilder), so the
     // first body page reads "1" while the front matter is numbered in roman folios.
-    const css = this.cssBuilder.build(request.profile, assets, request.startPageNumber);
+    const css = this.cssBuilder.build(
+      request.profile,
+      assets,
+      request.startPageNumber,
+      request.levelStyles,
+    );
 
     const fullBodyHtml = hasLiminals
       ? `${frontMatterHtml}\n${tocHtml}\n<div class="body-matter">${request.bodyHtml}</div>`

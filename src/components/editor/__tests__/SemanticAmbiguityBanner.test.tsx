@@ -9,7 +9,7 @@ import type { MigrationAmbiguity } from '@/application/migration/ContentMigrator
 
 const ambiguities: MigrationAmbiguity[] = [
   { nodeIndex: 2, reason: 'Paragraphe centré (textAlign: center) — rôle ambigu, classifié comme corps. Vérifier si c\'est une épigraphe.' },
-  { nodeIndex: 5, reason: 'Titre de niveau 2 — rôle non détectable automatiquement. Reclassifier manuellement (sous-titre, citation, etc.).' },
+  { nodeIndex: 5, reason: 'Paragraphe centré (textAlign: center) — rôle ambigu, classifié comme corps. Vérifier si c\'est une épigraphe.' },
 ];
 
 describe('SemanticAmbiguityBanner', () => {
@@ -27,8 +27,7 @@ describe('SemanticAmbiguityBanner', () => {
 
   it('displays each ambiguity reason', () => {
     render(<SemanticAmbiguityBanner ambiguities={ambiguities} onDismiss={vi.fn()} />);
-    expect(screen.getByText(/Vérifier si c'est une épigraphe/i)).toBeInTheDocument();
-    expect(screen.getByText(/Reclassifier manuellement/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Vérifier si c'est une épigraphe/i)).toHaveLength(2);
   });
 
   it('shows the count of ambiguous nodes in the heading', () => {

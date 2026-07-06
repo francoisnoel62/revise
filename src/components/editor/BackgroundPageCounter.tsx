@@ -12,6 +12,7 @@ import {
 } from '@/domain/value-objects/PublicationProfile';
 import { PagedJsRenderer } from '@/infrastructure/document/paged/PagedJsRenderer';
 import { TipTapToBookHtml } from '@/infrastructure/document/paged/TipTapToBookHtml';
+import type { LevelStyleSetProperties } from '@/domain/value-objects/LevelStyleSet';
 
 const renderer = new PagedJsRenderer();
 const converter = new TipTapToBookHtml();
@@ -24,6 +25,7 @@ interface BackgroundPageCounterProps {
   readonly profileId: PublicationProfileId;
   /** Called once the hidden iframe reports the page count. */
   readonly onPageCount: (chapterId: string, count: number) => void;
+  readonly levelStyles?: LevelStyleSetProperties;
 }
 
 /**
@@ -36,6 +38,7 @@ export function BackgroundPageCounter({
   content,
   profileId,
   onPageCount,
+  levelStyles,
 }: BackgroundPageCounterProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const currentChapterIdRef = useRef<string | null>(chapterId);
@@ -69,11 +72,12 @@ export function BackgroundPageCounter({
         profile: PublicationProfile.fromId(profileId),
         assetBaseUrl: typeof window === 'undefined' ? 'http://localhost:3000' : window.location.origin,
         sourceId: chapterId,
+        levelStyles,
       });
     } catch {
       return null;
     }
-  }, [chapterId, content, profileId]);
+  }, [chapterId, content, levelStyles, profileId]);
 
   if (!html) return null;
 

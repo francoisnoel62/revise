@@ -14,17 +14,24 @@ export function useSemanticMigration(
   useEffect(() => {
     if (!editor) return;
 
-    setAmbiguities([]);
-
     const raw = editor.getJSON();
     const result = migrateContent(raw as Parameters<typeof migrateContent>[0]);
 
     if (!result.wasAlreadyMigrated) {
       editor.commands.setContent(result.content, { emitUpdate: true });
-      setAmbiguities(result.ambiguities);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chapterId]); // Run only when the active chapter changes, not on every editor update
+
+    let cancelled = false;
+    globalThis.queueMicrotask(() => {
+      if (!cancelled) {
+        setAmbiguities(result.wasAlreadyMigrated ? [] : result.ambiguities);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [chapterId, editor]); // Run when TipTap becomes ready and when the active chapter changes
 
   return {
     ambiguities,

@@ -3,6 +3,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
+import { LevelStyleSet } from '@/domain/value-objects/LevelStyleSet';
 import { BookCssBuilder } from './BookCssBuilder';
 
 describe('BookCssBuilder', () => {
@@ -159,13 +160,66 @@ describe('BookCssBuilder', () => {
       throw new Error(`No font-size declared for selector "${selector}"`);
     }
 
-    it('renders subtitles (h2) smaller than chapter titles (h1)', () => {
+    function selectorBlock(css: string, selector: string): string {
+      for (const block of css.split('}')) {
+        const braceIndex = block.indexOf('{');
+        if (braceIndex === -1) continue;
+        if (block.slice(0, braceIndex).trim() === selector) return block.slice(braceIndex + 1);
+      }
+      throw new Error(`No block declared for selector "${selector}"`);
+    }
+
+    it('renders semantic subtitles smaller than semantic chapter titles', () => {
       const css = new BookCssBuilder().build(
         PublicationProfile.kdpSixByNine(),
         'http://localhost:3000'
       );
 
-      expect(selectorFontSizePt(css, 'h2')).toBeLessThan(selectorFontSizePt(css, 'h1'));
+      expect(selectorFontSizePt(css, '[data-semantic-role="sous-titre"]')).toBeLessThan(
+        selectorFontSizePt(css, '[data-semantic-role="titre-de-chapitre"]'),
+      );
+    });
+
+    it('keeps the current 14pt/12pt/body-profile defaults without raw heading typography', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000',
+      );
+
+      expect(selectorFontSizePt(css, '[data-semantic-role="titre-de-chapitre"]')).toBe(14);
+      expect(selectorFontSizePt(css, '[data-semantic-role="sous-titre"]')).toBe(12);
+      expect(selectorFontSizePt(css, '[data-semantic-role="corps"]')).toBe(11);
+      expect(() => selectorFontSizePt(css, 'h1')).toThrow('No font-size declared');
+      expect(() => selectorFontSizePt(css, 'h2')).toThrow('No font-size declared');
+    });
+
+    it('emits every customized attribute for one semantic role independently', () => {
+      const profile = PublicationProfile.kdpSixByNine();
+      const defaults = LevelStyleSet.defaultsFor(profile).values;
+      const css = new BookCssBuilder().build(profile, 'http://localhost:3000', undefined, {
+        ...defaults,
+        'sous-titre': {
+          fontSizePoints: 18,
+          fontWeight: 'normal',
+          italic: true,
+          alignment: 'right',
+          lineHeight: 1.4,
+          spaceBeforePoints: 31,
+          spaceAfterPoints: 17,
+          fontFamily: 'Arial',
+        },
+      });
+      const block = selectorBlock(css, '[data-semantic-role="sous-titre"]');
+
+      expect(block).toContain("font-family: 'Arial', sans-serif");
+      expect(block).toContain('font-size: 18pt');
+      expect(block).toContain('font-weight: 400');
+      expect(block).toContain('font-style: italic');
+      expect(block).toContain('text-align: right');
+      expect(block).toContain('line-height: 1.4');
+      expect(block).toContain('margin-top: 31pt');
+      expect(block).toContain('margin-bottom: 17pt');
+      expect(selectorFontSizePt(css, '[data-semantic-role="titre-de-chapitre"]')).toBe(14);
     });
   });
 

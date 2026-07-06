@@ -53,6 +53,37 @@ export const TIPTAP_EXTENSIONS = [
   }),
 ];
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function assignImportedSemanticRoles(node: any): any {
+  const content = Array.isArray(node.content)
+    ? node.content.map(assignImportedSemanticRoles)
+    : node.content;
+
+  if (node.type === 'heading' && !node.attrs?.semanticRole) {
+    return {
+      ...node,
+      attrs: {
+        ...(node.attrs ?? {}),
+        semanticRole: node.attrs?.level === 1 ? 'titre-de-chapitre' : 'sous-titre',
+      },
+      ...(content !== undefined ? { content } : {}),
+    };
+  }
+
+  if (node.type === 'paragraph' && !node.attrs?.semanticRole) {
+    return {
+      ...node,
+      attrs: { ...(node.attrs ?? {}), semanticRole: 'corps' },
+      ...(content !== undefined ? { content } : {}),
+    };
+  }
+
+  return {
+    ...node,
+    ...(content !== undefined ? { content } : {}),
+  };
+}
+
 /**
  * Convert HTML to TipTap JSON
  * @param html - HTML string (from mammoth or other source)
@@ -61,7 +92,7 @@ export const TIPTAP_EXTENSIONS = [
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function htmlToTipTapJSON(html: string): any {
   try {
-    return generateJSON(html, TIPTAP_EXTENSIONS);
+    return assignImportedSemanticRoles(generateJSON(html, TIPTAP_EXTENSIONS));
   } catch (error) {
     // If conversion fails, return empty document
     console.error('Failed to convert HTML to TipTap JSON:', error);

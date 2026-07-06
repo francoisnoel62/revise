@@ -9,6 +9,7 @@ import type { BrowserLauncher } from '@/infrastructure/document/paged/BrowserLau
 import { PagedJsRenderer } from '@/infrastructure/document/paged/PagedJsRenderer';
 import { TipTapToBookHtml } from '@/infrastructure/document/paged/TipTapToBookHtml';
 import { WholeBookHtmlAssembler } from './WholeBookHtmlAssembler';
+import type { LevelStyleSetProperties } from '@/domain/value-objects/LevelStyleSet';
 
 export interface BookPreviewComputeInput {
   readonly projectId: string;
@@ -18,6 +19,7 @@ export interface BookPreviewComputeInput {
   readonly frontMatter: FrontMatterData;
   readonly contentHash: string;
   readonly assetBaseUrl: string;
+  readonly levelStyles?: LevelStyleSetProperties;
 }
 
 export interface BookPreviewComputeResult {
@@ -52,6 +54,7 @@ export class BookPreviewCacheComputer {
       assetBaseUrl: input.assetBaseUrl,
       frontMatter: input.frontMatter,
       toc: tocEntries.length > 0 ? [...tocEntries] : undefined,
+      levelStyles: input.levelStyles,
     });
 
     const value = input.profile.values;

@@ -184,7 +184,7 @@ describe('migrateContent', () => {
       expect(node.attrs?.textAlign).toBeUndefined();
     });
 
-    it('does not assign semanticRole to heading level 2+', () => {
+    it('assigns semanticRole sous-titre to heading level 2+', () => {
       const input = doc({
         type: 'heading',
         attrs: { level: 2 },
@@ -192,7 +192,8 @@ describe('migrateContent', () => {
       });
       const result = migrateContent(input);
 
-      expect(result.content.content![0].attrs?.semanticRole).toBeUndefined();
+      expect(result.content.content![0].attrs?.semanticRole).toBe('sous-titre');
+      expect(result.ambiguities).toHaveLength(0);
     });
   });
 
@@ -287,6 +288,24 @@ describe('migrateContent', () => {
       const twice = migrateContent(once.content);
       expect(twice.content).toEqual(once.content);
     });
+
+    it('treats content containing a subtitle as already migrated on the second pass', () => {
+      // Regression: a heading level 2+ used to be left without a semanticRole, so
+      // isAlreadyMigrated never saw it as done and the migration (and its ambiguity
+      // banner) resurfaced on every load. Subtitles now carry sous-titre, so the
+      // second pass is a true no-op.
+      const input = doc(
+        headingWithStyle(1, 'Chapter', { fontFamily: 'Georgia' }),
+        { type: 'heading', attrs: { level: 2 }, content: [textNode('A subtitle')] },
+        paragraph({ textAlign: 'justify' }, textNode('Body'))
+      );
+
+      const once = migrateContent(input);
+      const twice = migrateContent(once.content);
+
+      expect(twice.wasAlreadyMigrated).toBe(true);
+      expect(twice.content).toEqual(once.content);
+    });
   });
 
   describe('edge cases', () => {
@@ -296,7 +315,7 @@ describe('migrateContent', () => {
       expect(result.content.content![0].attrs?.semanticRole).toBe('corps');
     });
 
-    it('handles heading level 2+ — strips textStyle, no semanticRole added, flags as ambiguous', () => {
+    it('handles heading level 2+ — strips textStyle, assigns sous-titre, no ambiguity', () => {
       const input = doc({
         type: 'heading',
         attrs: { level: 2 },
@@ -308,12 +327,12 @@ describe('migrateContent', () => {
 
       const node = result.content.content![0];
       expect(node.attrs?.level).toBe(2);
+      expect(node.attrs?.semanticRole).toBe('sous-titre');
       expect(node.content![0].marks).toBeUndefined();
-      expect(result.ambiguities).toHaveLength(1);
-      expect(result.ambiguities[0].reason).toMatch(/niveau 2|level 2/i);
+      expect(result.ambiguities).toHaveLength(0);
     });
 
-    it('flags heading level 3+ as ambiguous with correct nodeIndex', () => {
+    it('assigns sous-titre to heading level 3+ as well', () => {
       const input = doc(
         paragraph(null, textNode('Intro')),
         {
@@ -323,7 +342,8 @@ describe('migrateContent', () => {
         },
       );
       const result = migrateContent(input);
-      expect(result.ambiguities[0].nodeIndex).toBe(1);
+      expect(result.content.content![1].attrs?.semanticRole).toBe('sous-titre');
+      expect(result.ambiguities).toHaveLength(0);
     });
 
     it('heading that duplicates chapter title (same text as chapter) is still migrated normally', () => {

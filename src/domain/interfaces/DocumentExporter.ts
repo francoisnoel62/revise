@@ -4,6 +4,7 @@
 import { Project } from '../entities/Project';
 import { Chapter } from '../entities/Chapter';
 import type { PublicationProfile } from '../value-objects/PublicationProfile';
+import type { LevelStyleSetProperties } from '../value-objects/LevelStyleSet';
 
 /**
  * Front matter pages data for KDP export (half-title, title page, copyright, dedication, epigraph).
@@ -40,6 +41,8 @@ export interface ExportOptions {
    * Defaults to KDP 6×9 when not provided.
    */
   publicationProfile?: PublicationProfile;
+  /** Per-role typography for the selected PDF profile. Ignored by DOCX. */
+  levelStyles?: LevelStyleSetProperties;
 }
 
 export interface DocumentExporter {

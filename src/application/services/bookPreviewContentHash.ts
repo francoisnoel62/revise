@@ -3,11 +3,14 @@
 
 import type { FrontMatterData } from '@/domain/interfaces/DocumentExporter';
 import { hashText } from '@/application/utils/text-hash';
+import type { LevelStyleSetProperties } from '@/domain/value-objects/LevelStyleSet';
 
 export interface BookPreviewContentHashInput {
   /** Chapters in reading order; ordering is part of the fingerprint. */
   readonly chapters: ReadonlyArray<{ readonly id: string; readonly content: string }>;
   readonly frontMatter: FrontMatterData;
+  /** Styles for the cache profile only; the profile id itself remains part of the key. */
+  readonly levelStyles?: LevelStyleSetProperties;
 }
 
 /**
@@ -29,6 +32,7 @@ export function computeBookPreviewContentHash(input: BookPreviewContentHashInput
       isbn: fm.isbn ?? null,
       copyrightYear: fm.copyrightYear ?? null,
     },
+    levelStyles: input.levelStyles ?? null,
   };
 
   return hashText(JSON.stringify(normalized));

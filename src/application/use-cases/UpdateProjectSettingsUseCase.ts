@@ -10,6 +10,7 @@ import { PointOfView, NarrationTense, TargetAudience } from '@/domain/value-obje
 import { AutocompletePreferences } from '@/domain/value-objects/AutocompletePreferences';
 import { CanonExtractionPreferences } from '@/domain/value-objects/CanonExtractionPreferences';
 import type { PublicationProfileId } from '@/domain/value-objects/PublicationProfile';
+import type { LevelStyleSetProperties } from '@/domain/value-objects/LevelStyleSet';
 
 export interface ProjectSettingsUpdates {
   title?: string;
@@ -28,6 +29,10 @@ export interface ProjectSettingsUpdates {
   customDictionary?: string[];
   ignoredWords?: string[];
   publicationProfileId?: PublicationProfileId;
+  levelStyles?: {
+    profileId: PublicationProfileId;
+    styles: LevelStyleSetProperties;
+  };
 }
 
 export interface UpdateProjectSettingsInput {
@@ -121,6 +126,13 @@ export class UpdateProjectSettingsUseCase {
 
     if ('publicationProfileId' in updates) {
       updated = updated.updatePublicationProfile(updates.publicationProfileId!);
+    }
+
+    if ('levelStyles' in updates) {
+      updated = updated.updateLevelStyleSet(
+        updates.levelStyles!.profileId,
+        updates.levelStyles!.styles,
+      );
     }
 
     return this.repository.update(input.userId, updated);

@@ -28,6 +28,7 @@ import { DocumentExporter } from '@/domain/interfaces/DocumentExporter';
 // Import after mocks are set up
 import { exportProject, exportProjectPdf, exportProjectLegacy } from '../actions';
 import { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
+import { LevelStyleSet } from '@/domain/value-objects/LevelStyleSet';
 
 describe('export-actions', () => {
   let mockRepository: {
@@ -190,9 +191,11 @@ describe('export-actions', () => {
   describe('exportProjectPdf', () => {
     it('exports with the PublicationProfile derived from the active profile setting', async () => {
       vi.mocked(getAuthenticatedUserId).mockResolvedValue({ userId: 'user-123' });
+      const levelStyles = LevelStyleSet.defaultsFor(PublicationProfile.a5());
       mockSettingsRepository.findByProjectId.mockResolvedValue({
         getCoverImageUrl: () => undefined,
         getPublicationProfileId: () => 'a5',
+        getLevelStyleSet: () => levelStyles,
       });
 
       const chapter = new Chapter('ch-1', 'Chapter 1', '{"type":"doc","content":[]}', 0);
@@ -214,7 +217,10 @@ describe('export-actions', () => {
       expect(mockExporter.exportProject).toHaveBeenCalledWith(
         project,
         'My Novel.pdf',
-        expect.objectContaining({ publicationProfile: PublicationProfile.fromId('a5') })
+        expect.objectContaining({
+          publicationProfile: PublicationProfile.fromId('a5'),
+          levelStyles: levelStyles.values,
+        })
       );
     });
 

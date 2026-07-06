@@ -63,9 +63,18 @@ import {
 import type { AnalysisIssueData } from '@/components/analysis/AnalysisIssueCard';
 import type { AnalysisSummaryStats } from '@/components/analysis/AnalysisSummaryCard';
 import { PublicationProfileSelector } from '@/components/editor/PublicationProfileSelector';
+import { LevelStylesPanel } from '@/components/editor/LevelStylesPanel';
 import { PublicationPreview } from '@/components/editor/PublicationPreview';
 import { BackgroundPageCounter } from '@/components/editor/BackgroundPageCounter';
-import type { PublicationProfileId } from '@/domain/value-objects/PublicationProfile';
+import {
+  PublicationProfile,
+  type PublicationProfileId,
+} from '@/domain/value-objects/PublicationProfile';
+import { LevelStyleSet, type LevelStyleSetProperties } from '@/domain/value-objects/LevelStyleSet';
+import type {
+  LevelStylesByProfile,
+  PdfPublicationProfileId,
+} from '@/domain/entities/ProjectSettings';
 import type { PresentationOverrideLayer } from '@/domain/value-objects/PresentationOverride';
 import type { ContentNode } from '@/domain/value-objects/ContentNode';
 import { useBookPageOffset } from '@/hooks/useBookPageOffset';
@@ -122,8 +131,14 @@ function EditorContent() {
     useState<PublicationProfileId>('kdp-6x9');
   const [presentationOverrides, setPresentationOverrides] =
     useState<PresentationOverrideLayer>([]);
+  const [levelStylesByProfile, setLevelStylesByProfile] =
+    useState<LevelStylesByProfile>({});
   const [isProfileSaving, setIsProfileSaving] = useState(false);
+  const [isLevelStylesSaving, setIsLevelStylesSaving] = useState(false);
   const overrideSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const levelStyleSaveTimersRef = useRef<
+    Partial<Record<PdfPublicationProfileId, ReturnType<typeof setTimeout>>>
+  >({});
 
   // Book-wide page offset tracking
   const { startPageNumber, onPageCountChange, nextChapterIdToRender } = useBookPageOffset({
@@ -155,6 +170,7 @@ function EditorContent() {
         setAutocompleteEnabled(result.settings.autocompletePreferences.enabled);
         setCanonExtractionPrefs(result.settings.canonExtractionPreferences);
         setPublicationProfileId(result.settings.publicationProfileId);
+        setLevelStylesByProfile(result.settings.levelStylesByProfile);
       }
     });
   }, [project?.id]);
@@ -179,6 +195,7 @@ function EditorContent() {
   useEffect(
     () => () => {
       if (overrideSaveTimerRef.current) clearTimeout(overrideSaveTimerRef.current);
+      Object.values(levelStyleSaveTimersRef.current).forEach((timer) => clearTimeout(timer));
     },
     []
   );
@@ -223,6 +240,37 @@ function EditorContent() {
     }
     setIsProfileSaving(false);
   };
+
+  const handleLevelStylesChange = (
+    profileId: PdfPublicationProfileId,
+    styles: LevelStyleSetProperties,
+  ) => {
+    setLevelStylesByProfile((current) => ({ ...current, [profileId]: styles }));
+    if (!project) return;
+
+    const pendingTimer = levelStyleSaveTimersRef.current[profileId];
+    if (pendingTimer) clearTimeout(pendingTimer);
+    setIsLevelStylesSaving(true);
+    levelStyleSaveTimersRef.current[profileId] = setTimeout(async () => {
+      const result = await updateProjectSettingsAction(project.id, {
+        levelStyles: { profileId, styles },
+      });
+      if (!result.success) {
+        const reloaded = await loadProjectSettingsAction(project.id);
+        if (reloaded.success && reloaded.settings) {
+          setLevelStylesByProfile(reloaded.settings.levelStylesByProfile);
+        }
+      }
+      delete levelStyleSaveTimersRef.current[profileId];
+      setIsLevelStylesSaving(Object.keys(levelStyleSaveTimersRef.current).length > 0);
+    }, 400);
+  };
+
+  const activeLevelStyles =
+    publicationProfileId === 'passerelle'
+      ? undefined
+      : levelStylesByProfile[publicationProfileId] ??
+        LevelStyleSet.defaultsFor(PublicationProfile.fromId(publicationProfileId)).values;
 
   const { notification: canonNotification, dismissNotification: dismissCanonNotification } =
     useSessionEndTrigger({
@@ -771,7 +819,15 @@ function EditorContent() {
       {/* Toolbar sticky - responsive positioning for 3 breakpoints */}
       <div className="sticky top-13 lg:top-18.25 z-40 flex flex-col items-center py-1 lg:py-2 bg-slate-50 px-2 gap-2">
         <div className="w-full max-w-198.5">
-          <div className="mb-2 flex justify-end">
+          <div className="mb-2 flex justify-end gap-2">
+            {publicationProfileId !== 'passerelle' && activeLevelStyles && (
+              <LevelStylesPanel
+                profileId={publicationProfileId}
+                styles={activeLevelStyles}
+                onChange={(styles) => handleLevelStylesChange(publicationProfileId, styles)}
+                isSaving={isLevelStylesSaving}
+              />
+            )}
             <PublicationProfileSelector
               value={publicationProfileId}
               onChange={handlePublicationProfileChange}
@@ -851,6 +907,7 @@ function EditorContent() {
             onPageCountChange={(count) => {
               if (project.activeChapterId) onPageCountChange(project.activeChapterId, count);
             }}
+            levelStyles={activeLevelStyles}
           />
         }
       />
@@ -861,6 +918,7 @@ function EditorContent() {
         content={backgroundChapterContent}
         profileId={publicationProfileId}
         onPageCount={onPageCountChange}
+        levelStyles={activeLevelStyles}
       />
 
       {/* Loading overlay with author quotes */}

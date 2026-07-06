@@ -53,11 +53,19 @@ function getActiveSemanticRole(editor: Editor): SemanticStyleRole {
 function applySemanticStyle(editor: Editor, role: SemanticStyleRole): void {
   if (!editor.view || editor.isDestroyed) return;
   if (role === 'titre-de-chapitre') {
-    editor.chain().focus().setNode('heading', { level: 1 }).run();
+    editor
+      .chain()
+      .focus()
+      .setNode('heading', { level: 1, semanticRole: 'titre-de-chapitre' })
+      .run();
     return;
   }
   if (role === 'sous-titre') {
-    editor.chain().focus().setNode('heading', { level: 2 }).run();
+    editor
+      .chain()
+      .focus()
+      .setNode('heading', { level: 2, semanticRole: 'sous-titre' })
+      .run();
     return;
   }
   if (role === 'separateur-de-scene') {

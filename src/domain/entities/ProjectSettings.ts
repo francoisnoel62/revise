@@ -16,6 +16,15 @@ import {
   DEFAULT_CANON_EXTRACTION_PREFERENCES,
 } from '../value-objects/CanonExtractionPreferences';
 import type { PublicationProfileId } from '../value-objects/PublicationProfile';
+import {
+  LevelStyleSet,
+  type LevelStyleSetProperties,
+} from '../value-objects/LevelStyleSet';
+
+export type PdfPublicationProfileId = Exclude<PublicationProfileId, 'passerelle'>;
+export type LevelStylesByProfile = Partial<
+  Record<PdfPublicationProfileId, LevelStyleSetProperties>
+>;
 
 export interface ProjectSettingsProperties {
   id: string;
@@ -45,6 +54,7 @@ export interface ProjectSettingsProperties {
   customDictionary?: string[];
   ignoredWords?: string[];
   publicationProfileId?: PublicationProfileId;
+  levelStylesByProfile?: LevelStylesByProfile;
 }
 
 export class ProjectSettings {
@@ -75,6 +85,7 @@ export class ProjectSettings {
   private customDictionary: string[];
   private ignoredWords: string[];
   private publicationProfileId: PublicationProfileId;
+  private levelStylesByProfile: LevelStylesByProfile;
 
   private constructor(props: ProjectSettingsProperties) {
     this.validate(props);
@@ -106,6 +117,12 @@ export class ProjectSettings {
     this.customDictionary = [...(props.customDictionary ?? [])];
     this.ignoredWords = [...(props.ignoredWords ?? [])];
     this.publicationProfileId = props.publicationProfileId ?? 'kdp-6x9';
+    this.levelStylesByProfile = Object.fromEntries(
+      Object.entries(props.levelStylesByProfile ?? {}).map(([profileId, styles]) => [
+        profileId,
+        LevelStyleSet.create(styles).values,
+      ]),
+    ) as LevelStylesByProfile;
   }
 
   private validate(props: ProjectSettingsProperties): void {
@@ -228,6 +245,20 @@ export class ProjectSettings {
     return this.publicationProfileId;
   }
 
+  getLevelStyleSet(profileId: PdfPublicationProfileId): LevelStyleSet | undefined {
+    const styles = this.levelStylesByProfile[profileId];
+    return styles ? LevelStyleSet.create(styles) : undefined;
+  }
+
+  getLevelStylesByProfile(): LevelStylesByProfile {
+    return Object.fromEntries(
+      Object.entries(this.levelStylesByProfile).map(([profileId, styles]) => [
+        profileId,
+        LevelStyleSet.create(styles).values,
+      ]),
+    ) as LevelStylesByProfile;
+  }
+
   // Mutations (return new instance for immutability)
   updateTitle(title: string): ProjectSettings {
     const trimmedTitle = title.trim();
@@ -245,6 +276,23 @@ export class ProjectSettings {
     return new ProjectSettings({
       ...this.toProperties(),
       publicationProfileId: profileId,
+      updatedAt: new Date(),
+    });
+  }
+
+  updateLevelStyleSet(
+    profileId: PublicationProfileId,
+    styles: LevelStyleSetProperties,
+  ): ProjectSettings {
+    if (profileId === 'passerelle') {
+      throw new Error('The passerelle profile does not support level typography');
+    }
+    return new ProjectSettings({
+      ...this.toProperties(),
+      levelStylesByProfile: {
+        ...this.getLevelStylesByProfile(),
+        [profileId]: LevelStyleSet.create(styles).values,
+      },
       updatedAt: new Date(),
     });
   }
@@ -467,6 +515,7 @@ export class ProjectSettings {
       customDictionary: [...this.customDictionary],
       ignoredWords: [...this.ignoredWords],
       publicationProfileId: this.publicationProfileId,
+      levelStylesByProfile: this.getLevelStylesByProfile(),
     };
   }
 }

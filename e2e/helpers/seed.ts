@@ -20,6 +20,8 @@ export const TEST_USER_EMAIL = 'e2e-strategy@revise.test';
 export const TEST_USER_PASSWORD = 'TestE2E2025!';
 export const TEST_PROJECT_ID = 'e2e-strategy-project-001';
 export const TEST_CHAPTER_ID = 'e2e-strategy-chapter-001';
+export const TEST_LEVEL_STYLES_PROJECT_ID = 'e2e-level-styles-project-001';
+export const TEST_LEVEL_STYLES_CHAPTER_ID = 'e2e-level-styles-chapter-001';
 export const TEST_AUTOCOMPLETE_PROJECT_ID = 'e2e-autocomplete-project-001';
 export const TEST_AUTOCOMPLETE_CHAPTER_ID = 'e2e-autocomplete-chapter-001';
 export const TEST_PROVIDER_ID = 'e2e-provider-autocomplete-001';
@@ -205,11 +207,17 @@ function buildLargeChapterContent(chapterNumber: number, paragraphCount: number)
     content: [
       {
         type: 'heading',
-        attrs: { level: 1 },
+        attrs: { level: 1, semanticRole: 'titre-de-chapitre' },
         content: [{ type: 'text', text: `Chapitre ${chapterNumber}` }],
+      },
+      {
+        type: 'heading',
+        attrs: { level: 2, semanticRole: 'sous-titre' },
+        content: [{ type: 'text', text: `Section ${chapterNumber}` }],
       },
       ...Array.from({ length: paragraphCount }, (_, i) => ({
         type: 'paragraph',
+        attrs: { semanticRole: 'corps' },
         content: [{ type: 'text', text: `${filler.repeat(4)}(§${chapterNumber}.${i + 1})` }],
       })),
     ],
@@ -257,6 +265,46 @@ export async function seedAll(): Promise<void> {
         metadata: { wordCount: 9, characterCount: 51, lastEdited: past },
       }],
       activeChapterId: TEST_CHAPTER_ID,
+      providerId: null,
+      createdAt: past,
+      updatedAt: now,
+      isPublished: false,
+      shareToken: null,
+      publishedAt: null,
+      publishedChapterIds: null,
+    },
+    { upsert: true }
+  );
+
+  // 2a. Isolated semantic manuscript for per-level typography E2E coverage.
+  await db.collection('projects').replaceOne(
+    { _id: TEST_LEVEL_STYLES_PROJECT_ID } as object,
+    {
+      _id: TEST_LEVEL_STYLES_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      title: 'Projet Test Typographie',
+      chapters: [{
+        id: TEST_LEVEL_STYLES_CHAPTER_ID,
+        title: 'Chapitre Typographie',
+        content: JSON.stringify({
+          type: 'doc',
+          content: [
+            {
+              type: 'heading',
+              attrs: { level: 1, semanticRole: 'titre-de-chapitre' },
+              content: [{ type: 'text', text: 'Chapitre Typographie' }],
+            },
+            {
+              type: 'paragraph',
+              attrs: { semanticRole: 'corps' },
+              content: [{ type: 'text', text: 'Un manuscrit pour vérifier la typographie.' }],
+            },
+          ],
+        }),
+        order: 0,
+        metadata: { wordCount: 7, characterCount: 51, lastEdited: past },
+      }],
+      activeChapterId: TEST_LEVEL_STYLES_CHAPTER_ID,
       providerId: null,
       createdAt: past,
       updatedAt: now,

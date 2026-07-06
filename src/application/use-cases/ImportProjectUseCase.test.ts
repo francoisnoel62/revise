@@ -57,6 +57,38 @@ describe('ImportProjectUseCase', () => {
     expect(result.getChapter('id-2')?.getTitle()).toBe('Chapter 2');
   });
 
+  it('should insert the semantic chapter title into imported chapter content', async () => {
+    const importedContent = JSON.stringify({
+      type: 'doc',
+      content: [
+        {
+          type: 'heading',
+          attrs: { level: 2, semanticRole: 'sous-titre' },
+          content: [{ type: 'text', text: 'Premiere section' }],
+        },
+        {
+          type: 'paragraph',
+          attrs: { semanticRole: 'corps' },
+          content: [{ type: 'text', text: 'Le corps du chapitre.' }],
+        },
+      ],
+    });
+    mockParser.setMockChapters([
+      new Chapter('id-1', 'Chapitre importe', importedContent, 0),
+    ]);
+
+    const result = await useCase.execute(null, Buffer.from('content'), 'test.docx');
+    const content = JSON.parse(result.getChapter('id-1')!.getContent());
+
+    expect(content.content[0]).toMatchObject({
+      type: 'heading',
+      attrs: { level: 1, semanticRole: 'titre-de-chapitre' },
+      content: [{ type: 'text', text: 'Chapitre importe' }],
+    });
+    expect(content.content[1].attrs.semanticRole).toBe('sous-titre');
+    expect(content.content[2].attrs.semanticRole).toBe('corps');
+  });
+
   it('should auto-name chapters without titles', async () => {
     const buffer = Buffer.from('content');
     const filename = 'test.docx';

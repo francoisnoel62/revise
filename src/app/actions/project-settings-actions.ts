@@ -16,6 +16,7 @@ import { PointOfView, NarrationTense, TargetAudience } from '@/domain/value-obje
 import { AutocompletePreferences } from '@/domain/value-objects/AutocompletePreferences';
 import { CanonExtractionPreferences } from '@/domain/value-objects/CanonExtractionPreferences';
 import type { PublicationProfileId } from '@/domain/value-objects/PublicationProfile';
+import type { LevelStylesByProfile } from '@/domain/entities/ProjectSettings';
 
 export interface SerializedProjectSettings {
   id: string;
@@ -39,6 +40,7 @@ export interface SerializedProjectSettings {
   customDictionary: string[];
   ignoredWords: string[];
   publicationProfileId: PublicationProfileId;
+  levelStylesByProfile: LevelStylesByProfile;
 }
 
 function serializeProjectSettings(settings: ProjectSettings): SerializedProjectSettings {
@@ -64,6 +66,7 @@ function serializeProjectSettings(settings: ProjectSettings): SerializedProjectS
     customDictionary: settings.getCustomDictionary(),
     ignoredWords: settings.getIgnoredWords(),
     publicationProfileId: settings.getPublicationProfileId(),
+    levelStylesByProfile: settings.getLevelStylesByProfile(),
   };
 }
 

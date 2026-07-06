@@ -2,12 +2,34 @@
 // ABOUTME: Centralizes page geometry and typography so preview and PDF cannot drift.
 
 import type { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
+import {
+  LEVEL_STYLE_ROLES,
+  LevelStyleSet,
+  type LevelStyle,
+  type LevelStyleSetProperties,
+} from '@/domain/value-objects/LevelStyleSet';
+
+function semanticRoleRule(role: string, style: LevelStyle): string {
+  const fallback = style.fontFamily === 'EB Garamond' ? 'serif' : 'sans-serif';
+  return `
+      [data-semantic-role="${role}"] {
+        font-family: '${style.fontFamily}', ${fallback};
+        font-size: ${style.fontSizePoints}pt;
+        font-weight: ${style.fontWeight === 'bold' ? 700 : 400};
+        font-style: ${style.italic ? 'italic' : 'normal'};
+        text-align: ${style.alignment};
+        line-height: ${style.lineHeight};
+        margin-top: ${style.spaceBeforePoints}pt;
+        margin-bottom: ${style.spaceAfterPoints}pt;
+      }`;
+}
 
 export class BookCssBuilder {
   build(
     profile: PublicationProfile,
     assetBaseUrl: string,
     startPageNumber?: number,
+    levelStyles?: LevelStyleSetProperties,
   ): string {
     const value = profile.values;
     const assets = assetBaseUrl.replace(/\/$/, '');
@@ -30,6 +52,13 @@ export class BookCssBuilder {
       }`
       : '';
     const fontFallback = usesEbGaramond ? 'serif' : 'sans-serif';
+    const styles = levelStyles
+      ? LevelStyleSet.create(levelStyles)
+      : LevelStyleSet.defaultsFor(profile);
+    const styleValues = styles.values;
+    const semanticTypography = LEVEL_STYLE_ROLES.map((role) =>
+      semanticRoleRule(role, styleValues[role]),
+    ).join('');
 
     return `
       ${embeddedFontFaces}
@@ -62,21 +91,13 @@ export class BookCssBuilder {
       ${startPageNumber && startPageNumber > 1 ? `body { counter-reset: page ${startPageNumber - 1}; }` : ''}
       main.book { widows: 2; orphans: 2; counter-reset: folio 1; }
       p { margin: 0; text-align: justify; text-indent: ${value.firstLineIndentCentimeters}cm; }
-      h1 + p, h2 + p { text-indent: 0; }
-      h1 {
+      [data-semantic-role="titre-de-chapitre"] + [data-semantic-role="corps"],
+      [data-semantic-role="sous-titre"] + [data-semantic-role="corps"] { text-indent: 0; }
+      [data-semantic-role="titre-de-chapitre"] {
         break-before: page;
-        font-size: 14pt;
-        font-weight: 700;
-        margin: 48pt 0 24pt;
-        text-align: center;
       }
-      h1:first-child { break-before: auto; }
-      h2 {
-        font-size: 12pt;
-        font-weight: 700;
-        margin: 24pt 0 12pt;
-        text-align: center;
-      }
+      [data-semantic-role="titre-de-chapitre"]:first-child { break-before: auto; }
+      ${semanticTypography}
       .pagedjs_pages { display: flex; flex-direction: column; align-items: center; gap: 24px; }
       .pagedjs_page { background: white; box-shadow: 0 4px 18px rgb(15 23 42 / 18%); }
       @media print {

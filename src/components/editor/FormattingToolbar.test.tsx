@@ -569,6 +569,30 @@ describe('FormattingToolbar', () => {
         await user.click(screen.getByRole('menuitem', { name: /Titre de chapitre/ }));
 
         expect(editor.chain).toHaveBeenCalled();
+        const chain = vi.mocked(editor.chain).mock.results[0].value as {
+          setNode: ReturnType<typeof vi.fn>;
+        };
+        expect(chain.setNode).toHaveBeenCalledWith('heading', {
+          level: 1,
+          semanticRole: 'titre-de-chapitre',
+        });
+      });
+
+      it('marks an applied subtitle with its semantic role', async () => {
+        const user = userEvent.setup();
+        const editor = createSemanticEditor();
+        render(<FormattingToolbar editor={editor} profile="print-ready" />);
+
+        await user.click(screen.getByRole('button', { name: 'Corps' }));
+        await user.click(screen.getByRole('menuitem', { name: /Sous-titre/ }));
+
+        const chain = vi.mocked(editor.chain).mock.results[0].value as {
+          setNode: ReturnType<typeof vi.fn>;
+        };
+        expect(chain.setNode).toHaveBeenCalledWith('heading', {
+          level: 2,
+          semanticRole: 'sous-titre',
+        });
       });
     });
 
