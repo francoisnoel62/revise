@@ -2,8 +2,9 @@
 // ABOUTME: Preserves author content while leaving all presentation to publication profiles.
 
 import type { JSONContent } from '@tiptap/core';
+import type { TipTapToHtmlConverter } from '@/application/interfaces/TipTapToHtmlConverter';
 
-export class TipTapToBookHtml {
+export class TipTapToBookHtml implements TipTapToHtmlConverter {
   convert(content: JSONContent): string {
     if (content.type !== 'doc') {
       throw new Error('Paged rendering requires a TipTap document root');

@@ -9,9 +9,8 @@ import {
   type ChapterPageOffset,
   type SubtitlePageOffset,
 } from '@/domain/entities/BookPreviewCacheEntry';
-import type { BrowserLauncher } from '@/infrastructure/document/paged/BrowserLauncher';
-import { PagedJsRenderer } from '@/infrastructure/document/paged/PagedJsRenderer';
-import { TipTapToBookHtml } from '@/infrastructure/document/paged/TipTapToBookHtml';
+import type { BrowserLauncher } from '@/application/interfaces/BrowserLauncher';
+import type { PagedRenderer } from '@/application/interfaces/PagedRenderer';
 import { WholeBookHtmlAssembler } from './WholeBookHtmlAssembler';
 import type { LevelStyleSetProperties } from '@/domain/value-objects/LevelStyleSet';
 import type { TocDepth, TocStyle } from '@/domain/value-objects/TocPreferences';
@@ -50,8 +49,8 @@ export class BookPreviewCacheComputer {
   constructor(
     private readonly launcher: BrowserLauncher,
     private readonly clock: () => Date = () => new Date(),
-    private readonly renderer = new PagedJsRenderer(),
-    private readonly assembler = new WholeBookHtmlAssembler(new TipTapToBookHtml()),
+    private readonly renderer: PagedRenderer,
+    private readonly assembler: WholeBookHtmlAssembler,
   ) {}
 
   async compute(input: BookPreviewComputeInput): Promise<BookPreviewComputeResult> {

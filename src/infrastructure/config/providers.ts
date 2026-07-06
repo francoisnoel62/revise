@@ -71,8 +71,11 @@ import { FolderParser } from '@/domain/interfaces/FolderParser';
 import { DocxExporter } from '@/infrastructure/document/exporters/DocxExporter';
 import { PagedPdfExporter } from '@/infrastructure/document/exporters/PagedPdfExporter';
 import { PlaywrightBrowserLauncher } from '@/infrastructure/document/paged/PlaywrightBrowserLauncher';
+import { PagedJsRenderer } from '@/infrastructure/document/paged/PagedJsRenderer';
+import { TipTapToBookHtml } from '@/infrastructure/document/paged/TipTapToBookHtml';
 import { MongoDBBookPreviewCacheRepository } from '@/infrastructure/persistence/MongoDBBookPreviewCacheRepository';
 import { BookPreviewCacheComputer } from '@/application/services/BookPreviewCacheComputer';
+import { WholeBookHtmlAssembler } from '@/application/services/WholeBookHtmlAssembler';
 import { TipTapContentService } from '@/infrastructure/document/utils/TipTapContentService';
 import { Provider } from '@/domain/entities/Provider';
 import { getDatabase } from './database';
@@ -514,7 +517,12 @@ export async function getBookPreviewCacheRepository(): Promise<MongoDBBookPrevie
  * Stateless per call; the browser is launched and closed inside compute().
  */
 export function getBookPreviewCacheComputer(): BookPreviewCacheComputer {
-  return new BookPreviewCacheComputer(new PlaywrightBrowserLauncher());
+  return new BookPreviewCacheComputer(
+    new PlaywrightBrowserLauncher(),
+    () => new Date(),
+    new PagedJsRenderer(),
+    new WholeBookHtmlAssembler(new TipTapToBookHtml()),
+  );
 }
 
 /**

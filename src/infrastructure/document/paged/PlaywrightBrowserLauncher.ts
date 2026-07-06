@@ -2,7 +2,7 @@
 // ABOUTME: The only file that imports @playwright/test; all other code depends on BrowserLauncher.
 
 import { chromium } from '@playwright/test';
-import type { BrowserHandle, BrowserLauncher, PageHandle, PdfPrintOptions } from './BrowserLauncher';
+import type { BrowserHandle, BrowserLauncher, PageHandle, PdfPrintOptions } from '@/application/interfaces/BrowserLauncher';
 
 export class PlaywrightBrowserLauncher implements BrowserLauncher {
   async launch(options: { headless: boolean }): Promise<BrowserHandle> {

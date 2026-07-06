@@ -3,7 +3,7 @@
 
 import type { JSONContent } from '@tiptap/core';
 import type { TocEntry, TocSubEntry } from '@/application/interfaces/PagedRenderer';
-import type { TipTapToBookHtml } from '@/infrastructure/document/paged/TipTapToBookHtml';
+import type { TipTapToHtmlConverter } from '@/application/interfaces/TipTapToHtmlConverter';
 import type { TocDepth } from '@/domain/value-objects/TocPreferences';
 import { tagSubtitleHeadings } from './subtitleAnchors';
 
@@ -24,7 +24,7 @@ export interface AssembledBook {
 }
 
 export class WholeBookHtmlAssembler {
-  constructor(private readonly converter: TipTapToBookHtml) {}
+  constructor(private readonly converter: TipTapToHtmlConverter) {}
 
   assemble(chapters: readonly ChapterInput[], options: AssembleOptions = {}): AssembledBook {
     if (chapters.length === 0) return { bodyHtml: '', tocEntries: [] };

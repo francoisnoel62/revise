@@ -4,7 +4,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PagedPdfExporter } from './PagedPdfExporter';
-import type { BrowserHandle, BrowserLauncher, PageHandle } from '../paged/BrowserLauncher';
+import type { BrowserHandle, BrowserLauncher, PageHandle } from '@/application/interfaces/BrowserLauncher';
 import { Project } from '@/domain/entities/Project';
 import { Chapter } from '@/domain/entities/Chapter';
 

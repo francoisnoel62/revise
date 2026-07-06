@@ -5,8 +5,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { JSONContent } from '@tiptap/core';
 import { BookPreviewCacheComputer } from './BookPreviewCacheComputer';
-import type { BrowserHandle, BrowserLauncher, PageHandle, PdfPrintOptions } from '@/infrastructure/document/paged/BrowserLauncher';
+import type { BrowserHandle, BrowserLauncher, PageHandle, PdfPrintOptions } from '@/application/interfaces/BrowserLauncher';
 import { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
+import { WholeBookHtmlAssembler } from './WholeBookHtmlAssembler';
+import { PagedJsRenderer } from '@/infrastructure/document/paged/PagedJsRenderer';
+import { TipTapToBookHtml } from '@/infrastructure/document/paged/TipTapToBookHtml';
 
 const MOCK_PDF = Buffer.from('%PDF-1.7 whole book');
 const CANNED_METRICS = {
@@ -37,6 +40,12 @@ function makeFake() {
   return { launcher, setContent, pdf, browser };
 }
 
+// Chromium is faked above; the renderer and assembler are real, so tests can assert
+// on the actual generated HTML (TOC markup, subtitle anchors, design classes, ...).
+function makeComputer(launcher: BrowserLauncher, clock: () => Date = () => new Date()): BookPreviewCacheComputer {
+  return new BookPreviewCacheComputer(launcher, clock, new PagedJsRenderer(), new WholeBookHtmlAssembler(new TipTapToBookHtml()));
+}
+
 const para = (text: string): JSONContent => ({
   type: 'doc',
   content: [{ type: 'paragraph', content: [{ type: 'text', text }] }],
@@ -58,7 +67,7 @@ const input = () => ({
 describe('BookPreviewCacheComputer', () => {
   it('returns the rendered PDF and a cache entry carrying the extracted metrics', async () => {
     const { launcher } = makeFake();
-    const computer = new BookPreviewCacheComputer(launcher, () => new Date('2026-07-05T10:00:00Z'));
+    const computer = makeComputer(launcher, () => new Date('2026-07-05T10:00:00Z'));
 
     const { entry, pdf } = await computer.compute(input());
 
@@ -75,7 +84,7 @@ describe('BookPreviewCacheComputer', () => {
 
   it('renders liminals and restarts body numbering (front matter + folio numbering present)', async () => {
     const { launcher, setContent } = makeFake();
-    const computer = new BookPreviewCacheComputer(launcher, () => new Date());
+    const computer = makeComputer(launcher);
 
     await computer.compute(input());
 
@@ -91,7 +100,7 @@ describe('BookPreviewCacheComputer', () => {
 
   it('prints the PDF at the active profile geometry (A5 differs from KDP)', async () => {
     const { launcher, pdf } = makeFake();
-    const computer = new BookPreviewCacheComputer(launcher, () => new Date());
+    const computer = makeComputer(launcher);
 
     await computer.compute({ ...input(), profile: PublicationProfile.a5() });
 
@@ -111,7 +120,7 @@ describe('BookPreviewCacheComputer', () => {
 
     it('tags sous-titre headings with anchors when tocDepth is "chapters-and-subtitles"', async () => {
       const { launcher, setContent } = makeFake();
-      const computer = new BookPreviewCacheComputer(launcher, () => new Date());
+      const computer = makeComputer(launcher);
 
       await computer.compute({
         ...input(),
@@ -125,7 +134,7 @@ describe('BookPreviewCacheComputer', () => {
 
     it('does not tag sous-titre headings when tocDepth is omitted (unchanged default)', async () => {
       const { launcher, setContent } = makeFake();
-      const computer = new BookPreviewCacheComputer(launcher, () => new Date());
+      const computer = makeComputer(launcher);
 
       await computer.compute({
         ...input(),
@@ -138,7 +147,7 @@ describe('BookPreviewCacheComputer', () => {
 
     it('passes tocStyle through to the rendered nav design class', async () => {
       const { launcher, setContent } = makeFake();
-      const computer = new BookPreviewCacheComputer(launcher, () => new Date());
+      const computer = makeComputer(launcher);
 
       await computer.compute({ ...input(), tocStyle: 'epure' });
 
@@ -148,7 +157,7 @@ describe('BookPreviewCacheComputer', () => {
 
     it('extracts subtitleOffsets metrics into the cache entry', async () => {
       const { launcher } = makeFake();
-      const computer = new BookPreviewCacheComputer(launcher, () => new Date());
+      const computer = makeComputer(launcher);
 
       const { entry } = await computer.compute({ ...input(), tocDepth: 'chapters-and-subtitles' });
 

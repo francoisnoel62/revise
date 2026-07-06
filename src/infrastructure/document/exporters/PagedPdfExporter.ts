@@ -6,7 +6,7 @@ import type { DocumentExporter, ExportOptions, FrontMatterData } from '@/domain/
 import type { Project } from '@/domain/entities/Project';
 import type { Chapter } from '@/domain/entities/Chapter';
 import { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
-import type { BrowserLauncher } from '../paged/BrowserLauncher';
+import type { BrowserLauncher } from '@/application/interfaces/BrowserLauncher';
 import type { TocEntry } from '@/application/interfaces/PagedRenderer';
 import { PagedJsRenderer } from '../paged/PagedJsRenderer';
 import { TipTapToBookHtml } from '../paged/TipTapToBookHtml';
