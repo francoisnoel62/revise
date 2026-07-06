@@ -10,6 +10,7 @@ import { SuggestionLength, AudaceLevel } from '@/domain/value-objects/Autocomple
 import { CanonExtractionMode } from '@/domain/value-objects/CanonExtractionPreferences';
 import type { PublicationProfileId } from '@/domain/value-objects/PublicationProfile';
 import type { LevelStylesByProfile } from '@/domain/entities/ProjectSettings';
+import type { TocDepth, TocStyle } from '@/domain/value-objects/TocPreferences';
 
 export interface ContributorDocument {
   name: string;
@@ -50,6 +51,8 @@ export interface ProjectSettingsDocument {
   ignoredWords?: string[];
   publicationProfileId?: PublicationProfileId;
   levelStylesByProfile?: LevelStylesByProfile;
+  tocDepth?: TocDepth;
+  tocStyle?: TocStyle;
 }
 
 export function serializeProjectSettings(
@@ -91,6 +94,8 @@ export function serializeProjectSettings(
     ignoredWords: props.ignoredWords ?? [],
     publicationProfileId: props.publicationProfileId,
     levelStylesByProfile: props.levelStylesByProfile,
+    tocDepth: props.tocDepth,
+    tocStyle: props.tocStyle,
   };
 }
 
@@ -134,6 +139,8 @@ export function deserializeProjectSettings(doc: ProjectSettingsDocument): Projec
     ignoredWords: doc.ignoredWords ?? [],
     publicationProfileId: doc.publicationProfileId,
     levelStylesByProfile: doc.levelStylesByProfile,
+    tocDepth: doc.tocDepth,
+    tocStyle: doc.tocStyle,
   };
 
   return ProjectSettings.reconstruct(props);

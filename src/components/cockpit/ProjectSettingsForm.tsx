@@ -40,6 +40,20 @@ import {
   NarrationTense,
   TargetAudience,
 } from '@/domain/value-objects/NarrationSettings';
+import type { TocDepth, TocStyle, TocPreferences } from '@/domain/value-objects/TocPreferences';
+
+const TOC_DEPTHS: readonly TocDepth[] = ['chapters', 'chapters-and-subtitles'];
+const TOC_DEPTH_LABELS: Record<TocDepth, string> = {
+  chapters: 'Chapitres seuls',
+  'chapters-and-subtitles': 'Chapitres et sous-titres',
+};
+
+const TOC_STYLES: readonly TocStyle[] = ['classique', 'epure', 'litteraire'];
+const TOC_STYLE_LABELS: Record<TocStyle, string> = {
+  classique: 'Classique',
+  epure: 'Épuré',
+  litteraire: 'Littéraire',
+};
 
 interface ProjectSettingsFormProps {
   projectId: string;
@@ -58,6 +72,7 @@ interface FormData {
   isbn: string;
   contributors: Contributor[];
   relatedWorks: RelatedWork[];
+  tocPreferences: TocPreferences;
 }
 
 export function ProjectSettingsForm({ projectId, initialSettings }: ProjectSettingsFormProps) {
@@ -73,6 +88,7 @@ export function ProjectSettingsForm({ projectId, initialSettings }: ProjectSetti
     isbn: initialSettings.isbn || '',
     contributors: initialSettings.contributors,
     relatedWorks: initialSettings.relatedWorks,
+    tocPreferences: initialSettings.tocPreferences,
   });
 
   const [coverImageUrl, setCoverImageUrl] = useState<string | undefined>(
@@ -101,7 +117,8 @@ export function ProjectSettingsForm({ projectId, initialSettings }: ProjectSetti
       formData.targetAudience !== (initialSettings.targetAudience || '') ||
       formData.isbn !== (initialSettings.isbn || '') ||
       JSON.stringify(formData.contributors) !== JSON.stringify(initialSettings.contributors) ||
-      JSON.stringify(formData.relatedWorks) !== JSON.stringify(initialSettings.relatedWorks);
+      JSON.stringify(formData.relatedWorks) !== JSON.stringify(initialSettings.relatedWorks) ||
+      JSON.stringify(formData.tocPreferences) !== JSON.stringify(initialSettings.tocPreferences);
 
     setHasChanges(changed);
   }, [formData, initialSettings]);
@@ -130,6 +147,7 @@ export function ProjectSettingsForm({ projectId, initialSettings }: ProjectSetti
         isbn: formData.isbn || undefined,
         contributors: formData.contributors.filter((c) => c.name.trim()),
         relatedWorks: formData.relatedWorks.filter((w) => w.title.trim()),
+        tocPreferences: formData.tocPreferences,
       });
 
       if (!result.success) {
@@ -357,6 +375,63 @@ export function ProjectSettingsForm({ projectId, initialSettings }: ProjectSetti
                   {TARGET_AUDIENCES.map((audience) => (
                     <SelectItem key={audience} value={audience}>
                       {TARGET_AUDIENCE_LABELS[audience]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Table of contents (Sommaire) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Sommaire</CardTitle>
+          <CardDescription>
+            Réglages globaux, identiques pour tous les formats d&apos;export
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Profondeur</Label>
+              <Select
+                value={formData.tocPreferences.depth}
+                onValueChange={(value) =>
+                  handleChange('tocPreferences', { ...formData.tocPreferences, depth: value as TocDepth })
+                }
+                disabled={isSaving}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TOC_DEPTHS.map((depth) => (
+                    <SelectItem key={depth} value={depth}>
+                      {TOC_DEPTH_LABELS[depth]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Design</Label>
+              <Select
+                value={formData.tocPreferences.style}
+                onValueChange={(value) =>
+                  handleChange('tocPreferences', { ...formData.tocPreferences, style: value as TocStyle })
+                }
+                disabled={isSaving}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TOC_STYLES.map((style) => (
+                    <SelectItem key={style} value={style}>
+                      {TOC_STYLE_LABELS[style]}
                     </SelectItem>
                   ))}
                 </SelectContent>

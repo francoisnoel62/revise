@@ -6,6 +6,7 @@ import { ProjectSettings, ProjectSettingsProperties } from '../ProjectSettings';
 import { Contributor } from '@/domain/value-objects/Contributor';
 import { RelatedWork } from '@/domain/value-objects/RelatedWork';
 import { DEFAULT_CANON_EXTRACTION_PREFERENCES } from '@/domain/value-objects/CanonExtractionPreferences';
+import { DEFAULT_TOC_PREFERENCES } from '@/domain/value-objects/TocPreferences';
 
 describe('ProjectSettings', () => {
   const validProps: ProjectSettingsProperties = {
@@ -301,6 +302,44 @@ describe('ProjectSettings', () => {
       const updated = settings.updateCanonExtractionPreferences({ mode: 'manual' });
 
       expect(updated.getCanonExtractionPreferences()).toEqual(DEFAULT_CANON_EXTRACTION_PREFERENCES);
+    });
+  });
+
+  describe('getTocPreferences', () => {
+    it('returns defaults when nothing stored (current rendered behavior)', () => {
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'My Novel');
+      expect(settings.getTocPreferences()).toEqual(DEFAULT_TOC_PREFERENCES);
+    });
+
+    it('returns stored depth and style when set', () => {
+      const settings = ProjectSettings.reconstruct({
+        ...validProps,
+        tocDepth: 'chapters-and-subtitles',
+        tocStyle: 'litteraire',
+      });
+      expect(settings.getTocPreferences()).toEqual({
+        depth: 'chapters-and-subtitles',
+        style: 'litteraire',
+      });
+    });
+  });
+
+  describe('updateTocPreferences', () => {
+    it('returns a new instance with updated depth and style', () => {
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'My Novel');
+      const updated = settings.updateTocPreferences({ depth: 'chapters-and-subtitles', style: 'epure' });
+
+      expect(updated.getTocPreferences()).toEqual({ depth: 'chapters-and-subtitles', style: 'epure' });
+      expect(settings.getTocPreferences()).toEqual(DEFAULT_TOC_PREFERENCES);
+    });
+
+    it('preserves the other setting when updating partially', () => {
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'My Novel')
+        .updateTocPreferences({ depth: 'chapters-and-subtitles', style: 'classique' });
+
+      const updated = settings.updateTocPreferences({ style: 'litteraire' });
+
+      expect(updated.getTocPreferences()).toEqual({ depth: 'chapters-and-subtitles', style: 'litteraire' });
     });
   });
 

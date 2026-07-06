@@ -11,6 +11,7 @@ import { AutocompletePreferences } from '@/domain/value-objects/AutocompletePref
 import { CanonExtractionPreferences } from '@/domain/value-objects/CanonExtractionPreferences';
 import type { PublicationProfileId } from '@/domain/value-objects/PublicationProfile';
 import type { LevelStyleSetProperties } from '@/domain/value-objects/LevelStyleSet';
+import type { TocPreferences } from '@/domain/value-objects/TocPreferences';
 
 export interface ProjectSettingsUpdates {
   title?: string;
@@ -33,6 +34,7 @@ export interface ProjectSettingsUpdates {
     profileId: PublicationProfileId;
     styles: LevelStyleSetProperties;
   };
+  tocPreferences?: Partial<TocPreferences>;
 }
 
 export interface UpdateProjectSettingsInput {
@@ -133,6 +135,10 @@ export class UpdateProjectSettingsUseCase {
         updates.levelStyles!.profileId,
         updates.levelStyles!.styles,
       );
+    }
+
+    if ('tocPreferences' in updates) {
+      updated = updated.updateTocPreferences(updates.tocPreferences!);
     }
 
     return this.repository.update(input.userId, updated);
