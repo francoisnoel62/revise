@@ -177,6 +177,47 @@ describe('WholeBookHtmlAssembler', () => {
     });
   });
 
+  describe('presentation stripping (profile typography wins)', () => {
+    // The editor's TextAlign extension stamps every heading/paragraph with an inline
+    // textAlign (default 'justify'). Emitted as inline style it out-specifies the profile's
+    // [data-semantic-role] rule, so a centered chapter title renders left. The whole-book
+    // body must be stripped to semantic content — exactly like the single-chapter preview —
+    // so the profile's levelStyles drive alignment.
+    const titledWithInlineAlign = (title: string, align: string): JSONContent => ({
+      type: 'doc',
+      content: [
+        {
+          type: 'heading',
+          attrs: { level: 1, semanticRole: 'titre-de-chapitre', textAlign: align },
+          content: [{ type: 'text', text: title }],
+        },
+        {
+          type: 'heading',
+          attrs: { level: 2, semanticRole: 'sous-titre', textAlign: align },
+          content: [{ type: 'text', text: 'Un sous-titre' }],
+        },
+      ],
+    });
+
+    it('strips inline textAlign so the profile alignment is not overridden', () => {
+      const { bodyHtml } = assembler.assemble([
+        { id: 'ch1', title: 'Chapitre Un', content: titledWithInlineAlign('Chapitre Un', 'justify') },
+      ]);
+      expect(bodyHtml).not.toContain('text-align');
+      expect(bodyHtml).toContain('<h1 data-semantic-role="titre-de-chapitre">Chapitre Un</h1>');
+    });
+
+    it('strips inline textAlign even when sous-titre anchors are collected', () => {
+      const { bodyHtml } = assembler.assemble(
+        [{ id: 'ch1', title: 'Chapitre Un', content: titledWithInlineAlign('Chapitre Un', 'left') }],
+        { tocDepth: 'chapters-and-subtitles' },
+      );
+      expect(bodyHtml).not.toContain('text-align');
+      // The anchor id survives stripping (id is not a presentation attr).
+      expect(bodyHtml).toContain('id="chapter-ch1-soustitre-0"');
+    });
+  });
+
   describe('parity with PDF exporter pipeline', () => {
     function buildPdfExporterBody(
       chapters: Array<{ content: JSONContent }>,

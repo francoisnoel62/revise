@@ -49,6 +49,13 @@ export const TEST_BOOK_PREVIEW_PROJECT_ID = 'e2e-book-preview-project-001';
 export const TEST_BOOK_PREVIEW_CHAPTER_1_ID = 'e2e-book-preview-chapter-001';
 export const TEST_BOOK_PREVIEW_CHAPTER_2_ID = 'e2e-book-preview-chapter-002';
 
+// Book-preview E2E fixtures — a chapter whose title heading carries the editor's default
+// inline textAlign ('justify'). Guards the regression where that inline style out-specified
+// the profile's centering and rendered chapter titles left-aligned in the whole-book PDF.
+export const TEST_BOOK_PREVIEW_ALIGN_PROJECT_ID = 'e2e-book-preview-align-001';
+export const TEST_BOOK_PREVIEW_ALIGN_CHAPTER_ID = 'e2e-book-preview-align-ch-001';
+export const TEST_BOOK_PREVIEW_ALIGN_TITLE = 'Titre Centre Par Le Profil';
+
 // Book-preview E2E fixtures — passerelle project (no whole-book preview)
 export const TEST_BOOK_PREVIEW_PASSERELLE_PROJECT_ID = 'e2e-book-preview-passerelle-001';
 export const TEST_BOOK_PREVIEW_PASSERELLE_CHAPTER_ID = 'e2e-book-preview-passerelle-ch-001';
@@ -633,6 +640,50 @@ export async function seedAll(): Promise<void> {
         },
       ],
       activeChapterId: TEST_BOOK_PREVIEW_CHAPTER_1_ID,
+      providerId: null,
+      createdAt: past,
+      updatedAt: now,
+      isPublished: false,
+      shareToken: null,
+      publishedAt: null,
+      publishedChapterIds: null,
+    },
+    { upsert: true }
+  );
+
+  // 5b-bis. Alignment-regression project — a single chapter whose H1 title heading carries
+  //         the editor's default inline textAlign:'justify'. In the whole-book PDF the profile's
+  //         [data-semantic-role="titre-de-chapitre"] centering must win: the pipeline strips
+  //         inline presentation attrs, so a single-line title renders centered, not left.
+  const bookPreviewAlignContent = JSON.stringify({
+    type: 'doc',
+    content: [
+      {
+        type: 'heading',
+        attrs: { level: 1, semanticRole: 'titre-de-chapitre', textAlign: 'justify' },
+        content: [{ type: 'text', text: TEST_BOOK_PREVIEW_ALIGN_TITLE }],
+      },
+      {
+        type: 'paragraph',
+        attrs: { semanticRole: 'corps', textAlign: 'justify' },
+        content: [{ type: 'text', text: 'La nuit tombait sur la vieille ville quand tout bascula.' }],
+      },
+    ],
+  });
+  await db.collection('projects').replaceOne(
+    { _id: TEST_BOOK_PREVIEW_ALIGN_PROJECT_ID } as object,
+    {
+      _id: TEST_BOOK_PREVIEW_ALIGN_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      title: 'Roman Test Alignement',
+      chapters: [{
+        id: TEST_BOOK_PREVIEW_ALIGN_CHAPTER_ID,
+        title: TEST_BOOK_PREVIEW_ALIGN_TITLE,
+        content: bookPreviewAlignContent,
+        order: 0,
+        metadata: { wordCount: 14, characterCount: 90, lastEdited: past },
+      }],
+      activeChapterId: TEST_BOOK_PREVIEW_ALIGN_CHAPTER_ID,
       providerId: null,
       createdAt: past,
       updatedAt: now,

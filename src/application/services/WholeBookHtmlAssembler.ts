@@ -5,6 +5,8 @@ import type { JSONContent } from '@tiptap/core';
 import type { TocEntry, TocSubEntry } from '@/application/interfaces/PagedRenderer';
 import type { TipTapToHtmlConverter } from '@/application/interfaces/TipTapToHtmlConverter';
 import type { TocDepth } from '@/domain/value-objects/TocPreferences';
+import type { ContentNode } from '@/domain/value-objects/ContentNode';
+import { stripToSemantic } from '@/application/rendering/PresentationOverrideService';
 import { tagSubtitleHeadings } from './subtitleAnchors';
 
 export interface ChapterInput {
@@ -37,10 +39,14 @@ export class WholeBookHtmlAssembler {
       const { id, title, content } = chapter;
       const anchorId = `chapter-${id}`;
 
-      let renderContent = content;
+      // Drop the manuscript's inline presentation attrs (textAlign/fontFamily/fontSize) so the
+      // print profile's per-role typography drives the layout — mirroring the single-chapter
+      // preview, which strips via switchPublicationProfile. Without this the editor's default
+      // textAlign:'justify' leaks as an inline style and out-specifies the profile's centering.
+      let renderContent = stripToSemantic(content as ContentNode) as JSONContent;
       let subEntries: readonly TocSubEntry[] = [];
       if (collectSubtitles) {
-        const tagged = tagSubtitleHeadings(content, anchorId);
+        const tagged = tagSubtitleHeadings(renderContent, anchorId);
         renderContent = tagged.content;
         subEntries = tagged.subEntries;
       }

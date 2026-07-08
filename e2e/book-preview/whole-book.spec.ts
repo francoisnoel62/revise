@@ -9,10 +9,13 @@ import {
   TEST_BOOK_PREVIEW_LARGE_PROJECT_ID,
   TEST_BOOK_PREVIEW_TOC_PROJECT_ID,
   TEST_BOOK_PREVIEW_TOC_SUBTITLE,
+  TEST_BOOK_PREVIEW_ALIGN_PROJECT_ID,
+  TEST_BOOK_PREVIEW_ALIGN_TITLE,
   clearBookPreviewCache,
 } from '../helpers/seed';
 
 const BOOK_PREVIEW_URL = `/book-preview?project=${TEST_BOOK_PREVIEW_PROJECT_ID}`;
+const ALIGN_BOOK_PREVIEW_URL = `/book-preview?project=${TEST_BOOK_PREVIEW_ALIGN_PROJECT_ID}`;
 const TOC_BOOK_PREVIEW_URL = `/book-preview?project=${TEST_BOOK_PREVIEW_TOC_PROJECT_ID}`;
 const TOC_SETTINGS_URL = `/project/${TEST_BOOK_PREVIEW_TOC_PROJECT_ID}/cockpit/settings`;
 
@@ -58,6 +61,24 @@ async function textOfPages(pdf: Uint8Array, count: number): Promise<string[]> {
     pages.push(content.items.map((it: { str?: string }) => it.str ?? '').join(' '));
   }
   return pages;
+}
+
+// Locates a text run containing `needle` on a 1-indexed page and returns its horizontal
+// midpoint alongside the page width (both in PDF points). A centered run's midpoint sits near
+// pageWidth/2; a left-aligned (or single-line justified) run's midpoint sits far to the left.
+async function horizontalCenterOf(
+  pdf: Uint8Array,
+  pageNumber: number,
+  needle: string,
+): Promise<{ centerX: number; pageWidth: number }> {
+  const doc = await getDocument({ data: pdf }).promise;
+  const page = await doc.getPage(pageNumber);
+  const pageWidth = page.getViewport({ scale: 1 }).width;
+  const content = await page.getTextContent();
+  const items = content.items as Array<{ str?: string; transform: number[]; width: number }>;
+  const item = items.find((i) => (i.str ?? '').includes(needle));
+  if (!item) throw new Error(`Text "${needle}" not found on page ${pageNumber}`);
+  return { centerX: item.transform[4] + item.width / 2, pageWidth };
 }
 
 // Reads the bottom-most text run (the footer page number) on a given 1-indexed PDF page.
@@ -139,6 +160,33 @@ test.describe('whole-book preview', () => {
     await ch2.click();
 
     await expect(page.getByTestId('book-preview-pdf')).toHaveAttribute('src', new RegExp(`#page=${ch2Page}$`));
+  });
+
+  test('centers a chapter title in the export PDF despite the manuscript\'s inline textAlign', async ({ page }) => {
+    // The seeded title heading carries textAlign:'justify' (the editor's default). If it leaked
+    // into the rendered HTML as an inline style it would out-specify the profile's centering rule
+    // and the single-line title would render left. The whole-book pipeline strips presentation
+    // attrs, so the profile's [data-semantic-role="titre-de-chapitre"] centering must win.
+    await clearBookPreviewCache(TEST_BOOK_PREVIEW_ALIGN_PROJECT_ID);
+    await page.goto(ALIGN_BOOK_PREVIEW_URL);
+
+    const status = page.getByTestId('book-preview-status');
+    await expect(status).toContainText('pages', { timeout: 60_000 });
+
+    const firstChapter = page.getByTestId('chapter-navigation').locator('[data-chapter-id]').first();
+    const titlePage = Number(await firstChapter.getAttribute('data-page-number'));
+    expect(titlePage).toBeGreaterThan(0);
+
+    const src = await page.getByTestId('book-preview-pdf').getAttribute('src');
+    const pdfUrl = (src ?? '').split('#')[0];
+    const response = await page.request.get(pdfUrl);
+    expect(response.ok()).toBeTruthy();
+    const pdf = new Uint8Array(await response.body());
+
+    const { centerX, pageWidth } = await horizontalCenterOf(pdf, titlePage, TEST_BOOK_PREVIEW_ALIGN_TITLE);
+    // Centered: the title's horizontal midpoint sits within 8% of the page center. A left-aligned
+    // title (the pre-fix behaviour) would start at the inside margin, putting its midpoint far left.
+    expect(Math.abs(centerX - pageWidth / 2)).toBeLessThan(pageWidth * 0.08);
   });
 
   test('offers no whole-book preview for the passerelle profile', async ({ page }) => {

@@ -141,6 +141,35 @@ describe('PagedPdfExporter', () => {
     });
   });
 
+  describe('presentation stripping (profile typography wins)', () => {
+    // A manuscript heading carries an inline textAlign (the editor's default is 'justify').
+    // If it leaks into the rendered HTML as an inline style, it out-specifies the profile's
+    // [data-semantic-role] centering rule and the title renders left. The export must strip it.
+    const inlineAlignContent = {
+      type: 'doc',
+      content: [
+        {
+          type: 'heading',
+          attrs: { level: 1, semanticRole: 'titre-de-chapitre', textAlign: 'justify' },
+          content: [{ type: 'text', text: 'Chapitre Un' }],
+        },
+        {
+          type: 'paragraph',
+          attrs: { textAlign: 'right' },
+          content: [{ type: 'text', text: 'Corps du texte.' }],
+        },
+      ],
+    };
+
+    it('strips inline textAlign from exported chapter HTML', async () => {
+      const project = makeProject([makeChapter('ch-1', 'Chapitre Un', inlineAlignContent)]);
+      await exporter.exportProject(project, 'roman.pdf');
+      const html: string = (fake.page.setContent as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(html).not.toMatch(/style="[^"]*text-align/);
+      expect(html).toContain('<h1 data-semantic-role="titre-de-chapitre">Chapitre Un</h1>');
+    });
+  });
+
   describe('front matter integration', () => {
     it('includes front matter pages in rendered HTML when frontMatter option is provided', async () => {
       const project = makeProject([makeChapter('ch-1', 'Chapitre Un')]);
