@@ -55,6 +55,19 @@ describe('UpdateProjectSettingsUseCase', () => {
     expect(result.getPublicationProfileId()).toBe('passerelle');
   });
 
+  it('persists a toc preferences change', async () => {
+    const settings = ProjectSettings.create('id-1', 'project-1', 'user-1', 'Title');
+    mockRepository.findByProjectId.mockResolvedValue(settings);
+
+    const result = await useCase.execute({
+      userId: 'user-1',
+      projectId: 'project-1',
+      updates: { tocPreferences: { depth: 'chapters-and-subtitles', style: 'epure' } },
+    });
+
+    expect(result.getTocPreferences()).toEqual({ depth: 'chapters-and-subtitles', style: 'epure' });
+  });
+
   it('updates multiple fields at once', async () => {
     const settings = ProjectSettings.create('id-1', 'project-1', 'user-1', 'Title');
     mockRepository.findByProjectId.mockResolvedValue(settings);

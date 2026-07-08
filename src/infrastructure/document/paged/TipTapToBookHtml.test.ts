@@ -68,4 +68,20 @@ describe('TipTapToBookHtml', () => {
       expect(html).not.toMatch(/<h1/);
     });
   });
+
+  describe('convert — id attribute passthrough (anchors for TOC sub-entries)', () => {
+    it('renders the id attribute when node.attrs.id is set', () => {
+      const content = doc({
+        ...heading(2, 'Un sous-titre'),
+        attrs: { level: 2, semanticRole: 'sous-titre', id: 'chapter-ch1-soustitre-0' },
+      });
+      const html = converter.convert(content);
+      expect(html).toMatch(/<h2[^>]*id="chapter-ch1-soustitre-0"[^>]*>Un sous-titre<\/h2>/);
+    });
+
+    it('omits the id attribute when node.attrs.id is absent (unchanged default behavior)', () => {
+      const html = converter.convert(doc(heading(1, 'Chapitre I')));
+      expect(html).not.toContain('id=');
+    });
+  });
 });

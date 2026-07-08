@@ -179,6 +179,23 @@ describe('project-settings-serializer', () => {
       expect(restored.getLevelStylesByProfile()).toEqual({});
     });
 
+    it('preserves toc preferences through serialize then deserialize', () => {
+      const original = ProjectSettings.reconstruct(validProps).updateTocPreferences({
+        depth: 'chapters-and-subtitles',
+        style: 'epure',
+      });
+
+      const restored = deserializeProjectSettings(serializeProjectSettings(original));
+
+      expect(restored.getTocPreferences()).toEqual({ depth: 'chapters-and-subtitles', style: 'epure' });
+    });
+
+    it('defaults toc preferences for legacy documents without the field', () => {
+      const restored = deserializeProjectSettings(validDocument);
+
+      expect(restored.getTocPreferences()).toEqual({ depth: 'chapters', style: 'classique' });
+    });
+
     it('restores the persisted publication profile', () => {
       const original = ProjectSettings.reconstruct({
         ...validProps,

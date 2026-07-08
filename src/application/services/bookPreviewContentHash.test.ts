@@ -85,6 +85,18 @@ describe('computeBookPreviewContentHash', () => {
     ).not.toBe(computeBookPreviewContentHash({ ...base, levelStyles: defaults }));
   });
 
+  it('changes when tocDepth changes (invalidates the whole-book preview cache)', () => {
+    expect(
+      computeBookPreviewContentHash({ ...base, tocDepth: 'chapters-and-subtitles' }),
+    ).not.toBe(computeBookPreviewContentHash({ ...base, tocDepth: 'chapters' }));
+  });
+
+  it('changes when tocStyle changes (invalidates the whole-book preview cache)', () => {
+    expect(computeBookPreviewContentHash({ ...base, tocStyle: 'litteraire' })).not.toBe(
+      computeBookPreviewContentHash({ ...base, tocStyle: 'classique' }),
+    );
+  });
+
   it('treats an absent optional field differently from an empty string', () => {
     const withoutSubtitle = {
       ...base,

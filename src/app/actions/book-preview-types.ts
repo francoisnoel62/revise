@@ -7,11 +7,20 @@ import type { PublicationProfileId } from '@/domain/value-objects/PublicationPro
 export type BookPreviewProfileId = Extract<PublicationProfileId, 'kdp-6x9' | 'a5'>;
 export const BOOK_PREVIEW_PROFILES: readonly BookPreviewProfileId[] = ['kdp-6x9', 'a5'];
 
+export interface BookPreviewSubtitleNav {
+  readonly anchorId: string;
+  readonly title: string;
+  /** Physical 1-indexed PDF page where the sous-titre starts (for #page=N navigation). */
+  readonly pageNumber: number;
+}
+
 export interface BookPreviewChapterNav {
   readonly id: string;
   readonly title: string;
   /** Physical 1-indexed PDF page where the chapter starts (for #page=N navigation). */
   readonly pageNumber: number;
+  /** Present only when the project's tocDepth includes sous-titres. */
+  readonly subEntries?: readonly BookPreviewSubtitleNav[];
 }
 
 export interface BookPreviewData {

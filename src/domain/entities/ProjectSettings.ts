@@ -20,6 +20,12 @@ import {
   LevelStyleSet,
   type LevelStyleSetProperties,
 } from '../value-objects/LevelStyleSet';
+import {
+  DEFAULT_TOC_PREFERENCES,
+  type TocDepth,
+  type TocStyle,
+  type TocPreferences,
+} from '../value-objects/TocPreferences';
 
 export type PdfPublicationProfileId = Exclude<PublicationProfileId, 'passerelle'>;
 export type LevelStylesByProfile = Partial<
@@ -55,6 +61,8 @@ export interface ProjectSettingsProperties {
   ignoredWords?: string[];
   publicationProfileId?: PublicationProfileId;
   levelStylesByProfile?: LevelStylesByProfile;
+  tocDepth?: TocDepth;
+  tocStyle?: TocStyle;
 }
 
 export class ProjectSettings {
@@ -86,6 +94,8 @@ export class ProjectSettings {
   private ignoredWords: string[];
   private publicationProfileId: PublicationProfileId;
   private levelStylesByProfile: LevelStylesByProfile;
+  private tocDepth?: TocDepth;
+  private tocStyle?: TocStyle;
 
   private constructor(props: ProjectSettingsProperties) {
     this.validate(props);
@@ -123,6 +133,8 @@ export class ProjectSettings {
         LevelStyleSet.create(styles).values,
       ]),
     ) as LevelStylesByProfile;
+    this.tocDepth = props.tocDepth;
+    this.tocStyle = props.tocStyle;
   }
 
   private validate(props: ProjectSettingsProperties): void {
@@ -293,6 +305,23 @@ export class ProjectSettings {
         ...this.getLevelStylesByProfile(),
         [profileId]: LevelStyleSet.create(styles).values,
       },
+      updatedAt: new Date(),
+    });
+  }
+
+  getTocPreferences(): TocPreferences {
+    return {
+      depth: this.tocDepth ?? DEFAULT_TOC_PREFERENCES.depth,
+      style: this.tocStyle ?? DEFAULT_TOC_PREFERENCES.style,
+    };
+  }
+
+  updateTocPreferences(prefs: Partial<TocPreferences>): ProjectSettings {
+    const current = this.getTocPreferences();
+    return new ProjectSettings({
+      ...this.toProperties(),
+      tocDepth: prefs.depth ?? current.depth,
+      tocStyle: prefs.style ?? current.style,
       updatedAt: new Date(),
     });
   }
@@ -516,6 +545,8 @@ export class ProjectSettings {
       ignoredWords: [...this.ignoredWords],
       publicationProfileId: this.publicationProfileId,
       levelStylesByProfile: this.getLevelStylesByProfile(),
+      tocDepth: this.tocDepth,
+      tocStyle: this.tocStyle,
     };
   }
 }

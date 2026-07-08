@@ -330,7 +330,7 @@ L'orchestrateur **ne franchit pas seul** ces points :
 | Q | **#143** | [`0017`](0017-issue-harmoniser-profils-export.md) | Harmoniser profils ↔ export (3 profils, titre depuis le corps, format dérivé du profil) | `done` | `0005`,`0006`,`0007`,`0011` | agent | ✅ **done** (2026-07-04, branche `feat/143-harmoniser-profils-export`) |
 | R | **#144** | [`0019`](0019-issue-numerotation-perf-livre-entier.md) | Aperçu livre entier = PDF d'export (numérotation + rapidité, cache GridFS lazy) | `ready-for-agent` | `0006`,`0013`,`0014`,`0015`,**`0017`** | agent | 🔜 **débloqué** (`0017` done) |
 | S | **#145** | [`0020`](0020-issue-styles-globaux-par-niveau.md) | Typographie par niveau de texte (réglable par l'auteur, par profil PDF) | `ready-for-agent` | `0007`,`0017` | agent | 🔜 **débloqué** (`0017` done) |
-| T | **#146** | [`0021`](0021-issue-sommaire-configurable.md) | Sommaire configurable (profondeur 2 niveaux + 3 designs) | `ready-for-agent` | `0013`,`0017` | agent | 🔜 **débloqué** (`0017` done) |
+| T | **#146** | [`0021`](0021-issue-sommaire-configurable.md) | Sommaire configurable (profondeur 2 niveaux + 3 designs) | `done` | `0013`,`0017` | agent | ✅ **done** (2026-07-06, branche `issue-146`) |
 | U | **#147** | [`0022`](0022-issue-documentation-phase-6.md) | Mise à jour de toute la documentation (clôture Phase 6) | `ready-for-agent` | `0017`–`0021` | agent | 📝 fiche prête — **à exécuter en dernier** |
 
 **Décisions structurantes actées au grilling du 2026-07-04 (détail dans les fiches, ne pas rouvrir sans raison forte) :**

@@ -4,6 +4,7 @@
 import type { FrontMatterData } from '@/domain/interfaces/DocumentExporter';
 import { hashText } from '@/application/utils/text-hash';
 import type { LevelStyleSetProperties } from '@/domain/value-objects/LevelStyleSet';
+import type { TocDepth, TocStyle } from '@/domain/value-objects/TocPreferences';
 
 export interface BookPreviewContentHashInput {
   /** Chapters in reading order; ordering is part of the fingerprint. */
@@ -11,6 +12,9 @@ export interface BookPreviewContentHashInput {
   readonly frontMatter: FrontMatterData;
   /** Styles for the cache profile only; the profile id itself remains part of the key. */
   readonly levelStyles?: LevelStyleSetProperties;
+  /** TOC settings; global to the project, but they change what's printed in the PDF. */
+  readonly tocDepth?: TocDepth;
+  readonly tocStyle?: TocStyle;
 }
 
 /**
@@ -33,6 +37,8 @@ export function computeBookPreviewContentHash(input: BookPreviewContentHashInput
       copyrightYear: fm.copyrightYear ?? null,
     },
     levelStyles: input.levelStyles ?? null,
+    tocDepth: input.tocDepth ?? null,
+    tocStyle: input.tocStyle ?? null,
   };
 
   return hashText(JSON.stringify(normalized));

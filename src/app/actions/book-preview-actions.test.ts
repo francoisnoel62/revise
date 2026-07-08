@@ -34,12 +34,29 @@ import { BookPreviewCacheEntry } from '@/domain/entities/BookPreviewCacheEntry';
 import { computeBookPreviewContentHash } from '@/application/services/bookPreviewContentHash';
 import { LevelStyleSet, type LevelStyleSetProperties } from '@/domain/value-objects/LevelStyleSet';
 import { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
+import type { TocPreferences } from '@/domain/value-objects/TocPreferences';
 
 const CONTENT = '{"type":"doc","content":[{"type":"paragraph"}]}';
+
+const CHAPTER_WITH_SUBTITLE_CONTENT = JSON.stringify({
+  type: 'doc',
+  content: [
+    { type: 'heading', attrs: { level: 1, semanticRole: 'titre-de-chapitre' }, content: [{ type: 'text', text: 'Chapitre 1' }] },
+    { type: 'heading', attrs: { level: 2, semanticRole: 'sous-titre' }, content: [{ type: 'text', text: 'Sous-titre A' }] },
+  ],
+});
 
 function makeProject(): Project {
   const chapters = [
     new Chapter('ch-1', 'Chapitre 1', CONTENT, 0),
+    new Chapter('ch-2', 'Chapitre 2', CONTENT, 1),
+  ];
+  return new Project('proj-1', 'user-1', 'Mon Roman', chapters, 'ch-1', null, new Date(), new Date());
+}
+
+function makeProjectWithSubtitle(): Project {
+  const chapters = [
+    new Chapter('ch-1', 'Chapitre 1', CHAPTER_WITH_SUBTITLE_CONTENT, 0),
     new Chapter('ch-2', 'Chapitre 2', CONTENT, 1),
   ];
   return new Project('proj-1', 'user-1', 'Mon Roman', chapters, 'ch-1', null, new Date(), new Date());
@@ -57,7 +74,13 @@ function frontMatterFor(dedication?: string) {
   };
 }
 
-function hashFor(dedication?: string, levelStyles?: LevelStyleSetProperties): string {
+const DEFAULT_TOC_PREFS: TocPreferences = { depth: 'chapters', style: 'classique' };
+
+function hashFor(
+  dedication?: string,
+  levelStyles?: LevelStyleSetProperties,
+  tocPreferences: TocPreferences = DEFAULT_TOC_PREFS,
+): string {
   return computeBookPreviewContentHash({
     chapters: [
       { id: 'ch-1', content: CONTENT },
@@ -65,10 +88,15 @@ function hashFor(dedication?: string, levelStyles?: LevelStyleSetProperties): st
     ],
     frontMatter: frontMatterFor(dedication),
     levelStyles,
+    tocDepth: tocPreferences.depth,
+    tocStyle: tocPreferences.style,
   });
 }
 
-function cachedEntry(contentHash: string): BookPreviewCacheEntry {
+function cachedEntry(
+  contentHash: string,
+  subtitleOffsets: Array<{ anchorId: string; pageNumber: number }> = [],
+): BookPreviewCacheEntry {
   return BookPreviewCacheEntry.create(
     {
       projectId: 'proj-1',
@@ -81,6 +109,7 @@ function cachedEntry(contentHash: string): BookPreviewCacheEntry {
         { chapterId: 'ch-1', pageNumber: 5 },
         { chapterId: 'ch-2', pageNumber: 41 },
       ],
+      subtitleOffsets,
     },
     new Date('2026-07-05T10:00:00Z'),
   );
@@ -92,15 +121,19 @@ describe('getBookPreviewDataAction', () => {
   let profileId: string;
   let dedication: string | undefined;
   let kdpLevelStyles: LevelStyleSetProperties | undefined;
+  let tocPreferences: TocPreferences;
+  let project: Project;
 
   beforeEach(() => {
     vi.clearAllMocks();
     profileId = 'kdp-6x9';
     dedication = undefined;
     kdpLevelStyles = undefined;
+    tocPreferences = DEFAULT_TOC_PREFS;
+    project = makeProject();
 
     vi.mocked(getAuthenticatedUserId).mockResolvedValue({ userId: 'user-1' } as never);
-    vi.mocked(getRepository).mockResolvedValue({ loadProject: vi.fn().mockResolvedValue(makeProject()) } as never);
+    vi.mocked(getRepository).mockResolvedValue({ loadProject: vi.fn(async () => project) } as never);
     vi.mocked(getProjectSettingsRepo).mockResolvedValue({
       findByProjectId: vi.fn().mockResolvedValue({
         getPublicationProfileId: () => profileId,
@@ -112,6 +145,7 @@ describe('getBookPreviewDataAction', () => {
           requestedProfileId === 'kdp-6x9' && kdpLevelStyles
             ? LevelStyleSet.create(kdpLevelStyles)
             : undefined,
+        getTocPreferences: () => tocPreferences,
       }),
     } as never);
     vi.mocked(getMetadataRepo).mockResolvedValue({
@@ -219,5 +253,78 @@ describe('getBookPreviewDataAction', () => {
     const data = result.success ? result.data : null;
     expect(data!.profileId).toBe('a5');
     expect(cacheRepo.loadMetrics).toHaveBeenCalledWith('proj-1', 'a5', 'user-1');
+  });
+
+  describe('toc settings (depth + style)', () => {
+    it('passes tocDepth and tocStyle from project settings to the computer', async () => {
+      tocPreferences = { depth: 'chapters-and-subtitles', style: 'epure' };
+
+      await getBookPreviewDataAction('proj-1');
+
+      expect(computer.compute).toHaveBeenCalledWith(
+        expect.objectContaining({ tocDepth: 'chapters-and-subtitles', tocStyle: 'epure' }),
+      );
+    });
+
+    it('regenerates when tocDepth/tocStyle changed since the cache was computed', async () => {
+      cacheRepo.loadMetrics.mockResolvedValue(cachedEntry(hashFor(undefined, undefined, DEFAULT_TOC_PREFS)));
+      tocPreferences = { depth: 'chapters-and-subtitles', style: 'classique' };
+
+      await getBookPreviewDataAction('proj-1');
+
+      expect(computer.compute).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not regenerate when the cache already matches the current toc settings', async () => {
+      tocPreferences = { depth: 'chapters-and-subtitles', style: 'epure' };
+      cacheRepo.loadMetrics.mockResolvedValue(cachedEntry(hashFor(undefined, undefined, tocPreferences)));
+
+      await getBookPreviewDataAction('proj-1');
+
+      expect(computer.compute).not.toHaveBeenCalled();
+    });
+
+    it('exposes nested sous-titre sub-entries with resolved page numbers when tocDepth includes subtitles', async () => {
+      project = makeProjectWithSubtitle();
+      tocPreferences = { depth: 'chapters-and-subtitles', style: 'classique' };
+      cacheRepo.loadMetrics.mockResolvedValue(null);
+      computer.compute.mockResolvedValue({
+        entry: cachedEntry(hashFor(undefined, undefined, tocPreferences), [
+          { anchorId: 'chapter-ch-1-soustitre-0', pageNumber: 6 },
+        ]),
+        pdf: Buffer.from('%PDF fake'),
+      });
+
+      const result = await getBookPreviewDataAction('proj-1');
+
+      expect(result.success).toBe(true);
+      const data = result.success ? result.data : null;
+      expect(data!.chapters[0].subEntries).toEqual([
+        { anchorId: 'chapter-ch-1-soustitre-0', title: 'Sous-titre A', pageNumber: 6 },
+      ]);
+    });
+
+    it('omits subEntries when tocDepth is "chapters" (unchanged default)', async () => {
+      project = makeProjectWithSubtitle();
+
+      const result = await getBookPreviewDataAction('proj-1');
+
+      expect(result.success).toBe(true);
+      const data = result.success ? result.data : null;
+      expect(data!.chapters[0].subEntries).toBeUndefined();
+    });
+
+    it('invalidates every profile cache entry when toc settings change (global setting, unlike per-profile typography)', async () => {
+      // Both profiles were cached under the old toc preferences.
+      cacheRepo.loadMetrics.mockImplementation(async () => cachedEntry(hashFor(undefined, undefined, DEFAULT_TOC_PREFS)));
+      tocPreferences = { depth: 'chapters-and-subtitles', style: 'litteraire' };
+
+      await getBookPreviewDataAction('proj-1');
+      expect(computer.compute).toHaveBeenCalledTimes(1);
+
+      computer.compute.mockClear();
+      await getBookPreviewDataAction('proj-1', 'a5');
+      expect(computer.compute).toHaveBeenCalledTimes(1);
+    });
   });
 });

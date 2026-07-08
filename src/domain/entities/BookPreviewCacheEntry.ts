@@ -9,6 +9,12 @@ export interface ChapterPageOffset {
   readonly pageNumber: number;
 }
 
+/** Physical 1-indexed PDF page on which a sous-titre anchor starts (TOC sub-entry navigation). */
+export interface SubtitlePageOffset {
+  readonly anchorId: string;
+  readonly pageNumber: number;
+}
+
 export interface BookPreviewCacheProperties {
   readonly projectId: string;
   readonly profileId: PublicationProfileId;
@@ -18,6 +24,7 @@ export interface BookPreviewCacheProperties {
   readonly frontMatterPageCount: number;
   readonly totalPageCount: number;
   readonly chapterOffsets: readonly ChapterPageOffset[];
+  readonly subtitleOffsets?: readonly SubtitlePageOffset[];
   readonly computedAt: Date;
 }
 
@@ -69,6 +76,9 @@ export class BookPreviewCacheEntry {
   getChapterOffsets(): readonly ChapterPageOffset[] {
     return this.properties.chapterOffsets;
   }
+  getSubtitleOffsets(): readonly SubtitlePageOffset[] {
+    return this.properties.subtitleOffsets ?? [];
+  }
   getComputedAt(): Date {
     return this.properties.computedAt;
   }
@@ -76,6 +86,12 @@ export class BookPreviewCacheEntry {
   /** Physical PDF page where a chapter starts, or null if the chapter is unknown. */
   pageForChapter(chapterId: string): number | null {
     const offset = this.properties.chapterOffsets.find((o) => o.chapterId === chapterId);
+    return offset ? offset.pageNumber : null;
+  }
+
+  /** Physical PDF page where a sous-titre anchor starts, or null if unknown. */
+  pageForSubtitle(anchorId: string): number | null {
+    const offset = this.getSubtitleOffsets().find((o) => o.anchorId === anchorId);
     return offset ? offset.pageNumber : null;
   }
 }

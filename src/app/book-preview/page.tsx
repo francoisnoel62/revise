@@ -187,6 +187,22 @@ function BookPreviewContent() {
                     >
                       {ch.title || 'Sans titre'}
                     </button>
+                    {ch.subEntries && ch.subEntries.length > 0 && (
+                      <ul className="ml-3 space-y-1 border-l border-slate-700 pl-2">
+                        {ch.subEntries.map((sub) => (
+                          <li key={sub.anchorId}>
+                            <button
+                              className="w-full rounded px-2 py-1 text-left text-xs text-slate-400 transition-colors hover:bg-slate-700 hover:text-white"
+                              data-subtitle-anchor={sub.anchorId}
+                              data-page-number={sub.pageNumber}
+                              onClick={() => setPdfPage(sub.pageNumber)}
+                            >
+                              {sub.title}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -213,7 +229,10 @@ function BookPreviewContent() {
             </div>
           ) : pdfSrc ? (
             <iframe
-              key={`${data?.profileId}-${retryToken}`}
+              // Chromium's native PDF viewer only honours #page=N at load time; a hash-only src
+              // change on an already-loaded iframe is ignored. Keying on pdfPage remounts the
+              // iframe so each sidebar jump reloads the PDF at the target page.
+              key={`${data?.profileId}-${retryToken}-${pdfPage}`}
               ref={iframeRef}
               className="h-full w-full border-0 bg-slate-200"
               data-testid="book-preview-pdf"

@@ -4,12 +4,16 @@
 import type { JSONContent } from '@tiptap/core';
 import type { FrontMatterData } from '@/domain/interfaces/DocumentExporter';
 import { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
-import { BookPreviewCacheEntry, type ChapterPageOffset } from '@/domain/entities/BookPreviewCacheEntry';
-import type { BrowserLauncher } from '@/infrastructure/document/paged/BrowserLauncher';
-import { PagedJsRenderer } from '@/infrastructure/document/paged/PagedJsRenderer';
-import { TipTapToBookHtml } from '@/infrastructure/document/paged/TipTapToBookHtml';
+import {
+  BookPreviewCacheEntry,
+  type ChapterPageOffset,
+  type SubtitlePageOffset,
+} from '@/domain/entities/BookPreviewCacheEntry';
+import type { BrowserLauncher } from '@/application/interfaces/BrowserLauncher';
+import type { PagedRenderer } from '@/application/interfaces/PagedRenderer';
 import { WholeBookHtmlAssembler } from './WholeBookHtmlAssembler';
 import type { LevelStyleSetProperties } from '@/domain/value-objects/LevelStyleSet';
+import type { TocDepth, TocStyle } from '@/domain/value-objects/TocPreferences';
 
 export interface BookPreviewComputeInput {
   readonly projectId: string;
@@ -20,6 +24,8 @@ export interface BookPreviewComputeInput {
   readonly contentHash: string;
   readonly assetBaseUrl: string;
   readonly levelStyles?: LevelStyleSetProperties;
+  readonly tocDepth?: TocDepth;
+  readonly tocStyle?: TocStyle;
 }
 
 export interface BookPreviewComputeResult {
@@ -31,6 +37,7 @@ interface ExtractedMetrics {
   readonly totalPageCount: number;
   readonly frontMatterPageCount: number;
   readonly chapterOffsets: ChapterPageOffset[];
+  readonly subtitleOffsets: SubtitlePageOffset[];
 }
 
 // Paged.js paginating a whole 300-400 page book in Chromium is inherently slow
@@ -42,18 +49,21 @@ export class BookPreviewCacheComputer {
   constructor(
     private readonly launcher: BrowserLauncher,
     private readonly clock: () => Date = () => new Date(),
-    private readonly renderer = new PagedJsRenderer(),
-    private readonly assembler = new WholeBookHtmlAssembler(new TipTapToBookHtml()),
+    private readonly renderer: PagedRenderer,
+    private readonly assembler: WholeBookHtmlAssembler,
   ) {}
 
   async compute(input: BookPreviewComputeInput): Promise<BookPreviewComputeResult> {
-    const { bodyHtml, tocEntries } = this.assembler.assemble(input.chapters);
+    const { bodyHtml, tocEntries } = this.assembler.assemble(input.chapters, {
+      tocDepth: input.tocDepth,
+    });
     const html = this.renderer.render({
       bodyHtml,
       profile: input.profile,
       assetBaseUrl: input.assetBaseUrl,
       frontMatter: input.frontMatter,
       toc: tocEntries.length > 0 ? [...tocEntries] : undefined,
+      tocStyle: input.tocStyle,
       levelStyles: input.levelStyles,
     });
 
@@ -102,6 +112,7 @@ export class BookPreviewCacheComputer {
           frontMatterPageCount: metrics.frontMatterPageCount,
           totalPageCount: metrics.totalPageCount,
           chapterOffsets: metrics.chapterOffsets,
+          subtitleOffsets: metrics.subtitleOffsets,
         },
         this.clock(),
       );
@@ -143,5 +154,20 @@ const EXTRACT_METRICS_JS = `(function () {
   }
   var firstBodyPage = chapterOffsets.length > 0 ? chapterOffsets[0].pageNumber : 1;
   var frontMatterPageCount = Math.max(0, firstBodyPage - 1);
-  return { totalPageCount: totalPageCount, frontMatterPageCount: frontMatterPageCount, chapterOffsets: chapterOffsets };
+  var subtitleEls = Array.prototype.slice.call(
+    document.querySelectorAll('[data-semantic-role="sous-titre"][id]')
+  );
+  var subtitleOffsets = [];
+  for (var j = 0; j < subtitleEls.length; j++) {
+    var subtitlePageNumber = pageIndexOf(subtitleEls[j]);
+    if (subtitlePageNumber !== null) {
+      subtitleOffsets.push({ anchorId: subtitleEls[j].id, pageNumber: subtitlePageNumber });
+    }
+  }
+  return {
+    totalPageCount: totalPageCount,
+    frontMatterPageCount: frontMatterPageCount,
+    chapterOffsets: chapterOffsets,
+    subtitleOffsets: subtitleOffsets
+  };
 })()`;

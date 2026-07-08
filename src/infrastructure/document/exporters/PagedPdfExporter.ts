@@ -6,8 +6,10 @@ import type { DocumentExporter, ExportOptions, FrontMatterData } from '@/domain/
 import type { Project } from '@/domain/entities/Project';
 import type { Chapter } from '@/domain/entities/Chapter';
 import { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
-import type { BrowserLauncher } from '../paged/BrowserLauncher';
+import type { BrowserLauncher } from '@/application/interfaces/BrowserLauncher';
 import type { TocEntry } from '@/application/interfaces/PagedRenderer';
+import type { ContentNode } from '@/domain/value-objects/ContentNode';
+import { stripToSemantic } from '@/application/rendering/PresentationOverrideService';
 import { PagedJsRenderer } from '../paged/PagedJsRenderer';
 import { TipTapToBookHtml } from '../paged/TipTapToBookHtml';
 
@@ -100,7 +102,11 @@ export class PagedPdfExporter implements DocumentExporter {
     for (let i = 0; i < chapters.length; i++) {
       const chapter = chapters[i];
       const chapterId = `ch-${i}`;
-      const chapterContent = this.converter.convert(chapter.content);
+      // Strip inline presentation attrs so the print profile's per-role typography drives the
+      // layout (see WholeBookHtmlAssembler): the editor's default textAlign:'justify' otherwise
+      // leaks as an inline style and out-specifies the profile's centering of chapter titles.
+      const semanticContent = stripToSemantic(chapter.content as ContentNode) as JSONContent;
+      const chapterContent = this.converter.convert(semanticContent);
 
       bodyParts.push(`<section id="${chapterId}" class="chapter">${chapterContent}</section>`);
 

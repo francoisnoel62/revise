@@ -20,7 +20,9 @@ export class PagedJsRenderer implements PagedRenderer {
       ? this.frontMatterBuilder.build(request.frontMatter)
       : '';
     const tocHtml =
-      request.toc && request.toc.length > 0 ? this.tocBuilder.build(request.toc) : '';
+      request.toc && request.toc.length > 0
+        ? this.tocBuilder.build(request.toc, request.tocStyle)
+        : '';
 
     const hasLiminals = Boolean(frontMatterHtml || tocHtml);
 

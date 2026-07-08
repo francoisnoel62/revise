@@ -102,6 +102,82 @@ describe('BookPreviewPage', () => {
     expect(screen.getByTestId('book-preview-pdf').getAttribute('src')).toContain('#page=41');
   });
 
+  it('remounts the PDF iframe on chapter click so the native viewer reloads at the new page', async () => {
+    vi.mocked(getBookPreviewDataAction).mockResolvedValue({ success: true, data: bookPreviewData } as never);
+    render(<BookPreviewPage />);
+    await flushMicrotasks();
+
+    const before = screen.getByTestId('book-preview-pdf');
+    expect(before.getAttribute('src')).toContain('#page=1');
+
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Chapitre 2' }));
+    });
+
+    const after = screen.getByTestId('book-preview-pdf');
+    expect(after.getAttribute('src')).toContain('#page=41');
+    // Chromium's native PDF viewer only honours #page=N at load time; mutating the hash on an
+    // already-loaded iframe is ignored, so the sidebar looks unresponsive. The page jump must
+    // therefore force a fresh iframe element (a remount), not just a src-attribute mutation.
+    expect(after).not.toBe(before);
+  });
+
+  it('renders indented sous-titre sub-entries under their chapter when present', async () => {
+    vi.mocked(getBookPreviewDataAction).mockResolvedValue({
+      success: true,
+      data: {
+        ...bookPreviewData,
+        chapters: [
+          {
+            id: 'ch-1',
+            title: 'Chapitre 1',
+            pageNumber: 5,
+            subEntries: [{ anchorId: 'chapter-ch-1-soustitre-0', title: 'Sous-titre A', pageNumber: 6 }],
+          },
+          { id: 'ch-2', title: 'Chapitre 2', pageNumber: 41 },
+        ],
+      },
+    } as never);
+    render(<BookPreviewPage />);
+    await flushMicrotasks();
+
+    expect(screen.getByRole('button', { name: 'Sous-titre A' })).toBeInTheDocument();
+  });
+
+  it('jumps to the sous-titre page via the #page anchor when a sub-entry is clicked', async () => {
+    vi.mocked(getBookPreviewDataAction).mockResolvedValue({
+      success: true,
+      data: {
+        ...bookPreviewData,
+        chapters: [
+          {
+            id: 'ch-1',
+            title: 'Chapitre 1',
+            pageNumber: 5,
+            subEntries: [{ anchorId: 'chapter-ch-1-soustitre-0', title: 'Sous-titre A', pageNumber: 6 }],
+          },
+          { id: 'ch-2', title: 'Chapitre 2', pageNumber: 41 },
+        ],
+      },
+    } as never);
+    render(<BookPreviewPage />);
+    await flushMicrotasks();
+
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Sous-titre A' }));
+    });
+
+    expect(screen.getByTestId('book-preview-pdf').getAttribute('src')).toContain('#page=6');
+  });
+
+  it('renders no sub-entries when a chapter has none', async () => {
+    vi.mocked(getBookPreviewDataAction).mockResolvedValue({ success: true, data: bookPreviewData } as never);
+    render(<BookPreviewPage />);
+    await flushMicrotasks();
+
+    expect(screen.queryByRole('button', { name: 'Sous-titre A' })).not.toBeInTheDocument();
+  });
+
   it('hides the PDF preview and explains why for the passerelle profile', async () => {
     vi.mocked(getBookPreviewDataAction).mockResolvedValue({
       success: true,

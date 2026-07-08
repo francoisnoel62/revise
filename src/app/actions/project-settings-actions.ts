@@ -17,6 +17,7 @@ import { AutocompletePreferences } from '@/domain/value-objects/AutocompletePref
 import { CanonExtractionPreferences } from '@/domain/value-objects/CanonExtractionPreferences';
 import type { PublicationProfileId } from '@/domain/value-objects/PublicationProfile';
 import type { LevelStylesByProfile } from '@/domain/entities/ProjectSettings';
+import type { TocPreferences } from '@/domain/value-objects/TocPreferences';
 
 export interface SerializedProjectSettings {
   id: string;
@@ -41,6 +42,7 @@ export interface SerializedProjectSettings {
   ignoredWords: string[];
   publicationProfileId: PublicationProfileId;
   levelStylesByProfile: LevelStylesByProfile;
+  tocPreferences: TocPreferences;
 }
 
 function serializeProjectSettings(settings: ProjectSettings): SerializedProjectSettings {
@@ -67,6 +69,7 @@ function serializeProjectSettings(settings: ProjectSettings): SerializedProjectS
     ignoredWords: settings.getIgnoredWords(),
     publicationProfileId: settings.getPublicationProfileId(),
     levelStylesByProfile: settings.getLevelStylesByProfile(),
+    tocPreferences: settings.getTocPreferences(),
   };
 }
 
