@@ -253,13 +253,23 @@ describe('BookCssBuilder', () => {
   describe('toc design variants (3 presets, always emitted statically)', () => {
     const css = new BookCssBuilder().build(PublicationProfile.kdpSixByNine(), 'http://localhost:3000');
 
-    it('classique (default/unchanged): leader dots + page numbers', () => {
-      expect(css).toMatch(/\.toc a::after\s*\{[^}]*leader\('\.'\)[^}]*target-counter/);
+    // Paged.js has no runtime handler for CSS leader() (only target-counter() is implemented
+    // by its generated-content module), so a `content: leader('.') target-counter(...)` value
+    // is invalid as a whole and silently drops both the dots and the number. The dotted fill
+    // is reproduced instead via a real element (.toc-title) with clipped repeated-dot content.
+    it('classique (default): page numbers via target-counter, no leader() anywhere', () => {
+      expect(css).toMatch(/\.toc a::after\s*\{[^}]*target-counter/);
+      expect(css).not.toContain("leader(");
     });
 
-    it('epure: page numbers without leader dots', () => {
-      expect(css).toMatch(/\.toc--epure a::after\s*\{[^}]*target-counter/);
-      expect(css).not.toMatch(/\.toc--epure a::after\s*\{[^}]*leader/);
+    it('classique: fills the gap with a clipped dotted-fill element, not CSS leader()', () => {
+      expect(css).toMatch(/\.toc--classique \.toc-title\s*\{[^}]*overflow:\s*hidden/);
+      expect(css).toMatch(/\.toc--classique \.toc-title::after\s*\{[^}]*content:\s*'[^']*\.[^']*'/);
+    });
+
+    it('epure: page numbers without any dotted-fill element', () => {
+      expect(css).toMatch(/\.toc a::after\s*\{[^}]*target-counter/);
+      expect(css).not.toMatch(/\.toc--epure[^{]*\.toc-title::after/);
     });
 
     it('litteraire: no page numbers, titles centered', () => {
@@ -269,6 +279,33 @@ describe('BookCssBuilder', () => {
 
     it('indents nested sub-entries', () => {
       expect(css).toMatch(/\.toc li ol\s*\{/);
+    });
+
+    // `.toc ol` caps the top-level list at max-width:80% of the nav. Without an override,
+    // that same max-width:80% cascades onto `.toc li ol` too — but relative to the <li>'s own
+    // box, which already sits inside the 80%-capped top list. The nested list's right edge
+    // then lands at 80% of 80% (64%) instead of the top list's 80%, so sub-entry page numbers
+    // stop well short of the column chapter-level numbers land in.
+    it('does not let max-width compound on nested sub-entry lists', () => {
+      expect(css).toMatch(/\.toc li ol\s*\{[^}]*max-width:\s*none/);
+    });
+  });
+
+  describe('toc page-number column stability (row-to-row vertical alignment)', () => {
+    const css = new BookCssBuilder().build(PublicationProfile.kdpSixByNine(), 'http://localhost:3000');
+
+    // Paged.js resolves each target-counter() in isolation, late in pagination, forcing a
+    // reflow of only the matched <a> element. A shrink-to-fit number box therefore settles
+    // at a different width/position per row (1 vs 2 vs 3 digits). Giving the box a fixed
+    // min-width and right alignment up front keeps its size constant regardless of when or
+    // to what value it resolves, so rows line up consistently.
+    it('gives the page-number box a fixed width and right alignment', () => {
+      expect(css).toMatch(/\.toc a::after\s*\{[^}]*min-width:/);
+      expect(css).toMatch(/\.toc a::after\s*\{[^}]*text-align:\s*right/);
+    });
+
+    it('aligns title and page number on a shared baseline', () => {
+      expect(css).toMatch(/\.toc a\s*\{[^}]*align-items:\s*baseline/);
     });
   });
 });

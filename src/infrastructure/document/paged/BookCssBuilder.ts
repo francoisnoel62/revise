@@ -144,7 +144,7 @@ export class BookCssBuilder {
       .chapter { break-before: right; }
       .chapter:first-child { break-before: auto; }
 
-      /* TOC: links with leader dots and auto page numbers */
+      /* TOC: links with auto page numbers (target-counter), classique adds a dotted fill */
       .toc h2 {
         font-size: 14pt;
         font-weight: 700;
@@ -160,27 +160,49 @@ export class BookCssBuilder {
         text-align: left;
       }
       .toc li { margin-bottom: 6pt; }
+      /* Reset width/max-width: .toc ol's max-width:80% would otherwise cascade onto this
+         nested list relative to its own <li> (already inside that 80%-capped box), landing
+         its right edge at 80% of 80% instead of the top-level list's 80% — misaligning
+         sub-entry page numbers against chapter-level ones. */
       .toc li ol {
         list-style: none;
         margin: 4pt 0 0;
         padding-left: 18pt;
+        width: auto;
+        max-width: none;
       }
       .toc a {
         text-decoration: none;
         color: inherit;
         display: flex;
+        align-items: baseline;
         justify-content: space-between;
       }
+      /* Paged.js resolves target-counter() per-link, late in pagination, and only reflows
+         the matched <a> in isolation (no shared re-layout across TOC rows). A shrink-to-fit
+         number box therefore settles at a different width per row (1 vs 2 vs 3 digits). A
+         fixed min-width with right alignment keeps the box's size constant regardless of
+         when or to what value it resolves, so rows line up. */
       .toc a::after {
-        content: leader('.') target-counter(attr(href url), page);
-        white-space: nowrap;
-        padding-left: 4pt;
-      }
-
-      /* Épuré: page numbers right-aligned, no leader dots */
-      .toc--epure a::after {
         content: target-counter(attr(href url), page);
         white-space: nowrap;
+        padding-left: 4pt;
+        min-width: 1.8em;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* Classique: dotted fill between title and page number. The CSS GCPM leader mechanism
+         has no runtime handler in Paged.js (only target-counter does), so combining the two
+         in one content value is invalid as a whole and silently drops both the dots and the
+         number. Reproduced instead with a real, clipped element. */
+      .toc--classique .toc-title {
+        flex: 1 1 auto;
+        overflow: hidden;
+        white-space: nowrap;
+      }
+      .toc--classique .toc-title::after {
+        content: ' . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . ';
         padding-left: 4pt;
       }
 

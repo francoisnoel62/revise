@@ -26,13 +26,13 @@ ${items}
       entry.subEntries && entry.subEntries.length > 0
         ? `\n      <ol>\n${entry.subEntries.map((sub) => this.renderSubEntry(sub)).join('\n')}\n      </ol>\n    `
         : '';
-    return `    <li><a href="#${href}">${title}</a>${subList}</li>`;
+    return `    <li><a href="#${href}"><span class="toc-title">${title}</span></a>${subList}</li>`;
   }
 
   private renderSubEntry(sub: TocSubEntry): string {
     const href = this.escape(sub.anchorId);
     const title = this.escape(sub.title);
-    return `        <li><a href="#${href}">${title}</a></li>`;
+    return `        <li><a href="#${href}"><span class="toc-title">${title}</span></a></li>`;
   }
 
   private escape(value: string): string {

@@ -64,6 +64,22 @@ describe('TocHtmlBuilder', () => {
     expect(html).toContain('&quot;');
   });
 
+  it('wraps each entry title in a .toc-title span so classique can clip a dotted fill onto it', () => {
+    const html = builder.build([{ title: 'Chapitre 1', chapterId: 'ch-0' }]);
+    expect(html).toContain('<span class="toc-title">Chapitre 1</span>');
+  });
+
+  it('wraps sub-entry titles in a .toc-title span too', () => {
+    const html = builder.build([
+      {
+        title: 'Chapitre 1',
+        chapterId: 'ch-0',
+        subEntries: [{ title: 'Sous-titre A', anchorId: 'ch-0-soustitre-0' }],
+      },
+    ]);
+    expect(html).toContain('<span class="toc-title">Sous-titre A</span>');
+  });
+
   describe('design (tocStyle)', () => {
     it('applies the classique class by default', () => {
       const html = builder.build([{ title: 'Chapitre 1', chapterId: 'ch-0' }]);
