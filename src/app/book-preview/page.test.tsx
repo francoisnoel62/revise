@@ -102,6 +102,26 @@ describe('BookPreviewPage', () => {
     expect(screen.getByTestId('book-preview-pdf').getAttribute('src')).toContain('#page=41');
   });
 
+  it('remounts the PDF iframe on chapter click so the native viewer reloads at the new page', async () => {
+    vi.mocked(getBookPreviewDataAction).mockResolvedValue({ success: true, data: bookPreviewData } as never);
+    render(<BookPreviewPage />);
+    await flushMicrotasks();
+
+    const before = screen.getByTestId('book-preview-pdf');
+    expect(before.getAttribute('src')).toContain('#page=1');
+
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Chapitre 2' }));
+    });
+
+    const after = screen.getByTestId('book-preview-pdf');
+    expect(after.getAttribute('src')).toContain('#page=41');
+    // Chromium's native PDF viewer only honours #page=N at load time; mutating the hash on an
+    // already-loaded iframe is ignored, so the sidebar looks unresponsive. The page jump must
+    // therefore force a fresh iframe element (a remount), not just a src-attribute mutation.
+    expect(after).not.toBe(before);
+  });
+
   it('renders indented sous-titre sub-entries under their chapter when present', async () => {
     vi.mocked(getBookPreviewDataAction).mockResolvedValue({
       success: true,

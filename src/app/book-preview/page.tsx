@@ -229,7 +229,10 @@ function BookPreviewContent() {
             </div>
           ) : pdfSrc ? (
             <iframe
-              key={`${data?.profileId}-${retryToken}`}
+              // Chromium's native PDF viewer only honours #page=N at load time; a hash-only src
+              // change on an already-loaded iframe is ignored. Keying on pdfPage remounts the
+              // iframe so each sidebar jump reloads the PDF at the target page.
+              key={`${data?.profileId}-${retryToken}-${pdfPage}`}
               ref={iframeRef}
               className="h-full w-full border-0 bg-slate-200"
               data-testid="book-preview-pdf"
