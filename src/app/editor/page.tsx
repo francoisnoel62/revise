@@ -297,6 +297,12 @@ function EditorContent() {
   const [generationLoading, setGenerationLoading] = useState(false);
   const [activeGenerationType, setActiveGenerationType] = useState<ChapterGenerationTypeKey | null>(null);
 
+  // Preview scroll sync: the editor drives the sticky preview's internal scroll position.
+  const [scrollProgress, setScrollProgress] = useState(0);
+  useEffect(() => {
+    setScrollProgress(0);
+  }, [project?.activeChapterId]);
+
   // Command palette state
   const [showCommandPalette, setShowCommandPalette] = useState(false);
 
@@ -872,6 +878,7 @@ function EditorContent() {
 
       {/* Editor container - responsive width */}
       <EditorPreviewLayout
+        onEditorScrollProgress={setScrollProgress}
         editorSlot={
           <>
             <TextEditor
@@ -908,6 +915,7 @@ function EditorContent() {
               if (project.activeChapterId) onPageCountChange(project.activeChapterId, count);
             }}
             levelStyles={activeLevelStyles}
+            scrollProgress={scrollProgress}
           />
         }
       />

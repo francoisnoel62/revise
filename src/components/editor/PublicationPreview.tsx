@@ -35,6 +35,8 @@ interface PublicationPreviewProps {
   /** Called with the total page count whenever the iframe finishes rendering. */
   readonly onPageCountChange?: (count: number) => void;
   readonly levelStyles?: LevelStyleSetProperties;
+  /** Editor scroll progress (0..1) used to drive the preview's own scroll position. */
+  readonly scrollProgress?: number;
 }
 
 export function PublicationPreview({
@@ -44,14 +46,27 @@ export function PublicationPreview({
   startPageNumber,
   onPageCountChange,
   levelStyles,
+  scrollProgress,
 }: PublicationPreviewProps) {
   const [renderedContent, setRenderedContent] = useState(content);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const lastPostedProgressRef = useRef(0);
 
   useEffect(() => {
     const timer = setTimeout(() => setRenderedContent(content), 300);
+    lastPostedProgressRef.current = 0;
     return () => clearTimeout(timer);
   }, [content]);
+
+  useEffect(() => {
+    if (scrollProgress === undefined) return;
+    if (Math.abs(scrollProgress - lastPostedProgressRef.current) <= 0.002) return;
+    lastPostedProgressRef.current = scrollProgress;
+    iframeRef.current?.contentWindow?.postMessage(
+      { type: 'sync-scroll', progress: scrollProgress },
+      '*'
+    );
+  }, [scrollProgress]);
 
   const handleMessage = useCallback(
     (event: MessageEvent<PagedRenderedMessage>) => {

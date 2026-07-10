@@ -103,4 +103,28 @@ describe('PublicationPreview', () => {
 
     expect(onChange).toHaveBeenCalledWith(7);
   });
+
+  it('posts scroll-sync progress to the iframe when scrollProgress changes', () => {
+    const postMessage = vi.fn();
+    const { container, rerender } = render(
+      <PublicationPreview content={content} profileId="kdp-6x9" overrides={[]} scrollProgress={0} />
+    );
+
+    const iframe = container.querySelector('iframe')!;
+    Object.defineProperty(iframe, 'contentWindow', {
+      value: { postMessage },
+      writable: true,
+    });
+
+    rerender(
+      <PublicationPreview
+        content={content}
+        profileId="kdp-6x9"
+        overrides={[]}
+        scrollProgress={0.5}
+      />
+    );
+
+    expect(postMessage).toHaveBeenCalledWith({ type: 'sync-scroll', progress: 0.5 }, '*');
+  });
 });

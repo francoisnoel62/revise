@@ -3,7 +3,7 @@
 
 import { render, screen, fireEvent } from '@testing-library/react';
 import { useEffect } from 'react';
-import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { EditorPreviewLayout, PREVIEW_VISIBILITY_STORAGE_KEY } from './EditorPreviewLayout';
 
 let mountCount = 0;
@@ -19,11 +19,18 @@ function TrackedPreview() {
   return null;
 }
 
+class MockResizeObserver {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+
 describe('EditorPreviewLayout', () => {
   beforeEach(() => {
     window.localStorage.clear();
     mountCount = 0;
     unmountCount = 0;
+    globalThis.ResizeObserver = MockResizeObserver as unknown as typeof globalThis.ResizeObserver;
   });
 
   afterEach(() => {
@@ -105,5 +112,46 @@ describe('EditorPreviewLayout', () => {
 
     fireEvent.click(screen.getByTestId('preview-toggle-button'));
     expect(window.localStorage.getItem(PREVIEW_VISIBILITY_STORAGE_KEY)).toBe('visible');
+  });
+
+  it('keeps the preview pane pinned to the viewport while the editor scrolls', () => {
+    render(
+      <EditorPreviewLayout
+        editorSlot={<div data-testid="editor-slot" />}
+        previewSlot={<div data-testid="preview-slot" />}
+      />
+    );
+
+    const aside = screen.getByTestId('preview-slot').closest('aside');
+    expect(aside).toHaveClass('xl:sticky');
+    expect(aside).toHaveClass('xl:self-start');
+  });
+
+  it('keeps the sticky classes even when the preview is toggled hidden', () => {
+    render(
+      <EditorPreviewLayout
+        editorSlot={<div />}
+        previewSlot={<div data-testid="preview-slot" />}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('preview-toggle-button'));
+
+    const aside = screen.getByTestId('preview-slot').closest('aside');
+    expect(aside).toHaveClass('xl:sticky');
+    expect(aside).toHaveClass('hidden');
+  });
+
+  it('reports editor scroll progress as 0 when the editor content is shorter than the viewport', () => {
+    const onEditorScrollProgress = vi.fn();
+    render(
+      <EditorPreviewLayout
+        editorSlot={<div data-testid="editor-slot" />}
+        previewSlot={<div />}
+        onEditorScrollProgress={onEditorScrollProgress}
+      />
+    );
+
+    expect(onEditorScrollProgress).toHaveBeenCalledWith(0);
   });
 });
