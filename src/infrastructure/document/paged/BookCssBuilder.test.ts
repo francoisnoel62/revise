@@ -223,6 +223,34 @@ describe('BookCssBuilder', () => {
     });
   });
 
+  describe('orphan headings, subtitle indent and liminaire styling', () => {
+    const css = new BookCssBuilder().build(
+      PublicationProfile.kdpSixByNine(),
+      'http://localhost:3000',
+    );
+
+    it('keeps chapter titles and subtitles from ending a page (break-after: avoid)', () => {
+      expect(css).toContain('break-after: avoid');
+      expect(css).toMatch(
+        /titre-de-chapitre"\],\s*\[data-semantic-role="sous-titre"\]\s*\{\s*break-after:\s*avoid/,
+      );
+    });
+
+    it('indents subtitles by the profile first-line indent to align with body starts', () => {
+      expect(css).toContain('[data-semantic-role="sous-titre"] { text-indent: 0.8cm; }');
+    });
+
+    it('aligns the dedication and epigraph to the right of the page', () => {
+      expect(css).toMatch(/\.dedication-page,\s*\.epigraph-page\s*\{[^}]*text-align:\s*right/);
+      expect(css).toMatch(/\.dedication-page,\s*\.epigraph-page\s*\{[^}]*align-items:\s*flex-end/);
+    });
+
+    it('sets the epigraph quote in italic but keeps the dedication in body typography', () => {
+      expect(css).toMatch(/\.epigraph-text\s*\{[^}]*font-style:\s*italic/);
+      expect(css).not.toMatch(/\.dedication-text\s*\{[^}]*italic/);
+    });
+  });
+
   describe('liminal (front matter) page rules', () => {
     it('assigns liminal sections to a named page with roman numerals', () => {
       const css = new BookCssBuilder().build(

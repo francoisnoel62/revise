@@ -57,6 +57,11 @@ describe('LevelStyleSet', () => {
     ).toThrow('Invalid level style italic');
   });
 
+  it('defaults subtitles to left alignment so their indent aligns with body starts', () => {
+    const defaults = LevelStyleSet.defaultsFor(PublicationProfile.kdpSixByNine()).values;
+    expect(defaults['sous-titre'].alignment).toBe('left');
+  });
+
   it('derives body defaults from each publication profile', () => {
     expect(LevelStyleSet.defaultsFor(PublicationProfile.kdpSixByNine()).values.corps).toMatchObject({
       fontFamily: 'EB Garamond',

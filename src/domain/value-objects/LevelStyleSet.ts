@@ -107,7 +107,9 @@ export class LevelStyleSet {
         ...inherited,
         fontSizePoints: 12,
         fontWeight: 'bold',
-        alignment: 'center',
+        // Left, not centered, so the profile first-line indent (applied in BookCssBuilder)
+        // aligns the subtitle's left edge with the chapter body's paragraph starts.
+        alignment: 'left',
         spaceBeforePoints: 24,
         spaceAfterPoints: 12,
       },

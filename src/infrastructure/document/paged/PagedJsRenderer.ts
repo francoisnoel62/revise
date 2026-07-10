@@ -4,12 +4,13 @@
 import type { PagedRenderer, PagedRenderRequest } from '@/application/interfaces/PagedRenderer';
 import { BookCssBuilder } from './BookCssBuilder';
 import { FrontMatterHtmlBuilder } from './FrontMatterHtmlBuilder';
+import { TipTapToBookHtml } from './TipTapToBookHtml';
 import { TocHtmlBuilder } from './TocHtmlBuilder';
 
 export class PagedJsRenderer implements PagedRenderer {
   constructor(
     private readonly cssBuilder = new BookCssBuilder(),
-    private readonly frontMatterBuilder = new FrontMatterHtmlBuilder(),
+    private readonly frontMatterBuilder = new FrontMatterHtmlBuilder(new TipTapToBookHtml()),
     private readonly tocBuilder = new TocHtmlBuilder(),
   ) {}
 

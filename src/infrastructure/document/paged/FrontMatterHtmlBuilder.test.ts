@@ -4,9 +4,20 @@
 
 import { describe, it, expect } from 'vitest';
 import { FrontMatterHtmlBuilder } from './FrontMatterHtmlBuilder';
+import { TipTapToBookHtml } from './TipTapToBookHtml';
 import type { FrontMatterData } from '@/domain/interfaces/DocumentExporter';
 
-const builder = new FrontMatterHtmlBuilder();
+const builder = new FrontMatterHtmlBuilder(new TipTapToBookHtml());
+
+function tiptapDoc(...paragraphs: string[]): string {
+  return JSON.stringify({
+    type: 'doc',
+    content: paragraphs.map((text) => ({
+      type: 'paragraph',
+      content: [{ type: 'text', text }],
+    })),
+  });
+}
 
 describe('FrontMatterHtmlBuilder', () => {
   describe('half-title page', () => {
@@ -109,6 +120,54 @@ describe('FrontMatterHtmlBuilder', () => {
     it('omits epigraph-page when epigraphContent is empty string', () => {
       const html = builder.build({ title: 'Mon Roman', epigraphContent: '' });
       expect(html).not.toContain('epigraph-page');
+    });
+  });
+
+  describe('TipTap JSON content (dédicace / épigraphe stored as doc JSON)', () => {
+    it('renders a dedication doc as formatted text, never as raw JSON', () => {
+      const html = builder.build({
+        title: 'Mon Roman',
+        dedicationContent: tiptapDoc('une dédicace'),
+      });
+      expect(html).toContain('dedication-page');
+      expect(html).toMatch(/<p[^>]*>une dédicace<\/p>/);
+      expect(html).toContain('class="dedication-text"');
+      expect(html).not.toContain('paragraph');
+    });
+
+    it('renders an epigraph doc as a quote plus its last paragraph as the attribution', () => {
+      const html = builder.build({
+        title: 'Mon Roman',
+        epigraphContent: tiptapDoc(
+          'Pourquoi l’amour et la souffrance vivent-ils ensemble ? Parce que c’est un couple.',
+          'Michel Conte',
+        ),
+      });
+      expect(html).toContain('epigraph-page');
+      expect(html).toMatch(/<blockquote[^>]*class="epigraph-text"[^>]*>[\s\S]*Parce que[\s\S]*<\/blockquote>/);
+      expect(html).toMatch(/class="epigraph-attribution"[^>]*>[\s\S]*Michel Conte/);
+      expect(html).not.toContain('paragraph');
+    });
+
+    it('renders a single-paragraph epigraph as a quote with no attribution', () => {
+      const html = builder.build({
+        title: 'Mon Roman',
+        epigraphContent: tiptapDoc('Une seule ligne, sans auteur.'),
+      });
+      expect(html).toContain('Une seule ligne, sans auteur.');
+      expect(html).not.toContain('epigraph-attribution');
+    });
+
+    it('omits the dedication page when the doc carries no text', () => {
+      const emptyDoc = JSON.stringify({ type: 'doc', content: [{ type: 'paragraph' }] });
+      const html = builder.build({ title: 'Mon Roman', dedicationContent: emptyDoc });
+      expect(html).not.toContain('dedication-page');
+    });
+
+    it('still renders legacy plain-text dedication content', () => {
+      const html = builder.build({ title: 'Mon Roman', dedicationContent: 'À ma famille.' });
+      expect(html).toContain('dedication-page');
+      expect(html).toContain('À ma famille.');
     });
   });
 
