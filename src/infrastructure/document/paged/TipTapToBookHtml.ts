@@ -3,6 +3,7 @@
 
 import type { JSONContent } from '@tiptap/core';
 import type { TipTapToHtmlConverter } from '@/application/interfaces/TipTapToHtmlConverter';
+import { applyFrenchSpacing } from './frenchSpacing';
 
 export class TipTapToBookHtml implements TipTapToHtmlConverter {
   convert(content: JSONContent): string {
@@ -53,7 +54,7 @@ export class TipTapToBookHtml implements TipTapToHtmlConverter {
   }
 
   private renderText(node: JSONContent): string {
-    let html = this.escapeHtml(node.text ?? '');
+    let html = this.escapeHtml(applyFrenchSpacing(node.text ?? ''));
 
     for (const mark of node.marks ?? []) {
       switch (mark.type) {

@@ -7,6 +7,7 @@ import { TipTapToBookHtml } from './TipTapToBookHtml';
 import type { JSONContent } from '@tiptap/core';
 
 const converter = new TipTapToBookHtml();
+const NBSP = String.fromCharCode(0xa0);
 
 function doc(...children: JSONContent[]): JSONContent {
   return { type: 'doc', content: children };
@@ -49,6 +50,14 @@ describe('TipTapToBookHtml', () => {
     it('returns valid HTML string for an empty document', () => {
       const html = converter.convert(doc());
       expect(typeof html).toBe('string');
+    });
+
+    it('inserts French non-breaking spaces before high punctuation so it cannot orphan', () => {
+      // Author types regular spaces; the renderer makes them non-breaking (U+00A0).
+      const html = converter.convert(doc(paragraph('Vraiment ? « Oui »')));
+      expect(html).toContain(`Vraiment${NBSP}?`);
+      expect(html).toContain(`«${NBSP}Oui${NBSP}»`);
+      expect(html).not.toContain('Vraiment ?');
     });
   });
 

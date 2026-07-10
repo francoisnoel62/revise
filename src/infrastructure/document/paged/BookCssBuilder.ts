@@ -97,7 +97,10 @@ export class BookCssBuilder {
         break-before: page;
       }
       [data-semantic-role="titre-de-chapitre"]:first-child { break-before: auto; }
+      [data-semantic-role="titre-de-chapitre"],
+      [data-semantic-role="sous-titre"] { break-after: avoid; }
       ${semanticTypography}
+      [data-semantic-role="sous-titre"] { text-indent: ${value.firstLineIndentCentimeters}cm; }
       .pagedjs_pages { display: flex; flex-direction: column; align-items: center; gap: 24px; }
       .pagedjs_page { background: white; box-shadow: 0 4px 18px rgb(15 23 42 / 18%); }
       @media print {
@@ -127,6 +130,12 @@ export class BookCssBuilder {
         text-align: center;
       }
       .liminal:first-child { page: half-title-page; break-before: right; }
+      /* Dedication and epigraph sit against the page's right edge (still vertically
+         centered). The dedication keeps body typography; only the epigraph quote is italic. */
+      .dedication-page,
+      .epigraph-page { align-items: flex-end; text-align: right; }
+      .epigraph-text { margin: 0; font-style: italic; }
+      .epigraph-attribution { font-style: normal; margin-top: 6pt; }
       @page half-title-page {
         counter-increment: page 0;
         @bottom-center { content: none; }
