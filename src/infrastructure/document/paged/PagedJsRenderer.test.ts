@@ -176,6 +176,12 @@ describe('PagedJsRenderer', () => {
       expect(html).toContain('parentElement');
       expect(html).toContain('scrollIntoView');
     });
+
+    it('includes a message listener for sync-scroll events that sets scrollTop proportionally', () => {
+      const html = renderer.render({ bodyHtml: '<p>A</p>', profile, assetBaseUrl });
+      expect(html).toContain('sync-scroll');
+      expect(html).toContain('scrollTop');
+    });
   });
 
   describe('visible page numbers', () => {

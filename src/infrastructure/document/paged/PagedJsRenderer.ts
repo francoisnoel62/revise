@@ -67,6 +67,11 @@ export class PagedJsRenderer implements PagedRenderer {
           }
           target.scrollIntoView({behavior:'smooth'});
         }
+        if(e.data?.type==='sync-scroll'){
+          const scrollEl=document.scrollingElement||document.documentElement;
+          const max=scrollEl.scrollHeight-scrollEl.clientHeight;
+          scrollEl.scrollTop=Math.max(0,max)*Math.max(0,Math.min(1,e.data.progress));
+        }
       })})()</script>
       </body></html>`;
   }
