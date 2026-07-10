@@ -47,7 +47,7 @@ export class PagedJsRenderer implements PagedRenderer {
       </head><body><main class='book'>${fullBodyHtml}</main>
       <script>(async()=>{
       try{
-      if(!window.PagedPolyfill){throw new Error('PagedPolyfill non chargé ('+String((document.currentScript&&document.currentScript.src)||'')+')');}
+      if(!window.PagedPolyfill){throw new Error('PagedPolyfill non chargé ('+${JSON.stringify(`${assets}/vendor/paged.polyfill.min.js`)}+')');}
       await document.fonts.ready;const start=performance.now();
       const flow=await window.PagedPolyfill.preview();
       document.documentElement.dataset.pageCount=String(flow.total);
