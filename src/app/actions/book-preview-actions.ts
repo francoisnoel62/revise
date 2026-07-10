@@ -10,6 +10,7 @@ import { PublicationProfile, type PublicationProfileId } from '@/domain/value-ob
 import { DEFAULT_TOC_PREFERENCES } from '@/domain/value-objects/TocPreferences';
 import { computeBookPreviewContentHash } from '@/application/services/bookPreviewContentHash';
 import { tagSubtitleHeadings } from '@/application/services/subtitleAnchors';
+import { config } from '@/infrastructure/config/env';
 import {
   BOOK_PREVIEW_PROFILES,
   type BookPreviewProfileId,
@@ -101,7 +102,7 @@ export async function getBookPreviewDataAction(
     let entry = await cacheRepo.loadMetrics(projectId, profileId, auth.userId);
 
     if (!entry || entry.getContentHash() !== contentHash) {
-      const assetBaseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000';
+      const assetBaseUrl = config.app.baseUrl;
       const computer = await getBookPreviewCacheComputer();
       const { entry: computed, pdf } = await computer.compute({
         projectId,

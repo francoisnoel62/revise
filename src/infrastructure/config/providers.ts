@@ -78,6 +78,7 @@ import { BookPreviewCacheComputer } from '@/application/services/BookPreviewCach
 import { WholeBookHtmlAssembler } from '@/application/services/WholeBookHtmlAssembler';
 import { TipTapContentService } from '@/infrastructure/document/utils/TipTapContentService';
 import { Provider } from '@/domain/entities/Provider';
+import { config } from './env';
 import { getDatabase } from './database';
 
 /**
@@ -492,8 +493,7 @@ export type ExportFormat = 'docx' | 'pdf';
  */
 export function getDocumentExporter(format: ExportFormat = 'docx'): DocumentExporter {
   if (format === 'pdf') {
-    const assetBaseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000';
-    return new PagedPdfExporter(assetBaseUrl, new PlaywrightBrowserLauncher());
+    return new PagedPdfExporter(config.app.baseUrl, new PlaywrightBrowserLauncher());
   }
   return new DocxExporter();
 }
