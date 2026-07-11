@@ -121,9 +121,6 @@ export function getMetadataType(key: string): MetadataTypeDefinition | undefined
 export const EDITORIAL_TYPE_KEYS = [
   'dedication',
   'epigraph',
-  'foreword',
-  'acknowledgments',
-  'about-author',
   'copyright',
 ] as const;
 
@@ -135,9 +132,6 @@ export type EditorialTypeKey = (typeof EDITORIAL_TYPE_KEYS)[number];
 export const EDITORIAL_PLACEHOLDERS: Record<EditorialTypeKey, string> = {
   'dedication': 'À ma famille...',
   'epigraph': '« Citation inspirante... »\n— Auteur',
-  'foreword': 'Avant-propos rédigé par...',
-  'acknowledgments': 'Je tiens à remercier...',
-  'about-author': 'L\'auteur est...',
   'copyright': '© 2024 Nom de l\'auteur. Tous droits réservés.',
 };
 
@@ -147,10 +141,7 @@ export const EDITORIAL_PLACEHOLDERS: Record<EditorialTypeKey, string> = {
 export const EDITORIAL_ORDER: Record<EditorialTypeKey, number> = {
   'dedication': 1,
   'epigraph': 2,
-  'foreword': 3,
-  'acknowledgments': 4,
-  'about-author': 5,
-  'copyright': 6,
+  'copyright': 3,
 };
 
 export function isEditorialType(key: string): key is EditorialTypeKey {
