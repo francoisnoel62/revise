@@ -67,9 +67,7 @@ function frontMatterFor(dedication?: string) {
     title: 'Mon Roman',
     subtitle: undefined,
     authorName: 'Fanfan',
-    isbn: undefined,
     dedicationContent: dedication,
-    copyrightContent: undefined,
     epigraphContent: undefined,
   };
 }
@@ -87,6 +85,7 @@ function hashFor(
       { id: 'ch-2', content: CONTENT },
     ],
     frontMatter: frontMatterFor(dedication),
+    backMatter: { legalNoticeContent: undefined, isbn: undefined },
     levelStyles,
     tocDepth: tocPreferences.depth,
     tocStyle: tocPreferences.style,

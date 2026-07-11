@@ -1,7 +1,7 @@
 // ABOUTME: Computes a stable fingerprint of everything visible in the whole-book PDF preview.
 // ABOUTME: Rule: "if it shows in the PDF, it enters the hash" — chapters, their order, and liminal fields.
 
-import type { FrontMatterData } from '@/domain/interfaces/DocumentExporter';
+import type { AnnexEntry, BackMatterData, FrontMatterData } from '@/domain/interfaces/DocumentExporter';
 import { hashText } from '@/application/utils/text-hash';
 import type { LevelStyleSetProperties } from '@/domain/value-objects/LevelStyleSet';
 import type { TocDepth, TocStyle } from '@/domain/value-objects/TocPreferences';
@@ -10,11 +10,16 @@ export interface BookPreviewContentHashInput {
   /** Chapters in reading order; ordering is part of the fingerprint. */
   readonly chapters: ReadonlyArray<{ readonly id: string; readonly content: string }>;
   readonly frontMatter: FrontMatterData;
+  readonly backMatter?: BackMatterData;
   /** Styles for the cache profile only; the profile id itself remains part of the key. */
   readonly levelStyles?: LevelStyleSetProperties;
   /** TOC settings; global to the project, but they change what's printed in the PDF. */
   readonly tocDepth?: TocDepth;
   readonly tocStyle?: TocStyle;
+}
+
+function normalizeAnnexes(annexes: readonly AnnexEntry[] | undefined) {
+  return (annexes ?? []).map((a) => ({ title: a.title, content: a.content }));
 }
 
 /**
@@ -24,6 +29,7 @@ export interface BookPreviewContentHashInput {
  */
 export function computeBookPreviewContentHash(input: BookPreviewContentHashInput): string {
   const fm = input.frontMatter;
+  const bm = input.backMatter;
   const normalized = {
     chapters: input.chapters.map((c) => ({ id: c.id, content: c.content })),
     frontMatter: {
@@ -31,11 +37,17 @@ export function computeBookPreviewContentHash(input: BookPreviewContentHashInput
       subtitle: fm.subtitle ?? null,
       authorName: fm.authorName ?? null,
       dedicationContent: fm.dedicationContent ?? null,
-      copyrightContent: fm.copyrightContent ?? null,
       epigraphContent: fm.epigraphContent ?? null,
-      isbn: fm.isbn ?? null,
       copyrightYear: fm.copyrightYear ?? null,
+      customAnnexes: normalizeAnnexes(fm.customAnnexes),
     },
+    backMatter: bm
+      ? {
+          legalNoticeContent: bm.legalNoticeContent ?? null,
+          isbn: bm.isbn ?? null,
+          customAnnexes: normalizeAnnexes(bm.customAnnexes),
+        }
+      : null,
     levelStyles: input.levelStyles ?? null,
     tocDepth: input.tocDepth ?? null,
     tocStyle: input.tocStyle ?? null,

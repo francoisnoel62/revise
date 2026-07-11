@@ -19,10 +19,14 @@ const base: BookPreviewContentHashInput = {
     subtitle: 'Une histoire',
     authorName: 'Fanfan',
     dedicationContent: 'À toi',
-    copyrightContent: '© 2026',
     epigraphContent: 'Citation',
-    isbn: '978-1',
     copyrightYear: 2026,
+    customAnnexes: [{ title: 'Note', content: 'Un mot' }],
+  },
+  backMatter: {
+    legalNoticeContent: '© 2026',
+    isbn: '978-1',
+    customAnnexes: [{ title: 'Présentation', content: 'Revise Studio' }],
   },
 };
 
@@ -83,6 +87,30 @@ describe('computeBookPreviewContentHash', () => {
     expect(
       computeBookPreviewContentHash({ ...base, levelStyles: customized }),
     ).not.toBe(computeBookPreviewContentHash({ ...base, levelStyles: defaults }));
+  });
+
+  it('changes when the legal notice (mentions légales) changes', () => {
+    const changed = {
+      ...base,
+      backMatter: { ...base.backMatter, legalNoticeContent: 'Autres mentions' },
+    };
+    expect(computeBookPreviewContentHash(changed)).not.toBe(computeBookPreviewContentHash(base));
+  });
+
+  it('changes when a back-matter custom annex changes', () => {
+    const changed = {
+      ...base,
+      backMatter: { ...base.backMatter, customAnnexes: [{ title: 'Présentation', content: 'Autre texte' }] },
+    };
+    expect(computeBookPreviewContentHash(changed)).not.toBe(computeBookPreviewContentHash(base));
+  });
+
+  it('changes when a front-matter custom annex changes', () => {
+    const changed = {
+      ...base,
+      frontMatter: { ...base.frontMatter, customAnnexes: [{ title: 'Note', content: 'Autre' }] },
+    };
+    expect(computeBookPreviewContentHash(changed)).not.toBe(computeBookPreviewContentHash(base));
   });
 
   it('changes when tocDepth changes (invalidates the whole-book preview cache)', () => {

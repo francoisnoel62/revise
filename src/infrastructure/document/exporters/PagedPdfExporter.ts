@@ -2,7 +2,7 @@
 // ABOUTME: Pipeline: TipTap JSON → semantic HTML → publication CSS → Chromium PDF.
 
 import type { JSONContent } from '@tiptap/core';
-import type { DocumentExporter, ExportOptions, FrontMatterData } from '@/domain/interfaces/DocumentExporter';
+import type { BackMatterData, DocumentExporter, ExportOptions, FrontMatterData } from '@/domain/interfaces/DocumentExporter';
 import type { Project } from '@/domain/entities/Project';
 import type { Chapter } from '@/domain/entities/Chapter';
 import { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
@@ -59,6 +59,7 @@ export class PagedPdfExporter implements DocumentExporter {
       options?.publicationProfile,
       options?.frontMatter,
       options?.levelStyles,
+      options?.backMatter,
     );
   }
 
@@ -95,6 +96,7 @@ export class PagedPdfExporter implements DocumentExporter {
     profile: PublicationProfile = PublicationProfile.kdpSixByNine(),
     frontMatter?: FrontMatterData,
     levelStyles?: ExportOptions['levelStyles'],
+    backMatter?: BackMatterData,
   ): Promise<Buffer> {
     const bodyParts: string[] = [];
     const tocEntries: TocEntry[] = [];
@@ -123,6 +125,7 @@ export class PagedPdfExporter implements DocumentExporter {
       profile,
       assetBaseUrl: this.assetBaseUrl,
       frontMatter,
+      backMatter,
       toc,
       levelStyles,
     });

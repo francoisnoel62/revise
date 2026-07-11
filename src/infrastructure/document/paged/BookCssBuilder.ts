@@ -156,6 +156,29 @@ export class BookCssBuilder {
         }
       }
 
+      /* Custom annexes (front liminal or back matter): a centered title over a body block. */
+      .annex-title { font-size: 1.4em; font-weight: 700; text-indent: 0; text-align: center; margin: 0 0 18pt; }
+      .annex-body { text-indent: 0; }
+      .liminal.annex-page { justify-content: flex-start; text-align: left; }
+
+      /* Back matter: pages after the body. They continue the Arabic page numbering.
+         The legal notice is the final colophon page and carries no printed folio. */
+      .back-matter { break-before: page; }
+      .colophon {
+        page: colophon-page;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        min-height: calc(${value.pageHeightInches}in - ${value.marginTopCentimeters}cm - ${value.marginBottomCentimeters}cm);
+        text-align: center;
+      }
+      .legal-notice-text { text-indent: 0; }
+      .colophon .book-isbn { margin-top: 12pt; }
+      @page colophon-page {
+        @bottom-center { content: none; }
+      }
+
       /* Chapter sections: start on odd (right-hand) pages */
       .chapter { break-before: right; }
       .chapter:first-child { break-before: auto; }

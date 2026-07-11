@@ -2,7 +2,7 @@
 // ABOUTME: Produces the cache entry (page counts + physical chapter offsets) and the PDF bytes for GridFS.
 
 import type { JSONContent } from '@tiptap/core';
-import type { FrontMatterData } from '@/domain/interfaces/DocumentExporter';
+import type { BackMatterData, FrontMatterData } from '@/domain/interfaces/DocumentExporter';
 import { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
 import {
   BookPreviewCacheEntry,
@@ -21,6 +21,7 @@ export interface BookPreviewComputeInput {
   readonly profile: PublicationProfile;
   readonly chapters: ReadonlyArray<{ id: string; title: string; content: JSONContent }>;
   readonly frontMatter: FrontMatterData;
+  readonly backMatter?: BackMatterData;
   readonly contentHash: string;
   readonly assetBaseUrl: string;
   readonly levelStyles?: LevelStyleSetProperties;
@@ -62,6 +63,7 @@ export class BookPreviewCacheComputer {
       profile: input.profile,
       assetBaseUrl: input.assetBaseUrl,
       frontMatter: input.frontMatter,
+      backMatter: input.backMatter,
       toc: tocEntries.length > 0 ? [...tocEntries] : undefined,
       tocStyle: input.tocStyle,
       levelStyles: input.levelStyles,

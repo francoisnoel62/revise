@@ -4,7 +4,7 @@
 'use server';
 
 import type { JSONContent } from '@tiptap/core';
-import type { FrontMatterData } from '@/domain/interfaces/DocumentExporter';
+import type { BackMatterData, FrontMatterData } from '@/domain/interfaces/DocumentExporter';
 import type { BookPreviewCacheEntry } from '@/domain/entities/BookPreviewCacheEntry';
 import { PublicationProfile, type PublicationProfileId } from '@/domain/value-objects/PublicationProfile';
 import { DEFAULT_TOC_PREFERENCES } from '@/domain/value-objects/TocPreferences';
@@ -47,11 +47,13 @@ export async function getBookPreviewDataAction(
     const settingsRepo = await getProjectSettingsRepo();
     const metadataRepo = await getMetadataRepo();
 
-    const [settings, dedicationMeta, copyrightMeta, epigraphMeta] = await Promise.all([
+    const [settings, dedicationMeta, epigraphMeta, legalNoticeMeta, legacyCopyrightMeta] = await Promise.all([
       settingsRepo.findByProjectId(auth.userId, projectId),
       metadataRepo.findByProjectAndType(auth.userId, projectId, 'dedication'),
-      metadataRepo.findByProjectAndType(auth.userId, projectId, 'copyright'),
       metadataRepo.findByProjectAndType(auth.userId, projectId, 'epigraph'),
+      metadataRepo.findByProjectAndType(auth.userId, projectId, 'legal-notice'),
+      // Legacy fallback: legal mentions used to live under the 'copyright' type.
+      metadataRepo.findByProjectAndType(auth.userId, projectId, 'copyright'),
     ]);
 
     const authorContributor = settings?.getContributors().find((c) => c.role === 'author');
@@ -59,10 +61,13 @@ export async function getBookPreviewDataAction(
       title: settings?.getTitle() ?? project.getTitle(),
       subtitle: settings?.getSubtitle(),
       authorName: authorContributor?.name,
-      isbn: settings?.getIsbn(),
       dedicationContent: dedicationMeta?.getContent() || undefined,
-      copyrightContent: copyrightMeta?.getContent() || undefined,
       epigraphContent: epigraphMeta?.getContent() || undefined,
+    };
+    const backMatter: BackMatterData = {
+      legalNoticeContent:
+        legalNoticeMeta?.getContent() || legacyCopyrightMeta?.getContent() || undefined,
+      isbn: settings?.getIsbn(),
     };
 
     const activeProfileId: PublicationProfileId = settings?.getPublicationProfileId() ?? 'kdp-6x9';
@@ -93,6 +98,7 @@ export async function getBookPreviewDataAction(
     const contentHash = computeBookPreviewContentHash({
       chapters: orderedChapters.map((ch) => ({ id: ch.getId(), content: ch.getContent() })),
       frontMatter,
+      backMatter,
       levelStyles,
       tocDepth: tocPreferences.depth,
       tocStyle: tocPreferences.style,
@@ -114,6 +120,7 @@ export async function getBookPreviewDataAction(
           content: JSON.parse(ch.getContent()) as JSONContent,
         })),
         frontMatter,
+        backMatter,
         contentHash,
         levelStyles,
         tocDepth: tocPreferences.depth,

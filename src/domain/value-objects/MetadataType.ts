@@ -104,6 +104,12 @@ export const METADATA_TYPES: Record<string, MetadataTypeDefinition> = {
     description: 'Copyright et mentions obligatoires',
     isBuiltIn: true,
   },
+  'legal-notice': {
+    key: 'legal-notice',
+    name: 'Mentions légales',
+    description: 'ISBN, reproduction interdite, mentions obligatoires (dernières pages)',
+    isBuiltIn: true,
+  },
 } as const;
 
 export function isValidMetadataType(key: string): boolean {
@@ -121,7 +127,7 @@ export function getMetadataType(key: string): MetadataTypeDefinition | undefined
 export const EDITORIAL_TYPE_KEYS = [
   'dedication',
   'epigraph',
-  'copyright',
+  'legal-notice',
 ] as const;
 
 export type EditorialTypeKey = (typeof EDITORIAL_TYPE_KEYS)[number];
@@ -132,7 +138,7 @@ export type EditorialTypeKey = (typeof EDITORIAL_TYPE_KEYS)[number];
 export const EDITORIAL_PLACEHOLDERS: Record<EditorialTypeKey, string> = {
   'dedication': 'À ma famille...',
   'epigraph': '« Citation inspirante... »\n— Auteur',
-  'copyright': '© 2024 Nom de l\'auteur. Tous droits réservés.',
+  'legal-notice': '© 2024, Nom de l\'auteur\nISBN 978-2-xxxxxx-xx-x\nReproduction intégrale ou partielle interdite',
 };
 
 /**
@@ -141,7 +147,7 @@ export const EDITORIAL_PLACEHOLDERS: Record<EditorialTypeKey, string> = {
 export const EDITORIAL_ORDER: Record<EditorialTypeKey, number> = {
   'dedication': 1,
   'epigraph': 2,
-  'copyright': 3,
+  'legal-notice': 3,
 };
 
 export function isEditorialType(key: string): key is EditorialTypeKey {

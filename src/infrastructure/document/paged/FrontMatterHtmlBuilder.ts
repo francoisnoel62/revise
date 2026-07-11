@@ -1,10 +1,16 @@
 // ABOUTME: Generates HTML sections for book front matter (liminaires) pages.
-// ABOUTME: Pages are in canonical order: half-title, title, copyright, dedication, epigraph.
+// ABOUTME: Order: half-title, title, copyright (auto ©), dedication, epigraph, custom annexes.
 
 import type { JSONContent } from '@tiptap/core';
 import type { TipTapToHtmlConverter } from '@/application/interfaces/TipTapToHtmlConverter';
 import type { FrontMatterData } from '@/domain/interfaces/DocumentExporter';
 import { escapeHtml } from './htmlEscape';
+import {
+  buildAnnexSection,
+  hasRenderableText,
+  parseTipTapDoc,
+  renderRichContent,
+} from './richContentHtml';
 
 export class FrontMatterHtmlBuilder {
   constructor(private readonly converter: TipTapToHtmlConverter) {}
@@ -16,12 +22,18 @@ export class FrontMatterHtmlBuilder {
     sections.push(this.buildTitlePage(data));
     sections.push(this.buildCopyrightPage(data));
 
-    if (this.hasRenderableContent(data.dedicationContent)) {
+    if (hasRenderableText(data.dedicationContent)) {
       sections.push(this.buildDedicationPage(data.dedicationContent!));
     }
 
-    if (this.hasRenderableContent(data.epigraphContent)) {
+    if (hasRenderableText(data.epigraphContent)) {
       sections.push(this.buildEpigraphPage(data.epigraphContent!));
+    }
+
+    for (const annex of data.customAnnexes ?? []) {
+      if (hasRenderableText(annex.content)) {
+        sections.push(buildAnnexSection(this.converter, annex, 'liminal'));
+      }
     }
 
     return sections.join('\n');
@@ -48,37 +60,26 @@ ${parts.join('\n')}
 </section>`;
   }
 
+  /** Copyright page: always emitted, systematic © auto-generated from year + author. */
   private buildCopyrightPage(data: FrontMatterData): string {
-    const parts: string[] = [];
-
-    if (data.copyrightContent?.trim()) {
-      parts.push(`  <div class="copyright-text">${this.renderRichContent(data.copyrightContent)}</div>`);
-    } else {
-      const year = data.copyrightYear ?? new Date().getFullYear();
-      const author = data.authorName?.trim() ?? '';
-      const notice = author
-        ? `© ${year} ${author}. Tous droits réservés.`
-        : `© ${year}. Tous droits réservés.`;
-      parts.push(`  <p class="copyright-text">${this.escape(notice)}</p>`);
-    }
-
-    if (data.isbn?.trim()) {
-      parts.push(`  <p class="book-isbn">ISBN : ${this.escape(data.isbn)}</p>`);
-    }
-
+    const year = data.copyrightYear ?? new Date().getFullYear();
+    const author = data.authorName?.trim() ?? '';
+    const notice = author
+      ? `© ${year} ${author}. Tous droits réservés.`
+      : `© ${year}. Tous droits réservés.`;
     return `<section class="liminal copyright-page">
-${parts.join('\n')}
+  <p class="copyright-text">${this.escape(notice)}</p>
 </section>`;
   }
 
   private buildDedicationPage(content: string): string {
     return `<section class="liminal dedication-page">
-  <div class="dedication-text">${this.renderRichContent(content)}</div>
+  <div class="dedication-text">${renderRichContent(this.converter, content)}</div>
 </section>`;
   }
 
   private buildEpigraphPage(content: string): string {
-    const doc = this.parseDoc(content);
+    const doc = parseTipTapDoc(content);
 
     // Legacy plain text (or non-doc JSON): keep the simple escaped quote.
     if (!doc) {
@@ -106,39 +107,10 @@ ${parts.join('\n')}
 </section>`;
   }
 
-  /** Renders a stored string as HTML: TipTap doc JSON via the converter, plain text escaped. */
-  private renderRichContent(content: string): string {
-    const doc = this.parseDoc(content);
-    return doc ? this.converter.convert(doc) : this.escape(content);
-  }
-
   /** Inline HTML of a single block node, without its wrapping block tag. */
   private inlineHtml(node: JSONContent): string {
     const html = this.converter.convert({ type: 'doc', content: [node] });
     return html.replace(/^<[a-z][^>]*>/i, '').replace(/<\/[a-z]+>\s*$/i, '');
-  }
-
-  /** Parses a TipTap doc JSON string; null for plain text or any non-doc value. */
-  private parseDoc(content: string): JSONContent | null {
-    try {
-      const json = JSON.parse(content) as JSONContent;
-      return json && json.type === 'doc' ? json : null;
-    } catch {
-      return null;
-    }
-  }
-
-  /** True when the string carries visible text — a bare TipTap doc yields no page. */
-  private hasRenderableContent(content: string | undefined): boolean {
-    if (!content?.trim()) return false;
-    const doc = this.parseDoc(content);
-    if (!doc) return true; // legacy plain text
-    return this.docText(doc).trim().length > 0;
-  }
-
-  private docText(node: JSONContent): string {
-    if (node.type === 'text') return node.text ?? '';
-    return (node.content ?? []).map((child) => this.docText(child)).join('');
   }
 
   private escape(value: string): string {
