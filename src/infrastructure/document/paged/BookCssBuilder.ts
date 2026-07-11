@@ -126,10 +126,17 @@ export class BookCssBuilder {
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        min-height: 100vh;
+        min-height: calc(${value.pageHeightInches}in - ${value.marginTopCentimeters}cm - ${value.marginBottomCentimeters}cm);
         text-align: center;
       }
       .liminal:first-child { page: half-title-page; break-before: right; }
+      /* Liminal titles have no dedicated typography otherwise and would inherit the body
+         size (and its first-line text-indent, which shifts centered lines). Enlarge them
+         and cancel the indent so the title page reads as a title page. */
+      .book-half-title { font-size: 1.6em; font-weight: 700; text-indent: 0; }
+      .book-title { font-size: 2.4em; font-weight: 700; line-height: 1.15; text-indent: 0; }
+      .book-subtitle { font-size: 1.3em; font-style: italic; text-indent: 0; margin-top: 12pt; }
+      .book-author { font-size: 1.4em; text-indent: 0; margin-top: 36pt; }
       /* Dedication and epigraph sit against the page's right edge (still vertically
          centered). The dedication keeps body typography; only the epigraph quote is italic. */
       .dedication-page,
@@ -204,11 +211,11 @@ export class BookCssBuilder {
       /* Classique: dotted fill between title and page number. The CSS GCPM leader mechanism
          has no runtime handler in Paged.js (only target-counter does), so combining the two
          in one content value is invalid as a whole and silently drops both the dots and the
-         number. Reproduced instead with a real, clipped element. */
+         number. Reproduced instead with a real element. The title wraps onto extra lines
+         when it is too long rather than being clipped behind the page-number column. */
       .toc--classique .toc-title {
         flex: 1 1 auto;
-        overflow: hidden;
-        white-space: nowrap;
+        overflow-wrap: break-word;
       }
       .toc--classique .toc-title::after {
         content: ' . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . ';

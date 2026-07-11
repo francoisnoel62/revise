@@ -261,6 +261,38 @@ describe('BookCssBuilder', () => {
       expect(css).toContain('lower-roman');
     });
 
+    it('styles the liminal titles larger than the body, with no first-line indent', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000'
+      );
+      // The title-page book title carries a dedicated, enlarged font size.
+      expect(css).toMatch(/\.book-title\s*\{[^}]*font-size:\s*2\.4em/);
+      // Centered liminal titles must cancel the global p { text-indent } so they stay centered.
+      expect(css).toMatch(/\.book-title\s*\{[^}]*text-indent:\s*0/);
+    });
+
+    it('gives the author name its own emphasized styling on the title page', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000'
+      );
+      expect(css).toMatch(/\.book-author\s*\{[^}]*font-size/);
+      expect(css).toMatch(/\.book-author\s*\{[^}]*text-indent:\s*0/);
+    });
+
+    it('sizes the liminal box to the printable page height, not the viewport', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000'
+      );
+      // 100vh overshoots the content box (page height minus margins) and pushes the
+      // vertically-centered text below the true center; the box must match page geometry.
+      expect(css).not.toContain('100vh');
+      const liminalBlock = css.slice(css.indexOf('.liminal {'));
+      expect(liminalBlock).toMatch(/min-height:\s*calc\(/);
+    });
+
     it('makes chapters start on odd (right) pages', () => {
       const css = new BookCssBuilder().build(
         PublicationProfile.kdpSixByNine(),
@@ -290,9 +322,15 @@ describe('BookCssBuilder', () => {
       expect(css).not.toContain("leader(");
     });
 
-    it('classique: fills the gap with a clipped dotted-fill element, not CSS leader()', () => {
-      expect(css).toMatch(/\.toc--classique \.toc-title\s*\{[^}]*overflow:\s*hidden/);
+    it('classique: fills the gap with a dotted-fill element, not CSS leader()', () => {
       expect(css).toMatch(/\.toc--classique \.toc-title::after\s*\{[^}]*content:\s*'[^']*\.[^']*'/);
+    });
+
+    it('classique: lets long titles wrap instead of clipping them behind the page number', () => {
+      // Long sous-titres must break onto a new line rather than be cut off by the
+      // fixed-width page-number column; nowrap + overflow:hidden would forbid that.
+      expect(css).not.toMatch(/\.toc--classique \.toc-title\s*\{[^}]*white-space:\s*nowrap/);
+      expect(css).not.toMatch(/\.toc--classique \.toc-title\s*\{[^}]*overflow:\s*hidden/);
     });
 
     it('epure: page numbers without any dotted-fill element', () => {
