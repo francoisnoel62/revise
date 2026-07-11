@@ -8,6 +8,7 @@ vi.mock('./utils', () => ({
   getRepository: vi.fn(),
   getProjectSettingsRepo: vi.fn(),
   getMetadataRepo: vi.fn(),
+  getCustomAnnexRepo: vi.fn(),
   getBookPreviewCacheRepo: vi.fn(),
   getBookPreviewCacheComputer: vi.fn(),
   withErrorHandling: vi.fn(async (fn) => {
@@ -24,6 +25,7 @@ import {
   getRepository,
   getProjectSettingsRepo,
   getMetadataRepo,
+  getCustomAnnexRepo,
   getBookPreviewCacheRepo,
   getBookPreviewCacheComputer,
 } from './utils';
@@ -151,6 +153,9 @@ describe('getBookPreviewDataAction', () => {
       findByProjectAndType: vi.fn(async (_u: string, _p: string, type: string) =>
         type === 'dedication' && dedication ? { getContent: () => dedication } : null,
       ),
+    } as never);
+    vi.mocked(getCustomAnnexRepo).mockResolvedValue({
+      findByProjectId: vi.fn(async () => []),
     } as never);
 
     cacheRepo = { loadMetrics: vi.fn().mockResolvedValue(null), save: vi.fn().mockResolvedValue(undefined) };

@@ -22,6 +22,7 @@ import {
   getAuthenticatedUserId,
   getRepository,
   getMetadataRepo,
+  getCustomAnnexRepo,
   getProjectSettingsRepo,
   getBookPreviewCacheRepo,
   getBookPreviewCacheComputer,
@@ -46,15 +47,26 @@ export async function getBookPreviewDataAction(
 
     const settingsRepo = await getProjectSettingsRepo();
     const metadataRepo = await getMetadataRepo();
+    const customAnnexRepo = await getCustomAnnexRepo();
 
-    const [settings, dedicationMeta, epigraphMeta, legalNoticeMeta, legacyCopyrightMeta] = await Promise.all([
-      settingsRepo.findByProjectId(auth.userId, projectId),
-      metadataRepo.findByProjectAndType(auth.userId, projectId, 'dedication'),
-      metadataRepo.findByProjectAndType(auth.userId, projectId, 'epigraph'),
-      metadataRepo.findByProjectAndType(auth.userId, projectId, 'legal-notice'),
-      // Legacy fallback: legal mentions used to live under the 'copyright' type.
-      metadataRepo.findByProjectAndType(auth.userId, projectId, 'copyright'),
-    ]);
+    const [settings, dedicationMeta, epigraphMeta, legalNoticeMeta, legacyCopyrightMeta, customAnnexes] =
+      await Promise.all([
+        settingsRepo.findByProjectId(auth.userId, projectId),
+        metadataRepo.findByProjectAndType(auth.userId, projectId, 'dedication'),
+        metadataRepo.findByProjectAndType(auth.userId, projectId, 'epigraph'),
+        metadataRepo.findByProjectAndType(auth.userId, projectId, 'legal-notice'),
+        // Legacy fallback: legal mentions used to live under the 'copyright' type.
+        metadataRepo.findByProjectAndType(auth.userId, projectId, 'copyright'),
+        customAnnexRepo.findByProjectId(auth.userId, projectId),
+      ]);
+
+    // Repo returns annexes sorted by placement then order.
+    const frontAnnexes = customAnnexes
+      .filter((a) => a.getPlacement() === 'front')
+      .map((a) => ({ title: a.getTitle(), content: a.getContent() }));
+    const backAnnexes = customAnnexes
+      .filter((a) => a.getPlacement() === 'back')
+      .map((a) => ({ title: a.getTitle(), content: a.getContent() }));
 
     const authorContributor = settings?.getContributors().find((c) => c.role === 'author');
     const frontMatter: FrontMatterData = {
@@ -63,11 +75,13 @@ export async function getBookPreviewDataAction(
       authorName: authorContributor?.name,
       dedicationContent: dedicationMeta?.getContent() || undefined,
       epigraphContent: epigraphMeta?.getContent() || undefined,
+      customAnnexes: frontAnnexes,
     };
     const backMatter: BackMatterData = {
       legalNoticeContent:
         legalNoticeMeta?.getContent() || legacyCopyrightMeta?.getContent() || undefined,
       isbn: settings?.getIsbn(),
+      customAnnexes: backAnnexes,
     };
 
     const activeProfileId: PublicationProfileId = settings?.getPublicationProfileId() ?? 'kdp-6x9';

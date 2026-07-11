@@ -11,7 +11,7 @@ import {
   deleteEditorialAnnexAction,
   type SerializedEditorialAnnex,
 } from '@/app/actions/editorial-actions';
-import { EditorialCard, EditorialEditor } from '@/components/cockpit';
+import { EditorialCard, EditorialEditor, CustomAnnexSection } from '@/components/cockpit';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookOpen, AlertCircle } from 'lucide-react';
@@ -142,6 +142,8 @@ export default function EditorialPage() {
           />
         ))}
       </div>
+
+      <CustomAnnexSection projectId={projectId} />
 
       <EditorialEditor
         annex={editingAnnex}

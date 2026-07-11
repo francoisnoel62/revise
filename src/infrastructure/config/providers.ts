@@ -6,6 +6,7 @@ import { ProjectRepository } from '@/domain/interfaces/ProjectRepository';
 import { UserRepository } from '@/domain/interfaces/UserRepository';
 import { ProviderRepository } from '@/domain/interfaces/ProviderRepository';
 import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
+import { CustomAnnexRepository } from '@/domain/interfaces/CustomAnnexRepository';
 import { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
 import { WritingGoalRepository } from '@/domain/interfaces/WritingGoalRepository';
 import { WordCountSnapshotRepository } from '@/domain/interfaces/WordCountSnapshotRepository';
@@ -30,6 +31,7 @@ import { MongoDBProjectRepository } from '@/infrastructure/persistence/MongoDBPr
 import { MongoDBUserRepository } from '@/infrastructure/persistence/MongoDBUserRepository';
 import { MongoDBProviderRepository } from '@/infrastructure/persistence/MongoDBProviderRepository';
 import { MongoDBMetadataRepository } from '@/infrastructure/persistence/MongoDBMetadataRepository';
+import { MongoDBCustomAnnexRepository } from '@/infrastructure/persistence/MongoDBCustomAnnexRepository';
 import { MongoDBCorrectionHistoryRepository } from '@/infrastructure/persistence/MongoDBCorrectionHistoryRepository';
 import { MongoDBWritingGoalRepository } from '@/infrastructure/persistence/MongoDBWritingGoalRepository';
 import { MongoDBWordCountSnapshotRepository } from '@/infrastructure/persistence/MongoDBWordCountSnapshotRepository';
@@ -137,6 +139,20 @@ export async function getMetadataRepository(): Promise<MetadataRepository> {
     await metadataRepoInstance.ensureIndexes();
   }
   return metadataRepoInstance;
+}
+
+/**
+ * Get the custom annex repository (author-inserted book annexes).
+ */
+let customAnnexRepoInstance: MongoDBCustomAnnexRepository | null = null;
+
+export async function getCustomAnnexRepository(): Promise<CustomAnnexRepository> {
+  if (!customAnnexRepoInstance) {
+    const db = await getDatabase();
+    customAnnexRepoInstance = new MongoDBCustomAnnexRepository(db);
+    await customAnnexRepoInstance.ensureIndexes();
+  }
+  return customAnnexRepoInstance;
 }
 
 /**
