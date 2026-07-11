@@ -87,7 +87,7 @@ export default function EditorialPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Annexes éditoriales</h1>
           <p className="text-muted-foreground">
-            Liminaires, préface, remerciements...
+            Liminaires, avant-propos, remerciements...
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -105,7 +105,7 @@ export default function EditorialPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Annexes éditoriales</h1>
           <p className="text-muted-foreground">
-            Liminaires, préface, remerciements...
+            Liminaires, avant-propos, remerciements...
           </p>
         </div>
         <Alert variant="destructive">
@@ -122,7 +122,7 @@ export default function EditorialPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Annexes éditoriales</h1>
           <p className="text-muted-foreground">
-            Liminaires, préface, remerciements...
+            Liminaires, avant-propos, remerciements...
           </p>
         </div>
         <div className="flex items-center gap-2 text-muted-foreground">

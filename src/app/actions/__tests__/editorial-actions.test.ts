@@ -53,7 +53,7 @@ describe('listEditorialAnnexesAction', () => {
 
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data).toHaveLength(8);
+      expect(result.data).toHaveLength(6);
       expect(result.data[0].type).toBe('dedication');
       expect(result.data[0].hasContent).toBe(false);
     }
@@ -322,7 +322,7 @@ describe('getEditorialAnnexCountAction', () => {
     vi.mocked(getAuthenticatedUserId).mockResolvedValue({ userId: 'user-1' });
     mockMetadataRepo.findByProjectAndType.mockImplementation(
       async (_userId: string, _projectId: string, type: string) => {
-        if (type === 'dedication' || type === 'preface') {
+        if (type === 'dedication' || type === 'foreword') {
           return {
             getContent: () =>
               JSON.stringify({
@@ -340,7 +340,7 @@ describe('getEditorialAnnexCountAction', () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.count).toBe(2);
-      expect(result.data.total).toBe(8);
+      expect(result.data.total).toBe(6);
     }
   });
 
@@ -353,7 +353,7 @@ describe('getEditorialAnnexCountAction', () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.count).toBe(0);
-      expect(result.data.total).toBe(8);
+      expect(result.data.total).toBe(6);
     }
   });
 

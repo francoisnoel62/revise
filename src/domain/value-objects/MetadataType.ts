@@ -122,9 +122,7 @@ export const EDITORIAL_TYPE_KEYS = [
   'dedication',
   'epigraph',
   'foreword',
-  'preface',
   'acknowledgments',
-  'afterword',
   'about-author',
   'copyright',
 ] as const;
@@ -138,9 +136,7 @@ export const EDITORIAL_PLACEHOLDERS: Record<EditorialTypeKey, string> = {
   'dedication': 'À ma famille...',
   'epigraph': '« Citation inspirante... »\n— Auteur',
   'foreword': 'Avant-propos rédigé par...',
-  'preface': 'Pourquoi j\'ai écrit ce livre...',
   'acknowledgments': 'Je tiens à remercier...',
-  'afterword': 'En écrivant ce livre...',
   'about-author': 'L\'auteur est...',
   'copyright': '© 2024 Nom de l\'auteur. Tous droits réservés.',
 };
@@ -152,11 +148,9 @@ export const EDITORIAL_ORDER: Record<EditorialTypeKey, number> = {
   'dedication': 1,
   'epigraph': 2,
   'foreword': 3,
-  'preface': 4,
-  'acknowledgments': 5,
-  'afterword': 6,
-  'about-author': 7,
-  'copyright': 8,
+  'acknowledgments': 4,
+  'about-author': 5,
+  'copyright': 6,
 };
 
 export function isEditorialType(key: string): key is EditorialTypeKey {

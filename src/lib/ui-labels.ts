@@ -71,9 +71,7 @@ export const EDITORIAL_PLACEHOLDERS: Record<string, string> = {
   dedication: 'À ma famille...',
   epigraph: '« Citation inspirante... »\n— Auteur',
   foreword: 'Avant-propos rédigé par...',
-  preface: 'Pourquoi j\'ai écrit ce livre...',
   acknowledgments: 'Je tiens à remercier...',
-  afterword: 'En écrivant ce livre...',
   'about-author': 'L\'auteur est...',
   copyright: '© 2024 Nom de l\'auteur. Tous droits réservés.',
 };
