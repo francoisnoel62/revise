@@ -85,6 +85,16 @@ describe('FrontMatterHtmlBuilder', () => {
       const html = builder.build({ title: 'Mon Roman' });
       expect(html).not.toContain('book-isbn');
     });
+
+    it('renders TipTap doc copyright content as text, never as raw JSON', () => {
+      const html = builder.build({
+        title: 'Mon Roman',
+        copyrightContent: tiptapDoc('© 2026, François Noel'),
+      });
+      expect(html).toContain('© 2026, François Noel');
+      expect(html).not.toContain('"type":"doc"');
+      expect(html).not.toContain('paragraph');
+    });
   });
 
   describe('dedication page', () => {

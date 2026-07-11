@@ -52,7 +52,7 @@ ${parts.join('\n')}
     const parts: string[] = [];
 
     if (data.copyrightContent?.trim()) {
-      parts.push(`  <p class="copyright-text">${this.escape(data.copyrightContent)}</p>`);
+      parts.push(`  <div class="copyright-text">${this.renderRichContent(data.copyrightContent)}</div>`);
     } else {
       const year = data.copyrightYear ?? new Date().getFullYear();
       const author = data.authorName?.trim() ?? '';
