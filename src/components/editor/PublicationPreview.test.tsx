@@ -127,4 +127,34 @@ describe('PublicationPreview', () => {
 
     expect(postMessage).toHaveBeenCalledWith({ type: 'sync-scroll', progress: 0.5 }, '*');
   });
+
+  it('re-posts the last scroll progress after the iframe re-paginates so the preview follows edits', () => {
+    const postMessage = vi.fn();
+    const { container } = render(
+      <PublicationPreview
+        content={content}
+        profileId="kdp-6x9"
+        overrides={[]}
+        scrollProgress={0.5}
+      />
+    );
+
+    const iframe = container.querySelector('iframe')!;
+    const fakeWindow = { postMessage };
+    Object.defineProperty(iframe, 'contentWindow', { value: fakeWindow, writable: true });
+
+    // A content edit re-generates srcDoc; the iframe reloads and re-paginates, resetting
+    // its scroll to the top. Receiving 'paged-rendered' must re-apply the editor's
+    // current scroll position so the preview follows the text without a manual scroll.
+    postMessage.mockClear();
+
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: { type: 'paged-rendered', pageCount: 3, sourceId: null, paginationMs: 100 },
+        source: fakeWindow as unknown as Window,
+      })
+    );
+
+    expect(postMessage).toHaveBeenCalledWith({ type: 'sync-scroll', progress: 0.5 }, '*');
+  });
 });

@@ -51,6 +51,7 @@ export function PublicationPreview({
   const [renderedContent, setRenderedContent] = useState(content);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const lastPostedProgressRef = useRef(0);
+  const scrollProgressRef = useRef(scrollProgress ?? 0);
 
   useEffect(() => {
     const timer = setTimeout(() => setRenderedContent(content), 300);
@@ -60,6 +61,7 @@ export function PublicationPreview({
 
   useEffect(() => {
     if (scrollProgress === undefined) return;
+    scrollProgressRef.current = scrollProgress;
     if (Math.abs(scrollProgress - lastPostedProgressRef.current) <= 0.002) return;
     lastPostedProgressRef.current = scrollProgress;
     iframeRef.current?.contentWindow?.postMessage(
@@ -73,6 +75,17 @@ export function PublicationPreview({
       if (event.data?.type !== 'paged-rendered') return;
       if (event.source !== iframeRef.current?.contentWindow) return;
       onPageCountChange?.(event.data.pageCount);
+      // Re-generating srcDoc reloads the iframe and re-paginates from the top, dropping
+      // the preview's scroll position. Re-apply the editor's current progress so the
+      // preview keeps following the text without the author having to scroll. The iframe
+      // already reloads to the top, so there is nothing to restore at progress 0.
+      const progress = scrollProgressRef.current;
+      if (progress <= 0) return;
+      lastPostedProgressRef.current = progress;
+      iframeRef.current?.contentWindow?.postMessage(
+        { type: 'sync-scroll', progress },
+        '*'
+      );
     },
     [onPageCountChange],
   );
