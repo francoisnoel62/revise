@@ -109,7 +109,7 @@ export class BookCssBuilder {
         .pagedjs_page { margin: 0 !important; box-shadow: none !important; break-after: page; }
       }
 
-      /* Liminal pages (front matter): lowercase roman numerals, each on its own page.
+      /* Liminal pages (front matter): uppercase roman numerals, each on its own page.
          The body's Arabic numbering must restart at 1, but Paged.js honours neither a
          mid-document reset of the page counter (non-persistent) nor a custom counter
          driven from an @page rule. The reliable levers, established empirically:
@@ -150,7 +150,7 @@ export class BookCssBuilder {
       @page liminal-page {
         counter-increment: page 0;
         @bottom-center {
-          content: counter(folio, lower-roman);
+          content: counter(folio, upper-roman);
           font-size: 9pt;
           color: #555;
         }
