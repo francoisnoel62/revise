@@ -70,10 +70,7 @@ export const AI_OPERATION_LABELS: Record<string, string> = {
 export const EDITORIAL_PLACEHOLDERS: Record<string, string> = {
   dedication: 'À ma famille...',
   epigraph: '« Citation inspirante... »\n— Auteur',
-  foreword: 'Avant-propos rédigé par...',
-  acknowledgments: 'Je tiens à remercier...',
-  'about-author': 'L\'auteur est...',
-  copyright: '© 2024 Nom de l\'auteur. Tous droits réservés.',
+  'legal-notice': '© 2024, Nom de l\'auteur\nISBN 978-2-xxxxxx-xx-x\nReproduction intégrale ou partielle interdite',
 };
 
 /**

@@ -10,6 +10,7 @@ import {
   getProviderRepository,
   getUserRepository,
   getMetadataRepository,
+  getCustomAnnexRepository,
   getCorrectionHistoryRepository,
   getWritingGoalRepository,
   getWordCountSnapshotRepository,
@@ -47,6 +48,7 @@ import { ProjectRepository } from '@/domain/interfaces/ProjectRepository';
 import { ProviderRepository } from '@/domain/interfaces/ProviderRepository';
 import { UserRepository } from '@/domain/interfaces/UserRepository';
 import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
+import { CustomAnnexRepository } from '@/domain/interfaces/CustomAnnexRepository';
 import { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
 import { WritingGoalRepository } from '@/domain/interfaces/WritingGoalRepository';
 import { WordCountSnapshotRepository } from '@/domain/interfaces/WordCountSnapshotRepository';
@@ -177,6 +179,13 @@ export async function getUserRepo(): Promise<UserRepository> {
  */
 export async function getMetadataRepo(): Promise<MetadataRepository> {
   return await getMetadataRepository();
+}
+
+/**
+ * Get custom annex repository instance (author-inserted book annexes).
+ */
+export async function getCustomAnnexRepo(): Promise<CustomAnnexRepository> {
+  return await getCustomAnnexRepository();
 }
 
 /**

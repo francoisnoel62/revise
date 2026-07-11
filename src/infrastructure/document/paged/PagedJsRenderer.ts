@@ -2,6 +2,7 @@
 // ABOUTME: Produces one deterministic document and exposes pagination metrics.
 
 import type { PagedRenderer, PagedRenderRequest } from '@/application/interfaces/PagedRenderer';
+import { BackMatterHtmlBuilder } from './BackMatterHtmlBuilder';
 import { BookCssBuilder } from './BookCssBuilder';
 import { FrontMatterHtmlBuilder } from './FrontMatterHtmlBuilder';
 import { TipTapToBookHtml } from './TipTapToBookHtml';
@@ -12,6 +13,7 @@ export class PagedJsRenderer implements PagedRenderer {
     private readonly cssBuilder = new BookCssBuilder(),
     private readonly frontMatterBuilder = new FrontMatterHtmlBuilder(new TipTapToBookHtml()),
     private readonly tocBuilder = new TocHtmlBuilder(),
+    private readonly backMatterBuilder = new BackMatterHtmlBuilder(new TipTapToBookHtml()),
   ) {}
 
   render(request: PagedRenderRequest): string {
@@ -24,8 +26,11 @@ export class PagedJsRenderer implements PagedRenderer {
       request.toc && request.toc.length > 0
         ? this.tocBuilder.build(request.toc, request.tocStyle)
         : '';
+    const backMatterHtml = request.backMatter
+      ? this.backMatterBuilder.build(request.backMatter)
+      : '';
 
-    const hasLiminals = Boolean(frontMatterHtml || tocHtml);
+    const hasExtras = Boolean(frontMatterHtml || tocHtml || backMatterHtml);
 
     // Liminal pages suppress the Arabic 'page' increment (see BookCssBuilder), so the
     // first body page reads "1" while the front matter is numbered in roman folios.
@@ -36,8 +41,8 @@ export class PagedJsRenderer implements PagedRenderer {
       request.levelStyles,
     );
 
-    const fullBodyHtml = hasLiminals
-      ? `${frontMatterHtml}\n${tocHtml}\n<div class="body-matter">${request.bodyHtml}</div>`
+    const fullBodyHtml = hasExtras
+      ? `${frontMatterHtml}\n${tocHtml}\n<div class="body-matter">${request.bodyHtml}</div>\n${backMatterHtml}`
       : request.bodyHtml;
 
     return `<!doctype html><html lang='fr'><head><meta charset='utf-8'>

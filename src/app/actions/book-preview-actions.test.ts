@@ -8,6 +8,7 @@ vi.mock('./utils', () => ({
   getRepository: vi.fn(),
   getProjectSettingsRepo: vi.fn(),
   getMetadataRepo: vi.fn(),
+  getCustomAnnexRepo: vi.fn(),
   getBookPreviewCacheRepo: vi.fn(),
   getBookPreviewCacheComputer: vi.fn(),
   withErrorHandling: vi.fn(async (fn) => {
@@ -24,6 +25,7 @@ import {
   getRepository,
   getProjectSettingsRepo,
   getMetadataRepo,
+  getCustomAnnexRepo,
   getBookPreviewCacheRepo,
   getBookPreviewCacheComputer,
 } from './utils';
@@ -67,9 +69,7 @@ function frontMatterFor(dedication?: string) {
     title: 'Mon Roman',
     subtitle: undefined,
     authorName: 'Fanfan',
-    isbn: undefined,
     dedicationContent: dedication,
-    copyrightContent: undefined,
     epigraphContent: undefined,
   };
 }
@@ -87,6 +87,7 @@ function hashFor(
       { id: 'ch-2', content: CONTENT },
     ],
     frontMatter: frontMatterFor(dedication),
+    backMatter: { legalNoticeContent: undefined, isbn: undefined },
     levelStyles,
     tocDepth: tocPreferences.depth,
     tocStyle: tocPreferences.style,
@@ -152,6 +153,9 @@ describe('getBookPreviewDataAction', () => {
       findByProjectAndType: vi.fn(async (_u: string, _p: string, type: string) =>
         type === 'dedication' && dedication ? { getContent: () => dedication } : null,
       ),
+    } as never);
+    vi.mocked(getCustomAnnexRepo).mockResolvedValue({
+      findByProjectId: vi.fn(async () => []),
     } as never);
 
     cacheRepo = { loadMetrics: vi.fn().mockResolvedValue(null), save: vi.fn().mockResolvedValue(undefined) };

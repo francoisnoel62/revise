@@ -134,14 +134,14 @@ describe('PagedJsRenderer', () => {
       expect(liminalBlock).toContain('counter-increment: page 0');
     });
 
-    it('numbers liminaires with a lower-roman folio counter', () => {
+    it('numbers liminaires with an upper-roman folio counter', () => {
       const html = renderer.render({
         bodyHtml: '<section class="chapter"><p>Corps.</p></section>',
         profile,
         assetBaseUrl,
         frontMatter: { title: 'Mon Roman' },
       });
-      expect(html).toContain('content: counter(folio, lower-roman)');
+      expect(html).toContain('content: counter(folio, upper-roman)');
     });
   });
 

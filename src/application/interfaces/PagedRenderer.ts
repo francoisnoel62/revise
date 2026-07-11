@@ -2,7 +2,7 @@
 // ABOUTME: Keeps preview and PDF export on the same rendered-document contract.
 
 import type { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
-import type { FrontMatterData } from '@/domain/interfaces/DocumentExporter';
+import type { BackMatterData, FrontMatterData } from '@/domain/interfaces/DocumentExporter';
 import type { LevelStyleSetProperties } from '@/domain/value-objects/LevelStyleSet';
 import type { TocStyle } from '@/domain/value-objects/TocPreferences';
 
@@ -23,6 +23,8 @@ export interface PagedRenderRequest {
   readonly profile: PublicationProfile;
   readonly assetBaseUrl: string;
   readonly frontMatter?: FrontMatterData;
+  /** Back matter (custom annexes then legal notice), rendered after the body. */
+  readonly backMatter?: BackMatterData;
   readonly toc?: TocEntry[];
   /** TOC design; defaults to 'classique' (the historical rendering). */
   readonly tocStyle?: TocStyle;

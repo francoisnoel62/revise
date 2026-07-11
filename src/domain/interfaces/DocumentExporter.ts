@@ -6,20 +6,40 @@ import { Chapter } from '../entities/Chapter';
 import type { PublicationProfile } from '../value-objects/PublicationProfile';
 import type { LevelStyleSetProperties } from '../value-objects/LevelStyleSet';
 
+/** A named annex the author inserts manually (front or back matter). */
+export interface AnnexEntry {
+  title: string;
+  /** TipTap doc JSON string (legacy plain text is tolerated). */
+  content: string;
+}
+
 /**
- * Front matter pages data for KDP export (half-title, title page, copyright, dedication, epigraph).
- * All fields are optional — missing content skips that page, except copyrightContent which
- * falls back to a generated placeholder.
+ * Front matter pages data for KDP export (half-title, title page, copyright, dedication,
+ * epigraph, then any front custom annexes). All fields are optional — missing content skips
+ * that page. The copyright page is always emitted and auto-generated from year + author.
  */
 export interface FrontMatterData {
   title: string;
   subtitle?: string;
   authorName?: string;
   dedicationContent?: string;
-  copyrightContent?: string;
   epigraphContent?: string;
-  isbn?: string;
   copyrightYear?: number;
+  /** Author-inserted annexes rendered as liminaires after the epigraph. */
+  customAnnexes?: AnnexEntry[];
+}
+
+/**
+ * Back matter pages, rendered after the body: author-inserted annexes first, then the legal
+ * notice ("mentions légales" + ISBN) on the very last page. All fields optional — an empty
+ * BackMatterData produces no pages.
+ */
+export interface BackMatterData {
+  /** "Mentions légales" — rich content (reproduction notice, legal text). */
+  legalNoticeContent?: string;
+  isbn?: string;
+  /** Author-inserted annexes rendered after the body, before the legal notice. */
+  customAnnexes?: AnnexEntry[];
 }
 
 /**
@@ -32,10 +52,15 @@ export interface ExportOptions {
    */
   coverImageUrl?: string;
   /**
-   * Front matter pages (half-title, title, copyright, dedication, epigraph).
+   * Front matter pages (half-title, title, copyright, dedication, epigraph, front annexes).
    * KDP preset only. Ignored for neutral/structured presets.
    */
   frontMatter?: FrontMatterData;
+  /**
+   * Back matter pages (custom annexes, then legal notice on the last page).
+   * KDP preset only. Ignored for neutral/structured presets.
+   */
+  backMatter?: BackMatterData;
   /**
    * Publication profile for PDF export (page size, margins, fonts).
    * Defaults to KDP 6×9 when not provided.

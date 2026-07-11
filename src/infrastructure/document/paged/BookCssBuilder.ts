@@ -109,7 +109,7 @@ export class BookCssBuilder {
         .pagedjs_page { margin: 0 !important; box-shadow: none !important; break-after: page; }
       }
 
-      /* Liminal pages (front matter): lowercase roman numerals, each on its own page.
+      /* Liminal pages (front matter): uppercase roman numerals, each on its own page.
          The body's Arabic numbering must restart at 1, but Paged.js honours neither a
          mid-document reset of the page counter (non-persistent) nor a custom counter
          driven from an @page rule. The reliable levers, established empirically:
@@ -150,10 +150,33 @@ export class BookCssBuilder {
       @page liminal-page {
         counter-increment: page 0;
         @bottom-center {
-          content: counter(folio, lower-roman);
+          content: counter(folio, upper-roman);
           font-size: 9pt;
           color: #555;
         }
+      }
+
+      /* Custom annexes (front liminal or back matter): a centered title over a body block. */
+      .annex-title { font-size: 1.4em; font-weight: 700; text-indent: 0; text-align: center; margin: 0 0 18pt; }
+      .annex-body { text-indent: 0; }
+      .liminal.annex-page { justify-content: flex-start; text-align: left; }
+
+      /* Back matter: pages after the body. They continue the Arabic page numbering.
+         The legal notice is the final colophon page and carries no printed folio. */
+      .back-matter { break-before: page; }
+      .colophon {
+        page: colophon-page;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        min-height: calc(${value.pageHeightInches}in - ${value.marginTopCentimeters}cm - ${value.marginBottomCentimeters}cm);
+        text-align: center;
+      }
+      .legal-notice-text { text-indent: 0; }
+      .colophon .book-isbn { margin-top: 12pt; }
+      @page colophon-page {
+        @bottom-center { content: none; }
       }
 
       /* Chapter sections: start on odd (right-hand) pages */

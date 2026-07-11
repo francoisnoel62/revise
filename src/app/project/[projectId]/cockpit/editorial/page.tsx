@@ -11,7 +11,7 @@ import {
   deleteEditorialAnnexAction,
   type SerializedEditorialAnnex,
 } from '@/app/actions/editorial-actions';
-import { EditorialCard, EditorialEditor } from '@/components/cockpit';
+import { EditorialCard, EditorialEditor, CustomAnnexSection } from '@/components/cockpit';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookOpen, AlertCircle } from 'lucide-react';
@@ -87,7 +87,7 @@ export default function EditorialPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Annexes éditoriales</h1>
           <p className="text-muted-foreground">
-            Liminaires, avant-propos, remerciements...
+            Dédicace, épigraphe, mentions légales et annexes de votre livre
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -105,7 +105,7 @@ export default function EditorialPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Annexes éditoriales</h1>
           <p className="text-muted-foreground">
-            Liminaires, avant-propos, remerciements...
+            Dédicace, épigraphe, mentions légales et annexes de votre livre
           </p>
         </div>
         <Alert variant="destructive">
@@ -122,7 +122,7 @@ export default function EditorialPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Annexes éditoriales</h1>
           <p className="text-muted-foreground">
-            Liminaires, avant-propos, remerciements...
+            Dédicace, épigraphe, mentions légales et annexes de votre livre
           </p>
         </div>
         <div className="flex items-center gap-2 text-muted-foreground">
@@ -142,6 +142,8 @@ export default function EditorialPage() {
           />
         ))}
       </div>
+
+      <CustomAnnexSection projectId={projectId} />
 
       <EditorialEditor
         annex={editingAnnex}

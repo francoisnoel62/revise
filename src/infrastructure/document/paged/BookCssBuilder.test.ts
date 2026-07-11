@@ -92,7 +92,7 @@ describe('BookCssBuilder', () => {
       expect(liminalBlock).toContain('counter-increment: page 0');
     });
 
-    it('numbers liminaires with a seeded lower-roman folio counter', () => {
+    it('numbers liminaires with a seeded upper-roman folio counter', () => {
       const css = new BookCssBuilder().build(
         PublicationProfile.kdpSixByNine(),
         'http://localhost:3000',
@@ -100,7 +100,7 @@ describe('BookCssBuilder', () => {
       expect(css).toContain('counter-reset: folio 1');
       expect(css).toContain('counter-increment: folio 1');
       const liminalBlock = css.slice(css.indexOf('@page liminal-page'));
-      expect(liminalBlock).toContain('content: counter(folio, lower-roman)');
+      expect(liminalBlock).toContain('content: counter(folio, upper-roman)');
     });
 
     it('leaves the half-title (first liminal page) without a printed number', () => {
@@ -129,13 +129,13 @@ describe('BookCssBuilder', () => {
       expect(mainPageBlock).toContain('content: counter(page)');
     });
 
-    it('does not use lower-roman numerals for the main page rule (reserved for liminal pages)', () => {
+    it('does not use roman numerals for the main page rule (reserved for liminal pages)', () => {
       const css = new BookCssBuilder().build(
         PublicationProfile.kdpSixByNine(),
         'http://localhost:3000'
       );
       const mainPageBlock = css.slice(0, css.indexOf('@page liminal-page'));
-      expect(mainPageBlock).not.toContain('lower-roman');
+      expect(mainPageBlock).not.toContain('-roman');
     });
 
     it('prints the visible page number for every profile, not just KDP 6×9', () => {
@@ -258,7 +258,7 @@ describe('BookCssBuilder', () => {
         'http://localhost:3000'
       );
       expect(css).toContain('page: liminal-page');
-      expect(css).toContain('lower-roman');
+      expect(css).toContain('upper-roman');
     });
 
     it('styles the liminal titles larger than the body, with no first-line indent', () => {

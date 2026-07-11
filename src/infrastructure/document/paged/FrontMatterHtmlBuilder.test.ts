@@ -59,31 +59,42 @@ describe('FrontMatterHtmlBuilder', () => {
     });
   });
 
-  describe('copyright page', () => {
-    it('includes copyright-page section', () => {
+  describe('copyright page (systematic auto ©)', () => {
+    it('always includes a copyright-page section', () => {
       const html = builder.build({ title: 'Mon Roman' });
       expect(html).toContain('copyright-page');
     });
 
-    it('uses explicit copyright content when provided', () => {
-      const html = builder.build({ title: 'Mon Roman', copyrightContent: 'Contenu copyright personnalisé.' });
-      expect(html).toContain('Contenu copyright personnalisé.');
-    });
-
-    it('generates copyright from year and author when no explicit content', () => {
+    it('generates the © notice from year and author', () => {
       const html = builder.build({ title: 'Mon Roman', authorName: 'F. Noel', copyrightYear: 2024 });
-      expect(html).toContain('2024');
-      expect(html).toContain('F. Noel');
+      expect(html).toContain('© 2024 F. Noel. Tous droits réservés.');
     });
 
-    it('includes ISBN when provided', () => {
-      const html = builder.build({ title: 'Mon Roman', isbn: '978-0-000-00000-0' });
-      expect(html).toContain('978-0-000-00000-0');
-    });
-
-    it('does not include ISBN element when isbn is not provided', () => {
-      const html = builder.build({ title: 'Mon Roman' });
+    it('never carries an ISBN — that moved to the legal notice in back matter', () => {
+      const html = builder.build({ title: 'Mon Roman', authorName: 'F. Noel', copyrightYear: 2024 });
       expect(html).not.toContain('book-isbn');
+    });
+  });
+
+  describe('custom front annexes', () => {
+    it('renders a front annex as a liminal page with its title and text', () => {
+      const html = builder.build({
+        title: 'Mon Roman',
+        customAnnexes: [{ title: 'Note liminaire', content: tiptapDoc('Un mot avant de commencer.') }],
+      });
+      expect(html).toContain('annex-page');
+      expect(html).toContain('Note liminaire');
+      expect(html).toContain('Un mot avant de commencer.');
+      expect(html).not.toContain('"type":"doc"');
+    });
+
+    it('omits a front annex whose content is empty', () => {
+      const emptyDoc = JSON.stringify({ type: 'doc', content: [{ type: 'paragraph' }] });
+      const html = builder.build({
+        title: 'Mon Roman',
+        customAnnexes: [{ title: 'Vide', content: emptyDoc }],
+      });
+      expect(html).not.toContain('annex-page');
     });
   });
 
