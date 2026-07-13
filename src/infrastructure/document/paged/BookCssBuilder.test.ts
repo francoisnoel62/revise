@@ -337,8 +337,12 @@ describe('BookCssBuilder', () => {
       expect(css).toMatch(/\.toc-subtitle[^{]*\{[^}]*font-size:/);
     });
 
-    it('classique: prefixes chapters with an upper-roman numeral', () => {
-      expect(css).toContain('upper-roman');
+    it('classique: shows the chapter title verbatim, without generated numbering', () => {
+      // Adding a counter-based numeral would double up on titles that already carry their own
+      // number ("Chapitre 1", "I. L'aube"), overriding the author's text. (upper-roman still
+      // appears elsewhere for the liminal folio numbering — that is unrelated.)
+      expect(css).not.toMatch(/\.toc-chapter[^{]*::before/);
+      expect(css).not.toMatch(/\.toc-chapter[^{]*\{[^}]*counter-increment/);
     });
 
     it('classique: adds breathing room above each chapter entry', () => {
@@ -357,6 +361,14 @@ describe('BookCssBuilder', () => {
 
     it('litteraire: hides the leader so centered titles are not pushed off-centre', () => {
       expect(css).toMatch(/\.toc--litteraire \.toc-leader\s*\{[^}]*display:\s*none/);
+    });
+
+    // The TOC is .liminal for numbering, but a multi-page flowing list — unlike the single
+    // centered front-matter pages. It must start each page at the top; otherwise the last
+    // (short) page's entries float in the vertical middle.
+    it('does not vertically centre the (multi-page) TOC the way single liminal pages are', () => {
+      expect(css).toMatch(/\.toc\s*\{[^}]*justify-content:\s*flex-start/);
+      expect(css).toMatch(/\.toc\s*\{[^}]*min-height:\s*0/);
     });
 
     it('indents nested sub-entries', () => {
