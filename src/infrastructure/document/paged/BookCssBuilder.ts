@@ -246,19 +246,14 @@ export class BookCssBuilder {
         transform: translateY(-3pt);
         margin: 0 4pt;
       }
-      /* Hierarchy — chapters read as headings, sous-titres recede.
-         Roman numeral prefix is scoped to the top-level list so nested entries don't count. */
-      .toc--classique > ol { counter-reset: toc-chapter; }
+      /* Hierarchy — chapters read as headings, sous-titres recede. The chapter title is shown
+         verbatim: no generated numbering, so we never double up on an author title that already
+         carries its own number ("Chapitre 1", "I. L'aube", …). */
       .toc--classique .toc-chapter { margin-top: 12pt; }
       .toc--classique .toc-chapter > a .toc-title {
-        counter-increment: toc-chapter;
         font-variant: small-caps;
         font-weight: 600;
         letter-spacing: 0.02em;
-      }
-      .toc--classique .toc-chapter > a .toc-title::before {
-        content: counter(toc-chapter, upper-roman) ' · ';
-        font-weight: 600;
       }
       .toc--classique .toc-subtitle {
         font-size: 10pt;
