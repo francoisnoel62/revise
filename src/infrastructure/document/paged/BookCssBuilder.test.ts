@@ -316,21 +316,33 @@ describe('BookCssBuilder', () => {
     // Paged.js has no runtime handler for CSS leader() (only target-counter() is implemented
     // by its generated-content module), so a `content: leader('.') target-counter(...)` value
     // is invalid as a whole and silently drops both the dots and the number. The dotted fill
-    // is reproduced instead via a real element (.toc-title) with clipped repeated-dot content.
+    // is reproduced instead with a real .toc-leader element carrying a dotted bottom border,
+    // stretched with flex to fill exactly the remaining space — so it never wraps to a new line.
     it('classique (default): page numbers via target-counter, no leader() anywhere', () => {
       expect(css).toMatch(/\.toc a::after\s*\{[^}]*target-counter/);
       expect(css).not.toContain("leader(");
     });
 
-    it('classique: fills the gap with a dotted-fill element, not CSS leader()', () => {
-      expect(css).toMatch(/\.toc--classique \.toc-title::after\s*\{[^}]*content:\s*'[^']*\.[^']*'/);
+    it('classique: fills the gap with a flex-stretched dotted border, not a literal dot string', () => {
+      // A dotted bottom border on a flex:1 element occupies exactly the free space on one line;
+      // a fixed-length string of dots (the old approach) overflowed onto extra lines.
+      expect(css).toMatch(/\.toc--classique \.toc-leader\s*\{[^}]*border-bottom:[^}]*dotted/);
+      expect(css).toMatch(/\.toc-leader\s*\{[^}]*flex:\s*1/);
+      // No literal repeated-dot content anywhere in the TOC anymore.
+      expect(css).not.toMatch(/\.toc[^{]*::after\s*\{[^}]*content:\s*'[^']*\.\s*\.[^']*'/);
     });
 
-    it('classique: lets long titles wrap instead of clipping them behind the page number', () => {
-      // Long sous-titres must break onto a new line rather than be cut off by the
-      // fixed-width page-number column; nowrap + overflow:hidden would forbid that.
-      expect(css).not.toMatch(/\.toc--classique \.toc-title\s*\{[^}]*white-space:\s*nowrap/);
-      expect(css).not.toMatch(/\.toc--classique \.toc-title\s*\{[^}]*overflow:\s*hidden/);
+    it('classique: distinguishes chapters (small-caps) from sub-titles (smaller, muted)', () => {
+      expect(css).toMatch(/\.toc-chapter[^{]*\{[^}]*font-variant:\s*small-caps/);
+      expect(css).toMatch(/\.toc-subtitle[^{]*\{[^}]*font-size:/);
+    });
+
+    it('classique: prefixes chapters with an upper-roman numeral', () => {
+      expect(css).toContain('upper-roman');
+    });
+
+    it('classique: adds breathing room above each chapter entry', () => {
+      expect(css).toMatch(/\.toc-chapter\s*\{[^}]*margin-top:/);
     });
 
     it('epure: page numbers without any dotted-fill element', () => {
@@ -341,6 +353,10 @@ describe('BookCssBuilder', () => {
     it('litteraire: no page numbers, titles centered', () => {
       expect(css).toMatch(/\.toc--litteraire a::after\s*\{[^}]*content:\s*none/);
       expect(css).toMatch(/\.toc--litteraire a\s*\{[^}]*justify-content:\s*center/);
+    });
+
+    it('litteraire: hides the leader so centered titles are not pushed off-centre', () => {
+      expect(css).toMatch(/\.toc--litteraire \.toc-leader\s*\{[^}]*display:\s*none/);
     });
 
     it('indents nested sub-entries', () => {

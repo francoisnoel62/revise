@@ -26,13 +26,20 @@ ${items}
       entry.subEntries && entry.subEntries.length > 0
         ? `\n      <ol>\n${entry.subEntries.map((sub) => this.renderSubEntry(sub)).join('\n')}\n      </ol>\n    `
         : '';
-    return `    <li><a href="#${href}"><span class="toc-title">${title}</span></a>${subList}</li>`;
+    return `    <li class="toc-chapter"><a href="#${href}">${this.link(title)}</a>${subList}</li>`;
   }
 
   private renderSubEntry(sub: TocSubEntry): string {
     const href = this.escape(sub.anchorId);
     const title = this.escape(sub.title);
-    return `        <li><a href="#${href}"><span class="toc-title">${title}</span></a></li>`;
+    return `        <li class="toc-subtitle"><a href="#${href}">${this.link(title)}</a></li>`;
+  }
+
+  // The title and a dedicated leader element. The leader carries a dotted bottom border in CSS
+  // and stretches with flex to fill exactly the space left up to the page number — one line, no
+  // wrapping. It is decorative, hence aria-hidden. The page number itself is added by CSS ::after.
+  private link(escapedTitle: string): string {
+    return `<span class="toc-title">${escapedTitle}</span><span class="toc-leader" aria-hidden="true"></span>`;
   }
 
   private escape(value: string): string {

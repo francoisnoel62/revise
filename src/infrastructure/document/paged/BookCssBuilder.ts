@@ -217,6 +217,10 @@ export class BookCssBuilder {
         align-items: baseline;
         justify-content: space-between;
       }
+      /* The title takes only the space it needs and may wrap; the leader (when a style shows one)
+         absorbs the rest of the line so the page number stays right-aligned. */
+      .toc-title { flex: 0 1 auto; overflow-wrap: break-word; }
+      .toc-leader { flex: 1 1 auto; }
       /* Paged.js resolves target-counter() per-link, late in pagination, and only reflows
          the matched <a> in isolation (no shared re-layout across TOC rows). A shrink-to-fit
          number box therefore settles at a different width per row (1 vs 2 vs 3 digits). A
@@ -231,26 +235,48 @@ export class BookCssBuilder {
         font-variant-numeric: tabular-nums;
       }
 
-      /* Classique: dotted fill between title and page number. The CSS GCPM leader mechanism
-         has no runtime handler in Paged.js (only target-counter does), so combining the two
-         in one content value is invalid as a whole and silently drops both the dots and the
-         number. Reproduced instead with a real element. The title wraps onto extra lines
-         when it is too long rather than being clipped behind the page-number column. */
-      .toc--classique .toc-title {
-        flex: 1 1 auto;
-        overflow-wrap: break-word;
+      /* Classique: dotted leader between title and page number. The CSS GCPM leader mechanism
+         has no runtime handler in Paged.js (only target-counter does), so it silently drops both
+         the dots and the number. Reproduced instead with a real .toc-leader element: a dotted
+         bottom border on a flex:1 box fills exactly the free space on a single line — a fixed
+         string of dots (the old approach) overflowed onto extra lines when the title was short.
+         translateY lifts the border off the baseline so the dots sit level with the x-height. */
+      .toc--classique .toc-leader {
+        border-bottom: 1px dotted currentColor;
+        transform: translateY(-3pt);
+        margin: 0 4pt;
       }
-      .toc--classique .toc-title::after {
-        content: ' . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . ';
-        padding-left: 4pt;
+      /* Hierarchy — chapters read as headings, sous-titres recede.
+         Roman numeral prefix is scoped to the top-level list so nested entries don't count. */
+      .toc--classique > ol { counter-reset: toc-chapter; }
+      .toc--classique .toc-chapter { margin-top: 12pt; }
+      .toc--classique .toc-chapter > a .toc-title {
+        counter-increment: toc-chapter;
+        font-variant: small-caps;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+      .toc--classique .toc-chapter > a .toc-title::before {
+        content: counter(toc-chapter, upper-roman) ' · ';
+        font-weight: 600;
+      }
+      .toc--classique .toc-subtitle {
+        font-size: 10pt;
+        color: #555;
+      }
+      .toc--classique .toc-subtitle .toc-leader {
+        transform: translateY(-2pt);
       }
 
-      /* Littéraire: centered titles, no page numbers */
+      /* Littéraire: centered titles, no page numbers, no leader (it would break centring). */
       .toc--litteraire a {
         justify-content: center;
       }
       .toc--litteraire a::after {
         content: none;
+      }
+      .toc--litteraire .toc-leader {
+        display: none;
       }
     `;
   }
