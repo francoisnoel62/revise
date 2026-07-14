@@ -301,12 +301,37 @@ describe('BookCssBuilder', () => {
       expect(css).toContain('break-before: right');
     });
 
+    // The first-child break exception must be scoped to a truly first chapter (direct child of
+    // main.book, i.e. no front matter). When front matter exists, chapters sit inside
+    // .body-matter and the first one is .body-matter > .chapter:first-child — it must KEEP its
+    // break-before: right, otherwise the TOC and the first chapter/prologue share a page.
+    it('only waives the chapter page-break for a chapter with no front matter before it', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000'
+      );
+      expect(css).toMatch(/main\.book\s*>\s*\.chapter:first-child\s*\{[^}]*break-before:\s*auto/);
+      expect(css).not.toMatch(/(^|[^>])\s\.chapter:first-child\s*\{[^}]*break-before:\s*auto/);
+    });
+
     it('includes toc entry leader dots via CSS', () => {
       const css = new BookCssBuilder().build(
         PublicationProfile.kdpSixByNine(),
         'http://localhost:3000'
       );
       expect(css).toContain('target-counter');
+    });
+
+    // Publishing convention: every front-matter page (half-title, title, copyright, dedication,
+    // epigraph, custom annexes, TOC) opens on a recto (right-hand) page. The base .liminal rule
+    // carries break-before: right, so Paged.js inserts a blank verso before any liminaire that
+    // would otherwise land on a verso — no per-section override needed.
+    it('starts every liminaire (front matter) on a recto (right) page', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000'
+      );
+      expect(css).toMatch(/\.liminal\s*\{[^}]*break-before:\s*right/);
     });
   });
 
@@ -316,21 +341,49 @@ describe('BookCssBuilder', () => {
     // Paged.js has no runtime handler for CSS leader() (only target-counter() is implemented
     // by its generated-content module), so a `content: leader('.') target-counter(...)` value
     // is invalid as a whole and silently drops both the dots and the number. The dotted fill
-    // is reproduced instead via a real element (.toc-title) with clipped repeated-dot content.
+    // is reproduced instead with a real .toc-leader element carrying a dotted bottom border,
+    // stretched with flex to fill exactly the remaining space — so it never wraps to a new line.
     it('classique (default): page numbers via target-counter, no leader() anywhere', () => {
       expect(css).toMatch(/\.toc a::after\s*\{[^}]*target-counter/);
       expect(css).not.toContain("leader(");
     });
 
-    it('classique: fills the gap with a dotted-fill element, not CSS leader()', () => {
-      expect(css).toMatch(/\.toc--classique \.toc-title::after\s*\{[^}]*content:\s*'[^']*\.[^']*'/);
+    it('classique: fills the gap with a flex-stretched dotted border, not a literal dot string', () => {
+      // A dotted bottom border on a flex:1 element occupies exactly the free space on one line;
+      // a fixed-length string of dots (the old approach) overflowed onto extra lines.
+      expect(css).toMatch(/\.toc--classique \.toc-leader\s*\{[^}]*border-bottom:[^}]*dotted/);
+      expect(css).toMatch(/\.toc-leader\s*\{[^}]*flex:\s*1/);
+      // No literal repeated-dot content anywhere in the TOC anymore.
+      expect(css).not.toMatch(/\.toc[^{]*::after\s*\{[^}]*content:\s*'[^']*\.\s*\.[^']*'/);
     });
 
-    it('classique: lets long titles wrap instead of clipping them behind the page number', () => {
-      // Long sous-titres must break onto a new line rather than be cut off by the
-      // fixed-width page-number column; nowrap + overflow:hidden would forbid that.
-      expect(css).not.toMatch(/\.toc--classique \.toc-title\s*\{[^}]*white-space:\s*nowrap/);
-      expect(css).not.toMatch(/\.toc--classique \.toc-title\s*\{[^}]*overflow:\s*hidden/);
+    it('classique: distinguishes chapters (bold) from sub-titles (smaller, muted) without a divergent texture', () => {
+      // Hierarchy comes from weight + size + colour only, so classique keeps the same
+      // typographic texture (font, casing, tracking) as epure/litteraire — no small-caps or
+      // letter-spacing that would set it visually apart from the other presets.
+      expect(css).toMatch(/\.toc--classique \.toc-chapter > a \.toc-title\s*\{[^}]*font-weight:/);
+      expect(css).toMatch(/\.toc-subtitle[^{]*\{[^}]*font-size:/);
+      expect(css).not.toContain('small-caps');
+      expect(css).not.toContain('letter-spacing');
+    });
+
+    it('classique: shows the chapter title verbatim, without generated numbering', () => {
+      // Adding a counter-based numeral would double up on titles that already carry their own
+      // number ("Chapitre 1", "I. L'aube"), overriding the author's text. (upper-roman still
+      // appears elsewhere for the liminal folio numbering — that is unrelated.)
+      expect(css).not.toMatch(/\.toc-chapter[^{]*::before/);
+      expect(css).not.toMatch(/\.toc-chapter[^{]*\{[^}]*counter-increment/);
+    });
+
+    it('classique: adds breathing room above each chapter entry', () => {
+      expect(css).toMatch(/\.toc-chapter\s*\{[^}]*margin-top:/);
+    });
+
+    it('all three presets share the body font — no toc--* rule overrides font-family', () => {
+      // Hierarchy and personality come from leader, numbering, centering and weight — never
+      // from a different typeface. A font-family on any toc--* selector would make one preset
+      // read as a foreign design; the TOC must inherit the book's body font like the text.
+      expect(css).not.toMatch(/\.toc--[a-z]+[^{]*\{[^}]*font-family/);
     });
 
     it('epure: page numbers without any dotted-fill element', () => {
@@ -341,6 +394,18 @@ describe('BookCssBuilder', () => {
     it('litteraire: no page numbers, titles centered', () => {
       expect(css).toMatch(/\.toc--litteraire a::after\s*\{[^}]*content:\s*none/);
       expect(css).toMatch(/\.toc--litteraire a\s*\{[^}]*justify-content:\s*center/);
+    });
+
+    it('litteraire: hides the leader so centered titles are not pushed off-centre', () => {
+      expect(css).toMatch(/\.toc--litteraire \.toc-leader\s*\{[^}]*display:\s*none/);
+    });
+
+    // The TOC is .liminal for numbering, but a multi-page flowing list — unlike the single
+    // centered front-matter pages. It must start each page at the top; otherwise the last
+    // (short) page's entries float in the vertical middle.
+    it('does not vertically centre the (multi-page) TOC the way single liminal pages are', () => {
+      expect(css).toMatch(/\.toc\s*\{[^}]*justify-content:\s*flex-start/);
+      expect(css).toMatch(/\.toc\s*\{[^}]*min-height:\s*0/);
     });
 
     it('indents nested sub-entries', () => {

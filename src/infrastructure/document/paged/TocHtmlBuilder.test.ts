@@ -97,6 +97,44 @@ describe('TocHtmlBuilder', () => {
     });
   });
 
+  describe('leader and hierarchy markup', () => {
+    it('renders a dedicated .toc-leader span after the title so a real dotted rule can fill one line', () => {
+      const html = builder.build([{ title: 'Chapitre 1', chapterId: 'ch-0' }]);
+      expect(html).toContain(
+        '<span class="toc-title">Chapitre 1</span><span class="toc-leader" aria-hidden="true"></span>'
+      );
+    });
+
+    it('renders a .toc-leader span for sub-entries too', () => {
+      const html = builder.build([
+        {
+          title: 'Chapitre 1',
+          chapterId: 'ch-0',
+          subEntries: [{ title: 'Sous-titre A', anchorId: 'ch-0-soustitre-0' }],
+        },
+      ]);
+      expect(html).toContain(
+        '<span class="toc-title">Sous-titre A</span><span class="toc-leader" aria-hidden="true"></span>'
+      );
+    });
+
+    it('marks chapter entries with the toc-chapter class', () => {
+      const html = builder.build([{ title: 'Chapitre 1', chapterId: 'ch-0' }]);
+      expect(html).toContain('<li class="toc-chapter">');
+    });
+
+    it('marks sub-entries with the toc-subtitle class', () => {
+      const html = builder.build([
+        {
+          title: 'Chapitre 1',
+          chapterId: 'ch-0',
+          subEntries: [{ title: 'Sous-titre A', anchorId: 'ch-0-soustitre-0' }],
+        },
+      ]);
+      expect(html).toContain('<li class="toc-subtitle">');
+    });
+  });
+
   describe('nested sub-entries (sous-titres)', () => {
     it('renders no nested list when a chapter has no subEntries', () => {
       const html = builder.build([{ title: 'Chapitre 1', chapterId: 'ch-0' }]);
@@ -129,7 +167,7 @@ describe('TocHtmlBuilder', () => {
           subEntries: [{ title: 'Sous-titre A', anchorId: 'ch-0-soustitre-0' }],
         },
       ]);
-      const chapterEntryStart = html.indexOf('<li><a href="#ch-0">');
+      const chapterEntryStart = html.indexOf('href="#ch-0"');
       const subEntryIdx = html.indexOf('href="#ch-0-soustitre-0"');
       const closingLi = html.indexOf('</li>', subEntryIdx);
       expect(chapterEntryStart).toBeGreaterThanOrEqual(0);

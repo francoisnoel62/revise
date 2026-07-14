@@ -55,7 +55,9 @@ describe('PagedJsRenderer', () => {
         profile,
         assetBaseUrl,
       });
-      expect(html).not.toContain('body-matter');
+      // Match the wrapper markup precisely: the CSS carries a `.body-matter` selector comment,
+      // so a bare 'body-matter' substring is present in every document via the <style> block.
+      expect(html).not.toContain('class="body-matter"');
     });
   });
 
@@ -212,9 +214,12 @@ describe('PagedJsRenderer', () => {
         frontMatter: { title: 'Mon Roman' },
         toc: [{ title: 'Chapitre', chapterId: 'ch-0' }],
       });
-      const halfTitleIdx = html.indexOf('half-title');
-      const tocIdx = html.indexOf('Table des matières');
-      const bodyIdx = html.indexOf('Chapitre');
+      // Anchor on strings unique to the rendered CONTENT, never to the CSS in <head>:
+      // 'half-title', 'Chapitre' and 'body-matter' all also occur in style comments/selectors,
+      // so indexOf() would match the <head> and mis-order the assertions.
+      const halfTitleIdx = html.indexOf('Mon Roman'); // book title, front matter only
+      const tocIdx = html.indexOf('Table des matières'); // TOC <h2> only
+      const bodyIdx = html.indexOf('id="ch-0"'); // body chapter section only (TOC uses href="#ch-0")
 
       // front matter comes before TOC
       expect(halfTitleIdx).toBeLessThan(tocIdx);

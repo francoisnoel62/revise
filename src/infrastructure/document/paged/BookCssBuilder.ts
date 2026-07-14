@@ -117,11 +117,14 @@ export class BookCssBuilder {
            - a content-driven 'folio' counter numbers the liminaires in roman.
          A margin box reads a custom counter as of the END of the PREVIOUS page, so the
          very first page can never see a seed — the half-title therefore carries no printed
-         number (book convention anyway) while still advancing folio for the pages after it. */
+         number (book convention anyway) while still advancing folio for the pages after it.
+         Every liminaire opens on a recto (right-hand) page per publishing convention:
+         break-before: right makes Paged.js insert a blank verso before it when the preceding
+         page ends on a recto. */
       .liminal {
         page: liminal-page;
         counter-increment: folio 1;
-        break-before: page;
+        break-before: right;
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -129,7 +132,7 @@ export class BookCssBuilder {
         min-height: calc(${value.pageHeightInches}in - ${value.marginTopCentimeters}cm - ${value.marginBottomCentimeters}cm);
         text-align: center;
       }
-      .liminal:first-child { page: half-title-page; break-before: right; }
+      .liminal:first-child { page: half-title-page; }
       /* Liminal titles have no dedicated typography otherwise and would inherit the body
          size (and its first-line text-indent, which shifts centered lines). Enlarge them
          and cancel the indent so the title page reads as a title page. */
@@ -179,11 +182,22 @@ export class BookCssBuilder {
         @bottom-center { content: none; }
       }
 
-      /* Chapter sections: start on odd (right-hand) pages */
+      /* Chapter sections: start on odd (right-hand) pages. The break is waived only for a
+         chapter that is truly first — a direct child of main.book, i.e. no front matter/TOC
+         precedes it. When extras exist the chapters live inside .body-matter, so the first one
+         is .body-matter > .chapter:first-child and MUST keep its break, otherwise it shares a
+         page with the TOC that precedes it. */
       .chapter { break-before: right; }
-      .chapter:first-child { break-before: auto; }
+      main.book > .chapter:first-child { break-before: auto; }
 
-      /* TOC: links with auto page numbers (target-counter), classique adds a dotted fill */
+      /* TOC: links with auto page numbers (target-counter), classique adds a dotted fill.
+         The TOC is .liminal (for roman folio numbering + page assignment) but, unlike the
+         single centered front-matter pages, it is a multi-page flowing list. Override the
+         inherited vertical centering: start content at the top of every page and drop the
+         full-height min-height, so the last (short) page's entries don't float in the middle.
+         Horizontal centering (align-items) is left untouched. The TOC opens on a recto too,
+         inherited from .liminal { break-before: right } above. */
+      .toc { justify-content: flex-start; min-height: 0; }
       .toc h2 {
         font-size: 14pt;
         font-weight: 700;
@@ -217,6 +231,10 @@ export class BookCssBuilder {
         align-items: baseline;
         justify-content: space-between;
       }
+      /* The title takes only the space it needs and may wrap; the leader (when a style shows one)
+         absorbs the rest of the line so the page number stays right-aligned. */
+      .toc-title { flex: 0 1 auto; overflow-wrap: break-word; }
+      .toc-leader { flex: 1 1 auto; }
       /* Paged.js resolves target-counter() per-link, late in pagination, and only reflows
          the matched <a> in isolation (no shared re-layout across TOC rows). A shrink-to-fit
          number box therefore settles at a different width per row (1 vs 2 vs 3 digits). A
@@ -231,26 +249,43 @@ export class BookCssBuilder {
         font-variant-numeric: tabular-nums;
       }
 
-      /* Classique: dotted fill between title and page number. The CSS GCPM leader mechanism
-         has no runtime handler in Paged.js (only target-counter does), so combining the two
-         in one content value is invalid as a whole and silently drops both the dots and the
-         number. Reproduced instead with a real element. The title wraps onto extra lines
-         when it is too long rather than being clipped behind the page-number column. */
-      .toc--classique .toc-title {
-        flex: 1 1 auto;
-        overflow-wrap: break-word;
+      /* Classique: dotted leader between title and page number. The CSS GCPM leader mechanism
+         has no runtime handler in Paged.js (only target-counter does), so it silently drops both
+         the dots and the number. Reproduced instead with a real .toc-leader element: a dotted
+         bottom border on a flex:1 box fills exactly the free space on a single line — a fixed
+         string of dots (the old approach) overflowed onto extra lines when the title was short.
+         translateY lifts the border off the baseline so the dots sit level with the x-height. */
+      .toc--classique .toc-leader {
+        border-bottom: 1px dotted currentColor;
+        transform: translateY(-3pt);
+        margin: 0 4pt;
       }
-      .toc--classique .toc-title::after {
-        content: ' . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . ';
-        padding-left: 4pt;
+      /* Hierarchy — chapters read as headings, sous-titres recede. Weight, size and colour carry
+         the hierarchy alone, so classique keeps the same typographic texture (font, casing,
+         tracking) as epure/litteraire and doesn't read as a different design. The chapter title
+         is shown verbatim: no generated numbering, so we never double up on an author title that
+         already carries its own number ("Chapitre 1", "I. L'aube", …). */
+      .toc--classique .toc-chapter { margin-top: 12pt; }
+      .toc--classique .toc-chapter > a .toc-title {
+        font-weight: 600;
+      }
+      .toc--classique .toc-subtitle {
+        font-size: 10pt;
+        color: #555;
+      }
+      .toc--classique .toc-subtitle .toc-leader {
+        transform: translateY(-2pt);
       }
 
-      /* Littéraire: centered titles, no page numbers */
+      /* Littéraire: centered titles, no page numbers, no leader (it would break centring). */
       .toc--litteraire a {
         justify-content: center;
       }
       .toc--litteraire a::after {
         content: none;
+      }
+      .toc--litteraire .toc-leader {
+        display: none;
       }
     `;
   }
