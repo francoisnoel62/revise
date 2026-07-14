@@ -321,6 +321,18 @@ describe('BookCssBuilder', () => {
       );
       expect(css).toContain('target-counter');
     });
+
+    // Publishing convention: every front-matter page (half-title, title, copyright, dedication,
+    // epigraph, custom annexes, TOC) opens on a recto (right-hand) page. The base .liminal rule
+    // carries break-before: right, so Paged.js inserts a blank verso before any liminaire that
+    // would otherwise land on a verso — no per-section override needed.
+    it('starts every liminaire (front matter) on a recto (right) page', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000'
+      );
+      expect(css).toMatch(/\.liminal\s*\{[^}]*break-before:\s*right/);
+    });
   });
 
   describe('toc design variants (3 presets, always emitted statically)', () => {

@@ -117,11 +117,14 @@ export class BookCssBuilder {
            - a content-driven 'folio' counter numbers the liminaires in roman.
          A margin box reads a custom counter as of the END of the PREVIOUS page, so the
          very first page can never see a seed — the half-title therefore carries no printed
-         number (book convention anyway) while still advancing folio for the pages after it. */
+         number (book convention anyway) while still advancing folio for the pages after it.
+         Every liminaire opens on a recto (right-hand) page per publishing convention:
+         break-before: right makes Paged.js insert a blank verso before it when the preceding
+         page ends on a recto. */
       .liminal {
         page: liminal-page;
         counter-increment: folio 1;
-        break-before: page;
+        break-before: right;
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -129,7 +132,7 @@ export class BookCssBuilder {
         min-height: calc(${value.pageHeightInches}in - ${value.marginTopCentimeters}cm - ${value.marginBottomCentimeters}cm);
         text-align: center;
       }
-      .liminal:first-child { page: half-title-page; break-before: right; }
+      .liminal:first-child { page: half-title-page; }
       /* Liminal titles have no dedicated typography otherwise and would inherit the body
          size (and its first-line text-indent, which shifts centered lines). Enlarge them
          and cancel the indent so the title page reads as a title page. */
@@ -192,7 +195,8 @@ export class BookCssBuilder {
          single centered front-matter pages, it is a multi-page flowing list. Override the
          inherited vertical centering: start content at the top of every page and drop the
          full-height min-height, so the last (short) page's entries don't float in the middle.
-         Horizontal centering (align-items) is left untouched. */
+         Horizontal centering (align-items) is left untouched. The TOC opens on a recto too,
+         inherited from .liminal { break-before: right } above. */
       .toc { justify-content: flex-start; min-height: 0; }
       .toc h2 {
         font-size: 14pt;
