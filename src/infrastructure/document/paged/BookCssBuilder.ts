@@ -179,11 +179,21 @@ export class BookCssBuilder {
         @bottom-center { content: none; }
       }
 
-      /* Chapter sections: start on odd (right-hand) pages */
+      /* Chapter sections: start on odd (right-hand) pages. The break is waived only for a
+         chapter that is truly first — a direct child of main.book, i.e. no front matter/TOC
+         precedes it. When extras exist the chapters live inside .body-matter, so the first one
+         is .body-matter > .chapter:first-child and MUST keep its break, otherwise it shares a
+         page with the TOC that precedes it. */
       .chapter { break-before: right; }
-      .chapter:first-child { break-before: auto; }
+      main.book > .chapter:first-child { break-before: auto; }
 
-      /* TOC: links with auto page numbers (target-counter), classique adds a dotted fill */
+      /* TOC: links with auto page numbers (target-counter), classique adds a dotted fill.
+         The TOC is .liminal (for roman folio numbering + page assignment) but, unlike the
+         single centered front-matter pages, it is a multi-page flowing list. Override the
+         inherited vertical centering: start content at the top of every page and drop the
+         full-height min-height, so the last (short) page's entries don't float in the middle.
+         Horizontal centering (align-items) is left untouched. */
+      .toc { justify-content: flex-start; min-height: 0; }
       .toc h2 {
         font-size: 14pt;
         font-weight: 700;
@@ -246,14 +256,14 @@ export class BookCssBuilder {
         transform: translateY(-3pt);
         margin: 0 4pt;
       }
-      /* Hierarchy — chapters read as headings, sous-titres recede. The chapter title is shown
-         verbatim: no generated numbering, so we never double up on an author title that already
-         carries its own number ("Chapitre 1", "I. L'aube", …). */
+      /* Hierarchy — chapters read as headings, sous-titres recede. Weight, size and colour carry
+         the hierarchy alone, so classique keeps the same typographic texture (font, casing,
+         tracking) as epure/litteraire and doesn't read as a different design. The chapter title
+         is shown verbatim: no generated numbering, so we never double up on an author title that
+         already carries its own number ("Chapitre 1", "I. L'aube", …). */
       .toc--classique .toc-chapter { margin-top: 12pt; }
       .toc--classique .toc-chapter > a .toc-title {
-        font-variant: small-caps;
         font-weight: 600;
-        letter-spacing: 0.02em;
       }
       .toc--classique .toc-subtitle {
         font-size: 10pt;

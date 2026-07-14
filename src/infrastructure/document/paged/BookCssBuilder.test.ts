@@ -301,6 +301,19 @@ describe('BookCssBuilder', () => {
       expect(css).toContain('break-before: right');
     });
 
+    // The first-child break exception must be scoped to a truly first chapter (direct child of
+    // main.book, i.e. no front matter). When front matter exists, chapters sit inside
+    // .body-matter and the first one is .body-matter > .chapter:first-child — it must KEEP its
+    // break-before: right, otherwise the TOC and the first chapter/prologue share a page.
+    it('only waives the chapter page-break for a chapter with no front matter before it', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000'
+      );
+      expect(css).toMatch(/main\.book\s*>\s*\.chapter:first-child\s*\{[^}]*break-before:\s*auto/);
+      expect(css).not.toMatch(/(^|[^>])\s\.chapter:first-child\s*\{[^}]*break-before:\s*auto/);
+    });
+
     it('includes toc entry leader dots via CSS', () => {
       const css = new BookCssBuilder().build(
         PublicationProfile.kdpSixByNine(),
@@ -332,9 +345,14 @@ describe('BookCssBuilder', () => {
       expect(css).not.toMatch(/\.toc[^{]*::after\s*\{[^}]*content:\s*'[^']*\.\s*\.[^']*'/);
     });
 
-    it('classique: distinguishes chapters (small-caps) from sub-titles (smaller, muted)', () => {
-      expect(css).toMatch(/\.toc-chapter[^{]*\{[^}]*font-variant:\s*small-caps/);
+    it('classique: distinguishes chapters (bold) from sub-titles (smaller, muted) without a divergent texture', () => {
+      // Hierarchy comes from weight + size + colour only, so classique keeps the same
+      // typographic texture (font, casing, tracking) as epure/litteraire — no small-caps or
+      // letter-spacing that would set it visually apart from the other presets.
+      expect(css).toMatch(/\.toc--classique \.toc-chapter > a \.toc-title\s*\{[^}]*font-weight:/);
       expect(css).toMatch(/\.toc-subtitle[^{]*\{[^}]*font-size:/);
+      expect(css).not.toContain('small-caps');
+      expect(css).not.toContain('letter-spacing');
     });
 
     it('classique: shows the chapter title verbatim, without generated numbering', () => {
@@ -347,6 +365,13 @@ describe('BookCssBuilder', () => {
 
     it('classique: adds breathing room above each chapter entry', () => {
       expect(css).toMatch(/\.toc-chapter\s*\{[^}]*margin-top:/);
+    });
+
+    it('all three presets share the body font — no toc--* rule overrides font-family', () => {
+      // Hierarchy and personality come from leader, numbering, centering and weight — never
+      // from a different typeface. A font-family on any toc--* selector would make one preset
+      // read as a foreign design; the TOC must inherit the book's body font like the text.
+      expect(css).not.toMatch(/\.toc--[a-z]+[^{]*\{[^}]*font-family/);
     });
 
     it('epure: page numbers without any dotted-fill element', () => {
