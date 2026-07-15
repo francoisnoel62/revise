@@ -111,6 +111,10 @@ export class TipTapToBookHtml implements TipTapToHtmlConverter {
     if (typeof semanticRole === 'string') {
       attributes.push(`data-semantic-role="${this.escapeHtml(semanticRole)}"`);
     }
+    const wordAnchor = node.attrs?.wordAnchor;
+    if (typeof wordAnchor === 'number') {
+      attributes.push(`data-word-anchor="${wordAnchor}"`);
+    }
     if (node.attrs?.indent === true) {
       attributes.push('data-indent="true"');
     }

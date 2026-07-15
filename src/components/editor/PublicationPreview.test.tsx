@@ -104,10 +104,15 @@ describe('PublicationPreview', () => {
     expect(onChange).toHaveBeenCalledWith(7);
   });
 
-  it('posts scroll-sync progress to the iframe when scrollProgress changes', () => {
+  it('posts scroll-sync position to the iframe when scrollPosition changes', () => {
     const postMessage = vi.fn();
     const { container, rerender } = render(
-      <PublicationPreview content={content} profileId="kdp-6x9" overrides={[]} scrollProgress={0} />
+      <PublicationPreview
+        content={content}
+        profileId="kdp-6x9"
+        overrides={[]}
+        scrollPosition={{ segmentIndex: 0, localRatio: 0 }}
+      />
     );
 
     const iframe = container.querySelector('iframe')!;
@@ -121,21 +126,24 @@ describe('PublicationPreview', () => {
         content={content}
         profileId="kdp-6x9"
         overrides={[]}
-        scrollProgress={0.5}
+        scrollPosition={{ segmentIndex: 1, localRatio: 0.5 }}
       />
     );
 
-    expect(postMessage).toHaveBeenCalledWith({ type: 'sync-scroll', progress: 0.5 }, '*');
+    expect(postMessage).toHaveBeenCalledWith(
+      { type: 'sync-scroll', segmentIndex: 1, localRatio: 0.5 },
+      '*'
+    );
   });
 
-  it('re-posts the last scroll progress after the iframe re-paginates so the preview follows edits', () => {
+  it('re-posts the last scroll position after the iframe re-paginates so the preview follows edits', () => {
     const postMessage = vi.fn();
     const { container } = render(
       <PublicationPreview
         content={content}
         profileId="kdp-6x9"
         overrides={[]}
-        scrollProgress={0.5}
+        scrollPosition={{ segmentIndex: 1, localRatio: 0.5 }}
       />
     );
 
@@ -155,6 +163,29 @@ describe('PublicationPreview', () => {
       })
     );
 
-    expect(postMessage).toHaveBeenCalledWith({ type: 'sync-scroll', progress: 0.5 }, '*');
+    expect(postMessage).toHaveBeenCalledWith(
+      { type: 'sync-scroll', segmentIndex: 1, localRatio: 0.5 },
+      '*'
+    );
+  });
+
+  it('tags long chapters with data-word-anchor markers every 1000 words', () => {
+    const longContent = {
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: Array.from({ length: 1200 }, (_, i) => `mot${i}`).join(' ') },
+          ],
+        },
+      ],
+    };
+    render(<PublicationPreview content={longContent} profileId="kdp-6x9" overrides={[]} />);
+
+    expect(screen.getByTestId('publication-preview')).toHaveAttribute(
+      'srcdoc',
+      expect.stringContaining('data-word-anchor="1"')
+    );
   });
 });

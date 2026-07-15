@@ -74,8 +74,23 @@ export class PagedJsRenderer implements PagedRenderer {
         }
         if(e.data?.type==='sync-scroll'){
           const scrollEl=document.scrollingElement||document.documentElement;
-          const max=scrollEl.scrollHeight-scrollEl.clientHeight;
-          scrollEl.scrollTop=Math.max(0,max)*Math.max(0,Math.min(1,e.data.progress));
+          const max=Math.max(0,scrollEl.scrollHeight-scrollEl.clientHeight);
+          const anchorTop=(el)=>el.getBoundingClientRect().top+scrollEl.scrollTop;
+          // Paged.js clones a block across a page break, so the same data-word-anchor value
+          // can appear on several elements. Look up by value (first occurrence wins), never
+          // by array position, or a single split anchor shifts every later boundary.
+          // Mirrors resolveSyncScrollTarget.ts (kept separate + unit-tested since this
+          // string runs inside the sandboxed iframe and cannot import a module).
+          const byValue=new Map();
+          document.querySelectorAll('[data-word-anchor]').forEach((el)=>{
+            const v=Number(el.dataset.wordAnchor);
+            if(!byValue.has(v))byValue.set(v,anchorTop(el));
+          });
+          const segmentIndex=e.data.segmentIndex||0;
+          const start=segmentIndex<=0?0:(byValue.has(segmentIndex)?byValue.get(segmentIndex):max);
+          const end=byValue.has(segmentIndex+1)?byValue.get(segmentIndex+1):max;
+          const localRatio=Math.max(0,Math.min(1,e.data.localRatio||0));
+          scrollEl.scrollTop=Math.max(0,Math.min(max,start+localRatio*(end-start)));
         }
       })})()</script>
       </body></html>`;

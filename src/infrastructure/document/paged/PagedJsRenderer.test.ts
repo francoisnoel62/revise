@@ -184,6 +184,13 @@ describe('PagedJsRenderer', () => {
       expect(html).toContain('sync-scroll');
       expect(html).toContain('scrollTop');
     });
+
+    it('resolves sync-scroll segments against data-word-anchor elements instead of a single global ratio', () => {
+      const html = renderer.render({ bodyHtml: '<p>A</p>', profile, assetBaseUrl });
+      expect(html).toContain('data-word-anchor');
+      expect(html).toContain('segmentIndex');
+      expect(html).toContain('localRatio');
+    });
   });
 
   describe('visible page numbers', () => {

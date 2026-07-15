@@ -142,7 +142,7 @@ describe('EditorPreviewLayout', () => {
     expect(aside).toHaveClass('hidden');
   });
 
-  it('reports editor scroll progress as 0 when the editor content is shorter than the viewport', () => {
+  it('reports editor scroll progress as segment 0 / ratio 0 when content is shorter than the viewport', () => {
     const onEditorScrollProgress = vi.fn();
     render(
       <EditorPreviewLayout
@@ -152,6 +152,98 @@ describe('EditorPreviewLayout', () => {
       />
     );
 
-    expect(onEditorScrollProgress).toHaveBeenCalledWith(0);
+    expect(onEditorScrollProgress).toHaveBeenCalledWith({ segmentIndex: 0, localRatio: 0 });
+  });
+
+  describe('piecewise scroll sync (recalibrated every 1000 words)', () => {
+    function mockWrapperGeometry(heightPx: number) {
+      // The wrapper sits at absolute page position 0: its viewport-relative top is
+      // `0 - window.scrollY`, exactly like a real element fixed in document flow.
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(() => ({
+        top: -window.scrollY,
+        bottom: heightPx - window.scrollY,
+        height: heightPx,
+        left: 0,
+        right: 0,
+        width: 0,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      }));
+      Object.defineProperty(window, 'innerHeight', { value: 800, configurable: true });
+    }
+
+    function scrollTo(y: number) {
+      Object.defineProperty(window, 'scrollY', { value: y, configurable: true });
+      fireEvent.scroll(window);
+    }
+
+    beforeEach(() => {
+      // jsdom never runs real rAF callbacks; run them synchronously so scroll-driven
+      // progress updates are observable without advancing fake timers.
+      vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+        cb(0);
+        return 0;
+      });
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('falls back to a single global segment when no editor is supplied', () => {
+      mockWrapperGeometry(4800); // scrollableRange = 4800 - 800 = 4000
+      const onEditorScrollProgress = vi.fn();
+      render(
+        <EditorPreviewLayout
+          editorSlot={<div />}
+          previewSlot={<div />}
+          onEditorScrollProgress={onEditorScrollProgress}
+        />
+      );
+      onEditorScrollProgress.mockClear();
+
+      scrollTo(2000); // halfway through the 4000px scrollable range
+
+      expect(onEditorScrollProgress).toHaveBeenCalledWith({ segmentIndex: 0, localRatio: 0.5 });
+    });
+
+    it('reports the segment and local ratio matching the nearest word-anchor boundaries', () => {
+      mockWrapperGeometry(4800); // scrollableRange = 4000
+      // Two anchors (1000w, 2000w) sitting at pixel offsets 1000 and 3000.
+      const editor = {
+        state: {
+          doc: {
+            forEach(cb: (node: { textContent: string }, offset: number) => void) {
+              cb({ textContent: Array.from({ length: 1200 }, (_, i) => `m${i}`).join(' ') }, 0);
+              cb({ textContent: Array.from({ length: 1200 }, (_, i) => `m${i}`).join(' ') }, 1200);
+            },
+          },
+        },
+        view: {
+          // coordsAtPos is viewport-relative in a real browser: an element fixed at an
+          // absolute page position P reports `P - window.scrollY` as its top.
+          coordsAtPos: (pos: number) => ({ top: (pos === 1 ? 1000 : 3000) - window.scrollY }),
+        },
+      };
+      const onEditorScrollProgress = vi.fn();
+      render(
+        <EditorPreviewLayout
+          editorSlot={<div />}
+          previewSlot={<div />}
+          onEditorScrollProgress={onEditorScrollProgress}
+          editor={editor}
+        />
+      );
+      onEditorScrollProgress.mockClear();
+
+      // pos = scrollY - wrapperTop = 1500 - 0 = 1500, between boundaries [1000, 3000] -> segment 1
+      scrollTo(1500);
+
+      expect(onEditorScrollProgress).toHaveBeenCalledWith({
+        segmentIndex: 1,
+        localRatio: (1500 - 1000) / (3000 - 1000),
+      });
+    });
   });
 });

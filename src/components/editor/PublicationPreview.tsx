@@ -14,10 +14,12 @@ import {
 } from '@/domain/value-objects/PublicationProfile';
 import { PagedJsRenderer } from '@/infrastructure/document/paged/PagedJsRenderer';
 import { TipTapToBookHtml } from '@/infrastructure/document/paged/TipTapToBookHtml';
+import { tagWordAnchors } from '@/application/services/wordAnchors';
 import type { LevelStyleSetProperties } from '@/domain/value-objects/LevelStyleSet';
 
 const renderer = new PagedJsRenderer();
 const converter = new TipTapToBookHtml();
+const WORDS_PER_SCROLL_SEGMENT = 1000;
 
 interface PagedRenderedMessage {
   readonly type: 'paged-rendered';
@@ -25,6 +27,14 @@ interface PagedRenderedMessage {
   readonly sourceId: string | null;
   readonly paginationMs: number;
 }
+
+/** A position within the editor's scroll range: which 1000-word segment, and how far into it. */
+interface ScrollPosition {
+  readonly segmentIndex: number;
+  readonly localRatio: number;
+}
+
+const ZERO_SCROLL_POSITION: ScrollPosition = { segmentIndex: 0, localRatio: 0 };
 
 interface PublicationPreviewProps {
   readonly content: ContentNode;
@@ -35,8 +45,8 @@ interface PublicationPreviewProps {
   /** Called with the total page count whenever the iframe finishes rendering. */
   readonly onPageCountChange?: (count: number) => void;
   readonly levelStyles?: LevelStyleSetProperties;
-  /** Editor scroll progress (0..1) used to drive the preview's own scroll position. */
-  readonly scrollProgress?: number;
+  /** Editor scroll position (word-anchor segment + local ratio) driving the preview's scroll. */
+  readonly scrollPosition?: ScrollPosition;
 }
 
 export function PublicationPreview({
@@ -46,29 +56,32 @@ export function PublicationPreview({
   startPageNumber,
   onPageCountChange,
   levelStyles,
-  scrollProgress,
+  scrollPosition,
 }: PublicationPreviewProps) {
   const [renderedContent, setRenderedContent] = useState(content);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const lastPostedProgressRef = useRef(0);
-  const scrollProgressRef = useRef(scrollProgress ?? 0);
+  const lastPostedPositionRef = useRef<ScrollPosition>(ZERO_SCROLL_POSITION);
+  const scrollPositionRef = useRef<ScrollPosition>(scrollPosition ?? ZERO_SCROLL_POSITION);
 
   useEffect(() => {
     const timer = setTimeout(() => setRenderedContent(content), 300);
-    lastPostedProgressRef.current = 0;
+    lastPostedPositionRef.current = ZERO_SCROLL_POSITION;
     return () => clearTimeout(timer);
   }, [content]);
 
   useEffect(() => {
-    if (scrollProgress === undefined) return;
-    scrollProgressRef.current = scrollProgress;
-    if (Math.abs(scrollProgress - lastPostedProgressRef.current) <= 0.002) return;
-    lastPostedProgressRef.current = scrollProgress;
-    iframeRef.current?.contentWindow?.postMessage(
-      { type: 'sync-scroll', progress: scrollProgress },
-      '*'
-    );
-  }, [scrollProgress]);
+    if (scrollPosition === undefined) return;
+    scrollPositionRef.current = scrollPosition;
+    const last = lastPostedPositionRef.current;
+    if (
+      scrollPosition.segmentIndex === last.segmentIndex &&
+      Math.abs(scrollPosition.localRatio - last.localRatio) <= 0.002
+    ) {
+      return;
+    }
+    lastPostedPositionRef.current = scrollPosition;
+    iframeRef.current?.contentWindow?.postMessage({ type: 'sync-scroll', ...scrollPosition }, '*');
+  }, [scrollPosition]);
 
   const handleMessage = useCallback(
     (event: MessageEvent<PagedRenderedMessage>) => {
@@ -76,16 +89,13 @@ export function PublicationPreview({
       if (event.source !== iframeRef.current?.contentWindow) return;
       onPageCountChange?.(event.data.pageCount);
       // Re-generating srcDoc reloads the iframe and re-paginates from the top, dropping
-      // the preview's scroll position. Re-apply the editor's current progress so the
+      // the preview's scroll position. Re-apply the editor's current position so the
       // preview keeps following the text without the author having to scroll. The iframe
-      // already reloads to the top, so there is nothing to restore at progress 0.
-      const progress = scrollProgressRef.current;
-      if (progress <= 0) return;
-      lastPostedProgressRef.current = progress;
-      iframeRef.current?.contentWindow?.postMessage(
-        { type: 'sync-scroll', progress },
-        '*'
-      );
+      // already reloads to the top, so there is nothing to restore at the very start.
+      const position = scrollPositionRef.current;
+      if (position.segmentIndex <= 0 && position.localRatio <= 0) return;
+      lastPostedPositionRef.current = position;
+      iframeRef.current?.contentWindow?.postMessage({ type: 'sync-scroll', ...position }, '*');
     },
     [onPageCountChange],
   );
@@ -97,8 +107,9 @@ export function PublicationPreview({
 
   const documentHtml = useMemo(() => {
     const displayed = switchPublicationProfile(renderedContent, profileId, overrides).content;
+    const { content: tagged } = tagWordAnchors(displayed as JSONContent, WORDS_PER_SCROLL_SEGMENT);
     return renderer.render({
-      bodyHtml: converter.convert(displayed as JSONContent),
+      bodyHtml: converter.convert(tagged),
       profile: PublicationProfile.fromId(profileId),
       assetBaseUrl:
         typeof window === 'undefined' ? 'http://localhost:3000' : window.location.origin,

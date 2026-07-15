@@ -93,4 +93,17 @@ describe('TipTapToBookHtml', () => {
       expect(html).not.toContain('id=');
     });
   });
+
+  describe('convert — data-word-anchor attribute passthrough (scroll sync)', () => {
+    it('renders the data-word-anchor attribute when node.attrs.wordAnchor is set', () => {
+      const content = doc({ ...paragraph('Mille mots plus loin.'), attrs: { wordAnchor: 1 } });
+      const html = converter.convert(content);
+      expect(html).toMatch(/<p[^>]*data-word-anchor="1"[^>]*>Mille mots plus loin\.<\/p>/);
+    });
+
+    it('omits the data-word-anchor attribute when node.attrs.wordAnchor is absent', () => {
+      const html = converter.convert(doc(paragraph('Corps.')));
+      expect(html).not.toContain('data-word-anchor');
+    });
+  });
 });
