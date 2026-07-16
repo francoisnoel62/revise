@@ -5,6 +5,13 @@ import type { JSONContent } from '@tiptap/core';
 import type { TipTapToHtmlConverter } from '@/application/interfaces/TipTapToHtmlConverter';
 import { applyFrenchSpacing } from './frenchSpacing';
 
+// Paged.js's break-after: avoid glues a heading to whatever element comes right after it
+// in the DOM — not to the next visible content. A blank line an author leaves after a
+// heading (pressing Enter for spacing) becomes an empty paragraph that steals that glue,
+// leaving the heading free to strand alone at the bottom of a page. These are the roles
+// BookCssBuilder marks break-after: avoid; blank paragraphs right after them are dropped.
+const HEADING_ROLES_GLUED_TO_NEXT = new Set(['titre-de-chapitre', 'sous-titre']);
+
 export class TipTapToBookHtml implements TipTapToHtmlConverter {
   convert(content: JSONContent): string {
     if (content.type !== 'doc') {
@@ -15,7 +22,30 @@ export class TipTapToBookHtml implements TipTapToHtmlConverter {
   }
 
   private renderChildren(node: JSONContent): string {
-    return (node.content ?? []).map((child) => this.renderNode(child)).join('');
+    return this.dropBlankLinesAfterGluedHeadings(node.content ?? [])
+      .map((child) => this.renderNode(child))
+      .join('');
+  }
+
+  // Drops every blank paragraph immediately following a titre-de-chapitre/sous-titre, so
+  // the heading's next DOM sibling is always its real body content, not an empty line.
+  private dropBlankLinesAfterGluedHeadings(nodes: readonly JSONContent[]): JSONContent[] {
+    const kept: JSONContent[] = [];
+    let precededByGluedHeading = false;
+    for (const node of nodes) {
+      if (precededByGluedHeading && this.isBlankParagraph(node)) continue;
+      kept.push(node);
+      precededByGluedHeading =
+        node.type === 'heading' && HEADING_ROLES_GLUED_TO_NEXT.has(String(node.attrs?.semanticRole));
+    }
+    return kept;
+  }
+
+  private isBlankParagraph(node: JSONContent): boolean {
+    if (node.type !== 'paragraph') return false;
+    return (node.content ?? []).every(
+      (child) => child.type === 'text' && !(child.text ?? '').trim(),
+    );
   }
 
   private renderNode(node: JSONContent): string {

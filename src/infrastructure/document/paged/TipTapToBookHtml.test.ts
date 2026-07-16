@@ -78,6 +78,60 @@ describe('TipTapToBookHtml', () => {
     });
   });
 
+  // A blank line an author leaves after a titre-de-chapitre/sous-titre (pressing Enter for
+  // visual spacing) becomes an empty <p></p> — Paged.js's break-after: avoid glues the
+  // heading to whatever element comes right after it in the DOM, so that empty paragraph
+  // steals the glue meant for the real body paragraph, and the heading can strand alone at
+  // the bottom of a page. Dropping the blank paragraph keeps the heading adjacent to real content.
+  describe('convert — blank lines after headings do not defeat break-after: avoid', () => {
+    function glued(role: string, text: string): JSONContent {
+      return { ...heading(1, text), attrs: { level: 1, semanticRole: role } };
+    }
+
+    function blankParagraph(): JSONContent {
+      return { type: 'paragraph' };
+    }
+
+    it('drops a blank paragraph immediately following a titre-de-chapitre', () => {
+      const content = doc(glued('titre-de-chapitre', 'Chapitre Un'), blankParagraph(), paragraph('Corps.'));
+      const html = converter.convert(content);
+      expect(html).not.toMatch(/<p[^>]*><\/p>/);
+      expect(html).toMatch(/<\/h1><p[^>]*>Corps\.<\/p>/);
+    });
+
+    it('drops a blank paragraph immediately following a sous-titre', () => {
+      const content = doc(glued('sous-titre', 'Un sous-titre'), blankParagraph(), paragraph('Corps.'));
+      const html = converter.convert(content);
+      expect(html).not.toMatch(/<p[^>]*><\/p>/);
+      expect(html).toMatch(/<\/h1><p[^>]*>Corps\.<\/p>/);
+    });
+
+    it('drops several consecutive blank paragraphs after a heading', () => {
+      const content = doc(glued('sous-titre', 'Un sous-titre'), blankParagraph(), blankParagraph(), paragraph('Corps.'));
+      const html = converter.convert(content);
+      expect(html).not.toMatch(/<p[^>]*><\/p>/);
+      expect(html).toMatch(/<\/h1><p[^>]*>Corps\.<\/p>/);
+    });
+
+    it('keeps a blank paragraph that is not adjacent to a glued heading', () => {
+      const content = doc(paragraph('Premier.'), blankParagraph(), paragraph('Deuxième.'));
+      const html = converter.convert(content);
+      expect(html).toMatch(/<p[^>]*><\/p>/);
+    });
+
+    it('keeps a heading not marked titre-de-chapitre/sous-titre followed by a blank paragraph unchanged', () => {
+      const content = doc(heading(2, 'Simple titre'), blankParagraph(), paragraph('Corps.'));
+      const html = converter.convert(content);
+      expect(html).toMatch(/<p[^>]*><\/p>/);
+    });
+
+    it('leaves a heading directly followed by a real paragraph unchanged (no blank line present)', () => {
+      const content = doc(glued('titre-de-chapitre', 'Chapitre Un'), paragraph('Corps.'));
+      const html = converter.convert(content);
+      expect(html).toMatch(/<\/h1><p[^>]*>Corps\.<\/p>/);
+    });
+  });
+
   describe('convert — id attribute passthrough (anchors for TOC sub-entries)', () => {
     it('renders the id attribute when node.attrs.id is set', () => {
       const content = doc({
