@@ -93,6 +93,8 @@ export class BookCssBuilder {
       p { margin: 0; text-align: justify; text-indent: ${value.firstLineIndentCentimeters}cm; }
       [data-semantic-role="titre-de-chapitre"] + [data-semantic-role="corps"],
       [data-semantic-role="sous-titre"] + [data-semantic-role="corps"] { text-indent: 0; }
+      [data-semantic-role="titre-de-chapitre"] + [data-semantic-role="corps"][data-indent="true"],
+      [data-semantic-role="sous-titre"] + [data-semantic-role="corps"][data-indent="true"] { text-indent: ${value.firstLineIndentCentimeters}cm; }
       [data-semantic-role="titre-de-chapitre"] {
         break-before: page;
       }
