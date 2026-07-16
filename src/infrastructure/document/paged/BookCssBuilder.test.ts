@@ -240,6 +240,16 @@ describe('BookCssBuilder', () => {
       expect(css).toContain('[data-semantic-role="sous-titre"] { text-indent: 0.8cm; }');
     });
 
+    it('re-indents the first body paragraph after a heading when the author opts in with data-indent', () => {
+      // The adjacent-sibling rule strips the indent off the first paragraph after a
+      // heading (typographic convention). An author who explicitly asks for an indent on
+      // that paragraph (data-indent) must win over the convention, restoring the pre-commit
+      // behaviour that used to rely on inserting a blank line.
+      expect(css).toMatch(
+        /\[data-semantic-role="titre-de-chapitre"\] \+ \[data-semantic-role="corps"\]\[data-indent="true"\],\s*\[data-semantic-role="sous-titre"\] \+ \[data-semantic-role="corps"\]\[data-indent="true"\]\s*\{\s*text-indent:\s*0\.8cm/,
+      );
+    });
+
     it('aligns the dedication and epigraph to the right of the page', () => {
       expect(css).toMatch(/\.dedication-page,\s*\.epigraph-page\s*\{[^}]*text-align:\s*right/);
       expect(css).toMatch(/\.dedication-page,\s*\.epigraph-page\s*\{[^}]*align-items:\s*flex-end/);
