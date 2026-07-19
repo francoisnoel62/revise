@@ -363,6 +363,17 @@ export function FormattingToolbar({
             <Italic className="h-3.5 w-3.5 md:h-4 md:w-4" />
           </Button>
 
+          {/* First-line Indent Toggle */}
+          <Button
+            variant={getCurrentIndent() ? 'default' : 'ghost'}
+            size="sm"
+            onClick={toggleBlockIndent}
+            title="Retrait 1ère ligne (1.27cm)"
+            className="w-8 h-8 md:w-9 md:h-9"
+          >
+            <IndentIncrease className="h-3.5 w-3.5 md:h-4 md:w-4" />
+          </Button>
+
           <div className="hidden md:block w-px h-8 bg-slate-300 mx-1" />
 
           {/* Undo/Redo */}

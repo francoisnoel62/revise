@@ -514,6 +514,25 @@ describe('FormattingToolbar', () => {
         expect(screen.getByTitle(/Italic/)).toBeInTheDocument();
       });
 
+      it('shows indent toggle button in print-ready', () => {
+        const editor = createSemanticEditor();
+        render(<FormattingToolbar editor={editor} profile="print-ready" />);
+        expect(screen.getByTitle(/Retrait 1ère ligne/)).toBeInTheDocument();
+      });
+
+      it('calls toggleIndent when indent button is clicked in print-ready', async () => {
+        const user = userEvent.setup();
+        const editor = createSemanticEditor();
+        render(<FormattingToolbar editor={editor} profile="print-ready" />);
+
+        await user.click(screen.getByTitle(/Retrait 1ère ligne/));
+
+        const chain = vi.mocked(editor.chain).mock.results[0].value as {
+          toggleIndent: ReturnType<typeof vi.fn>;
+        };
+        expect(chain.toggleIndent).toHaveBeenCalled();
+      });
+
       it('shows all semantic roles in dropdown', async () => {
         const user = userEvent.setup();
         const editor = createSemanticEditor();
