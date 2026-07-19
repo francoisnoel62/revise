@@ -179,6 +179,7 @@ export class BookCssBuilder {
         text-align: center;
       }
       .legal-notice-text { text-indent: 0; }
+      .legal-notice-text p { text-align: center; }
       .colophon .book-isbn { margin-top: 12pt; }
       @page colophon-page {
         @bottom-center { content: none; }

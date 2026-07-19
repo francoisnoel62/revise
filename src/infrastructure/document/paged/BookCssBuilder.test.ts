@@ -259,6 +259,13 @@ describe('BookCssBuilder', () => {
       expect(css).toMatch(/\.epigraph-text\s*\{[^}]*font-style:\s*italic/);
       expect(css).not.toMatch(/\.dedication-text\s*\{[^}]*italic/);
     });
+
+    it('centers the legal notice paragraphs, overriding the global justified body text', () => {
+      // .colophon centers the section itself, but `p { text-align: justify }` targets
+      // paragraphs directly and wins over the inherited center — an explicit override
+      // on the legal notice paragraphs is required.
+      expect(css).toMatch(/\.legal-notice-text p\s*\{[^}]*text-align:\s*center/);
+    });
   });
 
   describe('liminal (front matter) page rules', () => {
