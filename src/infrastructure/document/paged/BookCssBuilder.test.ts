@@ -116,6 +116,22 @@ describe('BookCssBuilder', () => {
       expect(halfTitleBlock).toContain('counter-increment: page 0');
       expect(halfTitleBlock).toContain('content: none');
     });
+
+    it('drops both the folio and the page increment on forced blank (verso) pages', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000',
+      );
+      // Recto-forcing (break-before: right on liminaires and the body) makes Paged.js insert
+      // blank versos. Left to the default @page they would print an Arabic folio and advance the
+      // page counter — the liminaire-region blanks would then push the first body page past 1,
+      // and every blank would show a stray number. @page :blank suppresses both.
+      const blankBlock = css.slice(css.indexOf('@page :blank'));
+      expect(css).toContain('@page :blank');
+      expect(blankBlock).toContain('counter-increment: page 0');
+      expect(blankBlock.slice(0, blankBlock.indexOf('}', blankBlock.indexOf('@bottom-center')) + 1))
+        .toContain('content: none');
+    });
   });
 
   describe('visible page number on body pages', () => {
@@ -318,17 +334,34 @@ describe('BookCssBuilder', () => {
       expect(css).toContain('break-before: right');
     });
 
-    // The first-child break exception must be scoped to a truly first chapter (direct child of
-    // main.book, i.e. no front matter). When front matter exists, chapters sit inside
-    // .body-matter and the first one is .body-matter > .chapter:first-child — it must KEEP its
-    // break-before: right, otherwise the TOC and the first chapter/prologue share a page.
-    it('only waives the chapter page-break for a chapter with no front matter before it', () => {
+    // Opening the body on a recto is done at the .body-matter wrapper, not the first chapter.
+    // When front matter exists the wrapper carries break-before: right and the first chapter
+    // waives its own break (.body-matter > .chapter:first-child { break-before: auto }), so only
+    // ONE recto is forced. This matters for numbering: a recto forced at the wrapper makes
+    // Paged.js flag the inserted verso as a real blank page, which the shared @page :blank rule
+    // then drops from both the folio and the page count — keeping the first body page at Arabic 1.
+    // A recto forced at the first chapter instead leaves that verso unflagged, so it would count.
+    it('forces the body onto a recto at the .body-matter wrapper, waiving the first chapter break', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000'
+      );
+      expect(css).toMatch(/\.body-matter\s*\{[^}]*break-before:\s*right/);
+      expect(css).toMatch(/\.body-matter\s*>\s*\.chapter:first-child\s*\{[^}]*break-before:\s*auto/);
+    });
+
+    // The bare first-child break exception stays scoped to a truly first chapter (direct child of
+    // main.book, i.e. no front matter at all). Only the two documented selectors —
+    // main.book > .chapter:first-child and .body-matter > .chapter:first-child — may waive it.
+    it('only waives the chapter page-break for the two scoped first-child selectors', () => {
       const css = new BookCssBuilder().build(
         PublicationProfile.kdpSixByNine(),
         'http://localhost:3000'
       );
       expect(css).toMatch(/main\.book\s*>\s*\.chapter:first-child\s*\{[^}]*break-before:\s*auto/);
-      expect(css).not.toMatch(/(^|[^>])\s\.chapter:first-child\s*\{[^}]*break-before:\s*auto/);
+      // No unscoped `.chapter:first-child { break-before: auto }` (one preceded by whitespace and
+      // a non-'>' char, i.e. neither of the two `X > .chapter:first-child` combinators).
+      expect(css).not.toMatch(/[^>]\s\.chapter:first-child\s*\{[^}]*break-before:\s*auto/);
     });
 
     it('includes toc entry leader dots via CSS', () => {

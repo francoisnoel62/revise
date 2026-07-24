@@ -160,6 +160,16 @@ export class BookCssBuilder {
           color: #555;
         }
       }
+      /* Blank pages exist only because liminaires and chapters force a recto
+         (break-before: right); Paged.js inserts a blank verso to reach it. Such a
+         blank falls to the default @page — which would both print an Arabic folio and
+         advance the page counter. Neither is wanted: a blank carries no printed number,
+         and counting the liminaire-region blanks would push the first body page past 1.
+         Suppress both so the body still opens on Arabic 1 and no stray folio prints. */
+      @page :blank {
+        counter-increment: page 0;
+        @bottom-center { content: none; }
+      }
 
       /* Custom annexes (front liminal or back matter): a centered title over a body block. */
       .annex-title { font-size: 1.4em; font-weight: 700; text-indent: 0; text-align: center; margin: 0 0 18pt; }
@@ -185,13 +195,18 @@ export class BookCssBuilder {
         @bottom-center { content: none; }
       }
 
-      /* Chapter sections: start on odd (right-hand) pages. The break is waived only for a
-         chapter that is truly first — a direct child of main.book, i.e. no front matter/TOC
-         precedes it. When extras exist the chapters live inside .body-matter, so the first one
-         is .body-matter > .chapter:first-child and MUST keep its break, otherwise it shares a
-         page with the TOC that precedes it. */
+      /* Chapter sections start on odd (right-hand) pages. Later chapters force their own recto
+         (.chapter { break-before: right }); the FIRST body page is forced at the .body-matter
+         wrapper instead, and the first chapter waives its own break. This forces the body onto a
+         recto exactly once (no double blank against the TOC that precedes it) AND is what keeps
+         the first body page at Arabic 1: a recto forced at the wrapper makes Paged.js flag the
+         inserted verso as a real blank page, so @page :blank drops it from the folio and count —
+         whereas a recto forced at the first chapter leaves that verso unflagged, and it counts.
+         The bare main.book > .chapter:first-child waiver still covers the no-front-matter case. */
+      .body-matter { break-before: right; }
       .chapter { break-before: right; }
       main.book > .chapter:first-child { break-before: auto; }
+      .body-matter > .chapter:first-child { break-before: auto; }
 
       /* TOC: links with auto page numbers (target-counter), classique adds a dotted fill.
          The TOC is .liminal (for roman folio numbering + page assignment) but, unlike the

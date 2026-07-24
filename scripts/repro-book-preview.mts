@@ -7,7 +7,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { JSONContent } from '@tiptap/core';
 import { BookPreviewCacheComputer } from '@/application/services/BookPreviewCacheComputer';
+import { WholeBookHtmlAssembler } from '@/application/services/WholeBookHtmlAssembler';
 import { PlaywrightBrowserLauncher } from '@/infrastructure/document/paged/PlaywrightBrowserLauncher';
+import { PagedJsRenderer } from '@/infrastructure/document/paged/PagedJsRenderer';
+import { TipTapToBookHtml } from '@/infrastructure/document/paged/TipTapToBookHtml';
 import { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
 
 const MIME: Record<string, string> = {
@@ -63,7 +66,12 @@ async function main() {
   console.log(`[repro] static server on ${assetBaseUrl}`);
 
   const chapters = [chapter(1, 40), chapter(2, 40), chapter(3, 40)];
-  const computer = new BookPreviewCacheComputer(new PlaywrightBrowserLauncher());
+  const computer = new BookPreviewCacheComputer(
+    new PlaywrightBrowserLauncher(),
+    () => new Date(),
+    new PagedJsRenderer(),
+    new WholeBookHtmlAssembler(new TipTapToBookHtml()),
+  );
 
   const start = Date.now();
   try {
