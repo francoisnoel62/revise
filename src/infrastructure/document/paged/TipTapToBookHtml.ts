@@ -2,7 +2,8 @@
 // ABOUTME: Preserves author content while leaving all presentation to publication profiles.
 
 import type { JSONContent } from '@tiptap/core';
-import type { TipTapToHtmlConverter } from '@/application/interfaces/TipTapToHtmlConverter';
+import type { ConvertOptions, TipTapToHtmlConverter } from '@/application/interfaces/TipTapToHtmlConverter';
+import { endnoteCallId, endnoteNoteId } from '@/application/rendering/endnoteCompilation';
 import { applyFrenchSpacing } from './frenchSpacing';
 
 // Paged.js's break-after: avoid glues a heading to whatever element comes right after it
@@ -13,10 +14,19 @@ import { applyFrenchSpacing } from './frenchSpacing';
 const HEADING_ROLES_GLUED_TO_NEXT = new Set(['titre-de-chapitre', 'sous-titre']);
 
 export class TipTapToBookHtml implements TipTapToHtmlConverter {
-  convert(content: JSONContent): string {
+  // Prefix + running index used to number and anchor endnote calls in export mode. Reset per
+  // convert() call so each chapter restarts at 1 — matching extractChapterEndnotes, which numbers
+  // the same document in the same order. null prefix = reading view (hover bubble, no anchors).
+  private endnoteAnchorPrefix: string | null = null;
+  private endnoteIndex = 0;
+
+  convert(content: JSONContent, options?: ConvertOptions): string {
     if (content.type !== 'doc') {
       throw new Error('Paged rendering requires a TipTap document root');
     }
+
+    this.endnoteAnchorPrefix = options?.endnoteAnchorPrefix ?? null;
+    this.endnoteIndex = 0;
 
     return this.renderChildren(content);
   }
@@ -85,12 +95,23 @@ export class TipTapToBookHtml implements TipTapToHtmlConverter {
     }
   }
 
-  // The endnote call: a numbered superscript (the digit is a CSS counter — see BookCssBuilder)
-  // carrying its rich body in a hidden .endnote-body. The reading view reveals that body in a
-  // floating bubble on hover/click; it is never a visible inline block, and there is no
-  // compiled notes section here — that exists only at export.
+  // The endnote call. In the reading view (no anchor prefix) it is a numbered superscript — the
+  // digit is a CSS counter (see BookCssBuilder) — carrying its rich body in a hidden .endnote-body
+  // that a floating bubble reveals on hover/click; there is no compiled notes section.
+  // In export mode (anchor prefix set) it becomes a round-trip link: the call carries an id (the
+  // back-link target from its compiled note) and links forward to that note, printing the literal
+  // per-chapter number. The bubble body rides along so the on-screen preview still previews it.
   private renderEndnoteRef(node: JSONContent): string {
     const body = this.renderEndnoteBody(node.attrs?.content as JSONContent | null | undefined);
+
+    if (this.endnoteAnchorPrefix) {
+      this.endnoteIndex += 1;
+      const n = this.endnoteIndex;
+      const callId = endnoteCallId(this.endnoteAnchorPrefix, n);
+      const noteId = endnoteNoteId(this.endnoteAnchorPrefix, n);
+      return `<sup class="endnote-ref endnote-ref--linked" id="${this.escapeHtml(callId)}" data-endnote><a class="endnote-ref__link" href="#${this.escapeHtml(noteId)}">${n}</a><span class="endnote-body">${body}</span></sup>`;
+    }
+
     return `<sup class="endnote-ref" data-endnote tabindex="0" role="button" aria-label="Note de fin"><span class="endnote-body">${body}</span></sup>`;
   }
 

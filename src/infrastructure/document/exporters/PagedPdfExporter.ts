@@ -7,9 +7,14 @@ import type { Project } from '@/domain/entities/Project';
 import type { Chapter } from '@/domain/entities/Chapter';
 import { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
 import type { BrowserLauncher } from '@/application/interfaces/BrowserLauncher';
-import type { TocEntry } from '@/application/interfaces/PagedRenderer';
+import type { EndnoteCompilationChapter, TocEntry } from '@/application/interfaces/PagedRenderer';
 import type { ContentNode } from '@/domain/value-objects/ContentNode';
 import { stripToSemantic } from '@/application/rendering/PresentationOverrideService';
+import {
+  buildEndnoteCompilation,
+  ENDNOTES_SECTION_ID,
+  DEFAULT_ENDNOTES_TITLE,
+} from '@/application/rendering/endnoteCompilation';
 import { PagedJsRenderer } from '../paged/PagedJsRenderer';
 import { TipTapToBookHtml } from '../paged/TipTapToBookHtml';
 
@@ -60,6 +65,7 @@ export class PagedPdfExporter implements DocumentExporter {
       options?.frontMatter,
       options?.levelStyles,
       options?.backMatter,
+      options?.endnotesTitle,
     );
   }
 
@@ -71,7 +77,7 @@ export class PagedPdfExporter implements DocumentExporter {
     return this.renderToPdf([{
       title: chapter.getTitle(),
       content: JSON.parse(chapter.getContent()) as JSONContent,
-    }], options?.publicationProfile, undefined, options?.levelStyles);
+    }], options?.publicationProfile, undefined, options?.levelStyles, undefined, options?.endnotesTitle);
   }
 
   async exportChapters(chapters: Chapter[], filename: string, options?: ExportOptions): Promise<Buffer> {
@@ -88,7 +94,7 @@ export class PagedPdfExporter implements DocumentExporter {
       content: JSON.parse(ch.getContent()) as JSONContent,
     }));
 
-    return this.renderToPdf(chapterData, options?.publicationProfile, undefined, options?.levelStyles);
+    return this.renderToPdf(chapterData, options?.publicationProfile, undefined, options?.levelStyles, undefined, options?.endnotesTitle);
   }
 
   private async renderToPdf(
@@ -97,9 +103,11 @@ export class PagedPdfExporter implements DocumentExporter {
     frontMatter?: FrontMatterData,
     levelStyles?: ExportOptions['levelStyles'],
     backMatter?: BackMatterData,
+    endnotesTitle?: string,
   ): Promise<Buffer> {
     const bodyParts: string[] = [];
     const tocEntries: TocEntry[] = [];
+    const endnoteChapters: EndnoteCompilationChapter[] = [];
 
     for (let i = 0; i < chapters.length; i++) {
       const chapter = chapters[i];
@@ -108,17 +116,34 @@ export class PagedPdfExporter implements DocumentExporter {
       // layout (see WholeBookHtmlAssembler): the editor's default textAlign:'justify' otherwise
       // leaks as an inline style and out-specifies the profile's centering of chapter titles.
       const semanticContent = stripToSemantic(chapter.content as ContentNode) as JSONContent;
-      const chapterContent = this.converter.convert(semanticContent);
+      // Anchor the body calls to their compiled notes (see TipTapToBookHtml): numbering restarts
+      // per convert() call, matching how the compiled section numbers the same document.
+      const chapterContent = this.converter.convert(semanticContent, { endnoteAnchorPrefix: chapterId });
 
       bodyParts.push(`<section id="${chapterId}" class="chapter">${chapterContent}</section>`);
 
       if (chapter.title) {
         tocEntries.push({ title: chapter.title, chapterId });
       }
+      endnoteChapters.push({
+        anchorId: chapterId,
+        title: chapter.title ?? '',
+        content: semanticContent,
+        index: i + 1,
+      });
     }
 
-    // Show TOC whenever there are at least 2 titled chapters; does not require front matter.
+    const endnotes = buildEndnoteCompilation(
+      endnoteChapters,
+      endnotesTitle?.trim() || DEFAULT_ENDNOTES_TITLE,
+    );
+
+    // Show TOC whenever there are at least 2 titled chapters; does not require front matter. When
+    // shown, the compiled notes section joins it by default.
     const toc = tocEntries.length > 1 ? tocEntries : undefined;
+    if (toc && endnotes) {
+      toc.push({ chapterId: ENDNOTES_SECTION_ID, title: endnotes.title });
+    }
 
     const html = this.renderer.render({
       bodyHtml: bodyParts.join('\n'),
@@ -128,6 +153,7 @@ export class PagedPdfExporter implements DocumentExporter {
       backMatter,
       toc,
       levelStyles,
+      endnotes,
     });
 
     const browser = await this.launcher.launch({ headless: true });

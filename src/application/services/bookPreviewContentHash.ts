@@ -16,6 +16,8 @@ export interface BookPreviewContentHashInput {
   /** TOC settings; global to the project, but they change what's printed in the PDF. */
   readonly tocDepth?: TocDepth;
   readonly tocStyle?: TocStyle;
+  /** Endnotes section heading; changing it changes what's printed, so it enters the hash. */
+  readonly endnotesTitle?: string;
 }
 
 function normalizeAnnexes(annexes: readonly AnnexEntry[] | undefined) {
@@ -51,6 +53,7 @@ export function computeBookPreviewContentHash(input: BookPreviewContentHashInput
     levelStyles: input.levelStyles ?? null,
     tocDepth: input.tocDepth ?? null,
     tocStyle: input.tocStyle ?? null,
+    endnotesTitle: input.endnotesTitle ?? null,
   };
 
   return hashText(JSON.stringify(normalized));

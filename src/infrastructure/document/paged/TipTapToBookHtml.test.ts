@@ -218,6 +218,58 @@ describe('TipTapToBookHtml', () => {
     });
   });
 
+  describe('convert — endnote call (export round-trip anchoring)', () => {
+    function endnote(text: string | null): JSONContent {
+      return {
+        type: 'endnoteRef',
+        attrs: {
+          content: text ? { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] } : null,
+        },
+      };
+    }
+
+    function paragraphWith(...inline: JSONContent[]): JSONContent {
+      return { type: 'paragraph', content: inline };
+    }
+
+    it('wraps each call in an anchor linking to its compiled note, numbered per chapter', () => {
+      const content = doc(
+        paragraphWith({ type: 'text', text: 'Un' }, endnote('A')),
+        paragraphWith({ type: 'text', text: 'Deux' }, endnote('B')),
+      );
+      const html = converter.convert(content, { endnoteAnchorPrefix: 'chapter-x' });
+
+      // Call 1 carries an id (back-link target) and links to note 1.
+      expect(html).toContain('id="endnote-call-chapter-x-1"');
+      expect(html).toContain('href="#endnote-note-chapter-x-1"');
+      // Call 2 links to note 2.
+      expect(html).toContain('id="endnote-call-chapter-x-2"');
+      expect(html).toContain('href="#endnote-note-chapter-x-2"');
+      // The printed number is the literal per-chapter index.
+      expect(html).toMatch(/<a[^>]*href="#endnote-note-chapter-x-1"[^>]*>1<\/a>/);
+      expect(html).toMatch(/<a[^>]*href="#endnote-note-chapter-x-2"[^>]*>2<\/a>/);
+    });
+
+    it('marks anchored calls so CSS suppresses the counter (no double numbering)', () => {
+      const content = doc(paragraphWith({ type: 'text', text: 'Un' }, endnote('A')));
+      const html = converter.convert(content, { endnoteAnchorPrefix: 'chapter-x' });
+      expect(html).toMatch(/<sup[^>]*class="endnote-ref endnote-ref--linked"/);
+    });
+
+    it('still carries the hidden bubble body when anchored', () => {
+      const content = doc(paragraphWith({ type: 'text', text: 'Un' }, endnote('texte-de-note')));
+      const html = converter.convert(content, { endnoteAnchorPrefix: 'chapter-x' });
+      expect(html).toContain('<span class="endnote-body">texte-de-note</span>');
+    });
+
+    it('leaves calls unanchored when no prefix is given (reading view unchanged)', () => {
+      const content = doc(paragraphWith({ type: 'text', text: 'Un' }, endnote('A')));
+      const html = converter.convert(content);
+      expect(html).not.toContain('endnote-ref--linked');
+      expect(html).not.toContain('endnote-call-');
+    });
+  });
+
   describe('convert — data-word-anchor attribute passthrough (scroll sync)', () => {
     it('renders the data-word-anchor attribute when node.attrs.wordAnchor is set', () => {
       const content = doc({ ...paragraph('Mille mots plus loin.'), attrs: { wordAnchor: 1 } });

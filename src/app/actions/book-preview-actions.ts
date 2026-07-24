@@ -103,6 +103,7 @@ export async function getBookPreviewDataAction(
       requestedProfileId ?? (isPreviewProfile(activeProfileId) ? activeProfileId : 'kdp-6x9');
     const levelStyles = settings?.getLevelStyleSet(profileId)?.values;
     const tocPreferences = settings?.getTocPreferences() ?? DEFAULT_TOC_PREFERENCES;
+    const endnotesTitle = settings?.getEndnotesTitle();
 
     const orderedChapters = project
       .getChapters()
@@ -116,6 +117,7 @@ export async function getBookPreviewDataAction(
       levelStyles,
       tocDepth: tocPreferences.depth,
       tocStyle: tocPreferences.style,
+      endnotesTitle,
     });
 
     const cacheRepo = await getBookPreviewCacheRepo();
@@ -139,6 +141,7 @@ export async function getBookPreviewDataAction(
         levelStyles,
         tocDepth: tocPreferences.depth,
         tocStyle: tocPreferences.style,
+        endnotesTitle,
         assetBaseUrl,
       });
       await cacheRepo.save(computed, pdf);

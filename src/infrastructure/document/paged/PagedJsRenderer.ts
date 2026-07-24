@@ -4,6 +4,7 @@
 import type { PagedRenderer, PagedRenderRequest } from '@/application/interfaces/PagedRenderer';
 import { BackMatterHtmlBuilder } from './BackMatterHtmlBuilder';
 import { BookCssBuilder } from './BookCssBuilder';
+import { EndnotesHtmlBuilder } from './EndnotesHtmlBuilder';
 import { FrontMatterHtmlBuilder } from './FrontMatterHtmlBuilder';
 import { TipTapToBookHtml } from './TipTapToBookHtml';
 import { TocHtmlBuilder } from './TocHtmlBuilder';
@@ -14,6 +15,7 @@ export class PagedJsRenderer implements PagedRenderer {
     private readonly frontMatterBuilder = new FrontMatterHtmlBuilder(new TipTapToBookHtml()),
     private readonly tocBuilder = new TocHtmlBuilder(),
     private readonly backMatterBuilder = new BackMatterHtmlBuilder(new TipTapToBookHtml()),
+    private readonly endnotesBuilder = new EndnotesHtmlBuilder(new TipTapToBookHtml()),
   ) {}
 
   render(request: PagedRenderRequest): string {
@@ -29,8 +31,11 @@ export class PagedJsRenderer implements PagedRenderer {
     const backMatterHtml = request.backMatter
       ? this.backMatterBuilder.build(request.backMatter)
       : '';
+    const endnotesHtml = request.endnotes
+      ? this.endnotesBuilder.build(request.endnotes.chapters, request.endnotes.title)
+      : '';
 
-    const hasExtras = Boolean(frontMatterHtml || tocHtml || backMatterHtml);
+    const hasExtras = Boolean(frontMatterHtml || tocHtml || backMatterHtml || endnotesHtml);
 
     // Liminal pages suppress the Arabic 'page' increment (see BookCssBuilder), so the
     // first body page reads "1" while the front matter is numbered in roman folios.
@@ -41,8 +46,9 @@ export class PagedJsRenderer implements PagedRenderer {
       request.levelStyles,
     );
 
+    // Endnotes are back matter: after the body, before the legal-notice colophon (the last page).
     const fullBodyHtml = hasExtras
-      ? `${frontMatterHtml}\n${tocHtml}\n<div class="body-matter">${request.bodyHtml}</div>\n${backMatterHtml}`
+      ? `${frontMatterHtml}\n${tocHtml}\n<div class="body-matter">${request.bodyHtml}</div>\n${endnotesHtml}\n${backMatterHtml}`
       : request.bodyHtml;
 
     return `<!doctype html><html lang='fr'><head><meta charset='utf-8'>

@@ -27,6 +27,8 @@ export interface BookPreviewComputeInput {
   readonly levelStyles?: LevelStyleSetProperties;
   readonly tocDepth?: TocDepth;
   readonly tocStyle?: TocStyle;
+  /** Custom heading for the compiled endnotes section; defaults to « Notes ». */
+  readonly endnotesTitle?: string;
 }
 
 export interface BookPreviewComputeResult {
@@ -55,8 +57,9 @@ export class BookPreviewCacheComputer {
   ) {}
 
   async compute(input: BookPreviewComputeInput): Promise<BookPreviewComputeResult> {
-    const { bodyHtml, tocEntries } = this.assembler.assemble(input.chapters, {
+    const { bodyHtml, tocEntries, endnotes } = this.assembler.assemble(input.chapters, {
       tocDepth: input.tocDepth,
+      endnotesTitle: input.endnotesTitle,
     });
     const html = this.renderer.render({
       bodyHtml,
@@ -67,6 +70,7 @@ export class BookPreviewCacheComputer {
       toc: tocEntries.length > 0 ? [...tocEntries] : undefined,
       tocStyle: input.tocStyle,
       levelStyles: input.levelStyles,
+      endnotes,
     });
 
     const value = input.profile.values;

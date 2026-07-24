@@ -231,4 +231,44 @@ describe('PagedPdfExporter', () => {
       expect(html).not.toContain('Table des matières');
     });
   });
+
+  describe('endnote compilation', () => {
+    const chapterWithNote = (title: string, noteText: string) => ({
+      type: 'doc',
+      content: [
+        { type: 'heading', attrs: { level: 1, semanticRole: 'titre-de-chapitre' }, content: [{ type: 'text', text: title }] },
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: 'Corps' },
+            { type: 'endnoteRef', attrs: { content: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: noteText }] }] } } },
+          ],
+        },
+      ],
+    });
+
+    it('compiles a notes section with round-trip links in the downloaded PDF', async () => {
+      const project = makeProject([makeChapter('ch-1', 'Chapitre Un', chapterWithNote('Chapitre Un', 'La note'))]);
+      await exporter.exportProject(project, 'roman.pdf');
+      const html: string = (fake.page.setContent as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(html).toContain('class="back-matter endnotes"');
+      expect(html).toContain('id="endnote-call-ch-0-1"');
+      expect(html).toContain('id="endnote-note-ch-0-1"');
+      expect(html).toContain('href="#endnote-call-ch-0-1"');
+    });
+
+    it('uses the custom endnotes title from the export options', async () => {
+      const project = makeProject([makeChapter('ch-1', 'Chapitre Un', chapterWithNote('Chapitre Un', 'La note'))]);
+      await exporter.exportProject(project, 'roman.pdf', { endnotesTitle: 'Références' });
+      const html: string = (fake.page.setContent as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(html).toContain('>Références</h2>');
+    });
+
+    it('does not emit a notes section when no chapter has endnotes', async () => {
+      const project = makeProject([makeChapter('ch-1', 'Chapitre Un')]);
+      await exporter.exportProject(project, 'roman.pdf');
+      const html: string = (fake.page.setContent as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(html).not.toContain('class="back-matter endnotes"');
+    });
+  });
 });

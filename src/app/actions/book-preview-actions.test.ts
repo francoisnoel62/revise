@@ -91,6 +91,7 @@ function hashFor(
     levelStyles,
     tocDepth: tocPreferences.depth,
     tocStyle: tocPreferences.style,
+    endnotesTitle: 'Notes',
   });
 }
 
@@ -147,6 +148,7 @@ describe('getBookPreviewDataAction', () => {
             ? LevelStyleSet.create(kdpLevelStyles)
             : undefined,
         getTocPreferences: () => tocPreferences,
+        getEndnotesTitle: () => 'Notes',
       }),
     } as never);
     vi.mocked(getMetadataRepo).mockResolvedValue({

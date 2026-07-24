@@ -53,6 +53,7 @@ export interface ProjectSettingsDocument {
   levelStylesByProfile?: LevelStylesByProfile;
   tocDepth?: TocDepth;
   tocStyle?: TocStyle;
+  endnotesTitle?: string;
 }
 
 export function serializeProjectSettings(
@@ -96,6 +97,7 @@ export function serializeProjectSettings(
     levelStylesByProfile: props.levelStylesByProfile,
     tocDepth: props.tocDepth,
     tocStyle: props.tocStyle,
+    endnotesTitle: props.endnotesTitle,
   };
 }
 
@@ -141,6 +143,7 @@ export function deserializeProjectSettings(doc: ProjectSettingsDocument): Projec
     levelStylesByProfile: doc.levelStylesByProfile,
     tocDepth: doc.tocDepth,
     tocStyle: doc.tocStyle,
+    endnotesTitle: doc.endnotesTitle,
   };
 
   return ProjectSettings.reconstruct(props);

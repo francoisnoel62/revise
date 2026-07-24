@@ -35,6 +35,7 @@ export interface ProjectSettingsUpdates {
     styles: LevelStyleSetProperties;
   };
   tocPreferences?: Partial<TocPreferences>;
+  endnotesTitle?: string;
 }
 
 export interface UpdateProjectSettingsInput {
@@ -139,6 +140,10 @@ export class UpdateProjectSettingsUseCase {
 
     if ('tocPreferences' in updates) {
       updated = updated.updateTocPreferences(updates.tocPreferences!);
+    }
+
+    if ('endnotesTitle' in updates) {
+      updated = updated.updateEndnotesTitle(updates.endnotesTitle);
     }
 
     return this.repository.update(input.userId, updated);

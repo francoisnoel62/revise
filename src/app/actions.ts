@@ -207,6 +207,7 @@ export async function exportProjectPdf(
 
     const publicationProfile = PublicationProfile.fromId(profileId);
     const levelStyles = settings?.getLevelStyleSet(profileId)?.values;
+    const endnotesTitle = settings?.getEndnotesTitle();
 
     const exporter = await getDocumentExporter('pdf');
     const useCase = new ExportProjectUseCase(exporter);
@@ -217,6 +218,7 @@ export async function exportProjectPdf(
       coverImageUrl,
       publicationProfile,
       levelStyles,
+      endnotesTitle,
     });
 
     return {

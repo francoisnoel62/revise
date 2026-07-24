@@ -43,6 +43,7 @@ export interface SerializedProjectSettings {
   publicationProfileId: PublicationProfileId;
   levelStylesByProfile: LevelStylesByProfile;
   tocPreferences: TocPreferences;
+  endnotesTitle: string;
 }
 
 function serializeProjectSettings(settings: ProjectSettings): SerializedProjectSettings {
@@ -70,6 +71,7 @@ function serializeProjectSettings(settings: ProjectSettings): SerializedProjectS
     publicationProfileId: settings.getPublicationProfileId(),
     levelStylesByProfile: settings.getLevelStylesByProfile(),
     tocPreferences: settings.getTocPreferences(),
+    endnotesTitle: settings.getEndnotesTitle(),
   };
 }
 

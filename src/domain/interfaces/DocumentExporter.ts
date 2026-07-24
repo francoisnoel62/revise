@@ -68,6 +68,8 @@ export interface ExportOptions {
   publicationProfile?: PublicationProfile;
   /** Per-role typography for the selected PDF profile. Ignored by DOCX. */
   levelStyles?: LevelStyleSetProperties;
+  /** Heading for the compiled endnotes section (paged PDF). Defaults to « Notes ». */
+  endnotesTitle?: string;
 }
 
 export interface DocumentExporter {

@@ -41,6 +41,7 @@ function baseSettings(overrides: Partial<SerializedProjectSettings> = {}): Seria
     publicationProfileId: 'kdp-6x9',
     levelStylesByProfile: {},
     tocPreferences: { depth: 'chapters', style: 'classique' },
+    endnotesTitle: 'Notes',
     ...overrides,
   };
 }
@@ -64,6 +65,35 @@ describe('ProjectSettingsForm — Sommaire card', () => {
 
     expect(screen.getByText('Chapitres et sous-titres')).toBeInTheDocument();
     expect(screen.getByText('Épuré')).toBeInTheDocument();
+  });
+
+  it('renders the endnotes section title field with its stored value', () => {
+    render(
+      <ProjectSettingsForm
+        projectId="proj-1"
+        initialSettings={baseSettings({ endnotesTitle: 'Références' })}
+      />,
+    );
+
+    expect(screen.getByLabelText('Titre de la section des notes')).toHaveValue('Références');
+  });
+
+  it('includes the endnotes title in the save payload', async () => {
+    render(
+      <ProjectSettingsForm projectId="proj-1" initialSettings={baseSettings()} />,
+    );
+
+    fireEvent.change(screen.getByLabelText('Titre de la section des notes'), {
+      target: { value: 'Notes de fin' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /enregistrer/i }));
+
+    await waitFor(() => {
+      expect(updateProjectSettingsAction).toHaveBeenCalledWith(
+        'proj-1',
+        expect.objectContaining({ endnotesTitle: 'Notes de fin' }),
+      );
+    });
   });
 
   it('includes the current toc preferences in the save payload', async () => {

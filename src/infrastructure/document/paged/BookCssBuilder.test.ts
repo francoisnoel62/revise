@@ -76,6 +76,29 @@ describe('BookCssBuilder', () => {
     });
   });
 
+  describe('compiled endnotes section (export)', () => {
+    const css = new BookCssBuilder().build(PublicationProfile.kdpSixByNine(), 'http://localhost:3000');
+
+    it('suppresses the CSS counter for anchored calls (their number is printed literally)', () => {
+      expect(css).toMatch(/\.endnote-ref--linked::after\s*\{[^}]*content:\s*none/);
+      expect(css).toMatch(/\.endnote-ref--linked\s*\{[^}]*counter-increment:\s*none/);
+    });
+
+    it('reduces the notes body size and applies a hanging indent', () => {
+      expect(css).toMatch(/\.endnotes-list\s*\{[^}]*font-size:\s*0?\.\d+em/);
+      expect(css).toMatch(/\.endnote-item\s*\{[^}]*text-indent:\s*-/);
+      expect(css).toMatch(/\.endnote-item\s*\{[^}]*padding-left:/);
+    });
+
+    it('renders the inline note body paragraph on the same line as its number', () => {
+      expect(css).toMatch(/\.endnote-item\s+p\s*\{[^}]*display:\s*inline/);
+    });
+
+    it('breaks the notes section onto its own page like other back matter', () => {
+      expect(css).toMatch(/\.back-matter\s*\{[^}]*break-before:\s*page/);
+    });
+  });
+
   describe('startPageNumber counter-reset', () => {
     it('emits counter-reset when startPageNumber is greater than 1', () => {
       const css = new BookCssBuilder().build(

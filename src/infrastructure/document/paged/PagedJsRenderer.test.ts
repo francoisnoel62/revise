@@ -242,6 +242,59 @@ describe('PagedJsRenderer', () => {
     });
   });
 
+  describe('endnote compilation (back matter)', () => {
+    const note = (text: string) => ({
+      type: 'doc' as const,
+      content: [{ type: 'paragraph', content: [{ type: 'text', text }] }],
+    });
+    const chapterContent = (text: string) => ({
+      type: 'doc' as const,
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'Corps' }, { type: 'endnoteRef', attrs: { content: note(text) } }] },
+      ],
+    });
+
+    it('compiles a notes section after the body when endnotes are provided', () => {
+      const html = renderer.render({
+        bodyHtml: '<section id="chapter-ch1" class="chapter"><p>Corps<sup>1</sup></p></section>',
+        profile,
+        assetBaseUrl,
+        frontMatter: { title: 'Mon Roman' },
+        endnotes: {
+          title: 'Notes',
+          chapters: [{ anchorId: 'chapter-ch1', title: 'Ouverture', content: chapterContent('La note'), index: 1 }],
+        },
+      });
+      expect(html).toContain('class="back-matter endnotes"');
+      expect(html).toContain('<h3 class="endnotes-chapter-title">Ouverture</h3>');
+      // round-trip: the note links back to its body call
+      expect(html).toContain('id="endnote-note-chapter-ch1-1"');
+      expect(html).toContain('href="#endnote-call-chapter-ch1-1"');
+    });
+
+    it('places the notes section after the body matter', () => {
+      const html = renderer.render({
+        bodyHtml: '<section id="chapter-ch1" class="chapter"><p>Corps texte unique</p></section>',
+        profile,
+        assetBaseUrl,
+        frontMatter: { title: 'Mon Roman' },
+        endnotes: {
+          title: 'Notes',
+          chapters: [{ anchorId: 'chapter-ch1', title: 'Ouverture', content: chapterContent('La note'), index: 1 }],
+        },
+      });
+      const bodyIdx = html.indexOf('Corps texte unique');
+      const notesIdx = html.indexOf('class="back-matter endnotes"');
+      expect(bodyIdx).toBeGreaterThanOrEqual(0);
+      expect(notesIdx).toBeGreaterThan(bodyIdx);
+    });
+
+    it('omits the notes section when no endnotes are provided', () => {
+      const html = renderer.render({ bodyHtml: '<p>Texte</p>', profile, assetBaseUrl });
+      expect(html).not.toContain('class="back-matter endnotes"');
+    });
+  });
+
   describe('render order', () => {
     it('renders: front matter → TOC → body', () => {
       const html = renderer.render({
