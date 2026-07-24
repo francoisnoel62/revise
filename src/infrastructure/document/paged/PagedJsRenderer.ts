@@ -93,6 +93,48 @@ export class PagedJsRenderer implements PagedRenderer {
           scrollEl.scrollTop=Math.max(0,Math.min(max,start+localRatio*(end-start)));
         }
       })})()</script>
+      <script>(function(){
+      // Endnote reading bubble. Mirrors endnoteBubble.ts (nextOpenEndnoteId + positionEndnoteBubble),
+      // kept in sync manually since this runs inside the sandboxed iframe and cannot import a module.
+      // A single body-level, position: fixed bubble escapes the clipped Paged.js page boxes.
+      var MARGIN=8, GAP=6;
+      var bubble=document.createElement('div');
+      bubble.id='endnote-bubble';
+      bubble.setAttribute('role','tooltip');
+      document.body.appendChild(bubble);
+      var pinned=null;
+      function callAt(el){return el&&el.closest?el.closest('.endnote-ref'):null;}
+      function place(ref){
+        var a=ref.getBoundingClientRect();
+        var bw=bubble.offsetWidth, bh=bubble.offsetHeight;
+        var vw=window.innerWidth, vh=window.innerHeight;
+        var centerX=(a.left+a.right)/2;
+        bubble.style.left=Math.max(MARGIN,Math.min(centerX-bw/2,vw-bw-MARGIN))+'px';
+        bubble.style.top=((a.bottom+GAP+bh<=vh)?(a.bottom+GAP):(a.top-GAP-bh))+'px';
+      }
+      function show(ref){
+        var body=ref.querySelector('.endnote-body');
+        bubble.innerHTML=body?body.innerHTML:'';
+        bubble.setAttribute('data-visible','true');
+        place(ref);
+      }
+      function hide(){bubble.setAttribute('data-visible','false');}
+      document.addEventListener('pointerover',function(e){var ref=callAt(e.target);if(ref)show(ref);});
+      document.addEventListener('pointerout',function(e){
+        var ref=callAt(e.target);
+        if(!ref||pinned)return;
+        var to=e.relatedTarget;
+        if(!(to&&(callAt(to)===ref||bubble.contains(to))))hide();
+      });
+      document.addEventListener('focusin',function(e){var ref=callAt(e.target);if(ref)show(ref);});
+      document.addEventListener('focusout',function(e){var ref=callAt(e.target);if(ref&&!pinned)hide();});
+      document.addEventListener('click',function(e){
+        var ref=callAt(e.target);
+        if(ref){pinned=(pinned===ref)?null:ref;if(pinned){show(ref);}else{hide();}return;}
+        if(!bubble.contains(e.target)){pinned=null;hide();}
+      });
+      document.addEventListener('keydown',function(e){if(e.key==='Escape'){pinned=null;hide();}});
+      })()</script>
       </body></html>`;
   }
 }

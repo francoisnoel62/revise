@@ -212,6 +212,29 @@ describe('PagedJsRenderer', () => {
     });
   });
 
+  describe('endnote reading bubble', () => {
+    it('creates a single shared bubble element appended to the document', () => {
+      const html = renderer.render({ bodyHtml: '<p>A</p>', profile, assetBaseUrl });
+      expect(html).toContain("id='endnote-bubble'");
+    });
+
+    it('wires hover, focus and click on endnote calls to fill and toggle the bubble', () => {
+      const html = renderer.render({ bodyHtml: '<p>A</p>', profile, assetBaseUrl });
+      // reads the note body carried in the call and drives the shared bubble
+      expect(html).toContain('endnote-ref');
+      expect(html).toContain('endnote-body');
+      expect(html).toContain("data-visible");
+      // both hover and click open it
+      expect(html).toMatch(/pointerover|mouseover/);
+      expect(html).toContain('click');
+    });
+
+    it('dismisses the bubble on outside click and on Escape without trapping focus', () => {
+      const html = renderer.render({ bodyHtml: '<p>A</p>', profile, assetBaseUrl });
+      expect(html).toContain('Escape');
+    });
+  });
+
   describe('render order', () => {
     it('renders: front matter → TOC → body', () => {
       const html = renderer.render({

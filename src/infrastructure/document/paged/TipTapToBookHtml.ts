@@ -78,9 +78,30 @@ export class TipTapToBookHtml implements TipTapToHtmlConverter {
         return '<hr>';
       case 'hardBreak':
         return '<br>';
+      case 'endnoteRef':
+        return this.renderEndnoteRef(node);
       default:
         return children;
     }
+  }
+
+  // The endnote call: a numbered superscript (the digit is a CSS counter — see BookCssBuilder)
+  // carrying its rich body in a hidden .endnote-body. The reading view reveals that body in a
+  // floating bubble on hover/click; it is never a visible inline block, and there is no
+  // compiled notes section here — that exists only at export.
+  private renderEndnoteRef(node: JSONContent): string {
+    const body = this.renderEndnoteBody(node.attrs?.content as JSONContent | null | undefined);
+    return `<sup class="endnote-ref" data-endnote tabindex="0" role="button" aria-label="Note de fin"><span class="endnote-body">${body}</span></sup>`;
+  }
+
+  // Renders the note body (a one-paragraph rich TipTap doc) as inline HTML — marks preserved,
+  // no block wrapper, so it nests cleanly inside the superscript. Empty/absent body → ''.
+  private renderEndnoteBody(content: JSONContent | null | undefined): string {
+    if (!content || !Array.isArray(content.content)) return '';
+    return content.content
+      .map((block) => (block.content ?? []).map((inline) => this.renderNode(inline)).join(''))
+      .filter((line) => line.length > 0)
+      .join('<br>');
   }
 
   private renderText(node: JSONContent): string {

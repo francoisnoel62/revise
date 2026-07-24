@@ -89,7 +89,7 @@ export class BookCssBuilder {
         text-rendering: geometricPrecision;
       }
       ${startPageNumber && startPageNumber > 1 ? `body { counter-reset: page ${startPageNumber - 1}; }` : ''}
-      main.book { widows: 2; orphans: 2; counter-reset: folio 1; }
+      main.book { widows: 2; orphans: 2; counter-reset: folio 1 endnote 0; }
       p { margin: 0; text-align: justify; text-indent: ${value.firstLineIndentCentimeters}cm; }
       [data-semantic-role="titre-de-chapitre"] + [data-semantic-role="corps"],
       [data-semantic-role="sous-titre"] + [data-semantic-role="corps"] { text-indent: 0; }
@@ -110,6 +110,47 @@ export class BookCssBuilder {
         .pagedjs_pages { display: block; }
         .pagedjs_page { margin: 0 !important; box-shadow: none !important; break-after: page; }
       }
+
+      /* Endnote call — a numbered superscript. The digit is a CSS counter (endnote), so it
+         renumbers automatically as notes are added, removed or moved, exactly like the editor.
+         The rich note body rides along in a hidden .endnote-body; the reading view reveals it in
+         a floating bubble on hover/click. There is deliberately no compiled notes block here:
+         the per-chapter compilation exists only at export. */
+      .endnote-ref {
+        counter-increment: endnote;
+        vertical-align: super;
+        font-size: 0.7em;
+        line-height: 0;
+        color: #1d4ed8;
+        cursor: pointer;
+        padding: 0 0.05em;
+      }
+      .endnote-ref::after { content: counter(endnote); }
+      .endnote-ref:hover,
+      .endnote-ref:focus-visible { text-decoration: underline; outline: none; }
+      .endnote-body { display: none; }
+
+      /* The bubble is a single body-level, position: fixed element (see endnoteBubble.ts and
+         PagedJsRenderer's inlined handler). Fixed + body-level is what lets it escape the
+         Paged.js page boxes, which clip their overflow — an in-flow popover would be cut off at
+         the page edge. It carries no focusable children, so opening it never traps focus. */
+      #endnote-bubble {
+        position: fixed;
+        display: none;
+        z-index: 2147483647;
+        max-width: 22em;
+        padding: 0.6em 0.8em;
+        border-radius: 6px;
+        background: #1f2937;
+        color: #f9fafb;
+        font-size: 10pt;
+        line-height: 1.4;
+        text-indent: 0;
+        text-align: left;
+        box-shadow: 0 8px 24px rgb(15 23 42 / 35%);
+      }
+      #endnote-bubble[data-visible="true"] { display: block; }
+      #endnote-bubble a { color: #93c5fd; }
 
       /* Liminal pages (front matter): uppercase roman numerals, each on its own page.
          The body's Arabic numbering must restart at 1, but Paged.js honours neither a

@@ -52,6 +52,30 @@ describe('BookCssBuilder', () => {
     expect(css).toContain('margin-right: 1.5cm');
   });
 
+  describe('endnote call + reading bubble', () => {
+    const css = new BookCssBuilder().build(PublicationProfile.kdpSixByNine(), 'http://localhost:3000');
+
+    it('numbers endnote calls with a per-document CSS counter', () => {
+      expect(css).toMatch(/counter-reset:[^;]*\bendnote\b/);
+      expect(css).toMatch(/\.endnote-ref\s*\{[^}]*counter-increment:\s*endnote/);
+      expect(css).toMatch(/\.endnote-ref::after\s*\{[^}]*content:\s*counter\(endnote\)/);
+    });
+
+    it('renders the call as a raised superscript', () => {
+      expect(css).toMatch(/\.endnote-ref\s*\{[^}]*vertical-align:\s*super/);
+    });
+
+    it('keeps the note body out of the flow (revealed only in the floating bubble)', () => {
+      expect(css).toMatch(/\.endnote-body\s*\{[^}]*display:\s*none/);
+    });
+
+    it('styles a floating, initially hidden bubble anchored to the viewport', () => {
+      expect(css).toMatch(/#endnote-bubble\s*\{[^}]*position:\s*fixed/);
+      expect(css).toMatch(/#endnote-bubble\s*\{[^}]*display:\s*none/);
+      expect(css).toMatch(/#endnote-bubble\[data-visible="true"\]\s*\{[^}]*display:\s*block/);
+    });
+  });
+
   describe('startPageNumber counter-reset', () => {
     it('emits counter-reset when startPageNumber is greater than 1', () => {
       const css = new BookCssBuilder().build(

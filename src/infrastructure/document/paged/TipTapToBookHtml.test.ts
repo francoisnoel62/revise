@@ -148,6 +148,76 @@ describe('TipTapToBookHtml', () => {
     });
   });
 
+  describe('convert — endnote call (reading bubble)', () => {
+    function endnote(inline: JSONContent[] | null): JSONContent {
+      return {
+        type: 'endnoteRef',
+        attrs: {
+          content: inline
+            ? { type: 'doc', content: [{ type: 'paragraph', content: inline }] }
+            : null,
+        },
+      };
+    }
+
+    function paragraphWith(...inline: JSONContent[]): JSONContent {
+      return { type: 'paragraph', content: inline };
+    }
+
+    it('renders an endnote call as a superscript with the endnote-ref class', () => {
+      const content = doc(paragraphWith({ type: 'text', text: 'Texte' }, endnote([{ type: 'text', text: 'La note.' }])));
+      const html = converter.convert(content);
+      expect(html).toMatch(/<sup[^>]*class="endnote-ref"/);
+      expect(html).toContain('data-endnote');
+    });
+
+    it('carries the rich note body (bold / italic / link) in a hidden container', () => {
+      const content = doc(
+        paragraphWith(
+          { type: 'text', text: 'Voir' },
+          endnote([
+            { type: 'text', text: 'gras', marks: [{ type: 'bold' }] },
+            { type: 'text', text: 'italique', marks: [{ type: 'italic' }] },
+            { type: 'text', text: 'lien', marks: [{ type: 'link', attrs: { href: 'https://exemple.fr' } }] },
+          ]),
+        ),
+      );
+      const html = converter.convert(content);
+      const bodyMatch = html.match(/<span class="endnote-body">([\s\S]*?)<\/span>/);
+      expect(bodyMatch).not.toBeNull();
+      const body = bodyMatch![1];
+      expect(body).toContain('<strong>gras</strong>');
+      expect(body).toContain('<em>italique</em>');
+      expect(body).toContain('<a href="https://exemple.fr"');
+      expect(body).toContain('lien</a>');
+    });
+
+    it('never renders a permanent notes block: the body text appears only inside the call', () => {
+      const content = doc(
+        paragraphWith({ type: 'text', text: 'Corps.' }, endnote([{ type: 'text', text: 'texte-unique-de-note' }])),
+      );
+      const html = converter.convert(content);
+      expect(html.match(/texte-unique-de-note/g)).toHaveLength(1);
+      expect(html).not.toContain('endnotes-section');
+    });
+
+    it('renders an empty call (no bubble content) when the note body is null', () => {
+      const content = doc(paragraphWith({ type: 'text', text: 'Corps.' }, endnote(null)));
+      const html = converter.convert(content);
+      expect(html).toMatch(/<sup[^>]*class="endnote-ref"/);
+      expect(html).toContain('<span class="endnote-body"></span>');
+    });
+
+    it('renders a call for each endnote in the document', () => {
+      const content = doc(
+        paragraphWith({ type: 'text', text: 'Un' }, endnote([{ type: 'text', text: 'A' }])),
+        paragraphWith({ type: 'text', text: 'Deux' }, endnote([{ type: 'text', text: 'B' }])),
+      );
+      const html = converter.convert(content);
+      expect(html.match(/class="endnote-ref"/g)).toHaveLength(2);
+    });
+  });
+
   describe('convert — data-word-anchor attribute passthrough (scroll sync)', () => {
     it('renders the data-word-anchor attribute when node.attrs.wordAnchor is set', () => {
       const content = doc({ ...paragraph('Mille mots plus loin.'), attrs: { wordAnchor: 1 } });
