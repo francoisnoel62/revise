@@ -121,7 +121,7 @@ export class BookCssBuilder {
         vertical-align: super;
         font-size: 0.7em;
         line-height: 0;
-        color: #1d4ed8;
+        color: inherit;
         cursor: pointer;
         padding: 0 0.05em;
       }

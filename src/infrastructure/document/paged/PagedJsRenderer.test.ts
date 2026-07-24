@@ -240,6 +240,16 @@ describe('PagedJsRenderer', () => {
       // call would swap the bubble out from under a pinned note and leave it stuck
       expect(html).toMatch(/pointerover[\s\S]{0,160}!pinned/);
     });
+
+    it('defers wiring until a paginated page exists (listeners set before Paged.js finishes never fire)', () => {
+      const html = renderer.render({ bodyHtml: '<p>A</p>', profile, assetBaseUrl });
+      // The bubble setup lives in an init() gated on .pagedjs_page — either it already
+      // exists or a MutationObserver waits for it. Wiring at parse time would leave the
+      // handlers bound before Paged.js rebuilds the preview DOM, so hover would do nothing.
+      expect(html).toMatch(/function init\(\)/);
+      expect(html).toMatch(/querySelector\('\.pagedjs_page'\)[\s\S]{0,40}init\(\)/);
+      expect(html).toContain('MutationObserver');
+    });
   });
 
   describe('endnote compilation (back matter)', () => {

@@ -65,6 +65,11 @@ describe('BookCssBuilder', () => {
       expect(css).toMatch(/\.endnote-ref\s*\{[^}]*vertical-align:\s*super/);
     });
 
+    it('colours the call like the body text (black), not a distinct link colour', () => {
+      expect(css).toMatch(/\.endnote-ref\s*\{[^}]*color:\s*inherit/);
+      expect(css).not.toMatch(/\.endnote-ref\s*\{[^}]*color:\s*#1d4ed8/);
+    });
+
     it('keeps the note body out of the flow (revealed only in the floating bubble)', () => {
       expect(css).toMatch(/\.endnote-body\s*\{[^}]*display:\s*none/);
     });

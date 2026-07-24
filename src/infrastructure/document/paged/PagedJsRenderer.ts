@@ -103,7 +103,10 @@ export class PagedJsRenderer implements PagedRenderer {
       // Endnote reading bubble. Mirrors endnoteBubble.ts (nextOpenEndnoteId + positionEndnoteBubble),
       // kept in sync manually since this runs inside the sandboxed iframe and cannot import a module.
       // A single body-level, position: fixed bubble escapes the clipped Paged.js page boxes.
+      // Paged.js rebuilds the preview DOM asynchronously (PagedPolyfill.preview); listeners wired
+      // before that finishes never fire on the paginated pages, so init() waits until a page exists.
       var MARGIN=8, GAP=6;
+      function init(){
       var bubble=document.createElement('div');
       bubble.id='endnote-bubble';
       bubble.setAttribute('role','tooltip');
@@ -142,6 +145,9 @@ export class PagedJsRenderer implements PagedRenderer {
         if(!bubble.contains(e.target)){pinned=null;hide();}
       });
       document.addEventListener('keydown',function(e){if(e.key==='Escape'){pinned=null;hide();}});
+      }
+      if(document.querySelector('.pagedjs_page')){init();}
+      else{var obs=new MutationObserver(function(){if(document.querySelector('.pagedjs_page')){obs.disconnect();init();}});obs.observe(document.documentElement,{childList:true,subtree:true});}
       })()</script>
       </body></html>`;
   }

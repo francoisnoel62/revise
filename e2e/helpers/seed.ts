@@ -75,6 +75,14 @@ export const TEST_BOOK_PREVIEW_TOC_SUBTITLE = 'Le Secret Retrouvé';
 export const TEST_BOOK_PREVIEW_LARGE_PROJECT_ID = 'e2e-book-preview-large-001';
 export const TEST_BOOK_PREVIEW_LARGE_CHAPTER_COUNT = 6;
 
+// Endnotes E2E fixtures — one chapter carrying a single endnote call whose rich body holds a
+// unique sentinel word, for the reading-preview bubble + call-colour checks and the Notes-title
+// setting round-trip. The endnoteRef node stores its note body inline in attrs.content, exactly
+// as the editor persists it.
+export const TEST_ENDNOTE_PROJECT_ID = 'e2e-endnote-project-001';
+export const TEST_ENDNOTE_CHAPTER_ID = 'e2e-endnote-chapter-001';
+export const TEST_ENDNOTE_NOTE_SENTINEL = 'Lugdunum';
+
 // Book-preview E2E fixtures — a genuinely large manuscript (~90k words / ~200 pages),
 // matching the production target. Seeded ON DEMAND by the opt-in heavy test (not in
 // seedAll), so routine runs stay fast; exercises the real cold-generation cost.
@@ -827,6 +835,62 @@ export async function seedAll(): Promise<void> {
         metadata: { wordCount: 600, characterCount: 3600, lastEdited: past },
       })),
       activeChapterId: 'e2e-book-preview-large-ch-001',
+      providerId: null,
+      createdAt: past,
+      updatedAt: now,
+      isPublished: false,
+      shareToken: null,
+      publishedAt: null,
+      publishedChapterIds: null,
+    },
+    { upsert: true }
+  );
+
+  // 5e. Endnotes project — a single chapter with one endnote call carrying a rich note body.
+  const endnoteChapterContent = JSON.stringify({
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'text', text: 'Le voyageur atteignit la cité' },
+          {
+            type: 'endnoteRef',
+            attrs: {
+              content: {
+                type: 'doc',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      { type: 'text', text: 'Autrefois nommée ' },
+                      { type: 'text', text: TEST_ENDNOTE_NOTE_SENTINEL, marks: [{ type: 'bold' }] },
+                      { type: 'text', text: ' sous l’Empire.' },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+          { type: 'text', text: ' au crépuscule.' },
+        ],
+      },
+    ],
+  });
+  await db.collection('projects').replaceOne(
+    { _id: TEST_ENDNOTE_PROJECT_ID } as object,
+    {
+      _id: TEST_ENDNOTE_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      title: 'Roman Test Notes de fin',
+      chapters: [{
+        id: TEST_ENDNOTE_CHAPTER_ID,
+        title: 'Chapitre 1',
+        content: endnoteChapterContent,
+        order: 0,
+        metadata: { wordCount: 8, characterCount: 55, lastEdited: past },
+      }],
+      activeChapterId: TEST_ENDNOTE_CHAPTER_ID,
       providerId: null,
       createdAt: past,
       updatedAt: now,

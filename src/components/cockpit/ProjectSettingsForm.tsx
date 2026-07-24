@@ -507,6 +507,7 @@ export function ProjectSettingsForm({ projectId, initialSettings }: ProjectSetti
         <Button
           onClick={handleSave}
           disabled={isSaving || !hasChanges || !formData.title.trim()}
+          data-testid="settings-save-button"
         >
           {isSaving ? (
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
