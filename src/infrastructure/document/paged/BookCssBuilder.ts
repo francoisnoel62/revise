@@ -133,7 +133,8 @@ export class BookCssBuilder {
       /* The bubble is a single body-level, position: fixed element (see endnoteBubble.ts and
          PagedJsRenderer's inlined handler). Fixed + body-level is what lets it escape the
          Paged.js page boxes, which clip their overflow — an in-flow popover would be cut off at
-         the page edge. It carries no focusable children, so opening it never traps focus. */
+         the page edge. Opening it never moves focus into it (a note's link stays reachable only
+         by the reader's own Tab), and dismissal never steals focus back, so it never traps focus. */
       #endnote-bubble {
         position: fixed;
         display: none;

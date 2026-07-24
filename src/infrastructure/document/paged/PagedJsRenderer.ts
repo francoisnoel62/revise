@@ -119,7 +119,9 @@ export class PagedJsRenderer implements PagedRenderer {
         place(ref);
       }
       function hide(){bubble.setAttribute('data-visible','false');}
-      document.addEventListener('pointerover',function(e){var ref=callAt(e.target);if(ref)show(ref);});
+      // Hover only previews when nothing is pinned; a click-pinned note wins until it is
+      // dismissed, so hovering another call can't swap the bubble out from under it.
+      document.addEventListener('pointerover',function(e){var ref=callAt(e.target);if(ref&&!pinned)show(ref);});
       document.addEventListener('pointerout',function(e){
         var ref=callAt(e.target);
         if(!ref||pinned)return;

@@ -233,6 +233,13 @@ describe('PagedJsRenderer', () => {
       const html = renderer.render({ bodyHtml: '<p>A</p>', profile, assetBaseUrl });
       expect(html).toContain('Escape');
     });
+
+    it('does not let hover override a click-pinned note (the pin wins until dismissed)', () => {
+      const html = renderer.render({ bodyHtml: '<p>A</p>', profile, assetBaseUrl });
+      // the pointerover handler must guard on the pinned state, or hovering another
+      // call would swap the bubble out from under a pinned note and leave it stuck
+      expect(html).toMatch(/pointerover[\s\S]{0,160}!pinned/);
+    });
   });
 
   describe('render order', () => {
