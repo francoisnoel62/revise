@@ -211,4 +211,178 @@ describe('DocxExporter', () => {
       expect(buffer).toBeInstanceOf(Buffer);
     });
   });
+
+  describe('endnotes → native Word footnotes', () => {
+    // A one-paragraph note body, the shape stored in the endnoteRef `content` attr.
+    function note(inline: object[]) {
+      return { type: 'doc', content: [{ type: 'paragraph', content: inline }] };
+    }
+
+    it('renders a body endnote as a native footnote: a numbered call in the text plus its note body', async () => {
+      const nodes = [
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: 'Le héros hésita' },
+            { type: 'endnoteRef', attrs: { content: note([{ type: 'text', text: 'Une précision de l’auteur.' }]) } },
+            { type: 'text', text: ' puis avança.' },
+          ],
+        },
+      ];
+      const chapter = makeChapter('Chapitre 1', nodes);
+      const buffer = await exporter.exportChapter(chapter, 'notes.docx');
+      const { value: html } = await mammoth.convertToHtml({ buffer });
+
+      // The call is a native Word footnote reference (mammoth renders it as a superscript link).
+      expect(html).toMatch(/id="footnote-ref-1"/);
+      // The note body is compiled into the footnotes list — never lost.
+      expect(html).toMatch(/<li id="footnote-1"/);
+      expect(html).toContain('Une précision de l’auteur.');
+      // The surrounding body text is untouched.
+      expect(html).toContain('Le héros hésita');
+      expect(html).toContain(' puis avança.');
+    });
+
+    it('never silently drops a note: every note across chapters becomes its own footnote', async () => {
+      const ch1 = makeChapter(
+        'Ch1',
+        [
+          {
+            type: 'paragraph',
+            content: [
+              { type: 'text', text: 'A' },
+              { type: 'endnoteRef', attrs: { content: note([{ type: 'text', text: 'Note alpha' }]) } },
+              { type: 'endnoteRef', attrs: { content: note([{ type: 'text', text: 'Note beta' }]) } },
+            ],
+          },
+        ],
+        'ch-1'
+      );
+      const ch2 = makeChapter(
+        'Ch2',
+        [
+          {
+            type: 'paragraph',
+            content: [
+              { type: 'text', text: 'B' },
+              { type: 'endnoteRef', attrs: { content: note([{ type: 'text', text: 'Note gamma' }]) } },
+            ],
+          },
+        ],
+        'ch-2'
+      );
+      const buffer = await exporter.exportChapters([ch1, ch2], 'book.docx');
+      const { value: html } = await mammoth.convertToHtml({ buffer });
+
+      expect(html).toContain('Note alpha');
+      expect(html).toContain('Note beta');
+      expect(html).toContain('Note gamma');
+      const items = html.match(/<li id="footnote-\d+"/g) ?? [];
+      expect(items).toHaveLength(3);
+    });
+
+    it('preserves bold and italic inside a note', async () => {
+      const nodes = [
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'endnoteRef',
+              attrs: {
+                content: note([
+                  { type: 'text', text: 'gras', marks: [{ type: 'bold' }] },
+                  { type: 'text', text: ' et ' },
+                  { type: 'text', text: 'italique', marks: [{ type: 'italic' }] },
+                ]),
+              },
+            },
+          ],
+        },
+      ];
+      const chapter = makeChapter('Ch', nodes);
+      const buffer = await exporter.exportChapter(chapter, 'rich.docx');
+      const { value: html } = await mammoth.convertToHtml({ buffer });
+
+      expect(html).toMatch(/<strong>gras<\/strong>/);
+      expect(html).toMatch(/<em>italique<\/em>/);
+    });
+
+    it('preserves a link inside a note', async () => {
+      const nodes = [
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'endnoteRef',
+              attrs: {
+                content: note([
+                  { type: 'text', text: 'source', marks: [{ type: 'link', attrs: { href: 'https://example.com/x' } }] },
+                ]),
+              },
+            },
+          ],
+        },
+      ];
+      const chapter = makeChapter('Ch', nodes);
+      const buffer = await exporter.exportChapter(chapter, 'link.docx');
+      const { value: html } = await mammoth.convertToHtml({ buffer });
+
+      expect(html).toContain('href="https://example.com/x"');
+      expect(html).toContain('source');
+    });
+
+    it('keeps an empty note (no content attr) as a footnote rather than losing the call', async () => {
+      const nodes = [
+        { type: 'paragraph', content: [{ type: 'text', text: 'X' }, { type: 'endnoteRef' }] },
+      ];
+      const chapter = makeChapter('Ch', nodes);
+      const buffer = await exporter.exportChapter(chapter, 'empty.docx');
+      const { value: html } = await mammoth.convertToHtml({ buffer });
+
+      expect(html).toMatch(/id="footnote-ref-1"/);
+    });
+
+    it('places and preserves a note nested inside a blockquote (aligned numbering, nothing lost)', async () => {
+      const nodes = [
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: 'Avant' },
+            { type: 'endnoteRef', attrs: { content: note([{ type: 'text', text: 'Note du corps' }]) } },
+          ],
+        },
+        {
+          type: 'blockquote',
+          content: [
+            {
+              type: 'paragraph',
+              content: [
+                { type: 'text', text: 'Citation' },
+                { type: 'endnoteRef', attrs: { content: note([{ type: 'text', text: 'Note de la citation' }]) } },
+              ],
+            },
+          ],
+        },
+      ];
+      const chapter = makeChapter('Ch', nodes);
+      const buffer = await exporter.exportChapter(chapter, 'quote.docx');
+      const { value: html } = await mammoth.convertToHtml({ buffer });
+
+      // Both notes survive, and the blockquote note maps to footnote 2 (not misnumbered).
+      expect(html).toContain('Note du corps');
+      expect(html).toContain('Note de la citation');
+      expect(html).toMatch(/<li id="footnote-1"[^>]*>[\s\S]*Note du corps/);
+      expect(html).toMatch(/<li id="footnote-2"[^>]*>[\s\S]*Note de la citation/);
+    });
+
+    it('leaves a note-free document without any footnote references', async () => {
+      const nodes = [{ type: 'paragraph', content: [{ type: 'text', text: 'Pas de note.' }] }];
+      const chapter = makeChapter('Ch', nodes);
+      const buffer = await exporter.exportChapter(chapter, 'plain.docx');
+      const { value: html } = await mammoth.convertToHtml({ buffer });
+
+      expect(html).not.toMatch(/id="footnote-ref-/);
+      expect(html).toContain('Pas de note.');
+    });
+  });
 });

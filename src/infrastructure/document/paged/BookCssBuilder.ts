@@ -89,7 +89,7 @@ export class BookCssBuilder {
         text-rendering: geometricPrecision;
       }
       ${startPageNumber && startPageNumber > 1 ? `body { counter-reset: page ${startPageNumber - 1}; }` : ''}
-      main.book { widows: 2; orphans: 2; counter-reset: folio 1; }
+      main.book { widows: 2; orphans: 2; counter-reset: folio 1 endnote 0; }
       p { margin: 0; text-align: justify; text-indent: ${value.firstLineIndentCentimeters}cm; }
       [data-semantic-role="titre-de-chapitre"] + [data-semantic-role="corps"],
       [data-semantic-role="sous-titre"] + [data-semantic-role="corps"] { text-indent: 0; }
@@ -110,6 +110,55 @@ export class BookCssBuilder {
         .pagedjs_pages { display: block; }
         .pagedjs_page { margin: 0 !important; box-shadow: none !important; break-after: page; }
       }
+
+      /* Endnote call — a numbered superscript. The digit is a CSS counter (endnote), so it
+         renumbers automatically as notes are added, removed or moved, exactly like the editor.
+         The rich note body rides along in a hidden .endnote-body; the reading view reveals it in
+         a floating bubble on hover/click. There is deliberately no compiled notes block here:
+         the per-chapter compilation exists only at export. */
+      .endnote-ref {
+        counter-increment: endnote;
+        vertical-align: super;
+        font-size: 0.7em;
+        line-height: 0;
+        color: inherit;
+        cursor: pointer;
+        padding: 0 0.05em;
+      }
+      .endnote-ref::after { content: counter(endnote); }
+      .endnote-ref:hover,
+      .endnote-ref:focus-visible { text-decoration: underline; outline: none; }
+      .endnote-body { display: none; }
+
+      /* Export mode: the call becomes a round-trip link and prints its per-chapter number literally
+         (from extractChapterEndnotes), so the CSS counter is suppressed to avoid a doubled digit.
+         The link inherits the call's colour and drops the underline so it still reads as a call. */
+      .endnote-ref--linked { counter-increment: none; }
+      .endnote-ref--linked::after { content: none; }
+      .endnote-ref__link { color: inherit; text-decoration: none; }
+
+      /* The bubble is a single body-level, position: fixed element (see endnoteBubble.ts and
+         PagedJsRenderer's inlined handler). Fixed + body-level is what lets it escape the
+         Paged.js page boxes, which clip their overflow — an in-flow popover would be cut off at
+         the page edge. Opening it never moves focus into it (a note's link stays reachable only
+         by the reader's own Tab), and dismissal never steals focus back, so it never traps focus. */
+      #endnote-bubble {
+        position: fixed;
+        display: none;
+        z-index: 2147483647;
+        max-width: 22em;
+        padding: 0.6em 0.8em;
+        border-radius: 6px;
+        background: #1f2937;
+        color: #f9fafb;
+        font-size: 10pt;
+        line-height: 1.4;
+        text-indent: 0;
+        text-align: left;
+        box-shadow: 0 8px 24px rgb(15 23 42 / 35%);
+      }
+      #endnote-bubble[data-visible="true"] { display: block; }
+      #endnote-bubble a { color: #93c5fd; }
 
       /* Liminal pages (front matter): uppercase roman numerals, each on its own page.
          The body's Arabic numbering must restart at 1, but Paged.js honours neither a
@@ -191,6 +240,23 @@ export class BookCssBuilder {
       .legal-notice-text { text-indent: 0; }
       .legal-notice-text p { text-align: center; }
       .colophon .book-isbn { margin-top: 12pt; }
+
+      /* Compiled endnotes: a back-matter section (so it inherits .back-matter's page break),
+         grouped by chapter. A fixed, careful default — slightly reduced body, hanging indent —
+         not author-customisable for now. The note body paragraph is displayed inline so the
+         number and the first line share a line under the hanging indent. */
+      .endnotes-title { font-size: 14pt; font-weight: 700; text-align: center; margin: 0 0 24pt; text-indent: 0; }
+      .endnotes-chapter { margin-bottom: 18pt; }
+      .endnotes-chapter-title { font-size: 11pt; font-weight: 700; margin: 0 0 8pt; text-indent: 0; }
+      .endnotes-list { list-style: none; margin: 0; padding: 0; font-size: 0.85em; }
+      .endnote-item {
+        margin: 0 0 6pt;
+        padding-left: 1.6em;
+        text-indent: -1.6em;
+        text-align: left;
+      }
+      .endnote-item p { display: inline; margin: 0; text-indent: 0; }
+      .endnote-backlink { color: inherit; text-decoration: none; font-weight: 600; }
       @page colophon-page {
         @bottom-center { content: none; }
       }

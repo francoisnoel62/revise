@@ -52,6 +52,58 @@ describe('BookCssBuilder', () => {
     expect(css).toContain('margin-right: 1.5cm');
   });
 
+  describe('endnote call + reading bubble', () => {
+    const css = new BookCssBuilder().build(PublicationProfile.kdpSixByNine(), 'http://localhost:3000');
+
+    it('numbers endnote calls with a per-document CSS counter', () => {
+      expect(css).toMatch(/counter-reset:[^;]*\bendnote\b/);
+      expect(css).toMatch(/\.endnote-ref\s*\{[^}]*counter-increment:\s*endnote/);
+      expect(css).toMatch(/\.endnote-ref::after\s*\{[^}]*content:\s*counter\(endnote\)/);
+    });
+
+    it('renders the call as a raised superscript', () => {
+      expect(css).toMatch(/\.endnote-ref\s*\{[^}]*vertical-align:\s*super/);
+    });
+
+    it('colours the call like the body text (black), not a distinct link colour', () => {
+      expect(css).toMatch(/\.endnote-ref\s*\{[^}]*color:\s*inherit/);
+      expect(css).not.toMatch(/\.endnote-ref\s*\{[^}]*color:\s*#1d4ed8/);
+    });
+
+    it('keeps the note body out of the flow (revealed only in the floating bubble)', () => {
+      expect(css).toMatch(/\.endnote-body\s*\{[^}]*display:\s*none/);
+    });
+
+    it('styles a floating, initially hidden bubble anchored to the viewport', () => {
+      expect(css).toMatch(/#endnote-bubble\s*\{[^}]*position:\s*fixed/);
+      expect(css).toMatch(/#endnote-bubble\s*\{[^}]*display:\s*none/);
+      expect(css).toMatch(/#endnote-bubble\[data-visible="true"\]\s*\{[^}]*display:\s*block/);
+    });
+  });
+
+  describe('compiled endnotes section (export)', () => {
+    const css = new BookCssBuilder().build(PublicationProfile.kdpSixByNine(), 'http://localhost:3000');
+
+    it('suppresses the CSS counter for anchored calls (their number is printed literally)', () => {
+      expect(css).toMatch(/\.endnote-ref--linked::after\s*\{[^}]*content:\s*none/);
+      expect(css).toMatch(/\.endnote-ref--linked\s*\{[^}]*counter-increment:\s*none/);
+    });
+
+    it('reduces the notes body size and applies a hanging indent', () => {
+      expect(css).toMatch(/\.endnotes-list\s*\{[^}]*font-size:\s*0?\.\d+em/);
+      expect(css).toMatch(/\.endnote-item\s*\{[^}]*text-indent:\s*-/);
+      expect(css).toMatch(/\.endnote-item\s*\{[^}]*padding-left:/);
+    });
+
+    it('renders the inline note body paragraph on the same line as its number', () => {
+      expect(css).toMatch(/\.endnote-item\s+p\s*\{[^}]*display:\s*inline/);
+    });
+
+    it('breaks the notes section onto its own page like other back matter', () => {
+      expect(css).toMatch(/\.back-matter\s*\{[^}]*break-before:\s*page/);
+    });
+  });
+
   describe('startPageNumber counter-reset', () => {
     it('emits counter-reset when startPageNumber is greater than 1', () => {
       const css = new BookCssBuilder().build(

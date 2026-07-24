@@ -15,6 +15,7 @@ import {
   Settings2,
   Check,
   CheckCircle,
+  Superscript,
 } from 'lucide-react';
 import {
   CommandDialog,
@@ -49,6 +50,9 @@ interface CommandPaletteProps {
   onAnalyze?: () => void;
   analysisLoading?: boolean;
 
+  // Endnotes
+  onInsertEndnote?: () => void;
+
   // Provider
   providers: SafeProvider[];
   selectedProviderId: string | null;
@@ -81,6 +85,7 @@ export function CommandPalette({
   onAutocompleteChange,
   onAnalyze,
   analysisLoading = false,
+  onInsertEndnote,
   providers,
   selectedProviderId,
   onProviderChange,
@@ -163,6 +168,17 @@ export function CommandPalette({
       category: 'writing',
       keywords: ['generate', 'générer', 'plan', 'outline', 'structure'],
     },
+    ...(onInsertEndnote ? [{
+      id: 'insert-endnote',
+      label: 'Insérer une note de fin',
+      description: 'Ancrer une note numérotée à la position du curseur',
+      shortcut: 'Ctrl+Alt+N',
+      icon: <Superscript className="h-4 w-4" />,
+      action: () => executeCommand(onInsertEndnote),
+      available: true,
+      category: 'writing' as const,
+      keywords: ['note', 'endnote', 'note de fin', 'footnote', 'renvoi', 'appel'],
+    }] : []),
     // Settings commands
     {
       id: 'history',

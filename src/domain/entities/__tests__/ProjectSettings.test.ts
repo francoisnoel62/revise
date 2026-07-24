@@ -227,6 +227,26 @@ describe('ProjectSettings', () => {
       expect(updated.getIsbn()).toBeUndefined();
     });
 
+    it('getEndnotesTitle defaults to « Notes » when unset', () => {
+      const settings = ProjectSettings.reconstruct(validProps);
+      expect(settings.getEndnotesTitle()).toBe('Notes');
+    });
+
+    it('updateEndnotesTitle returns a new instance with the trimmed title', () => {
+      const settings = ProjectSettings.reconstruct(validProps);
+      const updated = settings.updateEndnotesTitle('  Références  ');
+
+      expect(updated.getEndnotesTitle()).toBe('Références');
+      expect(settings.getEndnotesTitle()).toBe('Notes');
+    });
+
+    it('updateEndnotesTitle with an empty value falls back to the default', () => {
+      const settings = ProjectSettings.reconstruct(validProps).updateEndnotesTitle('Autre');
+      const cleared = settings.updateEndnotesTitle('   ');
+
+      expect(cleared.getEndnotesTitle()).toBe('Notes');
+    });
+
     it('updateContributors returns new instance', () => {
       const settings = ProjectSettings.reconstruct(validProps);
       const newContributors: Contributor[] = [

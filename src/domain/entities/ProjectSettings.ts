@@ -63,7 +63,11 @@ export interface ProjectSettingsProperties {
   levelStylesByProfile?: LevelStylesByProfile;
   tocDepth?: TocDepth;
   tocStyle?: TocStyle;
+  endnotesTitle?: string;
 }
+
+/** Default heading for the compiled endnotes section (kept in sync with the paged renderer). */
+const DEFAULT_ENDNOTES_TITLE = 'Notes';
 
 export class ProjectSettings {
   private readonly id: string;
@@ -96,6 +100,7 @@ export class ProjectSettings {
   private levelStylesByProfile: LevelStylesByProfile;
   private tocDepth?: TocDepth;
   private tocStyle?: TocStyle;
+  private endnotesTitle?: string;
 
   private constructor(props: ProjectSettingsProperties) {
     this.validate(props);
@@ -135,6 +140,7 @@ export class ProjectSettings {
     ) as LevelStylesByProfile;
     this.tocDepth = props.tocDepth;
     this.tocStyle = props.tocStyle;
+    this.endnotesTitle = props.endnotesTitle?.trim() || undefined;
   }
 
   private validate(props: ProjectSettingsProperties): void {
@@ -322,6 +328,19 @@ export class ProjectSettings {
       ...this.toProperties(),
       tocDepth: prefs.depth ?? current.depth,
       tocStyle: prefs.style ?? current.style,
+      updatedAt: new Date(),
+    });
+  }
+
+  /** The compiled endnotes section heading; falls back to « Notes » when the author left it blank. */
+  getEndnotesTitle(): string {
+    return this.endnotesTitle ?? DEFAULT_ENDNOTES_TITLE;
+  }
+
+  updateEndnotesTitle(title: string | undefined): ProjectSettings {
+    return new ProjectSettings({
+      ...this.toProperties(),
+      endnotesTitle: title?.trim() || undefined,
       updatedAt: new Date(),
     });
   }
@@ -547,6 +566,7 @@ export class ProjectSettings {
       levelStylesByProfile: this.getLevelStylesByProfile(),
       tocDepth: this.tocDepth,
       tocStyle: this.tocStyle,
+      endnotesTitle: this.endnotesTitle,
     };
   }
 }

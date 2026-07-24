@@ -196,6 +196,20 @@ describe('project-settings-serializer', () => {
       expect(restored.getTocPreferences()).toEqual({ depth: 'chapters', style: 'classique' });
     });
 
+    it('preserves the endnotes title through serialize then deserialize', () => {
+      const original = ProjectSettings.reconstruct(validProps).updateEndnotesTitle('Références');
+
+      const restored = deserializeProjectSettings(serializeProjectSettings(original));
+
+      expect(restored.getEndnotesTitle()).toBe('Références');
+    });
+
+    it('defaults the endnotes title to « Notes » for legacy documents without the field', () => {
+      const restored = deserializeProjectSettings(validDocument);
+
+      expect(restored.getEndnotesTitle()).toBe('Notes');
+    });
+
     it('restores the persisted publication profile', () => {
       const original = ProjectSettings.reconstruct({
         ...validProps,

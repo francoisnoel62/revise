@@ -51,6 +51,18 @@ import { ThesaurusPalette } from '@/components/editor/ThesaurusPalette';
 import { PublishDialog } from '@/components/publish/PublishDialog';
 import { CommandPalette } from '@/components/editor/CommandPalette';
 import { SearchReplaceBar } from '@/components/editor/SearchReplaceBar';
+import { EndnoteModal } from '@/components/editor/EndnoteModal';
+import type { EndnoteContent } from '@/components/editor/extensions/EndnoteRef';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { ChapterGenerationTypeKey } from '@/domain';
 import { AnalysisConfigDialog, AnalysisConfig } from '@/components/analysis/AnalysisConfigDialog';
 import { ChapterAnalysisPanel } from '@/components/analysis/ChapterAnalysisPanel';
@@ -306,6 +318,42 @@ function EditorContent() {
 
   // Command palette state
   const [showCommandPalette, setShowCommandPalette] = useState(false);
+
+  // Endnote modal state. `pos === null` means insertion; a number means editing an
+  // existing call at that document position.
+  const [endnoteModal, setEndnoteModal] = useState<{
+    open: boolean;
+    pos: number | null;
+    content: EndnoteContent | null;
+  }>({ open: false, pos: null, content: null });
+  // Pending deletion of a non-empty note, awaiting confirmation.
+  const [endnoteToDelete, setEndnoteToDelete] = useState<{
+    pos: number;
+    content: EndnoteContent | null;
+  } | null>(null);
+
+  const openInsertEndnote = () => setEndnoteModal({ open: true, pos: null, content: null });
+  const openEditEndnote = (pos: number, content: EndnoteContent | null) =>
+    setEndnoteModal({ open: true, pos, content });
+  const closeEndnoteModal = () => setEndnoteModal({ open: false, pos: null, content: null });
+
+  const handleEndnoteSubmit = (content: EndnoteContent) => {
+    if (editor) {
+      if (endnoteModal.pos !== null) {
+        editor.chain().focus().updateEndnote(endnoteModal.pos, content).run();
+      } else {
+        editor.chain().focus().insertEndnote(content).run();
+      }
+    }
+    closeEndnoteModal();
+  };
+
+  const confirmDeleteEndnote = () => {
+    if (editor && endnoteToDelete) {
+      editor.chain().focus().deleteEndnote(endnoteToDelete.pos).run();
+    }
+    setEndnoteToDelete(null);
+  };
 
   // Search/Replace state
   const [showSearchReplace, setShowSearchReplace] = useState(false);
@@ -862,6 +910,7 @@ function EditorContent() {
               activeGenerationType={activeGenerationType}
               onOpenCommandPalette={() => setShowCommandPalette(true)}
               onSearchClick={() => setShowSearchReplace(true)}
+              onInsertEndnote={openInsertEndnote}
               onAnalyze={handleOpenAnalysisConfig}
               analysisLoading={analysisLoading}
             />
@@ -891,6 +940,9 @@ function EditorContent() {
               publicationProfileId={publicationProfileId}
               presentationOverrides={presentationOverrides}
               onPresentationOverridesChange={handlePresentationOverridesChange}
+              onEndnoteInsertRequest={openInsertEndnote}
+              onEndnoteEditRequest={openEditEndnote}
+              onEndnoteDeleteRequest={(pos, content) => setEndnoteToDelete({ pos, content })}
             />
             {/* Thesaurus palette — opens on right-click of a word in the editor */}
             <ThesaurusPalette
@@ -976,11 +1028,40 @@ function EditorContent() {
             handleOpenAnalysisConfig();
           }}
           analysisLoading={analysisLoading}
+          onInsertEndnote={openInsertEndnote}
           providers={providers}
           selectedProviderId={selectedProviderId}
           onProviderChange={handleProviderChange}
         />
       )}
+
+      {/* Endnote insertion / edition modal */}
+      <EndnoteModal
+        open={endnoteModal.open}
+        initialContent={endnoteModal.content}
+        onSubmit={handleEndnoteSubmit}
+        onCancel={closeEndnoteModal}
+      />
+
+      {/* Confirm deletion of a non-empty note */}
+      <AlertDialog
+        open={endnoteToDelete !== null}
+        onOpenChange={(open) => !open && setEndnoteToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer la note ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette note contient du texte. Sa suppression retirera l’appel et son contenu.
+              Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteEndnote}>Supprimer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Chapter analysis configuration dialog */}
       <AnalysisConfigDialog

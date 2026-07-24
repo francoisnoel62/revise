@@ -177,6 +177,88 @@ describe('WholeBookHtmlAssembler', () => {
     });
   });
 
+  describe('endnote compilation', () => {
+    const chapterWithNotes = (title: string, ...notes: string[]): JSONContent => ({
+      type: 'doc',
+      content: [
+        { type: 'heading', attrs: { level: 1, semanticRole: 'titre-de-chapitre' }, content: [{ type: 'text', text: title }] },
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: 'Corps' },
+            ...notes.map((n) => ({
+              type: 'endnoteRef',
+              attrs: { content: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: n }] }] } },
+            })),
+          ],
+        },
+      ],
+    });
+
+    it('emits no endnotes data when no chapter has endnotes', () => {
+      const { endnotes } = assembler.assemble([
+        { id: 'ch1', title: 'Chapter 1', content: paragraphDoc('text') },
+      ]);
+      expect(endnotes).toBeUndefined();
+    });
+
+    it('anchors the body calls and emits the per-chapter endnote data', () => {
+      const { bodyHtml, endnotes } = assembler.assemble([
+        { id: 'ch1', title: 'Chapter 1', content: chapterWithNotes('Chapter 1', 'La note') },
+      ]);
+      expect(bodyHtml).toContain('id="endnote-call-chapter-ch1-1"');
+      expect(bodyHtml).toContain('href="#endnote-note-chapter-ch1-1"');
+      expect(endnotes?.title).toBe('Notes');
+      expect(endnotes?.chapters).toHaveLength(1);
+      expect(endnotes?.chapters[0]).toMatchObject({ anchorId: 'chapter-ch1', title: 'Chapter 1', index: 1 });
+    });
+
+    it('numbers the body calls consistently, restarting each chapter', () => {
+      const { bodyHtml, endnotes } = assembler.assemble([
+        { id: 'ch1', title: 'Chapter 1', content: chapterWithNotes('Chapter 1', 'a1', 'a2') },
+        { id: 'ch2', title: 'Chapter 2', content: chapterWithNotes('Chapter 2', 'b1') },
+      ]);
+      expect(bodyHtml).toContain('id="endnote-call-chapter-ch1-2"');
+      expect(bodyHtml).toContain('id="endnote-call-chapter-ch2-1"');
+      expect(bodyHtml).not.toContain('endnote-call-chapter-ch2-2');
+      expect(endnotes?.chapters.map((c) => c.anchorId)).toEqual(['chapter-ch1', 'chapter-ch2']);
+    });
+
+    it('appends a "Notes" TOC entry when the TOC is shown and endnotes exist', () => {
+      const { tocEntries } = assembler.assemble([
+        { id: 'ch1', title: 'Chapter 1', content: chapterWithNotes('Chapter 1', 'a1') },
+        { id: 'ch2', title: 'Chapter 2', content: chapterWithNotes('Chapter 2', 'b1') },
+      ]);
+      expect(tocEntries[tocEntries.length - 1]).toEqual({
+        chapterId: 'endnotes-section',
+        title: 'Notes',
+      });
+    });
+
+    it('uses the custom endnotes title in both the data and the TOC entry', () => {
+      const { tocEntries, endnotes } = assembler.assemble(
+        [
+          { id: 'ch1', title: 'Chapter 1', content: chapterWithNotes('Chapter 1', 'a1') },
+          { id: 'ch2', title: 'Chapter 2', content: chapterWithNotes('Chapter 2', 'b1') },
+        ],
+        { endnotesTitle: 'Références' },
+      );
+      expect(endnotes?.title).toBe('Références');
+      expect(tocEntries[tocEntries.length - 1]).toEqual({
+        chapterId: 'endnotes-section',
+        title: 'Références',
+      });
+    });
+
+    it('does not add a Notes TOC entry when there is no TOC (single chapter)', () => {
+      const { tocEntries, endnotes } = assembler.assemble([
+        { id: 'ch1', title: 'Chapter 1', content: chapterWithNotes('Chapter 1', 'a1') },
+      ]);
+      expect(endnotes).toBeDefined();
+      expect(tocEntries).toEqual([]);
+    });
+  });
+
   describe('presentation stripping (profile typography wins)', () => {
     // The editor's TextAlign extension stamps every heading/paragraph with an inline
     // textAlign (default 'justify'). Emitted as inline style it out-specifies the profile's

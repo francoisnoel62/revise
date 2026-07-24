@@ -196,6 +196,7 @@ describe('export-actions', () => {
         getCoverImageUrl: () => undefined,
         getPublicationProfileId: () => 'a5',
         getLevelStyleSet: () => levelStyles,
+        getEndnotesTitle: () => 'Notes',
       });
 
       const chapter = new Chapter('ch-1', 'Chapter 1', '{"type":"doc","content":[]}', 0);

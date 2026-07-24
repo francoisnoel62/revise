@@ -165,4 +165,58 @@ describe('BookPreviewCacheComputer', () => {
       expect(entry.pageForSubtitle('chapter-ch-1-soustitre-0')).toBe(6);
     });
   });
+
+  describe('endnote compilation', () => {
+    const withNote = (title: string, noteText: string): JSONContent => ({
+      type: 'doc',
+      content: [
+        { type: 'heading', attrs: { level: 1, semanticRole: 'titre-de-chapitre' }, content: [{ type: 'text', text: title }] },
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: 'Corps' },
+            { type: 'endnoteRef', attrs: { content: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: noteText }] }] } } },
+          ],
+        },
+      ],
+    });
+
+    it('compiles a notes section with the custom title and round-trip links', async () => {
+      const { launcher, setContent } = makeFake();
+      const computer = makeComputer(launcher);
+
+      await computer.compute({
+        ...input(),
+        chapters: [
+          { id: 'ch-1', title: 'Chapitre 1', content: withNote('Chapitre 1', 'Première note') },
+          { id: 'ch-2', title: 'Chapitre 2', content: withNote('Chapitre 2', 'Seconde note') },
+        ],
+        endnotesTitle: 'Références',
+      });
+
+      const html = setContent.mock.calls[0][0] as string;
+      expect(html).toContain('class="back-matter endnotes"');
+      expect(html).toContain('>Références</h2>');
+      // Body call links forward; note links back — the round trip.
+      expect(html).toContain('id="endnote-call-chapter-ch-1-1"');
+      expect(html).toContain('id="endnote-note-chapter-ch-1-1"');
+      expect(html).toContain('href="#endnote-call-chapter-ch-1-1"');
+    });
+
+    it('adds a "Notes" entry to the table of contents by default', async () => {
+      const { launcher, setContent } = makeFake();
+      const computer = makeComputer(launcher);
+
+      await computer.compute({
+        ...input(),
+        chapters: [
+          { id: 'ch-1', title: 'Chapitre 1', content: withNote('Chapitre 1', 'n1') },
+          { id: 'ch-2', title: 'Chapitre 2', content: withNote('Chapitre 2', 'n2') },
+        ],
+      });
+
+      const html = setContent.mock.calls[0][0] as string;
+      expect(html).toContain('href="#endnotes-section"');
+    });
+  });
 });

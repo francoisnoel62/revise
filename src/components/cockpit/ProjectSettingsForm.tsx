@@ -73,6 +73,7 @@ interface FormData {
   contributors: Contributor[];
   relatedWorks: RelatedWork[];
   tocPreferences: TocPreferences;
+  endnotesTitle: string;
 }
 
 export function ProjectSettingsForm({ projectId, initialSettings }: ProjectSettingsFormProps) {
@@ -89,6 +90,7 @@ export function ProjectSettingsForm({ projectId, initialSettings }: ProjectSetti
     contributors: initialSettings.contributors,
     relatedWorks: initialSettings.relatedWorks,
     tocPreferences: initialSettings.tocPreferences,
+    endnotesTitle: initialSettings.endnotesTitle || '',
   });
 
   const [coverImageUrl, setCoverImageUrl] = useState<string | undefined>(
@@ -118,7 +120,8 @@ export function ProjectSettingsForm({ projectId, initialSettings }: ProjectSetti
       formData.isbn !== (initialSettings.isbn || '') ||
       JSON.stringify(formData.contributors) !== JSON.stringify(initialSettings.contributors) ||
       JSON.stringify(formData.relatedWorks) !== JSON.stringify(initialSettings.relatedWorks) ||
-      JSON.stringify(formData.tocPreferences) !== JSON.stringify(initialSettings.tocPreferences);
+      JSON.stringify(formData.tocPreferences) !== JSON.stringify(initialSettings.tocPreferences) ||
+      formData.endnotesTitle !== (initialSettings.endnotesTitle || '');
 
     setHasChanges(changed);
   }, [formData, initialSettings]);
@@ -148,6 +151,7 @@ export function ProjectSettingsForm({ projectId, initialSettings }: ProjectSetti
         contributors: formData.contributors.filter((c) => c.name.trim()),
         relatedWorks: formData.relatedWorks.filter((w) => w.title.trim()),
         tocPreferences: formData.tocPreferences,
+        endnotesTitle: formData.endnotesTitle.trim() || undefined,
       });
 
       if (!result.success) {
@@ -438,6 +442,20 @@ export function ProjectSettingsForm({ projectId, initialSettings }: ProjectSetti
               </Select>
             </div>
           </div>
+
+          <div className="mt-4 space-y-2">
+            <Label htmlFor="endnotesTitle">Titre de la section des notes</Label>
+            <Input
+              id="endnotesTitle"
+              value={formData.endnotesTitle}
+              onChange={(e) => handleChange('endnotesTitle', e.target.value)}
+              placeholder="Notes"
+              disabled={isSaving}
+            />
+            <p className="text-sm text-muted-foreground">
+              En-tête de la section compilant les notes de fin à l&apos;export (défaut : « Notes »).
+            </p>
+          </div>
         </CardContent>
       </Card>
 
@@ -489,6 +507,7 @@ export function ProjectSettingsForm({ projectId, initialSettings }: ProjectSetti
         <Button
           onClick={handleSave}
           disabled={isSaving || !hasChanges || !formData.title.trim()}
+          data-testid="settings-save-button"
         >
           {isSaving ? (
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />

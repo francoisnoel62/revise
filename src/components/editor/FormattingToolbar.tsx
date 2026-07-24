@@ -28,6 +28,7 @@ import {
   Undo2,
   Redo2,
   Search,
+  Superscript,
 } from 'lucide-react';
 
 export type EditorProfile = 'print-ready' | 'passerelle';
@@ -221,6 +222,7 @@ interface FormattingToolbarProps {
   activeGenerationType?: ChapterGenerationTypeKey | null;
   onOpenCommandPalette?: () => void;
   onSearchClick?: () => void;
+  onInsertEndnote?: () => void;
   onAnalyze?: () => void;
   analysisLoading?: boolean;
 }
@@ -245,6 +247,7 @@ export function FormattingToolbar({
   activeGenerationType = null,
   onOpenCommandPalette,
   onSearchClick,
+  onInsertEndnote,
   onAnalyze,
   analysisLoading = false,
 }: FormattingToolbarProps) {
@@ -306,6 +309,18 @@ export function FormattingToolbar({
       editor.chain().focus().toggleHeadingIndent().run();
     }
   };
+
+  const endnoteButton = onInsertEndnote && (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={onInsertEndnote}
+      title="Note de fin (Ctrl+Alt+N)"
+      className="w-8 h-8 md:w-9 md:h-9"
+    >
+      <Superscript className="h-3.5 w-3.5 md:h-4 md:w-4" />
+    </Button>
+  );
 
   const aiMenu = showAIFeatures && onRewrite && onProviderChange && onHistoryClick && onAutocompleteChange && (
     <div className="flex items-center ml-auto mt-1 md:mt-0">
@@ -373,6 +388,9 @@ export function FormattingToolbar({
           >
             <IndentIncrease className="h-3.5 w-3.5 md:h-4 md:w-4" />
           </Button>
+
+          {/* Endnote insertion */}
+          {endnoteButton}
 
           <div className="hidden md:block w-px h-8 bg-slate-300 mx-1" />
 
@@ -517,6 +535,9 @@ export function FormattingToolbar({
         >
           <IndentIncrease className="h-4 w-4" />
         </Button>
+
+        {/* Endnote insertion */}
+        {endnoteButton}
 
         {/* Separator - hidden on mobile */}
         <div className="hidden md:block w-px h-8 bg-slate-300 mx-1" />

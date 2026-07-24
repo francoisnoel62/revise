@@ -212,6 +212,99 @@ describe('PagedJsRenderer', () => {
     });
   });
 
+  describe('endnote reading bubble', () => {
+    it('creates a single shared bubble element appended to the document', () => {
+      const html = renderer.render({ bodyHtml: '<p>A</p>', profile, assetBaseUrl });
+      expect(html).toContain("id='endnote-bubble'");
+    });
+
+    it('wires hover, focus and click on endnote calls to fill and toggle the bubble', () => {
+      const html = renderer.render({ bodyHtml: '<p>A</p>', profile, assetBaseUrl });
+      // reads the note body carried in the call and drives the shared bubble
+      expect(html).toContain('endnote-ref');
+      expect(html).toContain('endnote-body');
+      expect(html).toContain("data-visible");
+      // both hover and click open it
+      expect(html).toMatch(/pointerover|mouseover/);
+      expect(html).toContain('click');
+    });
+
+    it('dismisses the bubble on outside click and on Escape without trapping focus', () => {
+      const html = renderer.render({ bodyHtml: '<p>A</p>', profile, assetBaseUrl });
+      expect(html).toContain('Escape');
+    });
+
+    it('does not let hover override a click-pinned note (the pin wins until dismissed)', () => {
+      const html = renderer.render({ bodyHtml: '<p>A</p>', profile, assetBaseUrl });
+      // the pointerover handler must guard on the pinned state, or hovering another
+      // call would swap the bubble out from under a pinned note and leave it stuck
+      expect(html).toMatch(/pointerover[\s\S]{0,160}!pinned/);
+    });
+
+    it('defers wiring until a paginated page exists (listeners set before Paged.js finishes never fire)', () => {
+      const html = renderer.render({ bodyHtml: '<p>A</p>', profile, assetBaseUrl });
+      // The bubble setup lives in an init() gated on .pagedjs_page — either it already
+      // exists or a MutationObserver waits for it. Wiring at parse time would leave the
+      // handlers bound before Paged.js rebuilds the preview DOM, so hover would do nothing.
+      expect(html).toMatch(/function init\(\)/);
+      expect(html).toMatch(/querySelector\('\.pagedjs_page'\)[\s\S]{0,40}init\(\)/);
+      expect(html).toContain('MutationObserver');
+    });
+  });
+
+  describe('endnote compilation (back matter)', () => {
+    const note = (text: string) => ({
+      type: 'doc' as const,
+      content: [{ type: 'paragraph', content: [{ type: 'text', text }] }],
+    });
+    const chapterContent = (text: string) => ({
+      type: 'doc' as const,
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'Corps' }, { type: 'endnoteRef', attrs: { content: note(text) } }] },
+      ],
+    });
+
+    it('compiles a notes section after the body when endnotes are provided', () => {
+      const html = renderer.render({
+        bodyHtml: '<section id="chapter-ch1" class="chapter"><p>Corps<sup>1</sup></p></section>',
+        profile,
+        assetBaseUrl,
+        frontMatter: { title: 'Mon Roman' },
+        endnotes: {
+          title: 'Notes',
+          chapters: [{ anchorId: 'chapter-ch1', title: 'Ouverture', content: chapterContent('La note'), index: 1 }],
+        },
+      });
+      expect(html).toContain('class="back-matter endnotes"');
+      expect(html).toContain('<h3 class="endnotes-chapter-title">Ouverture</h3>');
+      // round-trip: the note links back to its body call
+      expect(html).toContain('id="endnote-note-chapter-ch1-1"');
+      expect(html).toContain('href="#endnote-call-chapter-ch1-1"');
+    });
+
+    it('places the notes section after the body matter', () => {
+      const html = renderer.render({
+        bodyHtml: '<section id="chapter-ch1" class="chapter"><p>Corps texte unique</p></section>',
+        profile,
+        assetBaseUrl,
+        frontMatter: { title: 'Mon Roman' },
+        endnotes: {
+          title: 'Notes',
+          chapters: [{ anchorId: 'chapter-ch1', title: 'Ouverture', content: chapterContent('La note'), index: 1 }],
+        },
+      });
+      const bodyIdx = html.indexOf('Corps texte unique');
+      const notesIdx = html.indexOf('class="back-matter endnotes"');
+      expect(bodyIdx).toBeGreaterThanOrEqual(0);
+      expect(notesIdx).toBeGreaterThan(bodyIdx);
+    });
+
+    it('omits the notes section when no endnotes are provided', () => {
+      const html = renderer.render({ bodyHtml: '<p>Texte</p>', profile, assetBaseUrl });
+      expect(html).not.toContain('class="back-matter endnotes"');
+    });
+  });
+
   describe('render order', () => {
     it('renders: front matter → TOC → body', () => {
       const html = renderer.render({
