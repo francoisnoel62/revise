@@ -178,6 +178,37 @@ describe('FormattingToolbar', () => {
     expect(redoButton).toBeDisabled();
   });
 
+  it('should render endnote button when onInsertEndnote is provided', () => {
+    const editor = createMockEditor();
+    render(<FormattingToolbar editor={editor} onInsertEndnote={vi.fn()} />);
+
+    expect(screen.getByTitle(/Note de fin/)).toBeInTheDocument();
+  });
+
+  it('should call onInsertEndnote when endnote button is clicked', () => {
+    const editor = createMockEditor();
+    const onInsertEndnote = vi.fn();
+    render(<FormattingToolbar editor={editor} onInsertEndnote={onInsertEndnote} />);
+
+    fireEvent.click(screen.getByTitle(/Note de fin/));
+
+    expect(onInsertEndnote).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not render endnote button when onInsertEndnote is not provided', () => {
+    const editor = createMockEditor();
+    render(<FormattingToolbar editor={editor} />);
+
+    expect(screen.queryByTitle(/Note de fin/)).not.toBeInTheDocument();
+  });
+
+  it('should render endnote button in print-ready profile', () => {
+    const editor = createMockEditor();
+    render(<FormattingToolbar editor={editor} profile="print-ready" onInsertEndnote={vi.fn()} />);
+
+    expect(screen.getByTitle(/Note de fin/)).toBeInTheDocument();
+  });
+
   it('should render search button when onSearchClick is provided', () => {
     const editor = createMockEditor();
     const mockOnSearchClick = vi.fn();

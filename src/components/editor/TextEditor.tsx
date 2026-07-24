@@ -15,6 +15,7 @@ import TextAlign from '@tiptap/extension-text-align';
 import CharacterCount from '@tiptap/extension-character-count';
 import { IndentParagraph } from './extensions/IndentParagraph';
 import { IndentHeading } from './extensions/IndentHeading';
+import { EndnoteRef, type EndnoteContent } from './extensions/EndnoteRef';
 import { Autocomplete, AutocompleteStorage } from './extensions/Autocomplete';
 import { AutocompleteDot, AutocompleteDotState } from './AutocompleteDot';
 import { SpellCheckExtension } from './SpellCheckExtension';
@@ -59,6 +60,12 @@ interface TextEditorProps {
   publicationProfileId?: PublicationProfileId;
   presentationOverrides?: PresentationOverrideLayer;
   onPresentationOverridesChange?: (overrides: PresentationOverrideLayer) => void;
+  /** Ctrl+Alt+N — the host opens the endnote insertion modal. */
+  onEndnoteInsertRequest?: () => void;
+  /** An existing endnote call was clicked — the host reopens the modal to edit it. */
+  onEndnoteEditRequest?: (pos: number, content: EndnoteContent | null) => void;
+  /** A non-empty endnote is about to be deleted — the host confirms first. */
+  onEndnoteDeleteRequest?: (pos: number, content: EndnoteContent | null) => void;
 }
 
 export function TextEditor({
@@ -71,8 +78,24 @@ export function TextEditor({
   publicationProfileId = 'kdp-6x9',
   presentationOverrides = [],
   onPresentationOverridesChange,
+  onEndnoteInsertRequest,
+  onEndnoteEditRequest,
+  onEndnoteDeleteRequest,
 }: TextEditorProps) {
   const { activeContent, updateActiveContent, project } = useProjectStore();
+
+  // Endnote callbacks are read through a ref so the editor's one-time extension
+  // config always calls the latest handlers without re-creating the editor.
+  const endnoteCallbacksRef = useRef({
+    onInsert: onEndnoteInsertRequest,
+    onEdit: onEndnoteEditRequest,
+    onDelete: onEndnoteDeleteRequest,
+  });
+  endnoteCallbacksRef.current = {
+    onInsert: onEndnoteInsertRequest,
+    onEdit: onEndnoteEditRequest,
+    onDelete: onEndnoteDeleteRequest,
+  };
 
   // Dot state: bridges the ProseMirror plugin state to React
   const [dotState, setDotState] = useState<AutocompleteDotState>('idle');
@@ -123,6 +146,11 @@ export function TextEditor({
       }),
       IndentParagraph, // Custom paragraph with indent support
       IndentHeading.configure({ levels: [1, 2, 3, 4, 5, 6] }), // Custom heading with indent support
+      EndnoteRef.configure({
+        onTrigger: () => endnoteCallbacksRef.current.onInsert?.(),
+        onActivate: (pos, content) => endnoteCallbacksRef.current.onEdit?.(pos, content),
+        onDeleteRequest: (pos, content) => endnoteCallbacksRef.current.onDelete?.(pos, content),
+      }),
       Highlight.configure({ multicolor: true }),
       TextStyle, // Required for FontFamily and FontSize
       FontFamily.configure({

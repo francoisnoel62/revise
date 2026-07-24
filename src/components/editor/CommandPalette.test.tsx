@@ -2,7 +2,7 @@
 // ABOUTME: Verifies keyboard shortcuts and command execution
 
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
-import { render, fireEvent, screen } from '@testing-library/react';
+import { render, fireEvent, screen, waitFor } from '@testing-library/react';
 import { CommandPalette } from './CommandPalette';
 import { SafeProvider } from '@/app/actions/provider-actions';
 import { CHAPTER_GENERATION_TYPES } from '@/domain';
@@ -153,6 +153,29 @@ describe('CommandPalette', () => {
 
     // Component should render without error
     expect(container).toBeDefined();
+  });
+
+  it('shows the endnote command and runs it when onInsertEndnote is provided', async () => {
+    const onInsertEndnote = vi.fn();
+    render(
+      <CommandPalette
+        {...defaultProps}
+        open={true}
+        onInsertEndnote={onInsertEndnote}
+      />
+    );
+
+    const entry = screen.getByText('Insérer une note de fin');
+    expect(entry).toBeInTheDocument();
+
+    fireEvent.click(entry);
+    // executeCommand closes the dialog first, then runs the action on a short delay.
+    await waitFor(() => expect(onInsertEndnote).toHaveBeenCalledTimes(1));
+  });
+
+  it('does not show the endnote command when onInsertEndnote is absent', () => {
+    render(<CommandPalette {...defaultProps} open={true} />);
+    expect(screen.queryByText('Insérer une note de fin')).not.toBeInTheDocument();
   });
 
   it('does not show long-form generation commands by default', () => {

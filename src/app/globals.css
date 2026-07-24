@@ -178,6 +178,26 @@
   text-indent: 1.27cm; /* 0.5 inch = 48px ≈ 1.27cm */
 }
 
+/* Endnote calls: numbered superscript. The number is a CSS counter over document
+   order, so it renumbers on any add / remove / move, and resets per chapter (each
+   chapter is its own .tiptap root). collectEndnoteRefs() is the JS source of truth
+   used by the reading/export views. */
+.tiptap {
+  counter-reset: endnote;
+}
+
+.tiptap sup[data-endnote] {
+  counter-increment: endnote;
+  cursor: pointer;
+  color: var(--primary);
+  font-weight: 600;
+  padding: 0 0.05em;
+}
+
+.tiptap sup[data-endnote]::after {
+  content: counter(endnote);
+}
+
 .autocomplete-ghost {
   color: var(--muted-foreground);
   font-style: italic;
