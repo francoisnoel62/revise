@@ -19,6 +19,10 @@ vi.mock('@/app/actions/chapter-actions', () => ({
   setActiveChapterAction: vi.fn(),
 }));
 
+vi.mock('@/app/actions/snapshot-actions', () => ({
+  createSnapshotAction: vi.fn(),
+}));
+
 import {
   createProjectAction,
   loadProjectAction,
@@ -28,6 +32,9 @@ import {
   updateChapterContentAction,
   addChapterAction,
 } from '@/app/actions/chapter-actions';
+
+import { createSnapshotAction, type SerializedSnapshot } from '@/app/actions/snapshot-actions';
+import type { ActionResult } from '@/app/actions/utils';
 
 const mockProject = {
   id: 'proj-1',
@@ -150,6 +157,167 @@ describe('projectStore', () => {
       });
 
       expect(updateChapterContentAction).not.toHaveBeenCalled();
+    });
+
+    it('returns true when there are no unsaved changes to save', async () => {
+      useProjectStore.setState({
+        projectId: 'proj-1',
+        project: mockProject,
+        hasUnsavedChanges: false,
+      });
+
+      let result: boolean | undefined;
+      await act(async () => {
+        result = await useProjectStore.getState().saveCurrentChapter();
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it('returns true after a successful save', async () => {
+      vi.mocked(updateChapterContentAction).mockResolvedValue({
+        success: true,
+        data: { saved: true, updatedAt: new Date().toISOString() },
+      });
+
+      useProjectStore.setState({
+        projectId: 'proj-1',
+        project: mockProject,
+        activeContent: '{"type":"doc","content":[]}',
+        hasUnsavedChanges: true,
+      });
+
+      let result: boolean | undefined;
+      await act(async () => {
+        result = await useProjectStore.getState().saveCurrentChapter();
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it('returns false when the save fails, leaving hasUnsavedChanges true', async () => {
+      vi.mocked(updateChapterContentAction).mockResolvedValue({
+        success: false,
+        error: 'Network error',
+      });
+
+      useProjectStore.setState({
+        projectId: 'proj-1',
+        project: mockProject,
+        activeContent: '{"type":"doc","content":[]}',
+        hasUnsavedChanges: true,
+      });
+
+      let result: boolean | undefined;
+      await act(async () => {
+        result = await useProjectStore.getState().saveCurrentChapter();
+      });
+
+      expect(result).toBe(false);
+      expect(useProjectStore.getState().hasUnsavedChanges).toBe(true);
+    });
+  });
+
+  describe('createSnapshot', () => {
+    it('creates a snapshot directly when there are no unsaved changes', async () => {
+      useProjectStore.setState({
+        projectId: 'proj-1',
+        project: mockProject,
+        hasUnsavedChanges: false,
+      });
+      vi.mocked(createSnapshotAction).mockResolvedValue({
+        success: true,
+        data: {
+          id: 'snap-1',
+          projectId: 'proj-1',
+          number: 1,
+          type: 'manual',
+          title: 'Version 1',
+          comment: null,
+          authorId: 'user-1',
+          chapterCount: 1,
+          createdAt: new Date().toISOString(),
+        },
+      });
+
+      let result: ActionResult<SerializedSnapshot> | undefined;
+      await act(async () => {
+        result = await useProjectStore.getState().createSnapshot('Version 1');
+      });
+
+      expect(updateChapterContentAction).not.toHaveBeenCalled();
+      expect(createSnapshotAction).toHaveBeenCalledWith('proj-1', 'Version 1', undefined);
+      expect(result!.success).toBe(true);
+    });
+
+    it('flushes unsaved changes before creating a snapshot', async () => {
+      useProjectStore.setState({
+        projectId: 'proj-1',
+        project: mockProject,
+        activeContent: '{"type":"doc","content":[]}',
+        hasUnsavedChanges: true,
+      });
+      vi.mocked(updateChapterContentAction).mockResolvedValue({
+        success: true,
+        data: { saved: true, updatedAt: new Date().toISOString() },
+      });
+      vi.mocked(createSnapshotAction).mockResolvedValue({
+        success: true,
+        data: {
+          id: 'snap-1',
+          projectId: 'proj-1',
+          number: 1,
+          type: 'manual',
+          title: 'Version 1',
+          comment: 'Un jalon',
+          authorId: 'user-1',
+          chapterCount: 1,
+          createdAt: new Date().toISOString(),
+        },
+      });
+
+      await act(async () => {
+        await useProjectStore.getState().createSnapshot('Version 1', 'Un jalon');
+      });
+
+      expect(updateChapterContentAction).toHaveBeenCalled();
+      expect(createSnapshotAction).toHaveBeenCalledWith('proj-1', 'Version 1', 'Un jalon');
+    });
+
+    it('fails clearly and never creates a snapshot when the forced save fails', async () => {
+      useProjectStore.setState({
+        projectId: 'proj-1',
+        project: mockProject,
+        activeContent: '{"type":"doc","content":[]}',
+        hasUnsavedChanges: true,
+      });
+      vi.mocked(updateChapterContentAction).mockResolvedValue({
+        success: false,
+        error: 'Network error',
+      });
+
+      let result: ActionResult<SerializedSnapshot> | undefined;
+      await act(async () => {
+        result = await useProjectStore.getState().createSnapshot('Version 1');
+      });
+
+      expect(createSnapshotAction).not.toHaveBeenCalled();
+      expect(result!.success).toBe(false);
+      if (!result!.success) {
+        expect(result!.error).toMatch(/sauvegarde a échoué/i);
+      }
+    });
+
+    it('returns an error when no project is loaded', async () => {
+      useProjectStore.setState({ projectId: null, project: null });
+
+      let result: ActionResult<SerializedSnapshot> | undefined;
+      await act(async () => {
+        result = await useProjectStore.getState().createSnapshot('Version 1');
+      });
+
+      expect(createSnapshotAction).not.toHaveBeenCalled();
+      expect(result!.success).toBe(false);
     });
   });
 

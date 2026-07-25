@@ -12,6 +12,7 @@ import {
   updateChapterTitleAction,
   setActiveChapterAction,
 } from '@/app/actions/chapter-actions';
+import { createSnapshotAction } from '@/app/actions/snapshot-actions';
 
 /**
  * Default empty TipTap document.
@@ -274,7 +275,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const { projectId, project, activeContent, hasUnsavedChanges } = get();
 
     if (!projectId || !project || !project.activeChapterId || !hasUnsavedChanges) {
-      return;
+      return true;
     }
 
     set({ isSaving: true });
@@ -288,7 +289,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
     if (!result.success) {
       set({ isSaving: false, error: result.error });
-      return;
+      return false;
     }
 
     // Update local chapter content to match saved
@@ -304,6 +305,25 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       hasUnsavedChanges: false,
       lastSavedAt: new Date(result.data.updatedAt),
     });
+
+    return true;
+  },
+
+  createSnapshot: async (title: string, comment?: string) => {
+    const { projectId, hasUnsavedChanges, saveCurrentChapter } = get();
+
+    if (!projectId) {
+      return { success: false, error: 'Aucun projet chargé' } as const;
+    }
+
+    if (hasUnsavedChanges) {
+      const saved = await saveCurrentChapter();
+      if (!saved) {
+        return { success: false, error: 'La sauvegarde a échoué. Snapshot non créé.' } as const;
+      }
+    }
+
+    return createSnapshotAction(projectId, title, comment);
   },
 
   // === UI State ===

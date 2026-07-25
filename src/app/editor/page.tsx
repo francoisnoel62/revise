@@ -6,7 +6,7 @@
 import { useEffect, useState, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, BookOpen } from 'lucide-react';
+import { ArrowLeft, BookOpen, History } from 'lucide-react';
 import { useProjectStore } from '@/store/projectStore';
 import { TextEditor } from '@/components/editor/TextEditor';
 import { FormattingToolbar } from '@/components/editor/FormattingToolbar';
@@ -26,6 +26,7 @@ import { listProvidersAction, SafeProvider } from '@/app/actions/provider-action
 import { updateProjectProviderAction } from '@/app/actions/project-actions';
 import { generateChapterAction } from '@/app/actions/chapter-generation-actions';
 import { CorrectionHistoryDialog } from '@/components/history/CorrectionHistoryDialog';
+import { SnapshotHistoryDialog } from '@/components/history/SnapshotHistoryDialog';
 import { FloatingGenerationMenu } from '@/components/editor/FloatingGenerationMenu';
 import {
   loadProjectSettingsAction,
@@ -135,6 +136,7 @@ function EditorContent() {
 
   // History dialog state
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+  const [showSnapshotHistoryDialog, setShowSnapshotHistoryDialog] = useState(false);
 
   // Autocomplete state
   const [autocompleteEnabled, setAutocompleteEnabled] = useState(true);
@@ -806,6 +808,15 @@ function EditorContent() {
             </Link>
             <ChaptersSheet />
             <ProjectSettingsMenu projectId={project.id} />
+            <Button
+              variant="ghost"
+              size="icon"
+              title="Historique des versions"
+              className="h-8 w-8"
+              onClick={() => setShowSnapshotHistoryDialog(true)}
+            >
+              <History className="h-4 w-4" />
+            </Button>
           </div>
           <div className="flex-1 text-center min-w-0 px-1">
             <h1 className="text-sm font-semibold truncate">{project.title}</h1>
@@ -828,6 +839,15 @@ function EditorContent() {
             </Link>
             <ChaptersSheet />
             <ProjectSettingsMenu projectId={project.id} />
+            <Button
+              variant="ghost"
+              size="icon"
+              title="Historique des versions"
+              className="h-8 w-8"
+              onClick={() => setShowSnapshotHistoryDialog(true)}
+            >
+              <History className="h-4 w-4" />
+            </Button>
           </div>
           <div className="flex-1 text-center min-w-0 px-2">
             <h1 className="text-base font-semibold truncate">{project.title}</h1>
@@ -863,6 +883,15 @@ function EditorContent() {
             </Link>
             <ChaptersSheet />
             <ProjectSettingsMenu projectId={project.id} />
+            <Button
+              variant="ghost"
+              size="icon"
+              title="Historique des versions"
+              className="h-8 w-8"
+              onClick={() => setShowSnapshotHistoryDialog(true)}
+            >
+              <History className="h-4 w-4" />
+            </Button>
           </div>
           {/* Center: project title */}
           <div className="text-center">
@@ -1029,6 +1058,13 @@ function EditorContent() {
           onOpenChange={setShowHistoryDialog}
         />
       )}
+
+      {/* Snapshot (version) history dialog */}
+      <SnapshotHistoryDialog
+        projectId={project.id}
+        open={showSnapshotHistoryDialog}
+        onOpenChange={setShowSnapshotHistoryDialog}
+      />
 
       {/* Command palette */}
       {hasAIProviders && (

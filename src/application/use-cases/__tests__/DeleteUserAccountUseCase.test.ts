@@ -22,6 +22,7 @@ import type { AIUsageRepository } from '@/domain/interfaces/AIUsageRepository';
 import type { AIExchangeRepository } from '@/domain/interfaces/AIExchangeRepository';
 import type { AutocompleteEventRepository } from '@/domain/interfaces/AutocompleteEventRepository';
 import type { CanonFactRepository } from '@/domain/interfaces/CanonFactRepository';
+import type { SnapshotRepository } from '@/domain/interfaces/SnapshotRepository';
 
 describe('DeleteUserAccountUseCase', () => {
   let mockUserRepository: {
@@ -112,6 +113,7 @@ describe('DeleteUserAccountUseCase', () => {
     const mockAIExchangeRepository = { deleteAllByOwner: vi.fn().mockResolvedValue(undefined) };
     const mockAutocompleteEventRepository = { deleteAllByOwner: vi.fn().mockResolvedValue(undefined) };
     const mockCanonFactRepository = { deleteAllByOwner: vi.fn().mockResolvedValue(undefined) };
+    const mockSnapshotRepository = { deleteAllByOwner: vi.fn().mockResolvedValue(0) };
 
     const useCase = new DeleteUserAccountUseCase(
       mockUserRepository as unknown as UserRepository,
@@ -128,7 +130,8 @@ describe('DeleteUserAccountUseCase', () => {
       mockAIUsageRepository as unknown as AIUsageRepository,
       mockAIExchangeRepository as unknown as AIExchangeRepository,
       mockAutocompleteEventRepository as unknown as AutocompleteEventRepository,
-      mockCanonFactRepository as unknown as CanonFactRepository
+      mockCanonFactRepository as unknown as CanonFactRepository,
+      mockSnapshotRepository as unknown as SnapshotRepository
     );
 
     await useCase.execute({ userId: 'user-1', confirmEmail: 'test@example.com' });
@@ -141,6 +144,7 @@ describe('DeleteUserAccountUseCase', () => {
     expect(mockAIExchangeRepository.deleteAllByOwner).toHaveBeenCalledWith('user-1');
     expect(mockAutocompleteEventRepository.deleteAllByOwner).toHaveBeenCalledWith('user-1');
     expect(mockCanonFactRepository.deleteAllByOwner).toHaveBeenCalledWith('user-1');
+    expect(mockSnapshotRepository.deleteAllByOwner).toHaveBeenCalledWith('user-1');
   });
 
   it('should throw UserNotFoundError when user does not exist', async () => {

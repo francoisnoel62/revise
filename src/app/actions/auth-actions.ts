@@ -31,6 +31,7 @@ import {
   getAIExchangeRepo,
   getAutocompleteEventRepo,
   getCanonFactRepo,
+  getSnapshotRepo,
 } from './utils';
 import { getRateLimiter } from '@/infrastructure/security/InMemoryRateLimiter';
 import { getHCaptchaVerifier } from '@/infrastructure/security/HCaptchaVerifier';
@@ -195,6 +196,7 @@ export async function deleteAccountAction(
     const aiExchangeRepo = await getAIExchangeRepo().catch(() => undefined);
     const autocompleteEventRepo = await getAutocompleteEventRepo();
     const canonFactRepo = await getCanonFactRepo();
+    const snapshotRepo = await getSnapshotRepo();
 
     // Execute deletion
     const useCase = new DeleteUserAccountUseCase(
@@ -212,7 +214,8 @@ export async function deleteAccountAction(
       aiUsageRepo,
       aiExchangeRepo,
       autocompleteEventRepo,
-      canonFactRepo
+      canonFactRepo,
+      snapshotRepo
     );
 
     const result = await useCase.execute({
