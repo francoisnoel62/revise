@@ -55,6 +55,20 @@ export class InMemoryProjectRepository implements ProjectRepository {
     return project;
   }
 
+  async replaceProjectIfUnchanged(
+    userId: string,
+    project: Project,
+    expectedUpdatedAt: Date
+  ): Promise<boolean> {
+    const existing = this.projects.get(project.getId());
+    if (!existing) return false;
+    if (existing.getOwnerId() !== userId) return false;
+    if (existing.getUpdatedAt().getTime() !== expectedUpdatedAt.getTime()) return false;
+
+    this.projects.set(project.getId(), project);
+    return true;
+  }
+
   async deleteProject(userId: string, projectId: string): Promise<void> {
     const existing = this.projects.get(projectId);
     if (!existing) {

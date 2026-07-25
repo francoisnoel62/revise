@@ -21,6 +21,7 @@ vi.mock('@/app/actions/chapter-actions', () => ({
 
 vi.mock('@/app/actions/snapshot-actions', () => ({
   createSnapshotAction: vi.fn(),
+  restoreSnapshotAction: vi.fn(),
 }));
 
 import {
@@ -33,7 +34,12 @@ import {
   addChapterAction,
 } from '@/app/actions/chapter-actions';
 
-import { createSnapshotAction, type SerializedSnapshot } from '@/app/actions/snapshot-actions';
+import {
+  createSnapshotAction,
+  restoreSnapshotAction,
+  type SerializedSnapshot,
+  type SerializedRestoreResult,
+} from '@/app/actions/snapshot-actions';
 import type { ActionResult } from '@/app/actions/utils';
 
 const mockProject = {
@@ -236,6 +242,8 @@ describe('projectStore', () => {
           comment: null,
           authorId: 'user-1',
           chapterCount: 1,
+          chapterTitles: ['Chapter 1'],
+          sourceSnapshotNumber: null,
           createdAt: new Date().toISOString(),
         },
       });
@@ -272,6 +280,8 @@ describe('projectStore', () => {
           comment: 'Un jalon',
           authorId: 'user-1',
           chapterCount: 1,
+          chapterTitles: ['Chapter 1'],
+          sourceSnapshotNumber: null,
           createdAt: new Date().toISOString(),
         },
       });
@@ -317,6 +327,87 @@ describe('projectStore', () => {
       });
 
       expect(createSnapshotAction).not.toHaveBeenCalled();
+      expect(result!.success).toBe(false);
+    });
+  });
+
+  describe('restoreSnapshot', () => {
+    const restoredProject = {
+      ...mockProject,
+      title: 'Titre restauré',
+      updatedAt: new Date('2026-02-01T00:00:00.000Z').toISOString(),
+    };
+
+    it('restores the project and updates the store from the result', async () => {
+      useProjectStore.setState({
+        projectId: 'proj-1',
+        project: mockProject,
+      });
+      vi.mocked(restoreSnapshotAction).mockResolvedValue({
+        success: true,
+        data: {
+          project: restoredProject,
+          restoreSnapshot: {
+            id: 'snap-restore',
+            projectId: 'proj-1',
+            number: 6,
+            type: 'restore',
+            title: 'Restauration de la version 4',
+            comment: null,
+            authorId: 'user-1',
+            chapterCount: 1,
+            chapterTitles: ['Chapter 1'],
+            sourceSnapshotNumber: 4,
+            createdAt: new Date().toISOString(),
+          },
+          safetySnapshot: null,
+        },
+      });
+
+      let result: ActionResult<SerializedRestoreResult> | undefined;
+      await act(async () => {
+        result = await useProjectStore.getState().restoreSnapshot('snap-4');
+      });
+
+      expect(restoreSnapshotAction).toHaveBeenCalledWith('proj-1', 'snap-4', mockProject.updatedAt);
+      expect(result!.success).toBe(true);
+
+      const state = useProjectStore.getState();
+      expect(state.project).toEqual(restoredProject);
+      expect(state.hasUnsavedChanges).toBe(false);
+    });
+
+    it('leaves the store untouched and surfaces the error on conflict', async () => {
+      useProjectStore.setState({
+        projectId: 'proj-1',
+        project: mockProject,
+      });
+      vi.mocked(restoreSnapshotAction).mockResolvedValue({
+        success: false,
+        error: 'Le projet a été modifié entre-temps. Veuillez recharger avant de restaurer.',
+      });
+
+      let result: ActionResult<SerializedRestoreResult> | undefined;
+      await act(async () => {
+        result = await useProjectStore.getState().restoreSnapshot('snap-4');
+      });
+
+      expect(result!.success).toBe(false);
+      if (!result!.success) {
+        expect(result!.error).toMatch(/modifié entre-temps/i);
+      }
+      expect(useProjectStore.getState().project).toEqual(mockProject);
+    });
+
+    it('returns an error when no project is loaded', async () => {
+      useProjectStore.setState({ projectId: null, project: null });
+
+      let result: ActionResult<SerializedRestoreResult> | undefined;
+      await act(async () => {
+        result = await useProjectStore.getState().restoreSnapshot('snap-4');
+      });
+
+      expect(restoreSnapshotAction).not.toHaveBeenCalled();
       expect(result!.success).toBe(false);
     });
   });

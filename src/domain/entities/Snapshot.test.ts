@@ -117,6 +117,50 @@ describe('Snapshot', () => {
         'Snapshot must capture at least one chapter'
       );
     });
+
+    it('defaults sourceSnapshotNumber to null', () => {
+      const snapshot = new Snapshot(validProps);
+
+      expect(snapshot.getSourceSnapshotNumber()).toBeNull();
+    });
+
+    it('accepts a sourceSnapshotNumber for a restore snapshot', () => {
+      const snapshot = new Snapshot({
+        ...validProps,
+        type: 'restore',
+        sourceSnapshotNumber: 4,
+      });
+
+      expect(snapshot.getSourceSnapshotNumber()).toBe(4);
+    });
+
+    it('requires sourceSnapshotNumber for a restore snapshot', () => {
+      expect(() => new Snapshot({ ...validProps, type: 'restore' })).toThrow(
+        'Restore snapshot must reference its source snapshot number'
+      );
+    });
+
+    it('throws if sourceSnapshotNumber is not a positive integer', () => {
+      expect(
+        () =>
+          new Snapshot({
+            ...validProps,
+            type: 'restore',
+            sourceSnapshotNumber: 0,
+          })
+      ).toThrow('Source snapshot number must be a positive integer');
+    });
+
+    it('rejects a sourceSnapshotNumber on a non-restore snapshot', () => {
+      expect(
+        () =>
+          new Snapshot({
+            ...validProps,
+            type: 'manual',
+            sourceSnapshotNumber: 4,
+          })
+      ).toThrow('Only a restore snapshot may reference a source snapshot number');
+    });
   });
 
   describe('immutability', () => {

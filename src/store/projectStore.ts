@@ -12,7 +12,7 @@ import {
   updateChapterTitleAction,
   setActiveChapterAction,
 } from '@/app/actions/chapter-actions';
-import { createSnapshotAction } from '@/app/actions/snapshot-actions';
+import { createSnapshotAction, restoreSnapshotAction } from '@/app/actions/snapshot-actions';
 
 /**
  * Default empty TipTap document.
@@ -324,6 +324,29 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     }
 
     return createSnapshotAction(projectId, title, comment);
+  },
+
+  restoreSnapshot: async (snapshotId: string) => {
+    const { projectId, project } = get();
+
+    if (!projectId || !project) {
+      return { success: false, error: 'Aucun projet chargé' } as const;
+    }
+
+    const result = await restoreSnapshotAction(projectId, snapshotId, project.updatedAt);
+
+    if (!result.success) {
+      return result;
+    }
+
+    set({
+      project: result.data.project,
+      activeContent: getActiveContent(result.data.project),
+      hasUnsavedChanges: false,
+      lastSavedAt: new Date(result.data.project.updatedAt),
+    });
+
+    return result;
   },
 
   // === UI State ===

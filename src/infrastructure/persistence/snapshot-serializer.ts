@@ -23,6 +23,7 @@ export interface SnapshotDocument {
   projectTitle: string;
   chapters: SnapshotChapter[];
   editorialMetadata: SnapshotEditorialMetadata | null;
+  sourceSnapshotNumber: number | null;
   createdAt: Date;
 }
 
@@ -42,6 +43,7 @@ export function serializeSnapshot(snapshot: Snapshot): SnapshotDocument {
     projectTitle: snapshot.getProjectTitle(),
     chapters: snapshot.getChapters(),
     editorialMetadata: snapshot.getEditorialMetadata(),
+    sourceSnapshotNumber: snapshot.getSourceSnapshotNumber(),
     createdAt: snapshot.getCreatedAt(),
   };
 }
@@ -62,6 +64,7 @@ export function deserializeSnapshot(doc: SnapshotDocument): Snapshot {
     projectTitle: doc.projectTitle,
     chapters: doc.chapters,
     editorialMetadata: doc.editorialMetadata,
+    sourceSnapshotNumber: doc.sourceSnapshotNumber,
     createdAt: new Date(doc.createdAt),
   });
 }

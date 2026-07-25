@@ -85,6 +85,21 @@ export class MongoDBProjectRepository implements ProjectRepository {
     return project;
   }
 
+  async replaceProjectIfUnchanged(
+    userId: string,
+    project: Project,
+    expectedUpdatedAt: Date
+  ): Promise<boolean> {
+    const doc = serializeProject(project);
+
+    const result = await this.collection.replaceOne(
+      { _id: project.getId(), ownerId: userId, updatedAt: expectedUpdatedAt },
+      doc
+    );
+
+    return result.matchedCount > 0;
+  }
+
   async deleteProject(userId: string, projectId: string): Promise<void> {
     const result = await this.collection.deleteOne({
       _id: projectId,

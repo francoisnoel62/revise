@@ -3,10 +3,12 @@
 
 'use server';
 
+import { Project } from '@/domain/entities/Project';
 import { Snapshot } from '@/domain/entities/Snapshot';
 import { SnapshotType } from '@/domain/value-objects/SnapshotType';
 import { CreateSnapshotUseCase } from '@/application/use-cases/CreateSnapshotUseCase';
 import { ListSnapshotsUseCase } from '@/application/use-cases/ListSnapshotsUseCase';
+import { RestoreSnapshotUseCase } from '@/application/use-cases/RestoreSnapshotUseCase';
 import {
   ActionResult,
   getAuthenticatedUserId,
@@ -16,6 +18,30 @@ import {
   getIdGenerator,
   withErrorHandling,
 } from './utils';
+import { SerializedProject } from './project-actions';
+
+// Mirrors project-actions.ts's serializeProject (same convention as chapter-actions.ts)
+function serializeProject(project: Project): SerializedProject {
+  return {
+    id: project.getId(),
+    title: project.getTitle(),
+    chapters: project.getChapters().map((ch) => ({
+      id: ch.getId(),
+      title: ch.getTitle(),
+      content: ch.getContent(),
+      order: ch.getOrder(),
+      metadata: {
+        wordCount: ch.getMetadata().wordCount,
+        characterCount: ch.getMetadata().characterCount,
+        lastEdited: ch.getMetadata().lastEdited.toISOString(),
+      },
+    })),
+    activeChapterId: project.getActiveChapterId(),
+    providerId: project.getProviderId(),
+    createdAt: project.getCreatedAt().toISOString(),
+    updatedAt: project.getUpdatedAt().toISOString(),
+  };
+}
 
 /**
  * Serialized snapshot for client transport.
@@ -29,6 +55,10 @@ export interface SerializedSnapshot {
   comment: string | null;
   authorId: string;
   chapterCount: number;
+  /** Chapter titles in order, for a lightweight structure preview (e.g. before restoring). */
+  chapterTitles: string[];
+  /** The source snapshot's number for a restore snapshot; null otherwise. Survives deletion of the source. */
+  sourceSnapshotNumber: number | null;
   createdAt: string;
 }
 
@@ -47,6 +77,10 @@ function serializeSnapshot(snapshot: Snapshot): SerializedSnapshot {
     comment: snapshot.getComment(),
     authorId: snapshot.getAuthorId(),
     chapterCount: snapshot.getChapters().length,
+    chapterTitles: snapshot.getChapters()
+      .sort((a, b) => a.order - b.order)
+      .map((chapter) => chapter.title),
+    sourceSnapshotNumber: snapshot.getSourceSnapshotNumber(),
     createdAt: snapshot.getCreatedAt().toISOString(),
   };
 }
@@ -108,6 +142,50 @@ export async function listSnapshotsAction(
     return {
       snapshots: result.snapshots.map(serializeSnapshot),
       hasUnsnapshottedChanges: result.hasUnsnapshottedChanges,
+    };
+  });
+}
+
+export interface SerializedRestoreResult {
+  project: SerializedProject;
+  restoreSnapshot: SerializedSnapshot;
+  /** The pre-restore state saved before restoring, or null if it was already snapshotted. */
+  safetySnapshot: SerializedSnapshot | null;
+}
+
+/**
+ * Restore a project to a past snapshot without losing history.
+ * If the current state differs from the latest snapshot, a "Sécurité avant
+ * restauration" snapshot is created first. Rejects with an error if the
+ * project changed since `expectedProjectUpdatedAt` — the caller must reload.
+ */
+export async function restoreSnapshotAction(
+  projectId: string,
+  snapshotId: string,
+  expectedProjectUpdatedAt: string
+): Promise<ActionResult<SerializedRestoreResult>> {
+  const auth = await getAuthenticatedUserId();
+  if ('error' in auth) return auth.error;
+
+  return withErrorHandling(async () => {
+    const useCase = new RestoreSnapshotUseCase(
+      await getSnapshotRepo(),
+      await getRepository(),
+      await getProjectSettingsRepo(),
+      await getIdGenerator()
+    );
+
+    const result = await useCase.execute({
+      ownerId: auth.userId,
+      projectId,
+      snapshotId,
+      expectedProjectUpdatedAt: new Date(expectedProjectUpdatedAt),
+    });
+
+    return {
+      project: serializeProject(result.project),
+      restoreSnapshot: serializeSnapshot(result.restoreSnapshot),
+      safetySnapshot: result.safetySnapshot ? serializeSnapshot(result.safetySnapshot) : null,
     };
   });
 }

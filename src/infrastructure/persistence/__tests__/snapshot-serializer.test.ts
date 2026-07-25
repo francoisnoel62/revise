@@ -64,8 +64,17 @@ describe('snapshot-serializer', () => {
         projectTitle: 'Mon roman',
         chapters,
         editorialMetadata,
+        sourceSnapshotNumber: null,
         createdAt: new Date('2026-01-01T10:00:00.000Z'),
       });
+    });
+
+    it('serializes the source snapshot number for a restore snapshot', () => {
+      const snapshot = buildSnapshot({ type: 'restore', sourceSnapshotNumber: 2 });
+
+      const doc = serializeSnapshot(snapshot);
+
+      expect(doc.sourceSnapshotNumber).toBe(2);
     });
 
     it('serializes null comment and null editorial metadata', () => {
@@ -92,6 +101,7 @@ describe('snapshot-serializer', () => {
         projectTitle: 'Mon roman',
         chapters,
         editorialMetadata,
+        sourceSnapshotNumber: null,
         createdAt: new Date('2026-01-01T10:00:00.000Z'),
       };
 
@@ -104,7 +114,30 @@ describe('snapshot-serializer', () => {
       expect(snapshot.getComment()).toBe('Un jalon éditorial');
       expect(snapshot.getChapters()).toEqual(chapters);
       expect(snapshot.getEditorialMetadata()).toEqual(editorialMetadata);
+      expect(snapshot.getSourceSnapshotNumber()).toBeNull();
       expect(snapshot.getCreatedAt().toISOString()).toBe('2026-01-01T10:00:00.000Z');
+    });
+
+    it('reconstructs a restore snapshot with its source snapshot number', () => {
+      const doc: SnapshotDocument = {
+        _id: 'snapshot-2',
+        projectId: 'project-1',
+        ownerId: 'owner-1',
+        authorId: 'owner-1',
+        number: 5,
+        type: 'restore',
+        title: 'Version 5',
+        comment: null,
+        projectTitle: 'Mon roman',
+        chapters,
+        editorialMetadata: null,
+        sourceSnapshotNumber: 2,
+        createdAt: new Date('2026-01-01T10:00:00.000Z'),
+      };
+
+      const snapshot = deserializeSnapshot(doc);
+
+      expect(snapshot.getSourceSnapshotNumber()).toBe(2);
     });
 
     it('reconstructs a Snapshot with null editorial metadata', () => {
@@ -120,6 +153,7 @@ describe('snapshot-serializer', () => {
         projectTitle: 'Mon roman',
         chapters,
         editorialMetadata: null,
+        sourceSnapshotNumber: null,
         createdAt: new Date('2026-01-01T10:00:00.000Z'),
       };
 
@@ -136,6 +170,7 @@ describe('snapshot-serializer', () => {
 
       expect(roundTripped.getChapters()).toEqual(original.getChapters());
       expect(roundTripped.getEditorialMetadata()).toEqual(original.getEditorialMetadata());
+      expect(roundTripped.getSourceSnapshotNumber()).toBe(original.getSourceSnapshotNumber());
       expect(roundTripped.getCreatedAt().toISOString()).toBe(original.getCreatedAt().toISOString());
     });
   });

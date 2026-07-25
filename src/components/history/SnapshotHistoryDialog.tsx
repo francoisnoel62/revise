@@ -1,5 +1,5 @@
-// ABOUTME: Dialog for creating and consulting a project's manual snapshot history
-// ABOUTME: Delegates the force-save-then-snapshot flow to the project store
+// ABOUTME: Dialog for creating, consulting, and restoring a project's snapshot history
+// ABOUTME: Delegates the force-save-then-snapshot and restore flows to the project store
 
 'use client';
 
@@ -57,7 +57,15 @@ export function SnapshotHistoryDialog({
   const [comment, setComment] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 
+  const [restoreTarget, setRestoreTarget] = useState<SerializedSnapshot | null>(null);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+  const [highlightedSnapshotId, setHighlightedSnapshotId] = useState<string | null>(null);
+
   const createSnapshot = useProjectStore((s) => s.createSnapshot);
+  const restoreSnapshot = useProjectStore((s) => s.restoreSnapshot);
+  const loadProject = useProjectStore((s) => s.loadProject);
+  const currentChapters = useProjectStore((s) => s.project?.chapters ?? []);
 
   const loadHistory = useCallback(async () => {
     if (!projectId) return;
@@ -81,6 +89,10 @@ export function SnapshotHistoryDialog({
   useEffect(() => {
     if (open) {
       loadHistory();
+    } else {
+      setRestoreTarget(null);
+      setRestoreError(null);
+      setHighlightedSnapshotId(null);
     }
   }, [open, loadHistory]);
 
@@ -103,6 +115,36 @@ export function SnapshotHistoryDialog({
     } finally {
       setIsCreating(false);
     }
+  };
+
+  // Preview only — RestoreSnapshotUseCase is the source of truth for actual number allocation.
+  const nextVersionNumber = (snapshots[0]?.number ?? 0) + 1;
+
+  const handleConfirmRestore = async () => {
+    if (!restoreTarget) return;
+
+    setIsRestoring(true);
+    setRestoreError(null);
+
+    const result = await restoreSnapshot(restoreTarget.id);
+
+    if (!result.success) {
+      setRestoreError(result.error);
+      setIsRestoring(false);
+      return;
+    }
+
+    setIsRestoring(false);
+    setRestoreTarget(null);
+    setHighlightedSnapshotId(result.data.restoreSnapshot.id);
+    await loadHistory();
+  };
+
+  const handleReloadAfterConflict = async () => {
+    await loadProject(projectId);
+    setRestoreTarget(null);
+    setRestoreError(null);
+    await loadHistory();
   };
 
   return (
@@ -170,19 +212,40 @@ export function SnapshotHistoryDialog({
                   </div>
                 ) : (
                   snapshots.map((snapshot) => (
-                    <div key={snapshot.id} className="p-4">
+                    <div
+                      key={snapshot.id}
+                      data-testid={`snapshot-row-${snapshot.id}`}
+                      className={
+                        snapshot.id === highlightedSnapshotId
+                          ? 'p-4 bg-primary/10 ring-1 ring-primary/40'
+                          : 'p-4'
+                      }
+                    >
                       <div className="flex items-center gap-2 flex-wrap">
                         <Badge variant="secondary">v{snapshot.number}</Badge>
                         <span className="font-medium">{snapshot.title}</span>
                         <Badge variant="outline">
                           {SNAPSHOT_TYPE_LABELS[snapshot.type]}
                         </Badge>
-                        <span className="text-xs text-muted-foreground ml-auto">
+                        <span className="text-xs text-muted-foreground">
                           {formatDate(snapshot.createdAt)}
                         </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="ml-auto"
+                          onClick={() => setRestoreTarget(snapshot)}
+                        >
+                          Restaurer
+                        </Button>
                       </div>
                       {snapshot.comment && (
                         <p className="text-sm text-muted-foreground mt-1">{snapshot.comment}</p>
+                      )}
+                      {snapshot.sourceSnapshotNumber != null && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Restaurée depuis la version {snapshot.sourceSnapshotNumber}
+                        </p>
                       )}
                     </div>
                   ))
@@ -192,6 +255,92 @@ export function SnapshotHistoryDialog({
           )}
         </div>
       </DialogContent>
+
+      <Dialog
+        open={restoreTarget !== null}
+        onOpenChange={(next) => {
+          if (!next) {
+            setRestoreTarget(null);
+            setRestoreError(null);
+          }
+        }}
+      >
+        <DialogContent>
+          {restoreTarget && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Restaurer la version {restoreTarget.number}</DialogTitle>
+                <DialogDescription>
+                  {restoreTarget.title} · {formatDate(restoreTarget.createdAt)}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-3 text-sm">
+                <p className="text-muted-foreground">
+                  Aucune version existante ne sera supprimée.
+                </p>
+
+                {hasUnsnapshottedChanges ? (
+                  <p>
+                    Vos modifications non enregistrées seront conservées sous la version{' '}
+                    <strong>v{nextVersionNumber}</strong> (« Sécurité avant restauration »), puis
+                    la version <strong>v{nextVersionNumber + 1}</strong> restaurera le contenu de
+                    la version {restoreTarget.number}.
+                  </p>
+                ) : (
+                  <p>
+                    Cette restauration créera la version <strong>v{nextVersionNumber}</strong>.
+                  </p>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="font-medium mb-1">Structure actuelle</p>
+                    <ul className="list-disc list-inside text-muted-foreground">
+                      {currentChapters.map((chapter) => (
+                        <li key={chapter.id}>{chapter.title}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="font-medium mb-1">Après restauration</p>
+                    <ul className="list-disc list-inside text-muted-foreground">
+                      {restoreTarget.chapterTitles.map((chapterTitle, index) => (
+                        <li key={`${chapterTitle}-${index}`}>{chapterTitle}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                {restoreError && (
+                  <div className="space-y-2">
+                    <p className="text-destructive">{restoreError}</p>
+                    <Button variant="outline" size="sm" onClick={handleReloadAfterConflict}>
+                      Recharger le projet
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setRestoreTarget(null);
+                    setRestoreError(null);
+                  }}
+                  disabled={isRestoring}
+                >
+                  Annuler
+                </Button>
+                <Button onClick={handleConfirmRestore} disabled={isRestoring}>
+                  {isRestoring ? 'Restauration...' : 'Confirmer la restauration'}
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

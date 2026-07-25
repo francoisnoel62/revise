@@ -42,6 +42,8 @@ export interface SnapshotProperties {
   projectTitle: string;
   chapters: SnapshotChapter[];
   editorialMetadata: SnapshotEditorialMetadata | null;
+  /** The source snapshot's number, for provenance. Required for 'restore' type, forbidden otherwise. */
+  sourceSnapshotNumber?: number | null;
   createdAt?: Date;
 }
 
@@ -57,6 +59,7 @@ export class Snapshot {
   private readonly projectTitle: string;
   private readonly chapters: SnapshotChapter[];
   private readonly editorialMetadata: SnapshotEditorialMetadata | null;
+  private readonly sourceSnapshotNumber: number | null;
   private readonly createdAt: Date;
 
   constructor(props: SnapshotProperties) {
@@ -84,6 +87,17 @@ export class Snapshot {
     if (!props.chapters || props.chapters.length === 0) {
       throw new Error('Snapshot must capture at least one chapter');
     }
+    const sourceSnapshotNumber = props.sourceSnapshotNumber ?? null;
+    if (props.type === 'restore') {
+      if (sourceSnapshotNumber === null) {
+        throw new Error('Restore snapshot must reference its source snapshot number');
+      }
+      if (!Number.isInteger(sourceSnapshotNumber) || sourceSnapshotNumber < 1) {
+        throw new Error('Source snapshot number must be a positive integer');
+      }
+    } else if (sourceSnapshotNumber !== null) {
+      throw new Error('Only a restore snapshot may reference a source snapshot number');
+    }
 
     this.id = props.id;
     this.projectId = props.projectId;
@@ -102,6 +116,7 @@ export class Snapshot {
           relatedWorks: [...props.editorialMetadata.relatedWorks],
         }
       : null;
+    this.sourceSnapshotNumber = sourceSnapshotNumber;
     this.createdAt = props.createdAt ?? new Date();
   }
 
@@ -152,6 +167,10 @@ export class Snapshot {
       contributors: [...this.editorialMetadata.contributors],
       relatedWorks: [...this.editorialMetadata.relatedWorks],
     };
+  }
+
+  getSourceSnapshotNumber(): number | null {
+    return this.sourceSnapshotNumber;
   }
 
   getCreatedAt(): Date {
