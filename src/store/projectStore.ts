@@ -255,8 +255,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       project: {
         ...project,
         chapters: project.chapters.map((ch) =>
-          ch.id === chapterId ? result.data : ch
+          ch.id === chapterId ? result.data.chapter : ch
         ),
+        updatedAt: result.data.projectUpdatedAt,
       },
       isSaving: false,
     });
@@ -300,7 +301,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     );
 
     set({
-      project: { ...project, chapters: updatedChapters },
+      project: { ...project, chapters: updatedChapters, updatedAt: result.data.updatedAt },
       isSaving: false,
       hasUnsavedChanges: false,
       lastSavedAt: new Date(result.data.updatedAt),

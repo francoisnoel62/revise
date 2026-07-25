@@ -31,6 +31,7 @@ import {
 
 import {
   updateChapterContentAction,
+  updateChapterTitleAction,
   addChapterAction,
 } from '@/app/actions/chapter-actions';
 
@@ -199,6 +200,27 @@ describe('projectStore', () => {
       });
 
       expect(result).toBe(true);
+    });
+
+    it('syncs project.updatedAt to the persisted value, not a client-guessed one', async () => {
+      const persistedUpdatedAt = new Date('2026-03-01T12:00:00.000Z').toISOString();
+      vi.mocked(updateChapterContentAction).mockResolvedValue({
+        success: true,
+        data: { saved: true, updatedAt: persistedUpdatedAt },
+      });
+
+      useProjectStore.setState({
+        projectId: 'proj-1',
+        project: mockProject,
+        activeContent: '{"type":"doc","content":[]}',
+        hasUnsavedChanges: true,
+      });
+
+      await act(async () => {
+        await useProjectStore.getState().saveCurrentChapter();
+      });
+
+      expect(useProjectStore.getState().project!.updatedAt).toBe(persistedUpdatedAt);
     });
 
     it('returns false when the save fails, leaving hasUnsavedChanges true', async () => {
@@ -409,6 +431,48 @@ describe('projectStore', () => {
 
       expect(restoreSnapshotAction).not.toHaveBeenCalled();
       expect(result!.success).toBe(false);
+    });
+  });
+
+  describe('updateChapterTitle', () => {
+    it('syncs project.updatedAt to the persisted value returned by the server', async () => {
+      const persistedUpdatedAt = new Date('2026-03-01T12:00:00.000Z').toISOString();
+      useProjectStore.setState({
+        projectId: 'proj-1',
+        project: mockProject,
+      });
+      vi.mocked(updateChapterTitleAction).mockResolvedValue({
+        success: true,
+        data: {
+          chapter: { ...mockProject.chapters[0], title: 'Nouveau titre' },
+          projectUpdatedAt: persistedUpdatedAt,
+        },
+      });
+
+      await act(async () => {
+        await useProjectStore.getState().updateChapterTitle('ch-1', 'Nouveau titre');
+      });
+
+      const state = useProjectStore.getState();
+      expect(state.project!.updatedAt).toBe(persistedUpdatedAt);
+      expect(state.project!.chapters[0].title).toBe('Nouveau titre');
+    });
+
+    it('reverts the optimistic update on failure', async () => {
+      useProjectStore.setState({
+        projectId: 'proj-1',
+        project: mockProject,
+      });
+      vi.mocked(updateChapterTitleAction).mockResolvedValue({
+        success: false,
+        error: 'Network error',
+      });
+
+      await act(async () => {
+        await useProjectStore.getState().updateChapterTitle('ch-1', 'Nouveau titre');
+      });
+
+      expect(useProjectStore.getState().project).toEqual(mockProject);
     });
   });
 
