@@ -2,18 +2,21 @@
 // ABOUTME: Also reports whether the current state differs from the latest snapshot
 
 import { Snapshot } from '../../domain/entities/Snapshot';
-import { SnapshotRepository } from '../../domain/interfaces/SnapshotRepository';
+import { SnapshotRepository, SnapshotPageQuery } from '../../domain/interfaces/SnapshotRepository';
 import { ProjectRepository } from '../../domain/interfaces/ProjectRepository';
 import { ProjectSettingsRepository } from '../../domain/interfaces/ProjectSettingsRepository';
 
 export interface ListSnapshotsInput {
   ownerId: string;
   projectId: string;
+  /** Optional history page. The default preserves the complete-list use case. */
+  page?: SnapshotPageQuery;
 }
 
 export interface ListSnapshotsResult {
   snapshots: Snapshot[];
   hasUnsnapshottedChanges: boolean;
+  nextBeforeNumber: number | null;
 }
 
 function latestOf(snapshots: Snapshot[]): Snapshot | null {
@@ -44,19 +47,26 @@ export class ListSnapshotsUseCase {
       throw new Error('Project not found');
     }
 
-    const [snapshots, settings] = await Promise.all([
-      this.snapshotRepository.findByProjectId(input.ownerId, input.projectId),
+    const [settings, latest, page] = await Promise.all([
       this.projectSettingsRepository.findByProjectId(input.ownerId, input.projectId),
+      input.page && this.snapshotRepository.findPageByProjectId
+        ? this.snapshotRepository.findLatestByProjectId(input.ownerId, input.projectId)
+        : Promise.resolve(null),
+      input.page && this.snapshotRepository.findPageByProjectId
+        ? this.snapshotRepository.findPageByProjectId(input.ownerId, input.projectId, input.page)
+        : Promise.resolve(null),
     ]);
-
-    const latest = latestOf(snapshots);
+    const snapshots = page
+      ? page.snapshots
+      : await this.snapshotRepository.findByProjectId(input.ownerId, input.projectId);
+    const mostRecent = latest ?? latestOf(snapshots);
     const lastChangeAt = settings && settings.getUpdatedAt() > project.getUpdatedAt()
       ? settings.getUpdatedAt()
       : project.getUpdatedAt();
 
     const hasUnsnapshottedChanges =
-      !latest || lastChangeAt.getTime() > latest.getCreatedAt().getTime();
+      !mostRecent || lastChangeAt.getTime() > mostRecent.getCreatedAt().getTime();
 
-    return { snapshots, hasUnsnapshottedChanges };
+    return { snapshots, hasUnsnapshottedChanges, nextBeforeNumber: page?.nextBeforeNumber ?? null };
   }
 }

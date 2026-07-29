@@ -1,12 +1,12 @@
 // ABOUTME: Use case for creating a manual snapshot of a project
 // ABOUTME: Captures the current manuscript and editorial metadata under a new sequential number
 
-import { Snapshot, SnapshotEditorialMetadata } from '../../domain/entities/Snapshot';
+import { Snapshot } from '../../domain/entities/Snapshot';
 import { SnapshotRepository } from '../../domain/interfaces/SnapshotRepository';
 import { ProjectRepository } from '../../domain/interfaces/ProjectRepository';
 import { ProjectSettingsRepository } from '../../domain/interfaces/ProjectSettingsRepository';
-import { ProjectSettings } from '../../domain/entities/ProjectSettings';
 import { IdGenerator } from '../../domain/interfaces/IdGenerator';
+import { snapshotEditorialMetadataFrom } from '../services/snapshot-editorial-metadata';
 
 export interface CreateSnapshotInput {
   ownerId: string;
@@ -17,23 +17,6 @@ export interface CreateSnapshotInput {
 
 export interface CreateSnapshotResult {
   snapshot: Snapshot;
-}
-
-function toEditorialMetadata(settings: ProjectSettings): SnapshotEditorialMetadata {
-  return {
-    title: settings.getTitle(),
-    subtitle: settings.getSubtitle(),
-    summary: settings.getSummary(),
-    coverImageUrl: settings.getCoverImageUrl(),
-    genre: settings.getGenre(),
-    synopsis: settings.getSynopsis(),
-    pointOfView: settings.getPointOfView(),
-    tense: settings.getTense(),
-    targetAudience: settings.getTargetAudience(),
-    isbn: settings.getIsbn(),
-    contributors: settings.getContributors(),
-    relatedWorks: settings.getRelatedWorks(),
-  };
 }
 
 export class CreateSnapshotUseCase {
@@ -88,7 +71,7 @@ export class CreateSnapshotUseCase {
         content: chapter.getContent(),
         order: chapter.getOrder(),
       })),
-      editorialMetadata: settings ? toEditorialMetadata(settings) : null,
+      editorialMetadata: settings ? snapshotEditorialMetadataFrom(settings) : null,
     });
 
     await this.snapshotRepository.save(input.ownerId, snapshot);

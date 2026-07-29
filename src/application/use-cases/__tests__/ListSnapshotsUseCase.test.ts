@@ -134,6 +134,30 @@ describe('ListSnapshotsUseCase', () => {
     expect(mockSnapshotRepository.findLatestByProjectId).not.toHaveBeenCalled();
   });
 
+  it('loads only the requested page while using the latest snapshot for the current-state flag', async () => {
+    const latest = createMockSnapshot(30, new Date('2026-01-03T00:00:00.000Z'));
+    const pageSnapshot = createMockSnapshot(10, new Date('2026-01-02T00:00:00.000Z'));
+    mockSnapshotRepository.findPageByProjectId = vi.fn().mockResolvedValue({
+      snapshots: [pageSnapshot],
+      nextBeforeNumber: 9,
+    });
+    vi.mocked(mockSnapshotRepository.findLatestByProjectId).mockResolvedValue(latest);
+
+    const result = await useCase.execute({
+      ...validInput,
+      page: { type: 'manual', limit: 20 },
+    });
+
+    expect(result.snapshots).toEqual([pageSnapshot]);
+    expect(result.nextBeforeNumber).toBe(9);
+    expect(mockSnapshotRepository.findByProjectId).not.toHaveBeenCalled();
+    expect(mockSnapshotRepository.findPageByProjectId).toHaveBeenCalledWith(
+      ownerId,
+      projectId,
+      { type: 'manual', limit: 20 },
+    );
+  });
+
   it('flags unsnapshotted changes when no snapshot exists yet', async () => {
     vi.mocked(mockSnapshotRepository.findByProjectId).mockResolvedValue([]);
 

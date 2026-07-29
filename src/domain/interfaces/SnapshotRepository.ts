@@ -2,6 +2,22 @@
 // ABOUTME: Defines CRUD and sequential numbering with multi-tenant isolation via ownerId
 
 import { Snapshot } from '../entities/Snapshot';
+import { SnapshotType } from '../value-objects/SnapshotType';
+
+export interface SnapshotPageQuery {
+  type?: SnapshotType;
+  authorId?: string;
+  from?: Date;
+  to?: Date;
+  /** Returns records older than this sequence number. */
+  beforeNumber?: number;
+  limit: number;
+}
+
+export interface SnapshotPage {
+  snapshots: Snapshot[];
+  nextBeforeNumber: number | null;
+}
 
 export interface SnapshotRepository {
   /**
@@ -26,6 +42,16 @@ export interface SnapshotRepository {
    * @param projectId - The project ID
    */
   findByProjectId(ownerId: string, projectId: string): Promise<Snapshot[]>;
+
+  /**
+   * Load one chronological page for the history UI. Optional temporarily so
+   * older test doubles can still exercise the core snapshot use cases.
+   */
+  findPageByProjectId?(
+    ownerId: string,
+    projectId: string,
+    query: SnapshotPageQuery
+  ): Promise<SnapshotPage>;
 
   /**
    * Find the most recent snapshot for a project, if any.

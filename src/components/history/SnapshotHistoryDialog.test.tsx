@@ -27,6 +27,7 @@ vi.mock('@/store/projectStore', () => ({
 const mockListSnapshotsAction = vi.fn();
 vi.mock('@/app/actions/snapshot-actions', () => ({
   listSnapshotsAction: (...args: unknown[]) => mockListSnapshotsAction(...args),
+  loadSnapshotComparisonAction: vi.fn(),
 }));
 
 const currentProject = {

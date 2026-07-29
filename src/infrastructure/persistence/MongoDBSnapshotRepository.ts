@@ -2,7 +2,7 @@
 // ABOUTME: All queries filter by ownerId; sequence numbers are allocated atomically.
 
 import { Db, Collection } from 'mongodb';
-import { SnapshotRepository } from '@/domain/interfaces/SnapshotRepository';
+import { SnapshotRepository, SnapshotPageQuery, SnapshotPage } from '@/domain/interfaces/SnapshotRepository';
 import { Snapshot } from '@/domain/entities/Snapshot';
 import { SnapshotDocument, serializeSnapshot, deserializeSnapshot } from './snapshot-serializer';
 
@@ -86,6 +86,37 @@ export class MongoDBSnapshotRepository implements SnapshotRepository {
 
     if (!doc) return null;
     return deserializeSnapshot(doc);
+  }
+
+  async findPageByProjectId(
+    ownerId: string,
+    projectId: string,
+    query: SnapshotPageQuery
+  ): Promise<SnapshotPage> {
+    const filter: Record<string, unknown> = { projectId, ownerId };
+    if (query.type) filter.type = query.type;
+    if (query.authorId) filter.authorId = query.authorId;
+    if (query.beforeNumber) filter.number = { $lt: query.beforeNumber };
+    if (query.from || query.to) {
+      filter.createdAt = {
+        ...(query.from ? { $gte: query.from } : {}),
+        ...(query.to ? { $lte: query.to } : {}),
+      };
+    }
+
+    const docs = await this.collection()
+      .find(filter)
+      .sort({ number: -1 })
+      .limit(query.limit + 1)
+      .toArray();
+    const hasMore = docs.length > query.limit;
+    const pageDocs = hasMore ? docs.slice(0, query.limit) : docs;
+    const last = pageDocs.at(-1);
+
+    return {
+      snapshots: pageDocs.map(deserializeSnapshot),
+      nextBeforeNumber: hasMore && last ? last.number : null,
+    };
   }
 
   async deleteByIds(ownerId: string, snapshotIds: string[]): Promise<number> {

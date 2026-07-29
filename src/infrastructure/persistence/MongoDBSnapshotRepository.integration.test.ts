@@ -121,6 +121,23 @@ describe('MongoDBSnapshotRepository — intégration MongoDB réel', () => {
     await db.collection(COUNTERS_COLLECTION).deleteMany({ ownerId: otherOwnerId });
   });
 
+  it('loads a chronological page and continuation cursor without returning the whole history', async () => {
+    await repository.save(ownerId, buildSnapshot(ownerId, projectId, 1));
+    await repository.save(ownerId, buildSnapshot(ownerId, projectId, 2));
+    await repository.save(ownerId, buildSnapshot(ownerId, projectId, 3));
+
+    const firstPage = await repository.findPageByProjectId(ownerId, projectId, { limit: 2 });
+    const secondPage = await repository.findPageByProjectId(ownerId, projectId, {
+      limit: 2,
+      beforeNumber: firstPage.nextBeforeNumber ?? undefined,
+    });
+
+    expect(firstPage.snapshots.map((snapshot) => snapshot.getNumber())).toEqual([3, 2]);
+    expect(firstPage.nextBeforeNumber).toBe(2);
+    expect(secondPage.snapshots.map((snapshot) => snapshot.getNumber())).toEqual([1]);
+    expect(secondPage.nextBeforeNumber).toBeNull();
+  });
+
   it('findLatestByProjectId returns the highest-numbered snapshot', async () => {
     await repository.save(ownerId, buildSnapshot(ownerId, projectId, 1));
     await repository.save(ownerId, buildSnapshot(ownerId, projectId, 2));

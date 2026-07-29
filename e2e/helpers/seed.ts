@@ -411,7 +411,10 @@ export async function resetRestoreFixture(): Promise<void> {
 
     const originalContent = JSON.stringify({
       type: 'doc',
-      content: [{ type: 'paragraph', content: [{ type: 'text', text: TEST_RESTORE_ORIGINAL_TEXT }] }],
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: TEST_RESTORE_ORIGINAL_TEXT }] },
+        { type: 'horizontalRule' },
+      ],
     });
     const divergedContent = JSON.stringify({
       type: 'doc',

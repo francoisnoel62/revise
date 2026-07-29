@@ -9,6 +9,8 @@ import { SnapshotType } from '@/domain/value-objects/SnapshotType';
 import { CreateSnapshotUseCase } from '@/application/use-cases/CreateSnapshotUseCase';
 import { ListSnapshotsUseCase } from '@/application/use-cases/ListSnapshotsUseCase';
 import { RestoreSnapshotUseCase } from '@/application/use-cases/RestoreSnapshotUseCase';
+import { LoadSnapshotComparisonUseCase } from '@/application/use-cases/LoadSnapshotComparisonUseCase';
+import type { SnapshotChapter, SnapshotEditorialMetadata } from '@/domain/entities/Snapshot';
 import { ProcessAutomaticSnapshotUseCase } from '@/application/use-cases/ProcessAutomaticSnapshotUseCase';
 import {
   ActionResult,
@@ -67,6 +69,31 @@ export interface SerializedSnapshot {
 export interface SerializedSnapshotHistory {
   snapshots: SerializedSnapshot[];
   hasUnsnapshottedChanges: boolean;
+  nextBeforeNumber: number | null;
+}
+
+export interface SnapshotHistoryFilters {
+  type?: SnapshotType;
+  authorId?: string;
+  from?: string;
+  to?: string;
+  beforeNumber?: number;
+}
+
+export interface SerializedSnapshotDetail extends SerializedSnapshot {
+  projectTitle: string;
+  chapters: SnapshotChapter[];
+  editorialMetadata: SnapshotEditorialMetadata | null;
+}
+
+export interface SerializedSnapshotComparison {
+  snapshot: SerializedSnapshotDetail;
+  current: {
+    projectTitle: string;
+    chapters: SnapshotChapter[];
+    editorialMetadata: SnapshotEditorialMetadata | null;
+  };
+  comparedAt: string;
 }
 
 function serializeSnapshot(snapshot: Snapshot): SerializedSnapshot {
@@ -122,6 +149,15 @@ export async function createSnapshotAction(
   });
 }
 
+function serializeSnapshotDetail(snapshot: Snapshot): SerializedSnapshotDetail {
+  return {
+    ...serializeSnapshot(snapshot),
+    projectTitle: snapshot.getProjectTitle(),
+    chapters: snapshot.getChapters(),
+    editorialMetadata: snapshot.getEditorialMetadata(),
+  };
+}
+
 /**
  * Record an editor session heartbeat and let the server decide whether a snapshot is due.
  * The client interval is only a wake-up mechanism; the persisted schedule is the clock.
@@ -151,26 +187,64 @@ export async function automaticSnapshotHeartbeatAction(
  * Also reports whether the current state has changed since the latest snapshot.
  */
 export async function listSnapshotsAction(
-  projectId: string
+  projectId: string,
+  filters?: SnapshotHistoryFilters
 ): Promise<ActionResult<SerializedSnapshotHistory>> {
   const auth = await getAuthenticatedUserId();
   if ('error' in auth) return auth.error;
 
   return withErrorHandling(async () => {
-    const useCase = new ListSnapshotsUseCase(
-      await getSnapshotRepo(),
+    const snapshotRepo = await getSnapshotRepo();
+    const pageSize = 20;
+    const from = filters?.from ? new Date(filters.from) : undefined;
+    const to = filters?.to ? new Date(`${filters.to}T23:59:59.999Z`) : undefined;
+    if ((from && Number.isNaN(from.getTime())) || (to && Number.isNaN(to.getTime()))) {
+      throw new Error('Période de filtre invalide');
+    }
+    const result = await new ListSnapshotsUseCase(
+      snapshotRepo,
       await getRepository(),
       await getProjectSettingsRepo()
-    );
-
-    const result = await useCase.execute({
+    ).execute({
       ownerId: auth.userId,
       projectId,
+      page: {
+        type: filters?.type,
+        authorId: filters?.authorId,
+        from,
+        to,
+        beforeNumber: filters?.beforeNumber,
+        limit: pageSize,
+      },
     });
 
     return {
       snapshots: result.snapshots.map(serializeSnapshot),
       hasUnsnapshottedChanges: result.hasUnsnapshottedChanges,
+      nextBeforeNumber: result.nextBeforeNumber,
+    };
+  });
+}
+
+/** Load a read-only comparison from the persisted server state. */
+export async function loadSnapshotComparisonAction(
+  projectId: string,
+  snapshotId: string,
+): Promise<ActionResult<SerializedSnapshotComparison>> {
+  const auth = await getAuthenticatedUserId();
+  if ('error' in auth) return auth.error;
+
+  return withErrorHandling(async () => {
+    const result = await new LoadSnapshotComparisonUseCase(
+      await getSnapshotRepo(),
+      await getRepository(),
+      await getProjectSettingsRepo(),
+    ).execute({ ownerId: auth.userId, projectId, snapshotId });
+
+    return {
+      snapshot: serializeSnapshotDetail(result.snapshot),
+      current: result.current,
+      comparedAt: result.comparedAt.toISOString(),
     };
   });
 }

@@ -9,6 +9,7 @@ import { ProjectRepository } from '../../domain/interfaces/ProjectRepository';
 import { ProjectSettingsRepository } from '../../domain/interfaces/ProjectSettingsRepository';
 import { ProjectSettings } from '../../domain/entities/ProjectSettings';
 import { IdGenerator } from '../../domain/interfaces/IdGenerator';
+import { snapshotEditorialMetadataFrom } from '../services/snapshot-editorial-metadata';
 
 export interface RestoreSnapshotInput {
   ownerId: string;
@@ -45,23 +46,6 @@ export class ConcurrentModificationError extends Error {
     super('Le projet a été modifié entre-temps. Veuillez recharger avant de restaurer.');
     this.name = 'ConcurrentModificationError';
   }
-}
-
-function toEditorialMetadata(settings: ProjectSettings): SnapshotEditorialMetadata {
-  return {
-    title: settings.getTitle(),
-    subtitle: settings.getSubtitle(),
-    summary: settings.getSummary(),
-    coverImageUrl: settings.getCoverImageUrl(),
-    genre: settings.getGenre(),
-    synopsis: settings.getSynopsis(),
-    pointOfView: settings.getPointOfView(),
-    tense: settings.getTense(),
-    targetAudience: settings.getTargetAudience(),
-    isbn: settings.getIsbn(),
-    contributors: settings.getContributors(),
-    relatedWorks: settings.getRelatedWorks(),
-  };
 }
 
 function applyEditorialMetadata(
@@ -212,7 +196,7 @@ export class RestoreSnapshotUseCase {
             content: chapter.getContent(),
             order: chapter.getOrder(),
           })),
-          editorialMetadata: currentSettings ? toEditorialMetadata(currentSettings) : null,
+          editorialMetadata: currentSettings ? snapshotEditorialMetadataFrom(currentSettings) : null,
         });
         await this.snapshotRepository.save(input.ownerId, safetySnapshot);
       }

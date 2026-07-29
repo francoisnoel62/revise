@@ -17,9 +17,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { listSnapshotsAction, type SerializedSnapshot } from '@/app/actions/snapshot-actions';
+import {
+  listSnapshotsAction,
+  type SerializedSnapshot,
+  type SnapshotHistoryFilters,
+} from '@/app/actions/snapshot-actions';
 import { useProjectStore } from '@/store/projectStore';
 import type { SnapshotType } from '@/domain/value-objects/SnapshotType';
+import { SnapshotComparisonDialog } from './SnapshotComparisonDialog';
 
 interface SnapshotHistoryDialogProps {
   projectId: string;
@@ -61,24 +66,31 @@ export function SnapshotHistoryDialog({
   const [isRestoring, setIsRestoring] = useState(false);
   const [restoreError, setRestoreError] = useState<string | null>(null);
   const [highlightedSnapshotId, setHighlightedSnapshotId] = useState<string | null>(null);
+  const [comparisonTarget, setComparisonTarget] = useState<SerializedSnapshot | null>(null);
+  const [historyFilters, setHistoryFilters] = useState<SnapshotHistoryFilters>({});
+  const [nextBeforeNumber, setNextBeforeNumber] = useState<number | null>(null);
 
   const createSnapshot = useProjectStore((s) => s.createSnapshot);
   const restoreSnapshot = useProjectStore((s) => s.restoreSnapshot);
   const loadProject = useProjectStore((s) => s.loadProject);
   const currentChapters = useProjectStore((s) => s.project?.chapters ?? []);
 
-  const loadHistory = useCallback(async () => {
+  const loadHistory = useCallback(async (filters?: SnapshotHistoryFilters, append = false) => {
     if (!projectId) return;
 
     setLoading(true);
     setError(null);
 
-    const result = await listSnapshotsAction(projectId);
+    const hasFilters = filters && Object.values(filters).some((value) => value !== undefined && value !== '');
+    const result = hasFilters
+      ? await listSnapshotsAction(projectId, filters)
+      : await listSnapshotsAction(projectId);
 
     if (result.success) {
-      setSnapshots(result.data.snapshots);
+      setSnapshots((previous) => append ? [...previous, ...result.data.snapshots] : result.data.snapshots);
       setHasUnsnapshottedChanges(result.data.hasUnsnapshottedChanges);
-      setTitle(`Version ${(result.data.snapshots[0]?.number ?? 0) + 1}`);
+      setNextBeforeNumber(result.data.nextBeforeNumber);
+      if (!append) setTitle(`Version ${(result.data.snapshots[0]?.number ?? 0) + 1}`);
     } else {
       setError(result.error);
     }
@@ -93,6 +105,7 @@ export function SnapshotHistoryDialog({
       setRestoreTarget(null);
       setRestoreError(null);
       setHighlightedSnapshotId(null);
+      setComparisonTarget(null);
     }
   }, [open, loadHistory]);
 
@@ -147,6 +160,15 @@ export function SnapshotHistoryDialog({
     await loadHistory();
   };
 
+  const handleApplyFilters = async () => {
+    await loadHistory(historyFilters);
+  };
+
+  const handleLoadMore = async () => {
+    if (!nextBeforeNumber) return;
+    await loadHistory({ ...historyFilters, beforeNumber: nextBeforeNumber }, true);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="!w-[85vw] !max-w-none max-h-[90vh] overflow-hidden flex flex-col">
@@ -191,8 +213,23 @@ export function SnapshotHistoryDialog({
               <div className="text-muted-foreground">Chargement...</div>
             </div>
           ) : (
-            <ScrollArea className="h-100 rounded-md border">
-              <div className="divide-y">
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 gap-2 rounded-md border p-3 sm:grid-cols-4">
+                <select
+                  aria-label="Type de version"
+                  className="h-9 rounded-md border bg-background px-2 text-sm"
+                  value={historyFilters.type ?? ''}
+                  onChange={(event) => setHistoryFilters((filters) => ({ ...filters, type: event.target.value as SnapshotType || undefined }))}
+                >
+                  <option value="">Tous les types</option>
+                  {Object.entries(SNAPSHOT_TYPE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </select>
+                <Input aria-label="Auteur de la version" placeholder="Auteur" value={historyFilters.authorId ?? ''} onChange={(event) => setHistoryFilters((filters) => ({ ...filters, authorId: event.target.value || undefined }))} />
+                <Input aria-label="À partir du" type="date" value={historyFilters.from ?? ''} onChange={(event) => setHistoryFilters((filters) => ({ ...filters, from: event.target.value || undefined }))} />
+                <div className="flex gap-2"><Input aria-label="Jusqu’au" type="date" value={historyFilters.to ?? ''} onChange={(event) => setHistoryFilters((filters) => ({ ...filters, to: event.target.value || undefined }))} /><Button variant="outline" size="sm" onClick={handleApplyFilters}>Filtrer</Button></div>
+              </div>
+              <ScrollArea className="h-100 rounded-md border">
+                <div className="divide-y">
                 {hasUnsnapshottedChanges && (
                   <div className="p-4 bg-muted/50">
                     <div className="flex items-center gap-2">
@@ -238,6 +275,13 @@ export function SnapshotHistoryDialog({
                         >
                           Restaurer
                         </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setComparisonTarget(snapshot)}
+                        >
+                          Prévisualiser et comparer
+                        </Button>
                       </div>
                       {snapshot.comment && (
                         <p className="text-sm text-muted-foreground mt-1">{snapshot.comment}</p>
@@ -250,8 +294,10 @@ export function SnapshotHistoryDialog({
                     </div>
                   ))
                 )}
-              </div>
-            </ScrollArea>
+                </div>
+              </ScrollArea>
+              {nextBeforeNumber && <Button variant="outline" className="w-full" onClick={handleLoadMore}>Charger les versions suivantes</Button>}
+            </div>
           )}
         </div>
       </DialogContent>
@@ -341,6 +387,13 @@ export function SnapshotHistoryDialog({
           )}
         </DialogContent>
       </Dialog>
+
+      <SnapshotComparisonDialog
+        projectId={projectId}
+        snapshotId={comparisonTarget?.id ?? null}
+        open={comparisonTarget !== null}
+        onOpenChange={(next) => !next && setComparisonTarget(null)}
+      />
     </Dialog>
   );
 }
