@@ -3,6 +3,8 @@
 
 import { SerializedProject, SerializedChapter, ProjectListItem } from '@/app/actions/project-actions';
 import { CorrectionHistoryListItem } from '@/app/actions/correction-history-actions';
+import { SerializedSnapshot, SerializedRestoreResult } from '@/app/actions/snapshot-actions';
+import { ActionResult } from '@/app/actions/utils';
 
 export type { SerializedProject, SerializedChapter, ProjectListItem };
 
@@ -55,7 +57,12 @@ export interface ProjectState {
 
   // Content operations
   updateActiveContent: (content: string) => void;
-  saveCurrentChapter: () => Promise<void>;
+  /** Flushes unsaved editor content. Returns false if the save failed. */
+  saveCurrentChapter: () => Promise<boolean>;
+  /** Flushes unsaved content first; fails clearly without creating a snapshot if that save fails. */
+  createSnapshot: (title: string, comment?: string) => Promise<ActionResult<SerializedSnapshot>>;
+  /** Restores the project to a past snapshot. Fails with a reload prompt on concurrent modification. */
+  restoreSnapshot: (snapshotId: string) => Promise<ActionResult<SerializedRestoreResult>>;
 
   // UI state management
   setIsExporting: (isExporting: boolean) => void;

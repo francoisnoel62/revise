@@ -26,6 +26,10 @@ import {
   type TocStyle,
   type TocPreferences,
 } from '../value-objects/TocPreferences';
+import {
+  isAutomaticSnapshotInterval,
+  type AutomaticSnapshotInterval,
+} from '../value-objects/AutomaticSnapshotInterval';
 
 export type PdfPublicationProfileId = Exclude<PublicationProfileId, 'passerelle'>;
 export type LevelStylesByProfile = Partial<
@@ -64,6 +68,8 @@ export interface ProjectSettingsProperties {
   tocDepth?: TocDepth;
   tocStyle?: TocStyle;
   endnotesTitle?: string;
+  automaticSnapshotIntervalMinutes?: AutomaticSnapshotInterval | null;
+  snapshotTimeZone?: string;
 }
 
 /** Default heading for the compiled endnotes section (kept in sync with the paged renderer). */
@@ -101,6 +107,8 @@ export class ProjectSettings {
   private tocDepth?: TocDepth;
   private tocStyle?: TocStyle;
   private endnotesTitle?: string;
+  private automaticSnapshotIntervalMinutes: AutomaticSnapshotInterval | null;
+  private snapshotTimeZone: string;
 
   private constructor(props: ProjectSettingsProperties) {
     this.validate(props);
@@ -141,6 +149,8 @@ export class ProjectSettings {
     this.tocDepth = props.tocDepth;
     this.tocStyle = props.tocStyle;
     this.endnotesTitle = props.endnotesTitle?.trim() || undefined;
+    this.automaticSnapshotIntervalMinutes = props.automaticSnapshotIntervalMinutes ?? null;
+    this.snapshotTimeZone = props.snapshotTimeZone ?? 'UTC';
   }
 
   private validate(props: ProjectSettingsProperties): void {
@@ -155,6 +165,13 @@ export class ProjectSettings {
     }
     if (!props.title || props.title.trim().length === 0) {
       throw new Error('Project title cannot be empty');
+    }
+    if (
+      props.automaticSnapshotIntervalMinutes !== undefined &&
+      props.automaticSnapshotIntervalMinutes !== null &&
+      !isAutomaticSnapshotInterval(props.automaticSnapshotIntervalMinutes)
+    ) {
+      throw new Error('Automatic snapshot interval must be 5, 15, 30, or 60 minutes');
     }
   }
 
@@ -335,6 +352,34 @@ export class ProjectSettings {
   /** The compiled endnotes section heading; falls back to « Notes » when the author left it blank. */
   getEndnotesTitle(): string {
     return this.endnotesTitle ?? DEFAULT_ENDNOTES_TITLE;
+  }
+
+  getAutomaticSnapshotIntervalMinutes(): AutomaticSnapshotInterval | null {
+    return this.automaticSnapshotIntervalMinutes;
+  }
+
+  getSnapshotTimeZone(): string {
+    return this.snapshotTimeZone;
+  }
+
+  updateSnapshotTimeZone(timeZone: string): ProjectSettings {
+    try {
+      new Intl.DateTimeFormat('en-US', { timeZone });
+    } catch {
+      throw new Error('Snapshot time zone must be a valid IANA time zone');
+    }
+    return new ProjectSettings({ ...this.toProperties(), snapshotTimeZone: timeZone, updatedAt: new Date() });
+  }
+
+  updateAutomaticSnapshotIntervalMinutes(interval: AutomaticSnapshotInterval | null): ProjectSettings {
+    if (interval !== null && !isAutomaticSnapshotInterval(interval)) {
+      throw new Error('Automatic snapshot interval must be 5, 15, 30, or 60 minutes');
+    }
+    return new ProjectSettings({
+      ...this.toProperties(),
+      automaticSnapshotIntervalMinutes: interval,
+      updatedAt: new Date(),
+    });
   }
 
   updateEndnotesTitle(title: string | undefined): ProjectSettings {
@@ -567,6 +612,8 @@ export class ProjectSettings {
       tocDepth: this.tocDepth,
       tocStyle: this.tocStyle,
       endnotesTitle: this.endnotesTitle,
+      automaticSnapshotIntervalMinutes: this.automaticSnapshotIntervalMinutes,
+      snapshotTimeZone: this.snapshotTimeZone,
     };
   }
 }

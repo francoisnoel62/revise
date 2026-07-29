@@ -41,6 +41,7 @@ import {
   TargetAudience,
 } from '@/domain/value-objects/NarrationSettings';
 import type { TocDepth, TocStyle, TocPreferences } from '@/domain/value-objects/TocPreferences';
+import type { AutomaticSnapshotInterval } from '@/domain/value-objects/AutomaticSnapshotInterval';
 
 const TOC_DEPTHS: readonly TocDepth[] = ['chapters', 'chapters-and-subtitles'];
 const TOC_DEPTH_LABELS: Record<TocDepth, string> = {
@@ -74,6 +75,8 @@ interface FormData {
   relatedWorks: RelatedWork[];
   tocPreferences: TocPreferences;
   endnotesTitle: string;
+  automaticSnapshotIntervalMinutes: AutomaticSnapshotInterval | null;
+  snapshotTimeZone: string;
 }
 
 export function ProjectSettingsForm({ projectId, initialSettings }: ProjectSettingsFormProps) {
@@ -91,6 +94,8 @@ export function ProjectSettingsForm({ projectId, initialSettings }: ProjectSetti
     relatedWorks: initialSettings.relatedWorks,
     tocPreferences: initialSettings.tocPreferences,
     endnotesTitle: initialSettings.endnotesTitle || '',
+    automaticSnapshotIntervalMinutes: initialSettings.automaticSnapshotIntervalMinutes,
+    snapshotTimeZone: initialSettings.snapshotTimeZone,
   });
 
   const [coverImageUrl, setCoverImageUrl] = useState<string | undefined>(
@@ -121,7 +126,8 @@ export function ProjectSettingsForm({ projectId, initialSettings }: ProjectSetti
       JSON.stringify(formData.contributors) !== JSON.stringify(initialSettings.contributors) ||
       JSON.stringify(formData.relatedWorks) !== JSON.stringify(initialSettings.relatedWorks) ||
       JSON.stringify(formData.tocPreferences) !== JSON.stringify(initialSettings.tocPreferences) ||
-      formData.endnotesTitle !== (initialSettings.endnotesTitle || '');
+      formData.endnotesTitle !== (initialSettings.endnotesTitle || '') ||
+      formData.automaticSnapshotIntervalMinutes !== initialSettings.automaticSnapshotIntervalMinutes;
 
     setHasChanges(changed);
   }, [formData, initialSettings]);
@@ -152,6 +158,8 @@ export function ProjectSettingsForm({ projectId, initialSettings }: ProjectSetti
         relatedWorks: formData.relatedWorks.filter((w) => w.title.trim()),
         tocPreferences: formData.tocPreferences,
         endnotesTitle: formData.endnotesTitle.trim() || undefined,
+        automaticSnapshotIntervalMinutes: formData.automaticSnapshotIntervalMinutes,
+        snapshotTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
 
       if (!result.success) {
@@ -293,6 +301,40 @@ export function ProjectSettingsForm({ projectId, initialSettings }: ProjectSetti
             isUploading={isUploading}
             isDeleting={isDeleting}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Snapshots automatiques</CardTitle>
+          <CardDescription>
+            Crée des versions de travail après une modification sauvegardée, tant qu’un éditeur du projet est ouvert.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Label htmlFor="automatic-snapshot-frequency">Fréquence</Label>
+          <Select
+            value={formData.automaticSnapshotIntervalMinutes?.toString() ?? 'off'}
+            onValueChange={(value) => handleChange(
+              'automaticSnapshotIntervalMinutes',
+              value === 'off' ? null : Number(value) as AutomaticSnapshotInterval,
+            )}
+            disabled={isSaving}
+          >
+            <SelectTrigger id="automatic-snapshot-frequency" data-testid="automatic-snapshot-frequency">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="off">Désactivés</SelectItem>
+              <SelectItem value="5">Toutes les 5 minutes</SelectItem>
+              <SelectItem value="15">Toutes les 15 minutes</SelectItem>
+              <SelectItem value="30">Toutes les 30 minutes</SelectItem>
+              <SelectItem value="60">Toutes les heures</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-sm text-muted-foreground">
+            Modifier ce réglage attend une nouvelle modification avant de redémarrer le délai.
+          </p>
         </CardContent>
       </Card>
 

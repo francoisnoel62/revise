@@ -18,6 +18,7 @@ import {
   getProviderRepo,
   getMetadataRepo,
   getProjectSettingsRepo,
+  getSnapshotRepo,
   getWritingGoalRepo,
   withErrorHandling,
 } from './utils';
@@ -226,7 +227,8 @@ export async function deleteProjectAction(
     const useCase = new DeleteProjectUseCase(
       await getRepository(),
       await getMetadataRepo(),
-      await getProjectSettingsRepo()
+      await getProjectSettingsRepo(),
+      await getSnapshotRepo(),
     );
 
     await useCase.execute({

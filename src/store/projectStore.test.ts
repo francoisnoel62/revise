@@ -19,6 +19,11 @@ vi.mock('@/app/actions/chapter-actions', () => ({
   setActiveChapterAction: vi.fn(),
 }));
 
+vi.mock('@/app/actions/snapshot-actions', () => ({
+  createSnapshotAction: vi.fn(),
+  restoreSnapshotAction: vi.fn(),
+}));
+
 import {
   createProjectAction,
   loadProjectAction,
@@ -26,8 +31,17 @@ import {
 
 import {
   updateChapterContentAction,
+  updateChapterTitleAction,
   addChapterAction,
 } from '@/app/actions/chapter-actions';
+
+import {
+  createSnapshotAction,
+  restoreSnapshotAction,
+  type SerializedSnapshot,
+  type SerializedRestoreResult,
+} from '@/app/actions/snapshot-actions';
+import type { ActionResult } from '@/app/actions/utils';
 
 const mockProject = {
   id: 'proj-1',
@@ -150,6 +164,315 @@ describe('projectStore', () => {
       });
 
       expect(updateChapterContentAction).not.toHaveBeenCalled();
+    });
+
+    it('returns true when there are no unsaved changes to save', async () => {
+      useProjectStore.setState({
+        projectId: 'proj-1',
+        project: mockProject,
+        hasUnsavedChanges: false,
+      });
+
+      let result: boolean | undefined;
+      await act(async () => {
+        result = await useProjectStore.getState().saveCurrentChapter();
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it('returns true after a successful save', async () => {
+      vi.mocked(updateChapterContentAction).mockResolvedValue({
+        success: true,
+        data: { saved: true, updatedAt: new Date().toISOString() },
+      });
+
+      useProjectStore.setState({
+        projectId: 'proj-1',
+        project: mockProject,
+        activeContent: '{"type":"doc","content":[]}',
+        hasUnsavedChanges: true,
+      });
+
+      let result: boolean | undefined;
+      await act(async () => {
+        result = await useProjectStore.getState().saveCurrentChapter();
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it('syncs project.updatedAt to the persisted value, not a client-guessed one', async () => {
+      const persistedUpdatedAt = new Date('2026-03-01T12:00:00.000Z').toISOString();
+      vi.mocked(updateChapterContentAction).mockResolvedValue({
+        success: true,
+        data: { saved: true, updatedAt: persistedUpdatedAt },
+      });
+
+      useProjectStore.setState({
+        projectId: 'proj-1',
+        project: mockProject,
+        activeContent: '{"type":"doc","content":[]}',
+        hasUnsavedChanges: true,
+      });
+
+      await act(async () => {
+        await useProjectStore.getState().saveCurrentChapter();
+      });
+
+      expect(useProjectStore.getState().project!.updatedAt).toBe(persistedUpdatedAt);
+    });
+
+    it('returns false when the save fails, leaving hasUnsavedChanges true', async () => {
+      vi.mocked(updateChapterContentAction).mockResolvedValue({
+        success: false,
+        error: 'Network error',
+      });
+
+      useProjectStore.setState({
+        projectId: 'proj-1',
+        project: mockProject,
+        activeContent: '{"type":"doc","content":[]}',
+        hasUnsavedChanges: true,
+      });
+
+      let result: boolean | undefined;
+      await act(async () => {
+        result = await useProjectStore.getState().saveCurrentChapter();
+      });
+
+      expect(result).toBe(false);
+      expect(useProjectStore.getState().hasUnsavedChanges).toBe(true);
+    });
+  });
+
+  describe('createSnapshot', () => {
+    it('creates a snapshot directly when there are no unsaved changes', async () => {
+      useProjectStore.setState({
+        projectId: 'proj-1',
+        project: mockProject,
+        hasUnsavedChanges: false,
+      });
+      vi.mocked(createSnapshotAction).mockResolvedValue({
+        success: true,
+        data: {
+          id: 'snap-1',
+          projectId: 'proj-1',
+          number: 1,
+          type: 'manual',
+          title: 'Version 1',
+          comment: null,
+          authorId: 'user-1',
+          chapterCount: 1,
+          chapterTitles: ['Chapter 1'],
+          sourceSnapshotNumber: null,
+          createdAt: new Date().toISOString(),
+        },
+      });
+
+      let result: ActionResult<SerializedSnapshot> | undefined;
+      await act(async () => {
+        result = await useProjectStore.getState().createSnapshot('Version 1');
+      });
+
+      expect(updateChapterContentAction).not.toHaveBeenCalled();
+      expect(createSnapshotAction).toHaveBeenCalledWith('proj-1', 'Version 1', undefined);
+      expect(result!.success).toBe(true);
+    });
+
+    it('flushes unsaved changes before creating a snapshot', async () => {
+      useProjectStore.setState({
+        projectId: 'proj-1',
+        project: mockProject,
+        activeContent: '{"type":"doc","content":[]}',
+        hasUnsavedChanges: true,
+      });
+      vi.mocked(updateChapterContentAction).mockResolvedValue({
+        success: true,
+        data: { saved: true, updatedAt: new Date().toISOString() },
+      });
+      vi.mocked(createSnapshotAction).mockResolvedValue({
+        success: true,
+        data: {
+          id: 'snap-1',
+          projectId: 'proj-1',
+          number: 1,
+          type: 'manual',
+          title: 'Version 1',
+          comment: 'Un jalon',
+          authorId: 'user-1',
+          chapterCount: 1,
+          chapterTitles: ['Chapter 1'],
+          sourceSnapshotNumber: null,
+          createdAt: new Date().toISOString(),
+        },
+      });
+
+      await act(async () => {
+        await useProjectStore.getState().createSnapshot('Version 1', 'Un jalon');
+      });
+
+      expect(updateChapterContentAction).toHaveBeenCalled();
+      expect(createSnapshotAction).toHaveBeenCalledWith('proj-1', 'Version 1', 'Un jalon');
+    });
+
+    it('fails clearly and never creates a snapshot when the forced save fails', async () => {
+      useProjectStore.setState({
+        projectId: 'proj-1',
+        project: mockProject,
+        activeContent: '{"type":"doc","content":[]}',
+        hasUnsavedChanges: true,
+      });
+      vi.mocked(updateChapterContentAction).mockResolvedValue({
+        success: false,
+        error: 'Network error',
+      });
+
+      let result: ActionResult<SerializedSnapshot> | undefined;
+      await act(async () => {
+        result = await useProjectStore.getState().createSnapshot('Version 1');
+      });
+
+      expect(createSnapshotAction).not.toHaveBeenCalled();
+      expect(result!.success).toBe(false);
+      if (!result!.success) {
+        expect(result!.error).toMatch(/sauvegarde a échoué/i);
+      }
+    });
+
+    it('returns an error when no project is loaded', async () => {
+      useProjectStore.setState({ projectId: null, project: null });
+
+      let result: ActionResult<SerializedSnapshot> | undefined;
+      await act(async () => {
+        result = await useProjectStore.getState().createSnapshot('Version 1');
+      });
+
+      expect(createSnapshotAction).not.toHaveBeenCalled();
+      expect(result!.success).toBe(false);
+    });
+  });
+
+  describe('restoreSnapshot', () => {
+    const restoredProject = {
+      ...mockProject,
+      title: 'Titre restauré',
+      updatedAt: new Date('2026-02-01T00:00:00.000Z').toISOString(),
+    };
+
+    it('restores the project and updates the store from the result', async () => {
+      useProjectStore.setState({
+        projectId: 'proj-1',
+        project: mockProject,
+      });
+      vi.mocked(restoreSnapshotAction).mockResolvedValue({
+        success: true,
+        data: {
+          project: restoredProject,
+          restoreSnapshot: {
+            id: 'snap-restore',
+            projectId: 'proj-1',
+            number: 6,
+            type: 'restore',
+            title: 'Restauration de la version 4',
+            comment: null,
+            authorId: 'user-1',
+            chapterCount: 1,
+            chapterTitles: ['Chapter 1'],
+            sourceSnapshotNumber: 4,
+            createdAt: new Date().toISOString(),
+          },
+          safetySnapshot: null,
+        },
+      });
+
+      let result: ActionResult<SerializedRestoreResult> | undefined;
+      await act(async () => {
+        result = await useProjectStore.getState().restoreSnapshot('snap-4');
+      });
+
+      expect(restoreSnapshotAction).toHaveBeenCalledWith('proj-1', 'snap-4', mockProject.updatedAt);
+      expect(result!.success).toBe(true);
+
+      const state = useProjectStore.getState();
+      expect(state.project).toEqual(restoredProject);
+      expect(state.hasUnsavedChanges).toBe(false);
+    });
+
+    it('leaves the store untouched and surfaces the error on conflict', async () => {
+      useProjectStore.setState({
+        projectId: 'proj-1',
+        project: mockProject,
+      });
+      vi.mocked(restoreSnapshotAction).mockResolvedValue({
+        success: false,
+        error: 'Le projet a été modifié entre-temps. Veuillez recharger avant de restaurer.',
+      });
+
+      let result: ActionResult<SerializedRestoreResult> | undefined;
+      await act(async () => {
+        result = await useProjectStore.getState().restoreSnapshot('snap-4');
+      });
+
+      expect(result!.success).toBe(false);
+      if (!result!.success) {
+        expect(result!.error).toMatch(/modifié entre-temps/i);
+      }
+      expect(useProjectStore.getState().project).toEqual(mockProject);
+    });
+
+    it('returns an error when no project is loaded', async () => {
+      useProjectStore.setState({ projectId: null, project: null });
+
+      let result: ActionResult<SerializedRestoreResult> | undefined;
+      await act(async () => {
+        result = await useProjectStore.getState().restoreSnapshot('snap-4');
+      });
+
+      expect(restoreSnapshotAction).not.toHaveBeenCalled();
+      expect(result!.success).toBe(false);
+    });
+  });
+
+  describe('updateChapterTitle', () => {
+    it('syncs project.updatedAt to the persisted value returned by the server', async () => {
+      const persistedUpdatedAt = new Date('2026-03-01T12:00:00.000Z').toISOString();
+      useProjectStore.setState({
+        projectId: 'proj-1',
+        project: mockProject,
+      });
+      vi.mocked(updateChapterTitleAction).mockResolvedValue({
+        success: true,
+        data: {
+          chapter: { ...mockProject.chapters[0], title: 'Nouveau titre' },
+          projectUpdatedAt: persistedUpdatedAt,
+        },
+      });
+
+      await act(async () => {
+        await useProjectStore.getState().updateChapterTitle('ch-1', 'Nouveau titre');
+      });
+
+      const state = useProjectStore.getState();
+      expect(state.project!.updatedAt).toBe(persistedUpdatedAt);
+      expect(state.project!.chapters[0].title).toBe('Nouveau titre');
+    });
+
+    it('reverts the optimistic update on failure', async () => {
+      useProjectStore.setState({
+        projectId: 'proj-1',
+        project: mockProject,
+      });
+      vi.mocked(updateChapterTitleAction).mockResolvedValue({
+        success: false,
+        error: 'Network error',
+      });
+
+      await act(async () => {
+        await useProjectStore.getState().updateChapterTitle('ch-1', 'Nouveau titre');
+      });
+
+      expect(useProjectStore.getState().project).toEqual(mockProject);
     });
   });
 

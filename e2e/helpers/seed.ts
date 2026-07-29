@@ -7,11 +7,23 @@ import crypto from 'crypto';
 import dotenv from 'dotenv';
 import path from 'path';
 import { encryptApiKey } from '../../src/infrastructure/encryption/crypto';
+import type { SnapshotDocument } from '../../src/infrastructure/persistence/snapshot-serializer';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME || 'revise';
+
+interface AutomaticSnapshotScheduleFixture {
+  _id: string;
+  ownerId: string;
+  projectId: string;
+  intervalMinutes: 5;
+  changedAt: Date | null;
+  nextDueAt: Date | null;
+  changeRevision: number;
+  leaseUntil: Date | null;
+}
 
 // ── Fixed test identifiers (known at test-write time) ──────────────────────────
 
@@ -74,6 +86,28 @@ export const TEST_BOOK_PREVIEW_TOC_SUBTITLE = 'Le Secret Retrouvé';
 // deterministic stand-in for the production target of a ~300-400 page novel.
 export const TEST_BOOK_PREVIEW_LARGE_PROJECT_ID = 'e2e-book-preview-large-001';
 export const TEST_BOOK_PREVIEW_LARGE_CHAPTER_COUNT = 6;
+
+// Snapshots E2E fixtures — one chapter, no settings, for manual snapshot create/list coverage.
+export const TEST_SNAPSHOT_PROJECT_ID = 'e2e-snapshot-project-001';
+export const TEST_SNAPSHOT_CHAPTER_ID = 'e2e-snapshot-chapter-001';
+export const TEST_SNAPSHOT_CHAPTER_TEXT = 'Le phare veillait seul sur la côte déserte.';
+
+// Automatic snapshot fixture — its server-side due time is deliberately in the past.
+// Opening the editor sends the heartbeat that turns it into a real automatic snapshot.
+export const TEST_AUTOMATIC_SNAPSHOT_PROJECT_ID = 'e2e-automatic-snapshot-project-001';
+export const TEST_AUTOMATIC_SNAPSHOT_CHAPTER_ID = 'e2e-automatic-snapshot-chapter-001';
+
+// Snapshot-restore E2E fixtures — a pre-existing v1 snapshot plus a diverged live chapter,
+// so restoring exercises both the safety-snapshot path and the chapter/metadata restore.
+export const TEST_RESTORE_PROJECT_ID = 'e2e-restore-project-001';
+export const TEST_RESTORE_CHAPTER_ID = 'e2e-restore-chapter-001';
+export const TEST_RESTORE_SNAPSHOT_ID = 'e2e-restore-snapshot-v1';
+export const TEST_RESTORE_SETTINGS_ID = '6475a8f3c1234567890abce3';
+export const TEST_RESTORE_ORIGINAL_TITLE = 'Chapitre Original';
+export const TEST_RESTORE_ORIGINAL_TEXT = 'Le vent soufflait sur la lande déserte.';
+export const TEST_RESTORE_ORIGINAL_GENRE = 'Fantasy';
+export const TEST_RESTORE_DIVERGED_TITLE = 'Chapitre Modifié';
+export const TEST_RESTORE_DIVERGED_TEXT = 'Le soleil brillait sur la plage animée.';
 
 // Endnotes E2E fixtures — one chapter carrying a single endnote call whose rich body holds a
 // unique sentinel word, for the reading-preview bubble + call-colour checks and the Notes-title
@@ -271,6 +305,213 @@ function buildLargeChapterContent(chapterNumber: number, paragraphCount: number)
       })),
     ],
   });
+}
+
+// Re-seed only the snapshots project's chapter content, and clear any snapshots/counters
+// left over from a previous run. Used in a beforeEach so the manual-snapshot E2E journey
+// (which asserts on absolute numbers v1/v2) stays idempotent across repeated local runs.
+export async function resetSnapshotFixture(): Promise<void> {
+  const client = new MongoClient(MONGODB_URI);
+  await client.connect();
+  try {
+    const db = client.db(MONGODB_DB_NAME);
+    const past = new Date('2025-01-01T10:00:00Z');
+    const now = new Date();
+    await db.collection('projects').replaceOne(
+      { _id: TEST_SNAPSHOT_PROJECT_ID } as object,
+      {
+        _id: TEST_SNAPSHOT_PROJECT_ID,
+        ownerId: TEST_USER_ID,
+        title: 'Roman Test Snapshots',
+        chapters: [{
+          id: TEST_SNAPSHOT_CHAPTER_ID,
+          title: 'Chapitre 1',
+          content: JSON.stringify({
+            type: 'doc',
+            content: [{ type: 'paragraph', content: [{ type: 'text', text: TEST_SNAPSHOT_CHAPTER_TEXT }] }],
+          }),
+          order: 0,
+          metadata: { wordCount: 7, characterCount: 44, lastEdited: past },
+        }],
+        activeChapterId: TEST_SNAPSHOT_CHAPTER_ID,
+        providerId: null,
+        createdAt: past,
+        updatedAt: now,
+        isPublished: false,
+        shareToken: null,
+        publishedAt: null,
+        publishedChapterIds: null,
+      },
+      { upsert: true }
+    );
+    await db.collection('snapshots').deleteMany({ ownerId: TEST_USER_ID, projectId: TEST_SNAPSHOT_PROJECT_ID });
+    await db.collection('snapshotCounters').deleteMany({ _id: TEST_SNAPSHOT_PROJECT_ID } as object);
+  } finally {
+    await client.close();
+  }
+}
+
+export async function resetAutomaticSnapshotFixture(): Promise<void> {
+  const client = new MongoClient(MONGODB_URI);
+  await client.connect();
+  try {
+    const db = client.db(MONGODB_DB_NAME);
+    const now = new Date();
+    const past = new Date(now.getTime() - 10 * 60_000);
+    await db.collection('projects').replaceOne(
+      { _id: TEST_AUTOMATIC_SNAPSHOT_PROJECT_ID } as object,
+      {
+        _id: TEST_AUTOMATIC_SNAPSHOT_PROJECT_ID,
+        ownerId: TEST_USER_ID,
+        title: 'Roman Test Snapshots Automatiques',
+        chapters: [{
+          id: TEST_AUTOMATIC_SNAPSHOT_CHAPTER_ID,
+          title: 'Chapitre 1',
+          content: JSON.stringify({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Un changement déjà sauvegardé.' }] }] }),
+          order: 0,
+          metadata: { wordCount: 4, characterCount: 31, lastEdited: past },
+        }],
+        activeChapterId: TEST_AUTOMATIC_SNAPSHOT_CHAPTER_ID,
+        providerId: null,
+        createdAt: past,
+        updatedAt: past,
+        isPublished: false,
+        shareToken: null,
+        publishedAt: null,
+        publishedChapterIds: null,
+      },
+      { upsert: true },
+    );
+    await Promise.all([
+      db.collection('snapshots').deleteMany({ ownerId: TEST_USER_ID, projectId: TEST_AUTOMATIC_SNAPSHOT_PROJECT_ID }),
+      db.collection('snapshotCounters').deleteMany({ _id: TEST_AUTOMATIC_SNAPSHOT_PROJECT_ID } as object),
+      db.collection('automaticSnapshotSessions').deleteMany({ ownerId: TEST_USER_ID, projectId: TEST_AUTOMATIC_SNAPSHOT_PROJECT_ID }),
+    ]);
+    await db.collection<AutomaticSnapshotScheduleFixture>('automaticSnapshotSchedules').replaceOne(
+      { _id: `${TEST_USER_ID}:${TEST_AUTOMATIC_SNAPSHOT_PROJECT_ID}` },
+      {
+        ownerId: TEST_USER_ID,
+        projectId: TEST_AUTOMATIC_SNAPSHOT_PROJECT_ID,
+        intervalMinutes: 5,
+        changedAt: past,
+        nextDueAt: past,
+        changeRevision: 1,
+        leaseUntil: null,
+      },
+      { upsert: true },
+    );
+  } finally {
+    await client.close();
+  }
+}
+
+// Re-seed the restore project to a known state: a pre-existing, immutable v1 snapshot
+// (inserted directly, bypassing the UI) capturing the "original" chapter + genre, while
+// the live project/settings documents already carry "diverged" content — i.e. the state
+// a real author would be in after editing since their last snapshot. Used in a beforeEach
+// so the restore E2E journey's absolute v1/v2/v3 assertions stay valid across re-runs.
+export async function resetRestoreFixture(): Promise<void> {
+  const client = new MongoClient(MONGODB_URI);
+  await client.connect();
+  try {
+    const db = client.db(MONGODB_DB_NAME);
+    const past = new Date('2025-01-01T10:00:00Z');
+    const snapshotCreatedAt = new Date('2025-06-01T10:00:00Z');
+    const now = new Date();
+
+    const originalContent = JSON.stringify({
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: TEST_RESTORE_ORIGINAL_TEXT }] },
+        { type: 'horizontalRule' },
+      ],
+    });
+    const divergedContent = JSON.stringify({
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: TEST_RESTORE_DIVERGED_TEXT }] }],
+    });
+
+    await db.collection('projects').replaceOne(
+      { _id: TEST_RESTORE_PROJECT_ID } as object,
+      {
+        _id: TEST_RESTORE_PROJECT_ID,
+        ownerId: TEST_USER_ID,
+        title: 'Roman Test Restauration',
+        chapters: [{
+          id: TEST_RESTORE_CHAPTER_ID,
+          title: TEST_RESTORE_DIVERGED_TITLE,
+          content: divergedContent,
+          order: 0,
+          metadata: { wordCount: 6, characterCount: 40, lastEdited: now },
+        }],
+        activeChapterId: TEST_RESTORE_CHAPTER_ID,
+        providerId: null,
+        createdAt: past,
+        updatedAt: now,
+        isPublished: false,
+        shareToken: null,
+        publishedAt: null,
+        publishedChapterIds: null,
+      },
+      { upsert: true }
+    );
+
+    await db.collection('project_settings').replaceOne(
+      { _id: new ObjectId(TEST_RESTORE_SETTINGS_ID) },
+      {
+        _id: new ObjectId(TEST_RESTORE_SETTINGS_ID),
+        projectId: TEST_RESTORE_PROJECT_ID,
+        ownerId: TEST_USER_ID,
+        title: 'Roman Test Restauration',
+        summary: '',
+        genre: 'Romance',
+        synopsis: '',
+        contributors: [],
+        relatedWorks: [],
+        createdAt: past,
+        updatedAt: now,
+      },
+      { upsert: true }
+    );
+
+    await db.collection('snapshots').deleteMany({ ownerId: TEST_USER_ID, projectId: TEST_RESTORE_PROJECT_ID });
+    await db.collection('snapshotCounters').deleteMany({ _id: TEST_RESTORE_PROJECT_ID } as object);
+
+    await db.collection<SnapshotDocument>('snapshots').insertOne({
+      _id: TEST_RESTORE_SNAPSHOT_ID,
+      projectId: TEST_RESTORE_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      authorId: TEST_USER_ID,
+      number: 1,
+      type: 'manual',
+      title: 'Version 1',
+      comment: null,
+      projectTitle: 'Roman Test Restauration',
+      chapters: [{
+        id: TEST_RESTORE_CHAPTER_ID,
+        title: TEST_RESTORE_ORIGINAL_TITLE,
+        content: originalContent,
+        order: 0,
+      }],
+      editorialMetadata: {
+        title: 'Roman Test Restauration',
+        summary: '',
+        genre: TEST_RESTORE_ORIGINAL_GENRE,
+        synopsis: '',
+        contributors: [],
+        relatedWorks: [],
+      },
+      sourceSnapshotNumber: null,
+      createdAt: snapshotCreatedAt,
+    });
+    await db.collection('snapshotCounters').replaceOne(
+      { _id: TEST_RESTORE_PROJECT_ID } as object,
+      { _id: TEST_RESTORE_PROJECT_ID, ownerId: TEST_USER_ID, seq: 1 },
+      { upsert: true }
+    );
+  } finally {
+    await client.close();
+  }
 }
 
 // ── Seed all test fixtures ────────────────────────────────────────────────────
@@ -873,6 +1114,39 @@ export async function seedAll(): Promise<void> {
     { upsert: true }
   );
 
+  // 5f. Snapshots project — a single chapter, no project_settings doc (exercises the
+  //     null-editorial-metadata path), for manual snapshot create/list E2E coverage.
+  await db.collection('projects').replaceOne(
+    { _id: TEST_SNAPSHOT_PROJECT_ID } as object,
+    {
+      _id: TEST_SNAPSHOT_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      title: 'Roman Test Snapshots',
+      chapters: [{
+        id: TEST_SNAPSHOT_CHAPTER_ID,
+        title: 'Chapitre 1',
+        content: JSON.stringify({
+          type: 'doc',
+          content: [{ type: 'paragraph', content: [{ type: 'text', text: TEST_SNAPSHOT_CHAPTER_TEXT }] }],
+        }),
+        order: 0,
+        metadata: { wordCount: 7, characterCount: 44, lastEdited: past },
+      }],
+      activeChapterId: TEST_SNAPSHOT_CHAPTER_ID,
+      providerId: null,
+      createdAt: past,
+      updatedAt: now,
+      isPublished: false,
+      shareToken: null,
+      publishedAt: null,
+      publishedChapterIds: null,
+    },
+    { upsert: true }
+  );
+  // Snapshot numbering must never reuse a number across test runs sharing this fixture.
+  await db.collection('snapshots').deleteMany({ ownerId: TEST_USER_ID, projectId: TEST_SNAPSHOT_PROJECT_ID });
+  await db.collection('snapshotCounters').deleteMany({ _id: TEST_SNAPSHOT_PROJECT_ID } as object);
+
   // 5e. Endnotes project — a single chapter with one endnote call carrying a rich note body.
   const endnoteChapterContent = JSON.stringify({
     type: 'doc',
@@ -1209,6 +1483,11 @@ export async function cleanupAll(): Promise<void> {
     db.collection('canonFacts').deleteMany({ ownerId: TEST_USER_ID }),
     db.collection('canonExtractionState').deleteMany({ ownerId: TEST_USER_ID }),
     db.collection('book_preview_cache').deleteMany({ ownerId: TEST_USER_ID }),
+    db.collection('snapshots').deleteMany({ ownerId: TEST_USER_ID }),
+    db.collection('snapshotCounters').deleteMany({ ownerId: TEST_USER_ID }),
+    db.collection('automaticSnapshotSchedules').deleteMany({ ownerId: TEST_USER_ID }),
+    db.collection('automaticSnapshotSessions').deleteMany({ ownerId: TEST_USER_ID }),
+    db.collection('automaticSnapshotActivity').deleteMany({ ownerId: TEST_USER_ID }),
   ]);
 
   // Whole-book preview PDFs live in a GridFS bucket (files + chunks); remove both.

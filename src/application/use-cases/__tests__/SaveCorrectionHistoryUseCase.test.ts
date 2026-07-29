@@ -58,6 +58,7 @@ describe('SaveCorrectionHistoryUseCase', () => {
       updateProject: vi.fn().mockResolvedValue(createMockProject()),
       deleteProject: vi.fn().mockResolvedValue(undefined),
       updateChapter: vi.fn().mockResolvedValue(undefined),
+      replaceProjectIfUnchanged: vi.fn().mockResolvedValue(true),
       deleteAllByOwner: vi.fn().mockResolvedValue(0),
       findPublishedByToken: vi.fn().mockResolvedValue(null),
     };

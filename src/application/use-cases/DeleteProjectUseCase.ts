@@ -4,6 +4,7 @@
 import { ProjectRepository } from '@/domain/interfaces/ProjectRepository';
 import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
 import { ProjectSettingsRepository } from '@/domain/interfaces/ProjectSettingsRepository';
+import { SnapshotRepository } from '@/domain/interfaces/SnapshotRepository';
 
 export interface DeleteProjectInput {
   ownerId: string;
@@ -14,7 +15,8 @@ export class DeleteProjectUseCase {
   constructor(
     private projectRepository: ProjectRepository,
     private metadataRepository?: MetadataRepository, // Optional for backward compatibility
-    private projectSettingsRepository?: ProjectSettingsRepository // Optional for backward compatibility
+    private projectSettingsRepository?: ProjectSettingsRepository, // Optional for backward compatibility
+    private snapshotRepository?: SnapshotRepository
   ) {}
 
   async execute(input: DeleteProjectInput): Promise<void> {
@@ -26,6 +28,12 @@ export class DeleteProjectUseCase {
     // Delete associated project settings (if repository provided)
     if (this.projectSettingsRepository) {
       await this.projectSettingsRepository.deleteByProjectId(input.ownerId, input.projectId);
+    }
+
+    // A soft-deleted project leaves its records untouched; this hard-delete path
+    // is the final lifecycle boundary for all restorable snapshot content.
+    if (this.snapshotRepository) {
+      await this.snapshotRepository.deleteByProjectId(input.ownerId, input.projectId);
     }
 
     // Delete project

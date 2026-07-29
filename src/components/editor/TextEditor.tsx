@@ -24,6 +24,7 @@ import { useSpellCheck } from '@/hooks/useSpellCheck';
 
 import { useEffect, useCallback, useState, useRef } from 'react';
 import { useAutosave } from '@/hooks/useAutosave';
+import { useAutomaticSnapshots } from '@/hooks/useAutomaticSnapshots';
 import { useSemanticMigration } from '@/hooks/useSemanticMigration';
 import { useProjectStore } from '@/store/projectStore';
 import { generateCompletionAction } from '@/app/actions/completion-actions';
@@ -146,6 +147,7 @@ export function TextEditor({
 
   // Enable autosave
   useAutosave();
+  const automaticSnapshotError = useAutomaticSnapshots(projectId || project?.id);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -257,7 +259,12 @@ export function TextEditor({
     }
   }, [editor, onEditorReady]);
 
-  // Update editor when active chapter changes
+  // Update editor when the active chapter changes, or when its content was
+  // replaced from outside the editor (e.g. a snapshot restore) — project.updatedAt
+  // moves on both a chapter switch and an external replacement, but NOT on the
+  // editor's own keystroke-driven updateActiveContent calls, so this can't fight
+  // normal typing: the JSON diff below is a no-op whenever activeContent already
+  // matches what the editor itself just produced.
   useEffect(() => {
     if (!editor) return;
 
@@ -282,7 +289,7 @@ export function TextEditor({
       onChapterDocumentReadyRef.current?.(project.activeChapterId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editor, project?.activeChapterId, publicationProfileId, presentationOverrides]);
+  }, [editor, project?.activeChapterId, project?.updatedAt, publicationProfileId, presentationOverrides]);
 
   // Update autocomplete extension when enabled state changes
   useEffect(() => {
@@ -332,6 +339,11 @@ export function TextEditor({
     <div className="w-full bg-slate-50 relative">
       <SemanticAmbiguityBanner ambiguities={ambiguities} onDismiss={dismissAmbiguities} />
       <AutocompleteDot state={dotState} />
+      {automaticSnapshotError && (
+        <p className="px-2 py-1 text-xs text-muted-foreground" role="status">
+          Le dernier snapshot automatique n’a pas pu être créé. Une nouvelle tentative aura lieu plus tard.
+        </p>
+      )}
       <SpellCheckPalette
         editor={editor}
         onIgnoreWord={ignoreWord}

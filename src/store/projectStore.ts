@@ -12,6 +12,7 @@ import {
   updateChapterTitleAction,
   setActiveChapterAction,
 } from '@/app/actions/chapter-actions';
+import { createSnapshotAction, restoreSnapshotAction } from '@/app/actions/snapshot-actions';
 
 /**
  * Default empty TipTap document.
@@ -254,8 +255,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       project: {
         ...project,
         chapters: project.chapters.map((ch) =>
-          ch.id === chapterId ? result.data : ch
+          ch.id === chapterId ? result.data.chapter : ch
         ),
+        updatedAt: result.data.projectUpdatedAt,
       },
       isSaving: false,
     });
@@ -274,7 +276,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const { projectId, project, activeContent, hasUnsavedChanges } = get();
 
     if (!projectId || !project || !project.activeChapterId || !hasUnsavedChanges) {
-      return;
+      return true;
     }
 
     set({ isSaving: true });
@@ -288,7 +290,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
     if (!result.success) {
       set({ isSaving: false, error: result.error });
-      return;
+      return false;
     }
 
     // Update local chapter content to match saved
@@ -299,11 +301,53 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     );
 
     set({
-      project: { ...project, chapters: updatedChapters },
+      project: { ...project, chapters: updatedChapters, updatedAt: result.data.updatedAt },
       isSaving: false,
       hasUnsavedChanges: false,
       lastSavedAt: new Date(result.data.updatedAt),
     });
+
+    return true;
+  },
+
+  createSnapshot: async (title: string, comment?: string) => {
+    const { projectId, hasUnsavedChanges, saveCurrentChapter } = get();
+
+    if (!projectId) {
+      return { success: false, error: 'Aucun projet chargé' } as const;
+    }
+
+    if (hasUnsavedChanges) {
+      const saved = await saveCurrentChapter();
+      if (!saved) {
+        return { success: false, error: 'La sauvegarde a échoué. Snapshot non créé.' } as const;
+      }
+    }
+
+    return createSnapshotAction(projectId, title, comment);
+  },
+
+  restoreSnapshot: async (snapshotId: string) => {
+    const { projectId, project } = get();
+
+    if (!projectId || !project) {
+      return { success: false, error: 'Aucun projet chargé' } as const;
+    }
+
+    const result = await restoreSnapshotAction(projectId, snapshotId, project.updatedAt);
+
+    if (!result.success) {
+      return result;
+    }
+
+    set({
+      project: result.data.project,
+      activeContent: getActiveContent(result.data.project),
+      hasUnsavedChanges: false,
+      lastSavedAt: new Date(result.data.project.updatedAt),
+    });
+
+    return result;
   },
 
   // === UI State ===

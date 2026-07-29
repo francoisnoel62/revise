@@ -37,6 +37,21 @@ export interface ProjectRepository {
   updateProject(userId: string, project: Project): Promise<Project>;
 
   /**
+   * Replace an existing project only if it has not changed since it was read.
+   * Used for optimistic concurrency control (e.g. snapshot restoration): the
+   * replace is atomic at the storage layer, so a concurrent write between the
+   * caller's read and this call is guaranteed to be detected.
+   * @param expectedUpdatedAt - The project's updatedAt at the time it was read
+   * @returns true if the replace succeeded, false if the project changed (or
+   *   was deleted / not owned) since expectedUpdatedAt — the caller must reload
+   */
+  replaceProjectIfUnchanged(
+    userId: string,
+    project: Project,
+    expectedUpdatedAt: Date
+  ): Promise<boolean>;
+
+  /**
    * Delete a project.
    * Only deletes if userId matches project's ownerId.
    * @throws Error if project not found or not owned

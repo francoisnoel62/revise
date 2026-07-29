@@ -16,6 +16,7 @@ describe('CreateProjectUseCase', () => {
     updateProject: vi.fn(),
     deleteProject: vi.fn(),
     updateChapter: vi.fn(),
+    replaceProjectIfUnchanged: vi.fn(),
     deleteAllByOwner: vi.fn(),
     findPublishedByToken: vi.fn(),
   });

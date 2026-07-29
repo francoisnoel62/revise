@@ -102,7 +102,8 @@ describe('chapter-actions', () => {
 
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.title).toBe('New Title');
+        expect(result.data.chapter.title).toBe('New Title');
+        expect(result.data.projectUpdatedAt).toBeTruthy();
       }
     });
   });

@@ -128,6 +128,80 @@ describe('InMemoryProjectRepository', () => {
     });
   });
 
+  describe('replaceProjectIfUnchanged', () => {
+    it('replaces the project when updatedAt matches', async () => {
+      const project = Project.create('user-1', 'Original', []);
+      await repository.createProject('user-1', project);
+      const expectedUpdatedAt = project.getUpdatedAt();
+
+      project.updateTitle('Updated');
+      const succeeded = await repository.replaceProjectIfUnchanged(
+        'user-1',
+        project,
+        expectedUpdatedAt
+      );
+
+      expect(succeeded).toBe(true);
+      const loaded = await repository.loadProject('user-1', project.getId());
+      expect(loaded?.getTitle()).toBe('Updated');
+    });
+
+    it('rejects the replace when the project changed since expectedUpdatedAt', async () => {
+      const project = Project.create('user-1', 'Original', []);
+      await repository.createProject('user-1', project);
+      const staleUpdatedAt = project.getUpdatedAt();
+
+      await new Promise((r) => setTimeout(r, 10));
+      project.updateTitle('Changed concurrently');
+      await repository.updateProject('user-1', project);
+
+      const restoredTitleAttempt = new Project(
+        project.getId(),
+        'user-1',
+        'Restored title',
+        [],
+        null,
+        null,
+        project.getCreatedAt(),
+        new Date()
+      );
+      const succeeded = await repository.replaceProjectIfUnchanged(
+        'user-1',
+        restoredTitleAttempt,
+        staleUpdatedAt
+      );
+
+      expect(succeeded).toBe(false);
+      const loaded = await repository.loadProject('user-1', project.getId());
+      expect(loaded?.getTitle()).toBe('Changed concurrently');
+    });
+
+    it('returns false if the project does not exist', async () => {
+      const project = Project.create('user-1', 'Test', []);
+
+      const succeeded = await repository.replaceProjectIfUnchanged(
+        'user-1',
+        project,
+        project.getUpdatedAt()
+      );
+
+      expect(succeeded).toBe(false);
+    });
+
+    it('returns false if the user does not own the project', async () => {
+      const project = Project.create('user-1', 'Test', []);
+      await repository.createProject('user-1', project);
+
+      const succeeded = await repository.replaceProjectIfUnchanged(
+        'user-2',
+        project,
+        project.getUpdatedAt()
+      );
+
+      expect(succeeded).toBe(false);
+    });
+  });
+
   describe('deleteProject', () => {
     it('removes project', async () => {
       const project = Project.create('user-1', 'Test', []);

@@ -14,6 +14,7 @@ import { SwitchChapterUseCase } from '@/application/use-cases/SwitchChapterUseCa
 import {
   ActionResult,
   getAuthenticatedUserId,
+  getAutomaticSnapshotRepo,
   getRepository,
   withErrorHandling,
 } from './utils';
@@ -146,11 +147,17 @@ export async function reorderChaptersAction(
  * Update a chapter's title.
  * Delegates to UpdateChapterTitleUseCase for business logic.
  */
+export interface UpdatedChapterTitleResult {
+  chapter: SerializedChapter;
+  /** The project's persisted updatedAt after this write — not a freshly-computed guess. */
+  projectUpdatedAt: string;
+}
+
 export async function updateChapterTitleAction(
   projectId: string,
   chapterId: string,
   title: string
-): Promise<ActionResult<SerializedChapter>> {
+): Promise<ActionResult<UpdatedChapterTitleResult>> {
   const auth = await getAuthenticatedUserId();
   if ('error' in auth) return auth.error;
 
@@ -169,7 +176,13 @@ export async function updateChapterTitleAction(
     const chapter = project.getChapter(chapterId)!;
     await repository.updateChapter(auth.userId, projectId, chapter);
 
-    return serializeChapter(chapter);
+    // Read back the persisted updatedAt (see updateChapterContentAction for why).
+    const savedProject = await repository.loadProject(auth.userId, projectId);
+
+    return {
+      chapter: serializeChapter(chapter),
+      projectUpdatedAt: savedProject!.getUpdatedAt().toISOString(),
+    };
   });
 }
 
@@ -216,9 +229,28 @@ export async function updateChapterContentAction(
       previousTotalWords
     );
 
+    // Best-effort just like word-count tracking: an automatic snapshot concern
+    // must never make the author's autosave fail.
+    try {
+      await (await getAutomaticSnapshotRepo()).recordSavedChange(
+        auth.userId,
+        projectId,
+        new Date(),
+      );
+    } catch (error) {
+      console.error('Unable to record automatic snapshot change', { projectId, error });
+    }
+
+    // Read back the persisted updatedAt rather than computing a fresh Date here:
+    // updateChapter's underlying $set stamps its own timestamp, so this call's
+    // own `new Date()` would differ from what was actually written — silently
+    // breaking any caller relying on an exact match (e.g. restore's optimistic
+    // concurrency check).
+    const savedProject = await repository.loadProject(auth.userId, projectId);
+
     return {
       saved: true,
-      updatedAt: new Date().toISOString(),
+      updatedAt: savedProject!.getUpdatedAt().toISOString(),
     };
   });
 }

@@ -12,6 +12,8 @@ import { CanonExtractionPreferences } from '@/domain/value-objects/CanonExtracti
 import type { PublicationProfileId } from '@/domain/value-objects/PublicationProfile';
 import type { LevelStyleSetProperties } from '@/domain/value-objects/LevelStyleSet';
 import type { TocPreferences } from '@/domain/value-objects/TocPreferences';
+import type { AutomaticSnapshotInterval } from '@/domain/value-objects/AutomaticSnapshotInterval';
+import type { AutomaticSnapshotRepository } from '@/domain/interfaces/AutomaticSnapshotRepository';
 
 export interface ProjectSettingsUpdates {
   title?: string;
@@ -36,6 +38,8 @@ export interface ProjectSettingsUpdates {
   };
   tocPreferences?: Partial<TocPreferences>;
   endnotesTitle?: string;
+  automaticSnapshotIntervalMinutes?: AutomaticSnapshotInterval | null;
+  snapshotTimeZone?: string;
 }
 
 export interface UpdateProjectSettingsInput {
@@ -47,7 +51,8 @@ export interface UpdateProjectSettingsInput {
 export class UpdateProjectSettingsUseCase {
   constructor(
     private readonly repository: ProjectSettingsRepository,
-    private readonly idGenerator: IdGenerator
+    private readonly idGenerator: IdGenerator,
+    private readonly automaticSnapshots?: AutomaticSnapshotRepository,
   ) {}
 
   async execute(input: UpdateProjectSettingsInput): Promise<ProjectSettings> {
@@ -65,6 +70,7 @@ export class UpdateProjectSettingsUseCase {
     }
 
     let updated = existing;
+    const previousAutomaticSnapshotInterval = existing.getAutomaticSnapshotIntervalMinutes();
     const updates = input.updates;
 
     if ('title' in updates) {
@@ -146,6 +152,26 @@ export class UpdateProjectSettingsUseCase {
       updated = updated.updateEndnotesTitle(updates.endnotesTitle);
     }
 
-    return this.repository.update(input.userId, updated);
+    if ('automaticSnapshotIntervalMinutes' in updates) {
+      updated = updated.updateAutomaticSnapshotIntervalMinutes(updates.automaticSnapshotIntervalMinutes ?? null);
+    }
+
+    if ('snapshotTimeZone' in updates) {
+      updated = updated.updateSnapshotTimeZone(updates.snapshotTimeZone!);
+    }
+
+    const saved = await this.repository.update(input.userId, updated);
+    if (
+      this.automaticSnapshots &&
+      'automaticSnapshotIntervalMinutes' in updates &&
+      previousAutomaticSnapshotInterval !== saved.getAutomaticSnapshotIntervalMinutes()
+    ) {
+      await this.automaticSnapshots.configure(
+        input.userId,
+        input.projectId,
+        saved.getAutomaticSnapshotIntervalMinutes(),
+      );
+    }
+    return saved;
   }
 }

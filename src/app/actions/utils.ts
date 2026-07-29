@@ -12,6 +12,8 @@ import {
   getMetadataRepository,
   getCustomAnnexRepository,
   getCorrectionHistoryRepository,
+  getSnapshotRepository,
+  getAutomaticSnapshotRepository,
   getWritingGoalRepository,
   getWordCountSnapshotRepository,
   getWritingQuotaRepository,
@@ -50,6 +52,8 @@ import { UserRepository } from '@/domain/interfaces/UserRepository';
 import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
 import { CustomAnnexRepository } from '@/domain/interfaces/CustomAnnexRepository';
 import { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
+import { SnapshotRepository } from '@/domain/interfaces/SnapshotRepository';
+import { AutomaticSnapshotRepository } from '@/domain/interfaces/AutomaticSnapshotRepository';
 import { WritingGoalRepository } from '@/domain/interfaces/WritingGoalRepository';
 import { WordCountSnapshotRepository } from '@/domain/interfaces/WordCountSnapshotRepository';
 import { WritingQuotaRepository } from '@/domain/interfaces/WritingQuotaRepository';
@@ -193,6 +197,18 @@ export async function getCustomAnnexRepo(): Promise<CustomAnnexRepository> {
  */
 export async function getCorrectionHistoryRepo(): Promise<CorrectionHistoryRepository> {
   return await getCorrectionHistoryRepository();
+}
+
+/**
+ * Get snapshot repository instance.
+ */
+export async function getSnapshotRepo(): Promise<SnapshotRepository> {
+  return await getSnapshotRepository();
+}
+
+/** Get the server-side automatic snapshot scheduler. */
+export async function getAutomaticSnapshotRepo(): Promise<AutomaticSnapshotRepository> {
+  return await getAutomaticSnapshotRepository();
 }
 
 /**

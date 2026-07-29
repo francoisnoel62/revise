@@ -11,6 +11,7 @@ import { CanonExtractionMode } from '@/domain/value-objects/CanonExtractionPrefe
 import type { PublicationProfileId } from '@/domain/value-objects/PublicationProfile';
 import type { LevelStylesByProfile } from '@/domain/entities/ProjectSettings';
 import type { TocDepth, TocStyle } from '@/domain/value-objects/TocPreferences';
+import type { AutomaticSnapshotInterval } from '@/domain/value-objects/AutomaticSnapshotInterval';
 
 export interface ContributorDocument {
   name: string;
@@ -54,6 +55,8 @@ export interface ProjectSettingsDocument {
   tocDepth?: TocDepth;
   tocStyle?: TocStyle;
   endnotesTitle?: string;
+  automaticSnapshotIntervalMinutes?: AutomaticSnapshotInterval | null;
+  snapshotTimeZone?: string;
 }
 
 export function serializeProjectSettings(
@@ -98,6 +101,8 @@ export function serializeProjectSettings(
     tocDepth: props.tocDepth,
     tocStyle: props.tocStyle,
     endnotesTitle: props.endnotesTitle,
+    automaticSnapshotIntervalMinutes: props.automaticSnapshotIntervalMinutes,
+    snapshotTimeZone: props.snapshotTimeZone,
   };
 }
 
@@ -144,6 +149,8 @@ export function deserializeProjectSettings(doc: ProjectSettingsDocument): Projec
     tocDepth: doc.tocDepth,
     tocStyle: doc.tocStyle,
     endnotesTitle: doc.endnotesTitle,
+    automaticSnapshotIntervalMinutes: doc.automaticSnapshotIntervalMinutes,
+    snapshotTimeZone: doc.snapshotTimeZone,
   };
 
   return ProjectSettings.reconstruct(props);
