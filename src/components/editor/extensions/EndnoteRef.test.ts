@@ -2,11 +2,18 @@
 // ABOUTME: Numbering is positional (per-chapter reset is free: each chapter is its own doc).
 
 import { describe, it, expect } from 'vitest';
-import { Editor } from '@tiptap/core';
+import { Editor, type JSONContent } from '@tiptap/core';
 import Document from '@tiptap/extension-document';
 import Paragraph from '@tiptap/extension-paragraph';
 import Text from '@tiptap/extension-text';
 import Bold from '@tiptap/extension-bold';
+import Blockquote from '@tiptap/extension-blockquote';
+import BulletList from '@tiptap/extension-bullet-list';
+import ListItem from '@tiptap/extension-list-item';
+import Heading from '@tiptap/extension-heading';
+import { extractChapterEndnotes } from '@/application/rendering/endnoteCompilation';
+import { switchPublicationProfile } from '@/application/rendering/PublicationProfileSwitch';
+import type { ContentNode } from '@/domain/value-objects/ContentNode';
 import {
   EndnoteRef,
   ENDNOTE_REF_NAME,
@@ -270,3 +277,117 @@ describe('findDeletableEndnoteRef', () => {
     editor.destroy();
   });
 });
+
+// Invariant the endnote panel (docs/plans/footnotes-manager-panel) is built on: a note is
+// addressed by (chapter, rank) rather than by document position, which only works if the two
+// independent traversals below always agree on order and count.
+describe('EndnoteRef — parity with extractChapterEndnotes', () => {
+  const createFixtureEditor = () =>
+    new Editor({
+      extensions: [Document, Paragraph, Text, Bold, Blockquote, BulletList, ListItem, Heading, EndnoteRef],
+      content: fixtureDoc,
+    });
+
+  it('collectEndnoteRefs (PMNode) and extractChapterEndnotes (JSON) agree on order and count', () => {
+    const editor = createFixtureEditor();
+
+    const fromPMNode = collectEndnoteRefs(editor.state.doc);
+    const fromJSON = extractChapterEndnotes(editor.getJSON() as JSONContent);
+
+    expect(fromPMNode).toHaveLength(5);
+    expect(fromJSON).toHaveLength(5);
+    expect(fromPMNode.map((e) => e.content)).toEqual(fromJSON.map((e) => e.content));
+    editor.destroy();
+  });
+
+  it('still agree after the content passes through the passerelle gateway (semantic → overrides applied)', () => {
+    const editor = createFixtureEditor();
+    const semantic = editor.getJSON() as ContentNode;
+
+    // An override that only touches presentation attrs must never insert or remove a node —
+    // if it ever did, the endnote count/order below would silently drift.
+    const { content: presented } = switchPublicationProfile(
+      semantic,
+      'passerelle',
+      [{ nodeIndex: 1, props: { fontSize: '14pt' } }]
+    );
+
+    const presentedEditor = new Editor({
+      extensions: [Document, Paragraph, Text, Bold, Blockquote, BulletList, ListItem, Heading, EndnoteRef],
+      content: presented as JSONContent,
+    });
+
+    const fromPMNode = collectEndnoteRefs(presentedEditor.state.doc);
+    const fromJSON = extractChapterEndnotes(presented as JSONContent);
+
+    expect(fromPMNode).toHaveLength(5);
+    expect(fromJSON).toHaveLength(5);
+    expect(fromPMNode.map((e) => e.content)).toEqual(fromJSON.map((e) => e.content));
+    editor.destroy();
+    presentedEditor.destroy();
+  });
+});
+
+function noteBody(text: string): EndnoteContent | null {
+  if (text === '') return null; // an empty note: no meaningful body at all
+  return { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] };
+}
+
+// Covers every block kind the plan's invariant must survive: heading, paragraph, blockquote,
+// list item, plus one note with no body (`content: null`) to prove emptiness doesn't skip a slot.
+const fixtureDoc: JSONContent = {
+  type: 'doc',
+  content: [
+    {
+      type: 'heading',
+      attrs: { level: 1 },
+      content: [
+        { type: 'text', text: 'Titre ' },
+        { type: ENDNOTE_REF_NAME, attrs: { content: noteBody('note de titre') } },
+      ],
+    },
+    {
+      type: 'paragraph',
+      content: [
+        { type: 'text', text: 'Un paragraphe ' },
+        { type: ENDNOTE_REF_NAME, attrs: { content: noteBody('note de paragraphe') } },
+      ],
+    },
+    {
+      type: 'blockquote',
+      content: [
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: 'Une citation ' },
+            { type: ENDNOTE_REF_NAME, attrs: { content: noteBody('note de citation') } },
+          ],
+        },
+      ],
+    },
+    {
+      type: 'bulletList',
+      content: [
+        {
+          type: 'listItem',
+          content: [
+            {
+              type: 'paragraph',
+              content: [
+                { type: 'text', text: "Un élément de liste " },
+                { type: ENDNOTE_REF_NAME, attrs: { content: noteBody('note de liste') } },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      type: 'paragraph',
+      content: [
+        { type: 'text', text: 'Une dernière note, vide ' },
+        { type: ENDNOTE_REF_NAME, attrs: { content: noteBody('') } },
+      ],
+    },
+  ],
+};
