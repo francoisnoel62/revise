@@ -14,6 +14,17 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME || 'revise';
 
+interface AutomaticSnapshotScheduleFixture {
+  _id: string;
+  ownerId: string;
+  projectId: string;
+  intervalMinutes: 5;
+  changedAt: Date | null;
+  nextDueAt: Date | null;
+  changeRevision: number;
+  leaseUntil: Date | null;
+}
+
 // ── Fixed test identifiers (known at test-write time) ──────────────────────────
 
 export const TEST_USER_ID = 'e2e-strategy-user-001';
@@ -376,7 +387,7 @@ export async function resetAutomaticSnapshotFixture(): Promise<void> {
       db.collection('snapshotCounters').deleteMany({ _id: TEST_AUTOMATIC_SNAPSHOT_PROJECT_ID } as object),
       db.collection('automaticSnapshotSessions').deleteMany({ ownerId: TEST_USER_ID, projectId: TEST_AUTOMATIC_SNAPSHOT_PROJECT_ID }),
     ]);
-    await db.collection('automaticSnapshotSchedules').replaceOne(
+    await db.collection<AutomaticSnapshotScheduleFixture>('automaticSnapshotSchedules').replaceOne(
       { _id: `${TEST_USER_ID}:${TEST_AUTOMATIC_SNAPSHOT_PROJECT_ID}` },
       {
         _id: `${TEST_USER_ID}:${TEST_AUTOMATIC_SNAPSHOT_PROJECT_ID}`,
