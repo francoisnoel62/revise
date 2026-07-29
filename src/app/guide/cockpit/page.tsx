@@ -49,11 +49,24 @@ export default function GuideCockpitPage() {
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-2xl font-semibold">Objectifs d&apos;écriture</h2>
+            <h2 className="text-2xl font-semibold">Objectifs &amp; quotas d&apos;écriture</h2>
+            <p>Revise distingue deux façons de vous fixer un cap :</p>
+            <ul className="list-disc pl-6 space-y-1">
+              <li>
+                <strong>Un objectif ponctuel</strong> — un nombre de mots cible pour le projet, avec
+                une échéance optionnelle. Utile pour un « je veux finir ce roman avant le 1er
+                décembre ».
+              </li>
+              <li>
+                <strong>Un quota récurrent</strong> — un rythme quotidien ou hebdomadaire (« 500 mots
+                par jour ») que Revise suit dans le temps plutôt qu&apos;une seule fois. Une session
+                de coupe ne vous fait jamais passer en négatif.
+              </li>
+            </ul>
             <p>
-              Fixez des objectifs <strong>quotidiens, hebdomadaires ou totaux</strong> (en nombre de
-              mots) et suivez votre progression. La régularité, plus que l&apos;inspiration, fait les
-              manuscrits terminés.
+              Un graphique d&apos;activité affiche votre rythme réel jour après jour, à comparer à
+              votre quota — utile pour voir si vous tenez la cadence sans attendre la fin du
+              manuscrit pour le découvrir.
             </p>
           </section>
 

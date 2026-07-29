@@ -4,6 +4,159 @@ All notable changes to the Revise project are documented in this file.
 
 For current features and roadmap, see [README.md](README.md).
 
+> **Note sur le format** : les entrées ci-dessous datent les changements par mois calendaire plutôt
+> que par numéro de "Phase". L'ancienne numérotation (visible plus bas dans ce fichier) s'est révélée
+> peu fiable pour reconstituer l'historique réel — elle est conservée telle quelle pour les entrées
+> historiques, mais n'est plus utilisée pour les nouvelles entrées.
+
+---
+
+## Historique de versions — snapshots de projet (25–29 juillet 2026)
+
+Filet de sécurité pour revenir sur une version antérieure d'un projet, avec verrouillage optimiste
+et une politique de rétention automatique.
+
+### Domain Layer
+- **`Snapshot` entity** - capture immuable : numéro séquentiel jamais réutilisé, copie complète des
+  chapitres, métadonnées éditoriales capturées (titre, genre, synopsis, POV, temps, ISBN,
+  contributeurs, œuvres liées), type (`manual`/`automatic`/`restore`/`safety`) ; modèle "tombstone"
+  (`tombstone()` efface le contenu restaurable mais garde une entrée d'audit)
+- **`SnapshotType`, `AutomaticSnapshotInterval`** value objects - 4 types de snapshot ; intervalles
+  automatiques autorisés : 5/15/30/60 minutes
+- **`AutomaticSnapshotRetention`** - le seul *domain service* du code : politique de purge pure
+  (20 derniers snapshots automatiques, puis 1/jour sur 30 jours, 1/semaine sur 6 mois, awareness
+  fuseau horaire)
+- **`SnapshotRepository`** - numérotation séquentielle, historique paginé, mises à jour de métadonnées
+  de présentation, tombstoning, journal d'activité (`SnapshotActivity`) couvrant création/restauration/
+  renommage/commentaire/reconfiguration d'automatisation/suppression/purge automatique
+- **`AutomaticSnapshotRepository`** - horloge de planification côté serveur : `configure` (intervalle),
+  `recordSavedChange`, `heartbeat` (sessions d'édition ouvertes), `claimDueSnapshot`/`completeSnapshot`/
+  `releaseFailedSnapshot` (verrouillage distribué par capture)
+
+### Application Layer
+- **`CreateSnapshotUseCase`** - création manuelle (numéro séquentiel, capture chapitres + métadonnées
+  éditoriales), journalise une activité best-effort
+- **`ProcessAutomaticSnapshotUseCase`** - heartbeat de session, capture au plus un snapshot dû par
+  intervalle, vérifie qu'une session est encore ouverte avant de committer, purge via
+  `AutomaticSnapshotRetention`
+- **`ListSnapshotsUseCase`** - historique paginé + indicateur de changements non capturés
+- **`LoadSnapshotComparisonUseCase`** - charge un snapshot passé et un état courant cohérent (relecture
+  triple pour détecter une course de lecture, pas de transaction multi-documents Mongo)
+- **`RestoreSnapshotUseCase`** - verrouillage optimiste (`expectedProjectUpdatedAt`), snapshot de
+  sécurité automatique de l'état non sauvegardé avant restauration, compare-and-swap atomique du
+  projet, compensation best-effort en cas d'échec post-écriture
+- **`GovernSnapshotHistoryUseCase`** - édition de métadonnées (renommer/commenter) gated par rôle
+  (`owner`/`editor`/`reader` — base posée pour une future collaboration multi-auteur), suppression en
+  tombstone auditée et irréversible
+
+### Infrastructure Layer
+- **`MongoDBSnapshotRepository`, `MongoDBAutomaticSnapshotRepository`** - persistance MongoDB
+
+### Interface Layer
+- **`SnapshotHistoryDialog`** - créer/consulter/éditer/supprimer/restaurer, déclenché depuis l'éditeur
+- **`SnapshotComparisonDialog`** - diff structure puis texte/bloc entre un snapshot et l'état courant
+- **`snapshot-actions.ts`** - server actions (création, liste/métadonnées, suppression, restauration)
+
+> Distinct de `CorrectionHistory` (historique des propositions de réécriture IA par chapitre), qui
+> existe séparément depuis Phase 3.7.
+
+---
+
+## Notes de bas de page — endnotes (24–29 juillet 2026)
+
+### Interface / Éditeur
+- **`EndnoteRef`** (extension TipTap) - nœud d'appel de note + modale d'insertion (`EndnoteModal`,
+  mini-éditeur TipTap gras/italique/lien)
+- **Bulle de lecture** - affichage au survol dans l'aperçu de chapitre ; la note épinglée l'emporte sur
+  le survol
+- **`EndnotesPanel`** - panneau "Liste des notes" en lecture seule puis éditable : liste par chapitre,
+  numérotée comme à l'export, édition/suppression, action possible sur un chapitre non ouvert
+  (`useEndnoteLocator`)
+- **Verrouillage de la parité JSON/PMNode** + index de notes par chapitre
+
+### Application / Infrastructure
+- **`endnoteCompilation.ts`** (`extractChapterEndnotes`, `buildEndnoteCompilation`,
+  `endnoteCallId`/`endnoteNoteId`) - source unique de numérotation, partagée par l'aperçu paginé et les
+  deux formats d'export
+- **Export PDF** - compilation des notes en section de fin d'ouvrage (back-matter)
+- **Export DOCX** - rendu en vraies notes de bas de page Word natives
+- **`ProjectSettings.endnotesTitle`** - titre des notes personnalisable (« Notes » par défaut)
+
+---
+
+## Refonte éditoriale — modèle sémantique, profils de publication & pagination (24 mai – 19 juillet 2026)
+
+Le chantier le plus volumineux de la période : le contenu passe d'un modèle figé à un modèle
+sémantique découplé de sa présentation, avec un moteur de pagination livre unifié. Décision documentée
+dans [ADR 0005](docs/adr/0005-editeur-apercu-fidele-moteur-pagine-unique.md).
+
+### Domain Layer
+- **`SemanticRole`** - rôles de bloc de contenu (`corps`, `titre-de-chapitre`, `sous-titre`,
+  `citation`, `epigraphe`, `separateur-de-scene`) découplés du style visuel
+- **`PublicationProfile`** - préréglages d'impression immuables : `kdp-6x9`, `a5`, `passerelle`
+  (non paginé) ; `fromId()` retombe sur `kdp-6x9` pour un id inconnu/retiré
+- **`LevelStyleSet`** - typographie par rôle sémantique et par profil (taille/graisse/italique/
+  alignement/interligne), avec bornage et validation
+- **`TocPreferences`** - profondeur (chapitres seuls / chapitres + sous-titres) et style
+  (classique/épuré/littéraire) de la table des matières
+- **`PresentationOverride`** - couche de surcharges (police/taille/alignement) réservée au profil
+  `passerelle`, distincte du contenu sémantique
+- **`BookPreviewCacheEntry`** - cache des métriques d'un aperçu PDF livre entier (offsets de page par
+  chapitre/sous-titre), invalidé par empreinte de contenu
+- **`CustomAnnex`** - annexe personnalisée avant/arrière-texte (titre + contenu TipTap), avec ordre
+  d'affichage
+
+### Application Layer
+- **`ContentMigrator` / `ContentDemigrator`** - migration (réversible) du contenu legacy vers le modèle
+  sémantique ; signale les cas ambigus (ex. texte centré) pour relecture manuelle
+- **`RemovedPublicationProfileMigration`** - redirige automatiquement les 3 anciens profils KDP retirés
+  (`kdp-5x8`, `kdp-5_25x8`, `kdp-5_5x8_5`) vers `kdp-6x9`
+- **`ChapterTitleHeadingMigration`** - garantit un H1 `titre-de-chapitre` sur chaque chapitre existant
+- **`WholeBookHtmlAssembler`** - assemble le HTML du livre entier, applique le dépouillement des
+  surcharges de présentation, construit la compilation des notes
+- **`BookPreviewCacheComputer`** - pilote un navigateur headless (Paged.js) pour paginer le HTML
+  assemblé, extrait les métriques de page (timeout 120s)
+- **`BookOffsetCalculator`** - calcule la première page arabe de chaque chapitre (respecte les sauts de
+  page impaire)
+- **`PresentationOverrideService`** - `applyOverrides`/`stripToSemantic`/`extractOverrides`, invariant
+  testé du cycle apply → strip → re-apply
+
+### Infrastructure Layer
+- **`PagedPdfExporter`** (headless Chromium + Paged.js, via `PlaywrightBrowserLauncher` +
+  `PagedJsRenderer`) **remplace `PdfExporter`** (pdf-lib) comme moteur d'export PDF de production.
+  `PdfExporter` reste dans le code mais n'est plus câblé nulle part (code mort, uniquement référencé
+  par son propre test).
+- **`document/paged/`** - sous-système de rendu (`TipTapToBookHtml`, `BookCssBuilder`,
+  `TocHtmlBuilder`, `FrontMatterHtmlBuilder`, `BackMatterHtmlBuilder`, `EndnotesHtmlBuilder`,
+  espacement français, etc.)
+- **`MongoDBBookPreviewCacheRepository`** - cache GridFS du PDF livre entier
+- **`MongoDBCustomAnnexRepository`, `MongoDBPresentationOverrideRepository`** - persistance MongoDB
+- **DOCX** - presets de style + support "front matter" pour le format KDP (24 mai – 1 juin 2026)
+
+### Interface Layer
+- **`/book-preview`** - aperçu lecture seule du livre entier (PDF généré et mis en cache côté serveur,
+  affiché dans une iframe), sélecteur de profil, navigation par ancre `#page=N`
+- **`PublicationPreview`, `PublicationProfileSelector`, `LevelStylesPanel`** - aperçu et réglages de
+  profil directement dans l'éditeur
+- **Pages liminaires, TOC, annexes** - génération dans le rendu paginé, folios romains, 3 designs de
+  TOC pour les sous-titres, copyright (avant, auto) séparé des mentions légales (arrière)
+- **`/editor/paged-spike`** + `/api/paged-spike/export` - route expérimentale ayant validé la pipeline
+  avant sa mise en production ; 404 en production, conservée comme code de validation
+
+---
+
+## Correcteur orthographique hors-ligne (23–25 juin 2026)
+
+- **Remplacement** de la stratégie d'analyse orthographique par IA (`SpellingAnalysisStrategy`, Phase
+  7.0) par un correcteur **entièrement hors-ligne** : nouvelle interface domaine `SpellChecker`,
+  implémentation via **nspell + dictionnaire fr-FR** — zéro token IA consommé.
+- Gestion des noms propres, mots ignorés persistants (par projet), dictionnaire personnalisé
+  (`SpellCheckSettingsCard`).
+- **`SpellCheckPalette`, `SpellCheckExtension`** - soulignement rouge dans l'éditeur, palette de
+  correction au clic.
+- Les 4 autres catégories d'analyse (grammaire, ponctuation, style, répétitions) restent inchangées et
+  basées sur l'IA.
+
 ---
 
 ## Phase 9.0 - Character Chat & Character Sheet Auto-Fill (June 2026)
@@ -348,6 +501,18 @@ for the vision, diagnostic, and 3-act roadmap.
 - Removed history, diff, and export features
 - Removed repetition exclusions feature
 - User ignores issues locally (state update only)
+
+---
+
+## Réinitialisation de mot de passe (31 janvier 2026)
+
+- **`PasswordResetToken` entity** - jeton à usage unique, expirant (1h)
+- **`RequestPasswordResetUseCase`** - réponse identique pour un compte inconnu/non approuvé
+  (anti-énumération), envoi du lien par e-mail
+- **`ResetPasswordUseCase`** - valide le jeton, met à jour le mot de passe, invalide les jetons restants
+- **`ChangePasswordUseCase`** (authentifié) - vérifie le mot de passe courant, invalide tous les jetons
+  de réinitialisation existants
+- **Interface** - `/auth/forgot-password`, `/auth/reset-password`
 
 ---
 

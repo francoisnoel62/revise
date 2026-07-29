@@ -28,11 +28,11 @@ For developers working on or integrating with Revise.
 ### Project Documentation
 High-level project information.
 
-- **[CLAUDE.md](../CLAUDE.md)** - Guidance for Claude Code when working with this repository
-  - Project overview and architecture
-  - Implementation phases
-  - Technical stack
-  - Development guidelines
+- **[docs/architecture.md](./architecture.md)** - Full Domain/Application/Infrastructure/Interface layer
+  inventory, kept current with the code
+- **[CLAUDE.md](../CLAUDE.md)** - Governance rules for Claude Code working in this repo (tech stack,
+  Clean Architecture constraints, development rules). It no longer contains phase-by-phase feature
+  history — see `docs/architecture.md` and `CHANGELOG.md` for that.
 
 - **[README.md](../README.md)** - Project overview and quick start
   - Features overview
@@ -49,7 +49,7 @@ High-level project information.
 4. Start writing!
 
 ### For Developers
-1. Read [CLAUDE.md](../CLAUDE.md) for architecture
+1. Read [docs/architecture.md](./architecture.md) for architecture
 2. Review [API Reference](./developer/api-reference.md)
 3. Check test files for examples
 4. Follow Clean Architecture principles
@@ -58,37 +58,36 @@ High-level project information.
 
 ### Authentication & Security
 - User authentication: See README.md → Quick Start
-- Password security: bcrypt with 12 rounds
+- Password security: bcrypt with 12 rounds; forgot/reset password flow (`/auth/forgot-password`, `/auth/reset-password`)
 - API key encryption: [Provider Management](./user/provider-management.md#security-best-practices)
 - Multi-tenant isolation: [API Reference](./developer/api-reference.md#security)
+- AI transparency ledger: opt-in log of captured AI exchanges, encrypted at rest — see `docs/architecture.md`
 
 ### AI Providers
 - **User Guide**: [Provider Management](./user/provider-management.md)
 - **Developer Guide**: [API Reference](./developer/api-reference.md)
-- Supported providers: OpenAI, Anthropic, Google
+- Supported providers: OpenAI, Anthropic, Google (free-text model name, no predefined list)
 - Connection testing: Rate limited (1 per 5 seconds)
+- Model pricing synced dynamically from OpenRouter; admin panel at `/admin/pricing`
 
 ### Database & Persistence
-- MongoDB Atlas integration: See CLAUDE.md → Infrastructure Layer
+- MongoDB Atlas integration: See [docs/architecture.md](./architecture.md) → Infrastructure Layer
 - Auto-save: 1-second debounce
 - Multi-tenant data isolation: All queries filtered by ownerId
-- Encryption at rest: AES-256-GCM for API keys
+- Encryption at rest: AES-256-GCM for API keys and transparency-ledger content (separate, domain-separated keys)
 
 ### Editor & Formatting
-- TipTap rich text editor: See CLAUDE.md → Phase 2.5
-- A4 page styling: 794px width, professional margins
-- Typography controls: Font family, size, alignment, indent
+- TipTap rich text editor with a semantic content model (role decoupled from presentation)
+- A4-style writing surface; paginated publication preview (KDP 6×9 / A5 / passerelle profiles) for export-accurate layout
+- Typography controls: per-profile font family, size, alignment, indent
 - Keyboard shortcuts: See README.md → Usage
 
 ### Testing
-- Test coverage: **1700+ passed (1750+ total, 98%+ pass rate)**
-- Test files: 200+ files
 - Unit tests: Vitest + React Testing Library
-- Integration tests: Real API calls (OpenAI & Anthropic) — 35+ provider-specific tests
+- Integration tests: Real API calls (OpenAI, Anthropic, Google)
 - E2E tests: Playwright with auth seeding (`e2e/auth.setup.ts`)
-- AI Efficiency tests: Manual workflow tests A–D (`tests_ia_efficiency/`) validating contextual AI behaviour
-- Coverage: 92%+ domain entities, 100% use cases
-- See [API Reference](./developer/api-reference.md#testing) for examples
+- AI Efficiency tests: Manual workflow guides A–D (`tests_ia_efficiency/`) validating contextual AI behaviour, each paired with an automated Vitest suite
+- See [API Reference](./developer/api-reference.md#testing) for examples, and `npm run test:coverage` for current numbers rather than a figure hard-coded here
 
 ## 🔍 Find What You Need
 
@@ -127,6 +126,11 @@ High-level project information.
 → [Provider Management](./user/provider-management.md#troubleshooting)
 
 ## 🆕 What's New
+
+> This section stops at Phase 9.0 (June 2026) and is kept only as a historical record. For
+> everything since — dynamic AI pricing, the AI transparency ledger, the autocomplete/canon-facts
+> redesign, the offline spell-checker, the full editorial refonte (semantic content, publication
+> profiles, pagination), endnotes, and project snapshots — see **[CHANGELOG.md](../CHANGELOG.md)**.
 
 ### Phase 9.0 - Character Chat & Character Sheet Auto-Fill (June 2026) ✅
 
@@ -304,9 +308,9 @@ High-level project information.
 - ✅ **92%+ Domain Layer Coverage** - Excellent business logic coverage (entities)
 - ✅ **12 Provider-Specific Integration Tests** - Real API validation (OpenAI & Anthropic)
 
-**Architecture Score**: 9.5/10 (up from 7.5/10 - all technical debt resolved)
+**Architecture Score**: 9.5/10 (up from 7.5/10 - all technical debt resolved as of Phase 3.5)
 
-See [CLAUDE.md](../CLAUDE.md#clean-architecture---technical-debt) for complete audit details.
+See [docs/architecture.md](./architecture.md) for the current, maintained architecture audit.
 
 ## 📝 Contributing to Documentation
 
@@ -331,11 +335,17 @@ See [CLAUDE.md](../CLAUDE.md#clean-architecture---technical-debt) for complete a
 ```
 docs/
 ├── README.md              # This file - documentation index
+├── architecture.md        # Full layer-by-layer architecture inventory (kept current)
+├── adr/                    # Architecture Decision Records
+├── agents/                 # Instructions for AI coding agents (issue tracker, triage labels...)
+├── journal/                 # Append-only engineering journal
+├── plans/                    # Feature handoff / planning documents
+├── prompt/                    # Production prompt templates (loaded by FilePromptRepository)
 ├── user/                  # User-facing documentation
 │   └── provider-management.md
-├── developer/             # Developer documentation
-│   └── api-reference.md
-└── deployment/            # Deployment guides (future)
+└── developer/             # Developer documentation
+    ├── api-reference.md
+    └── worktrees.md
 ```
 
 ### Adding New Documentation
@@ -374,6 +384,5 @@ docs/
 
 ---
 
-**Documentation Version**: Phase 9.0 (June 2026)
-**Last Updated**: June 2026
-**Status**: Complete ✅ - Character Chat, Character Sheet AI, AI Cost Tracking, AI Context Strategy, 1750+ tests
+**Last Updated**: 29 July 2026. This index and `docs/architecture.md` are maintained alongside the
+code; `CHANGELOG.md` is the source of truth for what shipped and when.

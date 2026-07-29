@@ -9,6 +9,7 @@ import {
   PenLine,
   Sparkles,
   BookOpen,
+  BookMarked,
   Users,
   Microscope,
   LayoutDashboard,
@@ -51,6 +52,13 @@ const categories = [
     title: 'Gérer son manuscrit',
     description:
       "Chapitres, import .docx et Markdown, export DOCX/PDF, image de couverture, temps de lecture et partage public.",
+  },
+  {
+    href: '/guide/publication',
+    icon: BookMarked,
+    title: 'Profils de publication',
+    description:
+      "KDP 6×9, A5 ou passerelle : choisissez un profil d'impression, personnalisez la table des matières et prévisualisez votre livre entier avant export.",
   },
   {
     href: '/guide/personnages',

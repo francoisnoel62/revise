@@ -93,16 +93,21 @@ Pas de chat. Pas d'explications. Pas de friction. Vous restez dans votre flow.
 - **Import .docx intelligent** : Détection automatique des chapitres (H1)
 - **Import de dossier Markdown** : Importez un dossier de fichiers .md comme chapitres
 - **Navigation par chapitres** : Panneau latéral, drag & drop, renommage inline
-- **Export multi-format** : DOCX et PDF avec typographie préservée et image de couverture
+- **Export multi-format** : DOCX et PDF, rendus par le même moteur de pagination que l'aperçu (profils KDP 6×9 / A5 / passerelle), avec typographie par profil, table des matières configurable, annexes personnalisées et notes de bas de page natives
+- **Profils de publication** : basculez entre profils d'impression (KDP 6×9, A5, passerelle) directement dans l'éditeur ; aperçu paginé du livre entier avant export
+- **Notes de bas de page** : insertion, panneau de gestion par chapitre, export en vraies notes Word / section de fin d'ouvrage PDF
+- **Historique de versions** : snapshots manuels et automatiques, restauration sans perdre l'état courant, comparaison entre versions
 - **Sélection des chapitres** : Choisissez les chapitres à exporter ou publier
 - **Auto-save** : Vers MongoDB, debounce 1 seconde
 - **Historique des corrections** : Retrouvez toutes vos réécritures par chapitre
 - **Génération de texte IA** : Générez le début d'un chapitre vide avec contexte du projet
 - **Autocomplétion IA** : Appuyez sur Tab pour déclencher une suggestion (streaming temps réel) ; `→` accepte un mot, `Tab` accepte tout, `Échap` rejette ; point animé quand une suggestion est déjà prête en arrière-plan ; variantes navigables au clavier ; préférences par projet (longueur, audace, prefetch)
+- **Registre canon** : l'IA extrait automatiquement les faits établis du roman (états, croyances, relations, valables sur des plages de chapitres) pour rester cohérente sur un roman long
+- **Thésaurus contextuel** : recherche instantanée d'alternatives + suggestion IA ancrée sur votre voix
 - **Partage public** : Partagez votre projet via un lien unique en lecture seule
 - **Temps de lecture** : Affichage du temps de lecture estimé par chapitre
 - **Image de couverture** : Uploadez une image de couverture pour vos projets
-- **Objectifs d'écriture** : Définissez des objectifs quotidiens, hebdomadaires ou totaux
+- **Objectifs d'écriture** : objectif ponctuel (mots + échéance) ou quota récurrent (quotidien/hebdomadaire) avec graphique d'activité
 
 ### 📄 Expérience d'écriture A4
 
@@ -145,18 +150,20 @@ Analysez vos chapitres pour détecter et corriger les erreurs :
 
 | Catégorie | Ce qu'elle détecte |
 |-----------|-------------------|
-| **Orthographe** | Fautes d'orthographe avec suggestions de correction |
-| **Grammaire** | Erreurs grammaticales et accords |
-| **Ponctuation** | Erreurs de ponctuation et typographie |
-| **Style** | Suggestions d'amélioration stylistique |
+| **Orthographe** | Fautes d'orthographe, hors-ligne et instantané (dictionnaire fr-FR), sans consommer de token IA |
+| **Grammaire** | Erreurs grammaticales et accords (IA) |
+| **Ponctuation** | Erreurs de ponctuation et typographie (IA) |
+| **Style** | Suggestions d'amélioration stylistique (IA) |
 | **Répétitions** | Mots et phrases répétés trop souvent |
 
 **Fonctionnalités** :
 - 3 niveaux de rigueur : strict, équilibré, léger
 - Application des corrections en un clic
 - Exclusion de mots des répétitions (noms de personnages)
-- Historique des analyses par chapitre
-- Export du rapport d'analyse en Markdown
+- Dictionnaire personnalisé et mots ignorés persistants par projet (orthographe)
+
+> Les résultats d'analyse sont en mémoire pour la session en cours ; il n'y a pas d'historique
+> persistant ni d'export du rapport.
 
 ### ✨ UX soignée
 
@@ -174,6 +181,8 @@ Apportez votre propre clé API :
   <img src="https://img.shields.io/badge/Google_AI-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Google AI" />
 </p>
 
+Le coût de chaque appel est affiché en euros (tarifs synchronisés automatiquement depuis OpenRouter), tokens mis en cache décomptés.
+
 ### 🔐 Sécurité & Conformité RGPD
 
 - **Chiffrement AES-256-GCM** des clés API
@@ -181,8 +190,10 @@ Apportez votre propre clé API :
 - **Auth.js + bcrypt** (12 rounds)
 - **Clés jamais exposées** côté client
 - **Approbation des inscriptions** par administrateur avec email de notification
+- **Réinitialisation de mot de passe** par e-mail (jeton à usage unique, expirant)
 - **Rate limiting** : Protection contre les abus (5 requêtes/IP/heure à l'inscription)
 - **hCaptcha** : Vérification anti-bot à l'inscription
+- **Journal de transparence IA** : consultez, en opt-in, le contenu exact envoyé/reçu de l'IA (chiffré au repos, purge automatique)
 - **Consentement RGPD** enregistré avec timestamps
 - **Suppression de compte** avec effacement de toutes les données associées
 - **Export des données personnelles** (Article 20 RGPD)
@@ -316,49 +327,54 @@ Clean Architecture stricte avec séparation par couches :
 ```
 src/
 ├── domain/           # Logique métier pure (zéro dépendance)
-│   ├── entities/     # Chapter, Project, Provider, User, ProjectMetadata, CorrectionHistory, BlogArticle, ContactMessage, Character, CharacterConversation, ProjectSettings, ProjectTask, ResearchDocument, WritingGoal, AIUsageRecord, AutocompleteEvent, CanonFact
-│   ├── value-objects/# TextSelection, RewriteProposal, MetadataType, TaskPriority, TaskStatus, Contributor, RelatedWork, NarrationSettings, AIOperationType, ChatMessage, ModelPricing, AutocompletePreferences, AutocompleteIntent, AutocompleteOutcome, CanonFacts...
-│   └── interfaces/   # Contrats repositories & services
+│   ├── entities/     # Project, Chapter, Character, CharacterConversation, ProjectSettings, ProjectTask,
+│   │                 # ResearchDocument, WritingGoal, WritingQuota, WordCountSnapshot, AIUsageRecord,
+│   │                 # AIExchange, AutocompleteEvent, CanonFact, Snapshot, CustomAnnex,
+│   │                 # BookPreviewCacheEntry, PasswordResetToken, Provider, User, BlogArticle... (27 entités)
+│   ├── value-objects/# PublicationProfile, SemanticRole, LevelStyleSet, AutocompleteIntent/Outcome,
+│   │                 # CanonFactSource, ModelPricing, AutocompletePreferences... (40 value objects)
+│   └── interfaces/   # Contrats repositories & services (47 interfaces)
 │
 ├── application/      # Use cases orchestrant le domaine
-│   └── use-cases/    # 90+ use cases
+│   └── use-cases/    # ~98 use cases (Personnages, Snapshots, Canon, Publication/Pagination,
+│                     # Tarification, Objectifs/Quotas, RGPD...)
 │
 ├── infrastructure/   # Implémentations externes
-│   ├── ai/           # Providers OpenAI, Anthropic, TrackedLLMProvider
-│   ├── persistence/  # Repositories MongoDB (18 repositories)
+│   ├── ai/           # Providers OpenAI, Anthropic, Google, TrackedLLMProvider
+│   ├── document/     # PagedPdfExporter (Chromium/Paged.js), DocxExporter, moteur de pagination
+│   ├── lexical/      # Thésaurus contextuel, morphologie française
+│   ├── persistence/  # Repositories MongoDB (Snapshots, Canon, Pricing, Transparence IA...)
 │   ├── storage/      # Vercel Blob Storage
-│   ├── email/        # Service email Resend
-│   └── document/     # Import/export DOCX/PDF
+│   └── email/        # Service email Resend
 │
 └── app/              # Couche interface Next.js
-    ├── (auth)/       # Pages signin, signup
-    ├── project/      # Éditeur et cockpit projet
+    ├── (auth)/       # Signin, signup, mot de passe oublié
+    ├── project/      # Éditeur et cockpit projet (canon, snapshots, objectifs, usage...)
+    ├── book-preview/ # Aperçu paginé du livre entier
+    ├── guide/        # Guide utilisateur (accessible depuis la landing page)
     ├── blog/         # Section blog
-    ├── admin/        # Administration blog
+    ├── admin/        # Administration (blog, tarification des modèles)
     └── settings/     # Paramètres utilisateur
 ```
 
-> Cette architecture a permis d'ajouter la persistence (Phase 3), la gestion des providers (Phase 3.5) et l'analyse de manuscrit (Phase 3.6) **sans refactorer le code existant**.
+> Cette architecture a permis d'ajouter la persistence (Phase 3), la gestion des providers (Phase 3.5), l'analyse
+> de manuscrit (Phase 3.6), puis — bien plus tard — tout le pipeline de pagination/publication et l'historique
+> de versions, **sans refactorer le code existant**. Décompte des entités/value objects/interfaces vérifié dans
+> le code au 29 juillet 2026 ; voir [docs/architecture.md](docs/architecture.md) pour le détail par couche.
 
 ---
 
 ## 🧪 Tests
 
 ```bash
-npm test                  # 1700+ tests passed
+npm test                  # Tests unitaires
 npm run test:coverage     # Rapport de couverture
-npm run test:integration  # Tests avec vraies APIs (OpenAI & Anthropic)
+npm run test:integration  # Tests avec vraies APIs (OpenAI, Anthropic, Google)
 npm run test:e2e          # Tests end-to-end (Playwright)
 ```
 
-| Statistiques | Valeur |
-|--------------|--------|
-| Tests totaux | 1750+ |
-| Tests passés | 1700+ |
-| Fichiers de test | 200+ |
-| Couverture domaine | 92%+ (entités) |
-| Couverture application | **100%** (use cases) |
-| Tests d'intégration | 35+ provider-specific (conditional) |
+> Le volume de tests a considérablement grandi depuis les premières phases ; consultez
+> `npm run test:coverage` pour un chiffre à jour plutôt qu'un décompte figé ici.
 
 ---
 
@@ -387,12 +403,16 @@ npm run test:e2e          # Tests end-to-end (Playwright)
 - [x] Phase 8.0 : Stratégie de contexte IA — l'IA écrit à partir des métadonnées et documents de recherche de l'auteur, avec la règle « l'édition de l'auteur l'emporte » et un indicateur de péremption des analyses
 - [x] Phase 9.0 : Chat avec les personnages (streaming SSE, historique persisté) + fiche personnage auto-générée + suivi des coûts IA (€) avec calcul par token + menu cockpit dans l'éditeur
 - [x] Phase 10.0 : Refonte autocomplétion — manuscrit-premier, acceptation partielle (mot / tout), variantes par intention, prefetch silencieux + breathing dot, préférences par projet, télémétrie de qualité, registre canon (cohérence long roman), génération longue déclassée
+- [x] Réinitialisation de mot de passe, journal de transparence IA (opt-in, chiffré), tarification dynamique des modèles synchronisée depuis OpenRouter (janv.–juin 2026)
+- [x] Correcteur orthographique hors-ligne (nspell) en remplacement de la détection par IA — zéro token consommé (juin 2026)
+- [x] Refonte éditoriale : modèle de contenu sémantique, profils de publication (KDP 6×9 / A5 / passerelle), typographie par profil, table des matières configurable, annexes personnalisées, moteur de pagination et d'export PDF unifié (Chromium/Paged.js) (mai–juillet 2026)
+- [x] Notes de bas de page : insertion, panneau de gestion, export en notes Word natives / section PDF (juillet 2026)
+- [x] Historique de versions : snapshots manuels et automatiques (rétention configurable), restauration sécurisée, comparaison entre versions (juillet 2026)
 
 ### 🔜 En cours
 
 - [ ] Recherche full-text dans les chapitres
 - [ ] Templates de chapitres
-- [ ] Historique de versions
 
 ### 🔮 Futur
 
