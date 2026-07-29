@@ -66,6 +66,13 @@ interface TextEditorProps {
   onEndnoteEditRequest?: (pos: number, content: EndnoteContent | null) => void;
   /** A non-empty endnote is about to be deleted — the host confirms first. */
   onEndnoteDeleteRequest?: (pos: number, content: EndnoteContent | null) => void;
+  /**
+   * Fired at the end of the chapter-switch effect, after the document has actually been
+   * re-seeded (or confirmed already correct) — never before. The endnotes panel's locator
+   * waits for this exact signal before resolving a note's rank against the live document,
+   * so resolving it any earlier risks acting on the previous chapter.
+   */
+  onChapterDocumentReady?: (chapterId: string) => void;
 }
 
 export function TextEditor({
@@ -81,8 +88,13 @@ export function TextEditor({
   onEndnoteInsertRequest,
   onEndnoteEditRequest,
   onEndnoteDeleteRequest,
+  onChapterDocumentReady,
 }: TextEditorProps) {
   const { activeContent, updateActiveContent, project } = useProjectStore();
+
+  // Read through a ref so a change of callback identity never re-triggers the seed effect below.
+  const onChapterDocumentReadyRef = useRef(onChapterDocumentReady);
+  onChapterDocumentReadyRef.current = onChapterDocumentReady;
 
   // Endnote callbacks are read through a ref so the editor's one-time extension
   // config always calls the latest handlers without re-creating the editor.
@@ -262,6 +274,12 @@ export function TextEditor({
       editor.commands.setContent(displayedContent, {
         emitUpdate: false, // Don't trigger update event during switch
       });
+    }
+    // Announce unconditionally — including when the guard above skipped setContent, since the
+    // document already matches. The endnotes panel's locator relies on this firing only once
+    // the ProseMirror document genuinely carries this chapter's content.
+    if (project?.activeChapterId) {
+      onChapterDocumentReadyRef.current?.(project.activeChapterId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, project?.activeChapterId, publicationProfileId, presentationOverrides]);

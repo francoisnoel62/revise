@@ -53,11 +53,8 @@ import { CommandPalette } from '@/components/editor/CommandPalette';
 import { SearchReplaceBar } from '@/components/editor/SearchReplaceBar';
 import { EndnoteModal } from '@/components/editor/EndnoteModal';
 import { EndnotesPanel } from '@/components/editor/EndnotesPanel';
-import {
-  findEndnoteRefByRank,
-  isEndnoteContentEmpty,
-  type EndnoteContent,
-} from '@/components/editor/extensions/EndnoteRef';
+import { isEndnoteContentEmpty, type EndnoteContent } from '@/components/editor/extensions/EndnoteRef';
+import { useEndnoteLocator } from '@/hooks/useEndnoteLocator';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -337,10 +334,9 @@ function EditorContent() {
     content: EndnoteContent | null;
   } | null>(null);
   const [showEndnotesPanel, setShowEndnotesPanel] = useState(false);
-  // A rank the panel couldn't resolve to a call in the loaded document (should not happen for
-  // the active chapter, since the panel's own list is built from the same document — a defensive
-  // surface, not an expected path).
-  const [endnoteLocateError, setEndnoteLocateError] = useState<string | null>(null);
+  // The chapter TextEditor last confirmed it finished re-seeding its document for — distinct
+  // from project.activeChapterId, which the store updates before the editor has caught up.
+  const [readyChapterId, setReadyChapterId] = useState<string | null>(null);
 
   const openInsertEndnote = () => setEndnoteModal({ open: true, pos: null, content: null });
   const openEditEndnote = (pos: number, content: EndnoteContent | null) =>
@@ -365,30 +361,21 @@ function EditorContent() {
     setEndnoteToDelete(null);
   };
 
-  // Panel actions only ever target the active chapter today — a distant chapter's rows aren't
-  // actionable yet, so resolution is always synchronous against the already-loaded document.
-  // The chapterId check is a contract guard, not an expected path (the panel never renders
-  // action buttons for a non-active chapter) — it fails silently rather than surfacing an
-  // error, since a mismatch here means a caller bug, not something the author did.
-  const resolvePanelNote = (chapterId: string, rank: number) => {
-    if (!editor || chapterId !== project?.activeChapterId) return null;
-    const found = findEndnoteRefByRank(editor.state.doc, rank);
-    if (!found) {
-      setEndnoteLocateError(`Note ${rank} introuvable dans ce chapitre.`);
-      return null;
-    }
-    return found;
+  // Switches the active chapter and reports whether it actually took, so the endnotes panel's
+  // locator knows whether to keep waiting for the document handshake or give up.
+  const switchToChapter = async (chapterId: string): Promise<boolean> => {
+    await useProjectStore.getState().setActiveChapter(chapterId);
+    return useProjectStore.getState().project?.activeChapterId === chapterId;
   };
 
-  const handlePanelEditNote = (chapterId: string, rank: number) => {
-    const found = resolvePanelNote(chapterId, rank);
-    if (found) openEditEndnote(found.pos, found.content);
-  };
-
-  const handlePanelDeleteNote = (chapterId: string, rank: number) => {
-    const found = resolvePanelNote(chapterId, rank);
-    if (found) setEndnoteToDelete({ pos: found.pos, content: found.content });
-  };
+  const endnoteLocator = useEndnoteLocator({
+    editor,
+    activeChapterId: project?.activeChapterId ?? null,
+    readyChapterId,
+    switchToChapter,
+    onEdit: openEditEndnote,
+    onDelete: (pos, content) => setEndnoteToDelete({ pos, content }),
+  });
 
   // Search/Replace state
   const [showSearchReplace, setShowSearchReplace] = useState(false);
@@ -979,6 +966,7 @@ function EditorContent() {
               onEndnoteInsertRequest={openInsertEndnote}
               onEndnoteEditRequest={openEditEndnote}
               onEndnoteDeleteRequest={(pos, content) => setEndnoteToDelete({ pos, content })}
+              onChapterDocumentReady={setReadyChapterId}
             />
             {/* Thesaurus palette — opens on right-click of a word in the editor */}
             <ThesaurusPalette
@@ -1087,22 +1075,24 @@ function EditorContent() {
         chapters={project.chapters}
         activeChapterId={project.activeChapterId}
         activeContent={activeContent}
-        onEditNote={handlePanelEditNote}
-        onDeleteNote={handlePanelDeleteNote}
+        onEditNote={(chapterId, rank) => endnoteLocator.locateEndnote(chapterId, rank, 'edit')}
+        onDeleteNote={(chapterId, rank) => endnoteLocator.locateEndnote(chapterId, rank, 'delete')}
+        isLocating={endnoteLocator.isLocating}
       />
 
-      {/* A rank the panel couldn't resolve — surfaced, never a silent no-op */}
+      {/* A note the panel couldn't act on — a rank missing once loaded, or a failed chapter
+          switch — surfaced, never a silent no-op. */}
       <AlertDialog
-        open={endnoteLocateError !== null}
-        onOpenChange={(open) => !open && setEndnoteLocateError(null)}
+        open={endnoteLocator.error !== null}
+        onOpenChange={(open) => !open && endnoteLocator.clearError()}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Note introuvable</AlertDialogTitle>
-            <AlertDialogDescription>{endnoteLocateError}</AlertDialogDescription>
+            <AlertDialogTitle>Action impossible</AlertDialogTitle>
+            <AlertDialogDescription>{endnoteLocator.error}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setEndnoteLocateError(null)}>Fermer</AlertDialogAction>
+            <AlertDialogAction onClick={endnoteLocator.clearError}>Fermer</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

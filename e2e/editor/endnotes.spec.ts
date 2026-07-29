@@ -10,12 +10,16 @@ import {
   TEST_ENDNOTE_PANEL_EDIT_PROJECT_ID,
   TEST_ENDNOTE_PANEL_EDIT_NOTE_SENTINEL,
   TEST_ENDNOTE_PANEL_DELETE_PROJECT_ID,
+  TEST_ENDNOTE_PANEL_CROSS_CHAPTER_PROJECT_ID,
+  TEST_ENDNOTE_PANEL_CROSS_CHAPTER_2_TITLE,
+  TEST_ENDNOTE_PANEL_CROSS_NOTE_2_SENTINEL,
 } from '../helpers/seed';
 
 const EDITOR_URL = `/editor?project=${TEST_ENDNOTE_PROJECT_ID}`;
 const SETTINGS_URL = `/project/${TEST_ENDNOTE_PROJECT_ID}/cockpit/settings`;
 const PANEL_EDIT_EDITOR_URL = `/editor?project=${TEST_ENDNOTE_PANEL_EDIT_PROJECT_ID}`;
 const PANEL_DELETE_EDITOR_URL = `/editor?project=${TEST_ENDNOTE_PANEL_DELETE_PROJECT_ID}`;
+const PANEL_CROSS_CHAPTER_EDITOR_URL = `/editor?project=${TEST_ENDNOTE_PANEL_CROSS_CHAPTER_PROJECT_ID}`;
 
 test.describe('endnotes — reading preview', () => {
   test('the endnote call number is black, the same colour as the body text', async ({ page }) => {
@@ -105,6 +109,22 @@ test.describe('endnotes — editing and deleting from the panel', () => {
 
     await expect(confirm).toBeHidden();
     await expect(panel.getByText('Aucune note dans ce projet.')).toBeVisible();
+  });
+
+  test('editing a note of the second (non-active) chapter switches to it and opens the right note', async ({ page }) => {
+    await page.goto(PANEL_CROSS_CHAPTER_EDITOR_URL);
+
+    await page.getByRole('button', { name: 'Liste des notes' }).click();
+    const panel = page.getByRole('dialog', { name: 'Liste des notes' });
+    await expect(panel.getByText(TEST_ENDNOTE_PANEL_CROSS_CHAPTER_2_TITLE)).toBeVisible();
+
+    await panel.getByLabel(`Modifier la note 1 — ${TEST_ENDNOTE_PANEL_CROSS_CHAPTER_2_TITLE}`).click();
+
+    // The chapter switch is a server round-trip — proof that the resolution waited for it,
+    // rather than resolving against chapter 1's still-loaded document.
+    const modal = page.getByRole('dialog', { name: 'Note de fin' });
+    await expect(modal).toBeVisible({ timeout: 15_000 });
+    await expect(modal.locator('.endnote-modal-editor')).toContainText(TEST_ENDNOTE_PANEL_CROSS_NOTE_2_SENTINEL);
   });
 });
 

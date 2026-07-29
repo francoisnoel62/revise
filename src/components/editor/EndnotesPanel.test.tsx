@@ -162,19 +162,24 @@ describe('EndnotesPanel', () => {
       expect(onDeleteNote).toHaveBeenCalledWith('ch1', 1);
     });
 
-    it('does not render edit/delete buttons for a chapter that is not active', () => {
+    it('also renders working edit/delete buttons for a chapter that is not active', () => {
+      const onEditNote = vi.fn();
+      const onDeleteNote = vi.fn();
       render(
         <EndnotesPanel
           {...defaultProps}
           chapters={chapters}
           activeChapterId="ch1"
-          onEditNote={vi.fn()}
-          onDeleteNote={vi.fn()}
+          onEditNote={onEditNote}
+          onDeleteNote={onDeleteNote}
         />
       );
 
-      expect(screen.queryByLabelText(/Modifier la note 1 — Chapitre deux/)).not.toBeInTheDocument();
-      expect(screen.queryByLabelText(/Supprimer la note 1 — Chapitre deux/)).not.toBeInTheDocument();
+      fireEvent.click(screen.getByLabelText('Modifier la note 1 — Chapitre deux'));
+      expect(onEditNote).toHaveBeenCalledWith('ch2', 1);
+
+      fireEvent.click(screen.getByLabelText('Supprimer la note 1 — Chapitre deux'));
+      expect(onDeleteNote).toHaveBeenCalledWith('ch2', 1);
     });
 
     it('renders no edit/delete buttons at all when the callbacks are not provided', () => {
@@ -182,6 +187,24 @@ describe('EndnotesPanel', () => {
 
       expect(screen.queryByLabelText(/Modifier la note/)).not.toBeInTheDocument();
       expect(screen.queryByLabelText(/Supprimer la note/)).not.toBeInTheDocument();
+    });
+
+    it('disables the edit and delete buttons while isLocating is true', () => {
+      render(
+        <EndnotesPanel
+          {...defaultProps}
+          chapters={chapters}
+          activeChapterId="ch1"
+          onEditNote={vi.fn()}
+          onDeleteNote={vi.fn()}
+          isLocating
+        />
+      );
+
+      expect(screen.getByLabelText('Modifier la note 1 — Chapitre un')).toBeDisabled();
+      expect(screen.getByLabelText('Supprimer la note 1 — Chapitre un')).toBeDisabled();
+      expect(screen.getByLabelText('Modifier la note 1 — Chapitre deux')).toBeDisabled();
+      expect(screen.getByLabelText('Supprimer la note 1 — Chapitre deux')).toBeDisabled();
     });
   });
 });

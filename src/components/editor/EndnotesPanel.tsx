@@ -22,9 +22,11 @@ interface EndnotesPanelProps {
   chapters: BuildEndnoteIndexInput['chapters'];
   activeChapterId: string | null;
   activeContent: string | null;
-  /** Only ever called for a note of the active chapter — other chapters aren't actionable yet. */
+  /** Called for a note of any chapter — the host resolves the switch if it isn't active yet. */
   onEditNote?: (chapterId: string, rank: number) => void;
   onDeleteNote?: (chapterId: string, rank: number) => void;
+  /** True while a requested action is switching chapters — disables every row's buttons. */
+  isLocating?: boolean;
 }
 
 export function EndnotesPanel({
@@ -35,6 +37,7 @@ export function EndnotesPanel({
   activeContent,
   onEditNote,
   onDeleteNote,
+  isLocating = false,
 }: EndnotesPanelProps) {
   const index = useMemo(
     () => buildEndnoteIndex({ chapters, activeChapterId, activeContent }),
@@ -80,23 +83,25 @@ export function EndnotesPanel({
                           >
                             {note.isEmpty ? 'Note vide' : note.preview}
                           </p>
-                          {isActiveChapter && onEditNote && (
+                          {onEditNote && (
                             <Button
                               variant="outline"
                               size="sm"
                               className="shrink-0"
                               aria-label={`Modifier la note ${note.rank} — ${chapter.chapterTitle}`}
+                              disabled={isLocating}
                               onClick={() => onEditNote(chapter.chapterId, note.rank)}
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
                           )}
-                          {isActiveChapter && onDeleteNote && (
+                          {onDeleteNote && (
                             <Button
                               variant="ghost"
                               size="sm"
                               className="shrink-0"
                               aria-label={`Supprimer la note ${note.rank} — ${chapter.chapterTitle}`}
+                              disabled={isLocating}
                               onClick={() => onDeleteNote(chapter.chapterId, note.rank)}
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
