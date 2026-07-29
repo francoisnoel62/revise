@@ -1,5 +1,5 @@
-// ABOUTME: Dialog for creating, consulting, and restoring a project's snapshot history
-// ABOUTME: Delegates the force-save-then-snapshot and restore flows to the project store
+// ABOUTME: Dialog for creating, consulting, editing, deleting, and restoring a project's snapshot history
+// ABOUTME: Delegates editor-state mutations to the project store and history governance to server actions
 
 'use client';
 
@@ -19,6 +19,8 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   listSnapshotsAction,
+  updateSnapshotMetadataAction,
+  deleteSnapshotAction,
   type SerializedSnapshot,
   type SnapshotHistoryFilters,
 } from '@/app/actions/snapshot-actions';
@@ -69,6 +71,10 @@ export function SnapshotHistoryDialog({
   const [comparisonTarget, setComparisonTarget] = useState<SerializedSnapshot | null>(null);
   const [historyFilters, setHistoryFilters] = useState<SnapshotHistoryFilters>({});
   const [nextBeforeNumber, setNextBeforeNumber] = useState<number | null>(null);
+  const [editTarget, setEditTarget] = useState<SerializedSnapshot | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editComment, setEditComment] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<SerializedSnapshot | null>(null);
 
   const createSnapshot = useProjectStore((s) => s.createSnapshot);
   const restoreSnapshot = useProjectStore((s) => s.restoreSnapshot);
@@ -169,6 +175,22 @@ export function SnapshotHistoryDialog({
     await loadHistory({ ...historyFilters, beforeNumber: nextBeforeNumber }, true);
   };
 
+  const handleEdit = async () => {
+    if (!editTarget) return;
+    const result = await updateSnapshotMetadataAction(projectId, editTarget.id, editTitle, editComment);
+    if (!result.success) { setError(result.error); return; }
+    setSnapshots((items) => items.map((item) => item.id === result.data.id ? result.data : item));
+    setEditTarget(null);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    const result = await deleteSnapshotAction(projectId, deleteTarget.id);
+    if (!result.success) { setError(result.error); return; }
+    setSnapshots((items) => items.map((item) => item.id === result.data.id ? result.data : item));
+    setDeleteTarget(null);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="!w-[85vw] !max-w-none max-h-[90vh] overflow-hidden flex flex-col">
@@ -258,6 +280,11 @@ export function SnapshotHistoryDialog({
                           : 'p-4'
                       }
                     >
+                      {/** A restoration keeps its number-only provenance even if its source was tombstoned. */}
+                      {(() => {
+                        const sourceDeleted = snapshot.sourceSnapshotNumber != null
+                          && snapshots.some((candidate) => candidate.number === snapshot.sourceSnapshotNumber && candidate.isDeleted);
+                        return <>
                       <div className="flex items-center gap-2 flex-wrap">
                         <Badge variant="secondary">v{snapshot.number}</Badge>
                         <span className="font-medium">{snapshot.title}</span>
@@ -267,6 +294,7 @@ export function SnapshotHistoryDialog({
                         <span className="text-xs text-muted-foreground">
                           {formatDate(snapshot.createdAt)}
                         </span>
+                        {snapshot.isDeleted ? <Badge variant="destructive">Supprimée</Badge> : <>
                         <Button
                           variant="outline"
                           size="sm"
@@ -282,15 +310,26 @@ export function SnapshotHistoryDialog({
                         >
                           Prévisualiser et comparer
                         </Button>
+                        <Button variant="outline" size="sm" onClick={() => { setEditTarget(snapshot); setEditTitle(snapshot.title); setEditComment(snapshot.comment ?? ''); }}>
+                          Modifier
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => setDeleteTarget(snapshot)}>
+                          Supprimer
+                        </Button>
+                        </>}
                       </div>
                       {snapshot.comment && (
                         <p className="text-sm text-muted-foreground mt-1">{snapshot.comment}</p>
                       )}
                       {snapshot.sourceSnapshotNumber != null && (
                         <p className="text-xs text-muted-foreground mt-1">
-                          Restaurée depuis la version {snapshot.sourceSnapshotNumber}
+                          Restaurée depuis la version {snapshot.sourceSnapshotNumber}{sourceDeleted ? ' supprimée' : ''}
                         </p>
                       )}
+                      <p className="text-xs text-muted-foreground mt-1">Auteur : {snapshot.authorId}</p>
+                      {snapshot.isDeleted && <p className="text-sm text-muted-foreground mt-1">Entrée d’audit : son contenu a été supprimé définitivement.</p>}
+                        </>;
+                      })()}
                     </div>
                   ))
                 )}
@@ -394,6 +433,24 @@ export function SnapshotHistoryDialog({
         open={comparisonTarget !== null}
         onOpenChange={(next) => !next && setComparisonTarget(null)}
       />
+
+      <Dialog open={editTarget !== null} onOpenChange={(open) => !open && setEditTarget(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Modifier le snapshot</DialogTitle><DialogDescription>Le contenu capturé ne peut pas être modifié.</DialogDescription></DialogHeader>
+          <Label htmlFor="edit-snapshot-title">Titre</Label>
+          <Input id="edit-snapshot-title" value={editTitle} onChange={(event) => setEditTitle(event.target.value)} />
+          <Label htmlFor="edit-snapshot-comment">Commentaire</Label>
+          <Textarea id="edit-snapshot-comment" value={editComment} onChange={(event) => setEditComment(event.target.value)} />
+          <div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setEditTarget(null)}>Annuler</Button><Button onClick={handleEdit} disabled={!editTitle.trim()}>Enregistrer</Button></div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Supprimer définitivement ce snapshot ?</DialogTitle><DialogDescription>Le contenu de v{deleteTarget?.number} ne pourra plus être prévisualisé ni restauré. Son numéro restera dans la chronologie à titre d’audit.</DialogDescription></DialogHeader>
+          <div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setDeleteTarget(null)}>Annuler</Button><Button variant="destructive" onClick={handleDelete}>Confirmer la suppression</Button></div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

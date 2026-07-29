@@ -61,4 +61,33 @@ test.describe('manual snapshots — create and consult', () => {
     await expect(reopenedDialog.getByText('v1')).toBeVisible();
     await expect(reopenedDialog.getByText('v2')).toBeVisible();
   });
+
+  test('edits metadata, confirms irreversible deletion, and keeps a non-openable audit entry', async ({ page }) => {
+    await page.goto(EDITOR_URL);
+    await expect(page.locator('.ProseMirror')).toBeVisible({ timeout: 15_000 });
+    await page.locator(`button[title="${HISTORY_BUTTON_TITLE}"]:visible`).click();
+    const history = page.getByRole('dialog').filter({ hasText: 'Historique des versions' });
+
+    await history.getByLabel('Titre').fill('Version à gouverner');
+    await history.getByRole('button', { name: /créer un snapshot/i }).click();
+    await expect(history.getByText('Version à gouverner')).toBeVisible({ timeout: 10_000 });
+
+    await history.getByRole('button', { name: 'Modifier' }).click();
+    const edit = page.getByRole('dialog').filter({ hasText: 'Modifier le snapshot' });
+    await edit.getByLabel('Titre').fill('Version renommée');
+    await edit.getByLabel('Commentaire').fill('Métadonnée e2e');
+    await edit.getByRole('button', { name: 'Enregistrer' }).click();
+    await expect(history.getByText('Version renommée')).toBeVisible();
+    await expect(history.getByText('Métadonnée e2e')).toBeVisible();
+
+    await history.getByRole('button', { name: 'Supprimer' }).click();
+    const confirm = page.getByRole('dialog').filter({ hasText: 'Supprimer définitivement ce snapshot' });
+    await expect(confirm.getByText(/ne pourra plus être prévisualisé ni restauré/i)).toBeVisible();
+    await confirm.getByRole('button', { name: 'Confirmer la suppression' }).click();
+
+    await expect(history.getByText('Supprimée')).toBeVisible();
+    await expect(history.getByText(/contenu a été supprimé définitivement/i)).toBeVisible();
+    await expect(history.getByRole('button', { name: 'Restaurer' })).toHaveCount(0);
+    await expect(history.getByRole('button', { name: 'Prévisualiser et comparer' })).toHaveCount(0);
+  });
 });

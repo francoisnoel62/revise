@@ -24,6 +24,8 @@ export interface SnapshotDocument {
   chapters: SnapshotChapter[];
   editorialMetadata: SnapshotEditorialMetadata | null;
   sourceSnapshotNumber: number | null;
+  deletedAt?: Date | null;
+  deletedById?: string | null;
   createdAt: Date;
 }
 
@@ -44,6 +46,9 @@ export function serializeSnapshot(snapshot: Snapshot): SnapshotDocument {
     chapters: snapshot.getChapters(),
     editorialMetadata: snapshot.getEditorialMetadata(),
     sourceSnapshotNumber: snapshot.getSourceSnapshotNumber(),
+    ...(snapshot.isDeleted()
+      ? { deletedAt: snapshot.getDeletedAt(), deletedById: snapshot.getDeletedById() }
+      : {}),
     createdAt: snapshot.getCreatedAt(),
   };
 }
@@ -65,6 +70,8 @@ export function deserializeSnapshot(doc: SnapshotDocument): Snapshot {
     chapters: doc.chapters,
     editorialMetadata: doc.editorialMetadata,
     sourceSnapshotNumber: doc.sourceSnapshotNumber,
+    deletedAt: doc.deletedAt ? new Date(doc.deletedAt) : null,
+    deletedById: doc.deletedById ?? null,
     createdAt: new Date(doc.createdAt),
   });
 }

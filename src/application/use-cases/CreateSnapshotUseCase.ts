@@ -75,6 +75,11 @@ export class CreateSnapshotUseCase {
     });
 
     await this.snapshotRepository.save(input.ownerId, snapshot);
+    // Audit must not turn a successful immutable capture into a failed editor action.
+    void this.snapshotRepository.recordActivity?.({
+      ownerId: input.ownerId, projectId: input.projectId, actorId: input.ownerId,
+      type: 'created', snapshotNumber: snapshot.getNumber(), createdAt: snapshot.getCreatedAt(),
+    }).catch(() => undefined);
 
     return { snapshot };
   }

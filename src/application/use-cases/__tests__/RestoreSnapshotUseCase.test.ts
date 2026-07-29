@@ -390,6 +390,15 @@ describe('RestoreSnapshotUseCase', () => {
       await expect(useCase.execute(validInput)).rejects.toThrow(SnapshotNotFoundError);
     });
 
+    it('refuses to restore a deleted snapshot audit entry', async () => {
+      vi.mocked(mockSnapshotRepository.findById).mockResolvedValue(
+        createSourceSnapshot({ deletedAt: new Date('2026-07-29T12:00:00Z'), deletedById: ownerId })
+      );
+
+      await expect(useCase.execute(validInput)).rejects.toThrow(SnapshotNotFoundError);
+      expect(mockProjectRepository.replaceProjectIfUnchanged).not.toHaveBeenCalled();
+    });
+
     it('throws SnapshotNotFoundError if the source snapshot belongs to a different project', async () => {
       vi.mocked(mockSnapshotRepository.findById).mockResolvedValue(
         createSourceSnapshot({ projectId: 'another-project' })

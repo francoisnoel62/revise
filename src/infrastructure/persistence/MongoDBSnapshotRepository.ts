@@ -2,12 +2,13 @@
 // ABOUTME: All queries filter by ownerId; sequence numbers are allocated atomically.
 
 import { Db, Collection } from 'mongodb';
-import { SnapshotRepository, SnapshotPageQuery, SnapshotPage } from '@/domain/interfaces/SnapshotRepository';
+import { SnapshotRepository, SnapshotPageQuery, SnapshotPage, SnapshotActivity } from '@/domain/interfaces/SnapshotRepository';
 import { Snapshot } from '@/domain/entities/Snapshot';
 import { SnapshotDocument, serializeSnapshot, deserializeSnapshot } from './snapshot-serializer';
 
 const COLLECTION_NAME = 'snapshots';
 const COUNTERS_COLLECTION_NAME = 'snapshotCounters';
+const ACTIVITY_COLLECTION_NAME = 'snapshotActivity';
 
 interface SnapshotCounterDocument {
   _id: string; // projectId
@@ -86,6 +87,26 @@ export class MongoDBSnapshotRepository implements SnapshotRepository {
 
     if (!doc) return null;
     return deserializeSnapshot(doc);
+  }
+
+  async updateMetadata(ownerId: string, snapshot: Snapshot): Promise<void> {
+    const result = await this.collection().updateOne(
+      { _id: snapshot.getId(), ownerId, deletedAt: { $in: [null, undefined] } },
+      { $set: { title: snapshot.getTitle(), comment: snapshot.getComment() } },
+    );
+    if (result.matchedCount === 0) throw new Error('Snapshot introuvable ou supprimé');
+  }
+
+  async tombstone(ownerId: string, snapshot: Snapshot): Promise<void> {
+    const result = await this.collection().updateOne(
+      { _id: snapshot.getId(), ownerId, deletedAt: { $in: [null, undefined] } },
+      { $set: { chapters: [], editorialMetadata: null, deletedAt: snapshot.getDeletedAt(), deletedById: snapshot.getDeletedById() } },
+    );
+    if (result.matchedCount === 0) throw new Error('Snapshot introuvable ou déjà supprimé');
+  }
+
+  async recordActivity(activity: SnapshotActivity): Promise<void> {
+    await this.db.collection<SnapshotActivity>(ACTIVITY_COLLECTION_NAME).insertOne(activity);
   }
 
   async findPageByProjectId(

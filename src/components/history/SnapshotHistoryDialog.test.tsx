@@ -1,7 +1,7 @@
 // ABOUTME: Tests for SnapshotHistoryDialog — manual snapshot creation and consultation.
 
 import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SnapshotHistoryDialog } from './SnapshotHistoryDialog';
 
@@ -25,8 +25,12 @@ vi.mock('@/store/projectStore', () => ({
 }));
 
 const mockListSnapshotsAction = vi.fn();
+const mockUpdateSnapshotMetadataAction = vi.fn();
+const mockDeleteSnapshotAction = vi.fn();
 vi.mock('@/app/actions/snapshot-actions', () => ({
   listSnapshotsAction: (...args: unknown[]) => mockListSnapshotsAction(...args),
+  updateSnapshotMetadataAction: (...args: unknown[]) => mockUpdateSnapshotMetadataAction(...args),
+  deleteSnapshotAction: (...args: unknown[]) => mockDeleteSnapshotAction(...args),
   loadSnapshotComparisonAction: vi.fn(),
 }));
 
@@ -277,5 +281,34 @@ describe('SnapshotHistoryDialog', () => {
       expect(mockRestoreSnapshot).not.toHaveBeenCalled();
       expect(screen.queryByText('Restaurer la version 4')).not.toBeInTheDocument();
     });
+  });
+
+  it('edits metadata then requires a destructive confirmation before showing a non-openable audit entry', async () => {
+    const user = userEvent.setup();
+    const source = {
+      id: 'snap-governed', projectId, number: 3, type: 'manual' as const, title: 'Avant', comment: null,
+      authorId: 'user-1', chapterCount: 1, chapterTitles: ['Chapitre 1'], sourceSnapshotNumber: null,
+      createdAt: '2026-01-03T00:00:00.000Z', isDeleted: false,
+    };
+    mockListSnapshotsAction.mockResolvedValue({ success: true, data: { snapshots: [source], hasUnsnapshottedChanges: false } });
+    mockUpdateSnapshotMetadataAction.mockResolvedValue({ success: true, data: { ...source, title: 'Après', comment: 'Commentaire édité' } });
+    mockDeleteSnapshotAction.mockResolvedValue({ success: true, data: { ...source, isDeleted: true } });
+
+    render(<SnapshotHistoryDialog projectId={projectId} open={true} onOpenChange={vi.fn()} />);
+    await screen.findByText('Avant');
+    await user.click(screen.getByRole('button', { name: 'Modifier' }));
+    const editDialog = screen.getByRole('dialog', { name: 'Modifier le snapshot' });
+    await user.clear(within(editDialog).getByLabelText('Titre'));
+    await user.type(within(editDialog).getByLabelText('Titre'), 'Après');
+    await user.type(within(editDialog).getByLabelText('Commentaire'), 'Commentaire édité');
+    await user.click(within(editDialog).getByRole('button', { name: 'Enregistrer' }));
+    expect(mockUpdateSnapshotMetadataAction).toHaveBeenCalledWith(projectId, 'snap-governed', 'Après', 'Commentaire édité');
+
+    await user.click(screen.getByRole('button', { name: 'Supprimer' }));
+    expect(screen.getByText(/ne pourra plus être prévisualisé ni restauré/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Confirmer la suppression' }));
+    await waitFor(() => expect(mockDeleteSnapshotAction).toHaveBeenCalledWith(projectId, 'snap-governed'));
+    expect(screen.getByText(/contenu a été supprimé définitivement/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Restaurer' })).not.toBeInTheDocument();
   });
 });

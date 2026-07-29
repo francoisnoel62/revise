@@ -1,4 +1,4 @@
-// ABOUTME: Server Actions for manual project snapshots (creation and consultation).
+// ABOUTME: Server Actions for project snapshot history (creation, consultation, metadata, and deletion).
 // ABOUTME: Delegates to Application layer Use Cases for business logic.
 
 'use server';
@@ -12,6 +12,7 @@ import { RestoreSnapshotUseCase } from '@/application/use-cases/RestoreSnapshotU
 import { LoadSnapshotComparisonUseCase } from '@/application/use-cases/LoadSnapshotComparisonUseCase';
 import type { SnapshotChapter, SnapshotEditorialMetadata } from '@/domain/entities/Snapshot';
 import { ProcessAutomaticSnapshotUseCase } from '@/application/use-cases/ProcessAutomaticSnapshotUseCase';
+import { GovernSnapshotHistoryUseCase } from '@/application/use-cases/GovernSnapshotHistoryUseCase';
 import {
   ActionResult,
   getAuthenticatedUserId,
@@ -63,6 +64,7 @@ export interface SerializedSnapshot {
   chapterTitles: string[];
   /** The source snapshot's number for a restore snapshot; null otherwise. Survives deletion of the source. */
   sourceSnapshotNumber: number | null;
+  isDeleted: boolean;
   createdAt: string;
 }
 
@@ -110,6 +112,7 @@ function serializeSnapshot(snapshot: Snapshot): SerializedSnapshot {
       .sort((a, b) => a.order - b.order)
       .map((chapter) => chapter.title),
     sourceSnapshotNumber: snapshot.getSourceSnapshotNumber(),
+    isDeleted: snapshot.isDeleted(),
     createdAt: snapshot.getCreatedAt().toISOString(),
   };
 }
@@ -146,6 +149,38 @@ export async function createSnapshotAction(
     await (await getAutomaticSnapshotRepo()).completeSnapshot(auth.userId, projectId, null, new Date());
 
     return serializeSnapshot(result.snapshot);
+  });
+}
+
+/** Update only the presentation metadata of a snapshot. Its captured content is immutable. */
+export async function updateSnapshotMetadataAction(
+  projectId: string,
+  snapshotId: string,
+  title: string,
+  comment?: string,
+): Promise<ActionResult<SerializedSnapshot>> {
+  const auth = await getAuthenticatedUserId();
+  if ('error' in auth) return auth.error;
+  return withErrorHandling(async () => {
+    const snapshot = await new GovernSnapshotHistoryUseCase(await getSnapshotRepo()).updateMetadata({
+      ownerId: auth.userId, projectId, snapshotId, requesterId: auth.userId, requesterRole: 'owner', title, comment,
+    });
+    return serializeSnapshot(snapshot);
+  });
+}
+
+/** Permanently erase snapshot content, retaining only its non-openable audit entry. */
+export async function deleteSnapshotAction(
+  projectId: string,
+  snapshotId: string,
+): Promise<ActionResult<SerializedSnapshot>> {
+  const auth = await getAuthenticatedUserId();
+  if ('error' in auth) return auth.error;
+  return withErrorHandling(async () => {
+    const snapshot = await new GovernSnapshotHistoryUseCase(await getSnapshotRepo()).delete({
+      ownerId: auth.userId, projectId, snapshotId, requesterId: auth.userId, requesterRole: 'owner',
+    });
+    return serializeSnapshot(snapshot);
   });
 }
 

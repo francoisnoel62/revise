@@ -95,6 +95,9 @@ export class RestoreSnapshotUseCase {
     if (!source || source.getProjectId() !== input.projectId) {
       throw new SnapshotNotFoundError(input.snapshotId);
     }
+    if (source.isDeleted()) {
+      throw new SnapshotNotFoundError(input.snapshotId);
+    }
 
     if (project.getUpdatedAt().getTime() !== input.expectedProjectUpdatedAt.getTime()) {
       throw new ConcurrentModificationError();
@@ -220,6 +223,11 @@ export class RestoreSnapshotUseCase {
         sourceSnapshotNumber: source.getNumber(),
       });
       await this.snapshotRepository.save(input.ownerId, restoreSnapshot);
+      // The restoration is durable before activity is emitted; audit delivery is non-blocking.
+      void this.snapshotRepository.recordActivity?.({
+        ownerId: input.ownerId, projectId: input.projectId, actorId: input.ownerId,
+        type: 'restored', snapshotNumber: restoreSnapshot.getNumber(), createdAt: restoreSnapshot.getCreatedAt(),
+      }).catch(() => undefined);
 
       return { project: restoredProject, restoreSnapshot, safetySnapshot };
     } catch (error) {

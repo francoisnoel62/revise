@@ -1,4 +1,4 @@
-// ABOUTME: Domain entity representing an immutable manual snapshot of a project
+// ABOUTME: Domain entity representing immutable captured content with mutable presentation metadata
 // ABOUTME: Captures the full manuscript and editorial metadata at a point in time
 
 import { SnapshotType, isValidSnapshotType } from '../value-objects/SnapshotType';
@@ -44,6 +44,9 @@ export interface SnapshotProperties {
   editorialMetadata: SnapshotEditorialMetadata | null;
   /** The source snapshot's number, for provenance. Required for 'restore' type, forbidden otherwise. */
   sourceSnapshotNumber?: number | null;
+  /** A deleted snapshot is an audit entry only: its restorable payload is erased. */
+  deletedAt?: Date | null;
+  deletedById?: string | null;
   createdAt?: Date;
 }
 
@@ -60,6 +63,8 @@ export class Snapshot {
   private readonly chapters: SnapshotChapter[];
   private readonly editorialMetadata: SnapshotEditorialMetadata | null;
   private readonly sourceSnapshotNumber: number | null;
+  private readonly deletedAt: Date | null;
+  private readonly deletedById: string | null;
   private readonly createdAt: Date;
 
   constructor(props: SnapshotProperties) {
@@ -84,8 +89,13 @@ export class Snapshot {
     if (!props.title || props.title.trim().length === 0) {
       throw new Error('Snapshot title cannot be empty');
     }
-    if (!props.chapters || props.chapters.length === 0) {
+    const deletedAt = props.deletedAt ?? null;
+    const deletedById = props.deletedById ?? null;
+    if ((!props.chapters || props.chapters.length === 0) && !deletedAt) {
       throw new Error('Snapshot must capture at least one chapter');
+    }
+    if (deletedAt && (!deletedById || deletedById.trim().length === 0)) {
+      throw new Error('Deleted snapshot must retain its deleter');
     }
     const sourceSnapshotNumber = props.sourceSnapshotNumber ?? null;
     if (props.type === 'restore') {
@@ -117,6 +127,8 @@ export class Snapshot {
         }
       : null;
     this.sourceSnapshotNumber = sourceSnapshotNumber;
+    this.deletedAt = deletedAt ? new Date(deletedAt) : null;
+    this.deletedById = deletedById;
     this.createdAt = props.createdAt ?? new Date();
   }
 
@@ -175,5 +187,33 @@ export class Snapshot {
 
   getCreatedAt(): Date {
     return new Date(this.createdAt.getTime());
+  }
+
+  isDeleted(): boolean { return this.deletedAt !== null; }
+  getDeletedAt(): Date | null { return this.deletedAt ? new Date(this.deletedAt) : null; }
+  getDeletedById(): string | null { return this.deletedById; }
+
+  withMetadata(title: string, comment?: string | null): Snapshot {
+    if (this.isDeleted()) throw new Error('Ce snapshot a été supprimé définitivement');
+    return new Snapshot({ ...this.properties(), title, comment: comment ?? null });
+  }
+
+  tombstone(deletedById: string, deletedAt = new Date()): Snapshot {
+    if (this.isDeleted()) throw new Error('Ce snapshot a déjà été supprimé');
+    return new Snapshot({
+      ...this.properties(),
+      chapters: [], editorialMetadata: null,
+      deletedAt, deletedById,
+    });
+  }
+
+  private properties(): SnapshotProperties {
+    return {
+      id: this.id, projectId: this.projectId, ownerId: this.ownerId, authorId: this.authorId,
+      number: this.number, type: this.type, title: this.title, comment: this.comment,
+      projectTitle: this.projectTitle, chapters: this.getChapters(),
+      editorialMetadata: this.getEditorialMetadata(), sourceSnapshotNumber: this.sourceSnapshotNumber,
+      createdAt: this.createdAt, deletedAt: this.deletedAt, deletedById: this.deletedById,
+    };
   }
 }

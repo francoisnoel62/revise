@@ -10,6 +10,7 @@ import { Snapshot } from '@/domain/entities/Snapshot';
 
 const COLLECTION = 'snapshots';
 const COUNTERS_COLLECTION = 'snapshotCounters';
+const ACTIVITY_COLLECTION = 'snapshotActivity';
 
 function buildSnapshot(
   ownerId: string,
@@ -52,6 +53,7 @@ describe('MongoDBSnapshotRepository — intégration MongoDB réel', () => {
   afterEach(async () => {
     await db.collection(COLLECTION).deleteMany({ ownerId });
     await db.collection(COUNTERS_COLLECTION).deleteMany({ ownerId });
+    await db.collection(ACTIVITY_COLLECTION).deleteMany({ ownerId });
   });
 
   it('allocates sequential numbers starting at 1, never reused, even under concurrent calls', async () => {
@@ -119,6 +121,21 @@ describe('MongoDBSnapshotRepository — intégration MongoDB réel', () => {
 
     await db.collection(COLLECTION).deleteMany({ ownerId: otherOwnerId });
     await db.collection(COUNTERS_COLLECTION).deleteMany({ ownerId: otherOwnerId });
+  });
+
+  it('keeps an immutable audit tombstone after erasing a snapshot payload and records compact activity', async () => {
+    const snapshot = buildSnapshot(ownerId, projectId, 4);
+    await repository.save(ownerId, snapshot);
+    const deleted = snapshot.tombstone(ownerId, new Date('2026-07-29T12:00:00Z'));
+
+    await repository.tombstone(ownerId, deleted);
+    await repository.recordActivity({ ownerId, projectId, actorId: ownerId, type: 'deleted', snapshotNumber: 4, createdAt: new Date() });
+
+    const found = await repository.findById(ownerId, snapshot.getId());
+    expect(found?.isDeleted()).toBe(true);
+    expect(found?.getChapters()).toEqual([]);
+    expect(found?.getNumber()).toBe(4);
+    expect(await db.collection(ACTIVITY_COLLECTION).findOne({ ownerId, projectId, type: 'deleted' })).toMatchObject({ snapshotNumber: 4 });
   });
 
   it('loads a chronological page and continuation cursor without returning the whole history', async () => {

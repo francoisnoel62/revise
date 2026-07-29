@@ -21,6 +21,8 @@ export { ListProjectsUseCase } from './use-cases/ListProjectsUseCase';
 export type { ListProjectsInput } from './use-cases/ListProjectsUseCase';
 export { DeleteProjectUseCase } from './use-cases/DeleteProjectUseCase';
 export type { DeleteProjectInput } from './use-cases/DeleteProjectUseCase';
+export { GovernSnapshotHistoryUseCase } from './use-cases/GovernSnapshotHistoryUseCase';
+export type { SnapshotCollaborationRole } from './use-cases/GovernSnapshotHistoryUseCase';
 export { UpdateProjectTitleUseCase } from './use-cases/UpdateProjectTitleUseCase';
 export type { UpdateProjectTitleInput } from './use-cases/UpdateProjectTitleUseCase';
 export { UpdateProjectProviderUseCase } from './use-cases/UpdateProjectProviderUseCase';

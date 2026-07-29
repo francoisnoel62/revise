@@ -19,6 +19,25 @@ export interface SnapshotPage {
   nextBeforeNumber: number | null;
 }
 
+export type SnapshotActivityType =
+  | 'created'
+  | 'restored'
+  | 'renamed'
+  | 'commented'
+  | 'automation-configured'
+  | 'deleted'
+  | 'automatic-snapshots-pruned';
+
+export interface SnapshotActivity {
+  ownerId: string;
+  projectId: string;
+  actorId: string;
+  type: SnapshotActivityType;
+  snapshotNumber?: number;
+  count?: number;
+  createdAt: Date;
+}
+
 export interface SnapshotRepository {
   /**
    * Atomically allocate the next sequential snapshot number for a project.
@@ -66,6 +85,13 @@ export interface SnapshotRepository {
    * @param snapshotId - The snapshot ID
    */
   findById(ownerId: string, snapshotId: string): Promise<Snapshot | null>;
+
+  /** Changes presentation-only metadata; captured content stays immutable. */
+  updateMetadata?(ownerId: string, snapshot: Snapshot): Promise<void>;
+  /** Replaces restorable data with an immutable audit tombstone. */
+  tombstone?(ownerId: string, snapshot: Snapshot): Promise<void>;
+  /** Append a compact audit event. Activity never contains captured manuscript content. */
+  recordActivity?(activity: SnapshotActivity): Promise<void>;
 
   /** Delete selected automatic snapshots after applying the retention policy. */
   deleteByIds?(ownerId: string, snapshotIds: string[]): Promise<number>;

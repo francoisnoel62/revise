@@ -44,6 +44,9 @@ export class LoadSnapshotComparisonUseCase {
     if (!snapshot || snapshot.getProjectId() !== input.projectId) {
       throw new SnapshotNotFoundError(input.snapshotId);
     }
+    if (snapshot.isDeleted()) {
+      throw new SnapshotNotFoundError(input.snapshotId);
+    }
 
     // There is no cross-collection transaction in the deployed Mongo topology.
     // Reading the project on both sides of settings gives us a coherent point-in-time
