@@ -2,7 +2,7 @@
 // ABOUTME: Zero business logic in the component: the list comes entirely from buildEndnoteIndex.
 
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { EndnotesPanel } from './EndnotesPanel';
 
 const ENDNOTE_REF_NAME = 'endnoteRef';
@@ -120,5 +120,68 @@ describe('EndnotesPanel', () => {
     );
 
     expect(screen.getByText('note en cours')).toBeInTheDocument();
+  });
+
+  describe('editing and deleting the active chapter’s notes', () => {
+    const chapters = [
+      { id: 'ch1', title: 'Chapitre un', content: chapterContent([paragraphWithNote('Un ', 'note active')]) },
+      { id: 'ch2', title: 'Chapitre deux', content: chapterContent([paragraphWithNote('Un ', 'note inactive')]) },
+    ];
+
+    it('calls onEditNote with the chapter id and rank when the pencil is clicked', () => {
+      const onEditNote = vi.fn();
+      render(
+        <EndnotesPanel
+          {...defaultProps}
+          chapters={chapters}
+          activeChapterId="ch1"
+          onEditNote={onEditNote}
+          onDeleteNote={vi.fn()}
+        />
+      );
+
+      fireEvent.click(screen.getByLabelText('Modifier la note 1 — Chapitre un'));
+
+      expect(onEditNote).toHaveBeenCalledWith('ch1', 1);
+    });
+
+    it('calls onDeleteNote with the chapter id and rank when the trash icon is clicked', () => {
+      const onDeleteNote = vi.fn();
+      render(
+        <EndnotesPanel
+          {...defaultProps}
+          chapters={chapters}
+          activeChapterId="ch1"
+          onEditNote={vi.fn()}
+          onDeleteNote={onDeleteNote}
+        />
+      );
+
+      fireEvent.click(screen.getByLabelText('Supprimer la note 1 — Chapitre un'));
+
+      expect(onDeleteNote).toHaveBeenCalledWith('ch1', 1);
+    });
+
+    it('does not render edit/delete buttons for a chapter that is not active', () => {
+      render(
+        <EndnotesPanel
+          {...defaultProps}
+          chapters={chapters}
+          activeChapterId="ch1"
+          onEditNote={vi.fn()}
+          onDeleteNote={vi.fn()}
+        />
+      );
+
+      expect(screen.queryByLabelText(/Modifier la note 1 — Chapitre deux/)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/Supprimer la note 1 — Chapitre deux/)).not.toBeInTheDocument();
+    });
+
+    it('renders no edit/delete buttons at all when the callbacks are not provided', () => {
+      render(<EndnotesPanel {...defaultProps} chapters={chapters} activeChapterId="ch1" />);
+
+      expect(screen.queryByLabelText(/Modifier la note/)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/Supprimer la note/)).not.toBeInTheDocument();
+    });
   });
 });

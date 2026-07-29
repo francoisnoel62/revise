@@ -53,7 +53,11 @@ import { CommandPalette } from '@/components/editor/CommandPalette';
 import { SearchReplaceBar } from '@/components/editor/SearchReplaceBar';
 import { EndnoteModal } from '@/components/editor/EndnoteModal';
 import { EndnotesPanel } from '@/components/editor/EndnotesPanel';
-import type { EndnoteContent } from '@/components/editor/extensions/EndnoteRef';
+import {
+  findEndnoteRefByRank,
+  isEndnoteContentEmpty,
+  type EndnoteContent,
+} from '@/components/editor/extensions/EndnoteRef';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -333,6 +337,10 @@ function EditorContent() {
     content: EndnoteContent | null;
   } | null>(null);
   const [showEndnotesPanel, setShowEndnotesPanel] = useState(false);
+  // A rank the panel couldn't resolve to a call in the loaded document (should not happen for
+  // the active chapter, since the panel's own list is built from the same document — a defensive
+  // surface, not an expected path).
+  const [endnoteLocateError, setEndnoteLocateError] = useState<string | null>(null);
 
   const openInsertEndnote = () => setEndnoteModal({ open: true, pos: null, content: null });
   const openEditEndnote = (pos: number, content: EndnoteContent | null) =>
@@ -355,6 +363,31 @@ function EditorContent() {
       editor.chain().focus().deleteEndnote(endnoteToDelete.pos).run();
     }
     setEndnoteToDelete(null);
+  };
+
+  // Panel actions only ever target the active chapter today — a distant chapter's rows aren't
+  // actionable yet, so resolution is always synchronous against the already-loaded document.
+  // The chapterId check is a contract guard, not an expected path (the panel never renders
+  // action buttons for a non-active chapter) — it fails silently rather than surfacing an
+  // error, since a mismatch here means a caller bug, not something the author did.
+  const resolvePanelNote = (chapterId: string, rank: number) => {
+    if (!editor || chapterId !== project?.activeChapterId) return null;
+    const found = findEndnoteRefByRank(editor.state.doc, rank);
+    if (!found) {
+      setEndnoteLocateError(`Note ${rank} introuvable dans ce chapitre.`);
+      return null;
+    }
+    return found;
+  };
+
+  const handlePanelEditNote = (chapterId: string, rank: number) => {
+    const found = resolvePanelNote(chapterId, rank);
+    if (found) openEditEndnote(found.pos, found.content);
+  };
+
+  const handlePanelDeleteNote = (chapterId: string, rank: number) => {
+    const found = resolvePanelNote(chapterId, rank);
+    if (found) setEndnoteToDelete({ pos: found.pos, content: found.content });
   };
 
   // Search/Replace state
@@ -1054,9 +1087,28 @@ function EditorContent() {
         chapters={project.chapters}
         activeChapterId={project.activeChapterId}
         activeContent={activeContent}
+        onEditNote={handlePanelEditNote}
+        onDeleteNote={handlePanelDeleteNote}
       />
 
-      {/* Confirm deletion of a non-empty note */}
+      {/* A rank the panel couldn't resolve — surfaced, never a silent no-op */}
+      <AlertDialog
+        open={endnoteLocateError !== null}
+        onOpenChange={(open) => !open && setEndnoteLocateError(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Note introuvable</AlertDialogTitle>
+            <AlertDialogDescription>{endnoteLocateError}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setEndnoteLocateError(null)}>Fermer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirm deletion of a note — systematic even for an empty one, since a trash icon in a
+          list must never delete silently. */}
       <AlertDialog
         open={endnoteToDelete !== null}
         onOpenChange={(open) => !open && setEndnoteToDelete(null)}
@@ -1065,7 +1117,9 @@ function EditorContent() {
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer la note ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Cette note contient du texte. Sa suppression retirera l’appel et son contenu.
+              {endnoteToDelete && isEndnoteContentEmpty(endnoteToDelete.content)
+                ? 'Cette note est vide. Sa suppression retirera l’appel.'
+                : 'Cette note contient du texte. Sa suppression retirera l’appel et son contenu.'}{' '}
               Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>

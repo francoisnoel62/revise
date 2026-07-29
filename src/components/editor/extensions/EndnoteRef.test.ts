@@ -20,6 +20,7 @@ import {
   collectEndnoteRefs,
   isEndnoteContentEmpty,
   findDeletableEndnoteRef,
+  findEndnoteRefByRank,
   type EndnoteContent,
 } from './EndnoteRef';
 
@@ -274,6 +275,32 @@ describe('findDeletableEndnoteRef', () => {
     editor.commands.setTextSelection(3);
     expect(findDeletableEndnoteRef(editor.state, 'before')).toBeNull();
     expect(findDeletableEndnoteRef(editor.state, 'after')).toBeNull();
+    editor.destroy();
+  });
+});
+
+describe('findEndnoteRefByRank', () => {
+  it('resolves the pos and content of the note at the given 1-based rank', () => {
+    const editor = createEditor('<p>First</p><p>Second</p>');
+    editor.commands.setTextSelection(3);
+    editor.chain().focus().insertEndnote(makeNote('n1')).run();
+    editor.commands.setTextSelection(editor.state.doc.content.size - 1);
+    editor.chain().focus().insertEndnote(makeNote('n2')).run();
+
+    const entries = collectEndnoteRefs(editor.state.doc);
+    const found = findEndnoteRefByRank(editor.state.doc, 2);
+
+    expect(found).toEqual({ pos: entries[1].pos, content: makeNote('n2') });
+    editor.destroy();
+  });
+
+  it('returns null when the rank does not exist in the document', () => {
+    const editor = createEditor('<p>Hello</p>');
+    editor.commands.setTextSelection(3);
+    editor.chain().focus().insertEndnote(makeNote('only one')).run();
+
+    expect(findEndnoteRefByRank(editor.state.doc, 2)).toBeNull();
+    expect(findEndnoteRefByRank(editor.state.doc, 0)).toBeNull();
     editor.destroy();
   });
 });

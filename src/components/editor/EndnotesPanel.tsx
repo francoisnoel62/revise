@@ -12,6 +12,8 @@ import {
 } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Pencil, Trash2 } from 'lucide-react';
 import { buildEndnoteIndex, type BuildEndnoteIndexInput } from '@/application/services/endnoteIndex';
 
 interface EndnotesPanelProps {
@@ -20,6 +22,9 @@ interface EndnotesPanelProps {
   chapters: BuildEndnoteIndexInput['chapters'];
   activeChapterId: string | null;
   activeContent: string | null;
+  /** Only ever called for a note of the active chapter — other chapters aren't actionable yet. */
+  onEditNote?: (chapterId: string, rank: number) => void;
+  onDeleteNote?: (chapterId: string, rank: number) => void;
 }
 
 export function EndnotesPanel({
@@ -28,6 +33,8 @@ export function EndnotesPanel({
   chapters,
   activeChapterId,
   activeContent,
+  onEditNote,
+  onDeleteNote,
 }: EndnotesPanelProps) {
   const index = useMemo(
     () => buildEndnoteIndex({ chapters, activeChapterId, activeContent }),
@@ -48,34 +55,59 @@ export function EndnotesPanel({
             </p>
           ) : (
             <div className="space-y-6 px-4 pb-4">
-              {index.map((chapter) => (
-                <div key={chapter.chapterId}>
-                  <h3 className="text-sm font-medium flex items-center gap-2">
-                    {chapter.chapterTitle}
-                    {chapter.chapterId === activeChapterId && (
-                      <Badge variant="secondary">Chapitre actif</Badge>
-                    )}
-                  </h3>
-                  <div className="mt-2 space-y-2">
-                    {chapter.notes.map((note) => (
-                      <div
-                        key={`${chapter.chapterId}-${note.rank}`}
-                        className="flex items-start gap-2 p-2 border rounded-md bg-white"
-                      >
-                        <Badge variant="outline" className="shrink-0 mt-0.5">
-                          {note.rank}
-                        </Badge>
-                        <p
-                          className="text-sm line-clamp-2 flex-1"
-                          title={note.text}
+              {index.map((chapter) => {
+                const isActiveChapter = chapter.chapterId === activeChapterId;
+                return (
+                  <div key={chapter.chapterId}>
+                    <h3 className="text-sm font-medium flex items-center gap-2">
+                      {chapter.chapterTitle}
+                      {isActiveChapter && (
+                        <Badge variant="secondary">Chapitre actif</Badge>
+                      )}
+                    </h3>
+                    <div className="mt-2 space-y-2">
+                      {chapter.notes.map((note) => (
+                        <div
+                          key={`${chapter.chapterId}-${note.rank}`}
+                          className="flex items-start gap-2 p-2 border rounded-md bg-white"
                         >
-                          {note.isEmpty ? 'Note vide' : note.preview}
-                        </p>
-                      </div>
-                    ))}
+                          <Badge variant="outline" className="shrink-0 mt-0.5">
+                            {note.rank}
+                          </Badge>
+                          <p
+                            className="text-sm line-clamp-2 flex-1"
+                            title={note.text}
+                          >
+                            {note.isEmpty ? 'Note vide' : note.preview}
+                          </p>
+                          {isActiveChapter && onEditNote && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="shrink-0"
+                              aria-label={`Modifier la note ${note.rank} — ${chapter.chapterTitle}`}
+                              onClick={() => onEditNote(chapter.chapterId, note.rank)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {isActiveChapter && onDeleteNote && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="shrink-0"
+                              aria-label={`Supprimer la note ${note.rank} — ${chapter.chapterTitle}`}
+                              onClick={() => onDeleteNote(chapter.chapterId, note.rank)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </ScrollArea>

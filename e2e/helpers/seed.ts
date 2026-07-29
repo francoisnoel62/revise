@@ -89,6 +89,17 @@ export const TEST_ENDNOTE_CHAPTER_2_ID = 'e2e-endnote-chapter-002';
 export const TEST_ENDNOTE_CHAPTER_2_TITLE = 'Chapitre 2';
 export const TEST_ENDNOTE_NOTE_2_SENTINEL = 'Massalia';
 
+// Dedicated projects for the endnotes panel's edit/delete E2E tests — separate from
+// TEST_ENDNOTE_PROJECT_ID (shared by read-only assertions above) so a mutating test never
+// disturbs a sibling test's expectations on the same seeded document.
+export const TEST_ENDNOTE_PANEL_EDIT_PROJECT_ID = 'e2e-endnote-panel-edit-001';
+export const TEST_ENDNOTE_PANEL_EDIT_CHAPTER_ID = 'e2e-endnote-panel-edit-chapter-001';
+export const TEST_ENDNOTE_PANEL_EDIT_NOTE_SENTINEL = 'Tolosa';
+
+export const TEST_ENDNOTE_PANEL_DELETE_PROJECT_ID = 'e2e-endnote-panel-delete-001';
+export const TEST_ENDNOTE_PANEL_DELETE_CHAPTER_ID = 'e2e-endnote-panel-delete-chapter-001';
+export const TEST_ENDNOTE_PANEL_DELETE_NOTE_SENTINEL = 'Nemausus';
+
 // Book-preview E2E fixtures — a genuinely large manuscript (~90k words / ~200 pages),
 // matching the production target. Seeded ON DEMAND by the opt-in heavy test (not in
 // seedAll), so routine runs stay fast; exercises the real cold-generation cost.
@@ -938,6 +949,120 @@ export async function seedAll(): Promise<void> {
         },
       ],
       activeChapterId: TEST_ENDNOTE_CHAPTER_ID,
+      providerId: null,
+      createdAt: past,
+      updatedAt: now,
+      isPublished: false,
+      shareToken: null,
+      publishedAt: null,
+      publishedChapterIds: null,
+    },
+    { upsert: true }
+  );
+
+  // 5f. Dedicated project for the endnotes panel's "edit" E2E test — its own project so
+  // mutating the note doesn't disturb the read-only assertions above.
+  const endnotePanelEditChapterContent = JSON.stringify({
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'text', text: 'La caravane franchit' },
+          {
+            type: 'endnoteRef',
+            attrs: {
+              content: {
+                type: 'doc',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      { type: 'text', text: 'Aujourd’hui ' },
+                      { type: 'text', text: TEST_ENDNOTE_PANEL_EDIT_NOTE_SENTINEL, marks: [{ type: 'bold' }] },
+                      { type: 'text', text: '.' },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+          { type: 'text', text: ' avant la nuit.' },
+        ],
+      },
+    ],
+  });
+  await db.collection('projects').replaceOne(
+    { _id: TEST_ENDNOTE_PANEL_EDIT_PROJECT_ID } as object,
+    {
+      _id: TEST_ENDNOTE_PANEL_EDIT_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      title: 'Roman Test Panneau Notes — Édition',
+      chapters: [{
+        id: TEST_ENDNOTE_PANEL_EDIT_CHAPTER_ID,
+        title: 'Chapitre 1',
+        content: endnotePanelEditChapterContent,
+        order: 0,
+        metadata: { wordCount: 8, characterCount: 55, lastEdited: past },
+      }],
+      activeChapterId: TEST_ENDNOTE_PANEL_EDIT_CHAPTER_ID,
+      providerId: null,
+      createdAt: past,
+      updatedAt: now,
+      isPublished: false,
+      shareToken: null,
+      publishedAt: null,
+      publishedChapterIds: null,
+    },
+    { upsert: true }
+  );
+
+  // 5g. Dedicated project for the endnotes panel's "delete" E2E test — kept separate from the
+  // edit project so the two mutating tests can run fully in parallel without racing.
+  const endnotePanelDeleteChapterContent = JSON.stringify({
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'text', text: 'Le marchand rejoignit' },
+          {
+            type: 'endnoteRef',
+            attrs: {
+              content: {
+                type: 'doc',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      { type: 'text', text: 'De nos jours ' },
+                      { type: 'text', text: TEST_ENDNOTE_PANEL_DELETE_NOTE_SENTINEL, marks: [{ type: 'bold' }] },
+                      { type: 'text', text: '.' },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+          { type: 'text', text: ' à dos de mule.' },
+        ],
+      },
+    ],
+  });
+  await db.collection('projects').replaceOne(
+    { _id: TEST_ENDNOTE_PANEL_DELETE_PROJECT_ID } as object,
+    {
+      _id: TEST_ENDNOTE_PANEL_DELETE_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      title: 'Roman Test Panneau Notes — Suppression',
+      chapters: [{
+        id: TEST_ENDNOTE_PANEL_DELETE_CHAPTER_ID,
+        title: 'Chapitre 1',
+        content: endnotePanelDeleteChapterContent,
+        order: 0,
+        metadata: { wordCount: 8, characterCount: 55, lastEdited: past },
+      }],
+      activeChapterId: TEST_ENDNOTE_PANEL_DELETE_CHAPTER_ID,
       providerId: null,
       createdAt: past,
       updatedAt: now,
