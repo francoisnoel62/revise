@@ -209,6 +209,45 @@ describe('FormattingToolbar', () => {
     expect(screen.getByTitle(/Note de fin/)).toBeInTheDocument();
   });
 
+  it('should render the endnote list button when onOpenEndnotes is provided', () => {
+    const editor = createMockEditor();
+    render(<FormattingToolbar editor={editor} onOpenEndnotes={vi.fn()} />);
+
+    expect(screen.getByTitle('Liste des notes')).toBeInTheDocument();
+  });
+
+  it('should call onOpenEndnotes when the endnote list button is clicked', () => {
+    const editor = createMockEditor();
+    const onOpenEndnotes = vi.fn();
+    render(<FormattingToolbar editor={editor} onOpenEndnotes={onOpenEndnotes} />);
+
+    fireEvent.click(screen.getByTitle('Liste des notes'));
+
+    expect(onOpenEndnotes).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not render the endnote list button when onOpenEndnotes is not provided', () => {
+    const editor = createMockEditor();
+    render(<FormattingToolbar editor={editor} />);
+
+    expect(screen.queryByTitle('Liste des notes')).not.toBeInTheDocument();
+  });
+
+  it('should render the endnote list button in print-ready profile', () => {
+    const editor = createMockEditor();
+    render(<FormattingToolbar editor={editor} profile="print-ready" onOpenEndnotes={vi.fn()} />);
+
+    expect(screen.getByTitle('Liste des notes')).toBeInTheDocument();
+  });
+
+  it('should not confuse the endnote list button with the insertion button title', () => {
+    const editor = createMockEditor();
+    render(<FormattingToolbar editor={editor} onInsertEndnote={vi.fn()} onOpenEndnotes={vi.fn()} />);
+
+    expect(screen.getByTitle(/Note de fin/)).toBeInTheDocument();
+    expect(screen.getByTitle('Liste des notes')).toBeInTheDocument();
+  });
+
   it('should render search button when onSearchClick is provided', () => {
     const editor = createMockEditor();
     const mockOnSearchClick = vi.fn();

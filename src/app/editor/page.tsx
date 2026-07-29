@@ -52,6 +52,7 @@ import { PublishDialog } from '@/components/publish/PublishDialog';
 import { CommandPalette } from '@/components/editor/CommandPalette';
 import { SearchReplaceBar } from '@/components/editor/SearchReplaceBar';
 import { EndnoteModal } from '@/components/editor/EndnoteModal';
+import { EndnotesPanel } from '@/components/editor/EndnotesPanel';
 import type { EndnoteContent } from '@/components/editor/extensions/EndnoteRef';
 import {
   AlertDialog,
@@ -331,6 +332,7 @@ function EditorContent() {
     pos: number;
     content: EndnoteContent | null;
   } | null>(null);
+  const [showEndnotesPanel, setShowEndnotesPanel] = useState(false);
 
   const openInsertEndnote = () => setEndnoteModal({ open: true, pos: null, content: null });
   const openEditEndnote = (pos: number, content: EndnoteContent | null) =>
@@ -911,6 +913,7 @@ function EditorContent() {
               onOpenCommandPalette={() => setShowCommandPalette(true)}
               onSearchClick={() => setShowSearchReplace(true)}
               onInsertEndnote={openInsertEndnote}
+              onOpenEndnotes={() => setShowEndnotesPanel(true)}
               onAnalyze={handleOpenAnalysisConfig}
               analysisLoading={analysisLoading}
             />
@@ -1029,6 +1032,7 @@ function EditorContent() {
           }}
           analysisLoading={analysisLoading}
           onInsertEndnote={openInsertEndnote}
+          onOpenEndnotes={() => setShowEndnotesPanel(true)}
           providers={providers}
           selectedProviderId={selectedProviderId}
           onProviderChange={handleProviderChange}
@@ -1041,6 +1045,15 @@ function EditorContent() {
         initialContent={endnoteModal.content}
         onSubmit={handleEndnoteSubmit}
         onCancel={closeEndnoteModal}
+      />
+
+      {/* Endnotes list panel */}
+      <EndnotesPanel
+        open={showEndnotesPanel}
+        onOpenChange={setShowEndnotesPanel}
+        chapters={project.chapters}
+        activeChapterId={project.activeChapterId}
+        activeContent={activeContent}
       />
 
       {/* Confirm deletion of a non-empty note */}

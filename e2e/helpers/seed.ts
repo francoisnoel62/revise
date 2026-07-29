@@ -82,6 +82,12 @@ export const TEST_BOOK_PREVIEW_LARGE_CHAPTER_COUNT = 6;
 export const TEST_ENDNOTE_PROJECT_ID = 'e2e-endnote-project-001';
 export const TEST_ENDNOTE_CHAPTER_ID = 'e2e-endnote-chapter-001';
 export const TEST_ENDNOTE_NOTE_SENTINEL = 'Lugdunum';
+// A second chapter, added AFTER the first so activeChapterId (chapter 1) and the existing
+// endnotes.spec.ts assertions are undisturbed — used to prove the endnotes panel lists notes
+// across chapters, not just the active one.
+export const TEST_ENDNOTE_CHAPTER_2_ID = 'e2e-endnote-chapter-002';
+export const TEST_ENDNOTE_CHAPTER_2_TITLE = 'Chapitre 2';
+export const TEST_ENDNOTE_NOTE_2_SENTINEL = 'Massalia';
 
 // Book-preview E2E fixtures — a genuinely large manuscript (~90k words / ~200 pages),
 // matching the production target. Seeded ON DEMAND by the opt-in heavy test (not in
@@ -877,19 +883,60 @@ export async function seedAll(): Promise<void> {
       },
     ],
   });
+  // A second chapter carrying its own note, for the endnotes panel's cross-chapter listing.
+  const endnoteChapter2Content = JSON.stringify({
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'text', text: 'Un autre voyageur visita' },
+          {
+            type: 'endnoteRef',
+            attrs: {
+              content: {
+                type: 'doc',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      { type: 'text', text: 'Colonie grecque devenue ' },
+                      { type: 'text', text: TEST_ENDNOTE_NOTE_2_SENTINEL, marks: [{ type: 'bold' }] },
+                      { type: 'text', text: '.' },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+          { type: 'text', text: ' au printemps.' },
+        ],
+      },
+    ],
+  });
+
   await db.collection('projects').replaceOne(
     { _id: TEST_ENDNOTE_PROJECT_ID } as object,
     {
       _id: TEST_ENDNOTE_PROJECT_ID,
       ownerId: TEST_USER_ID,
       title: 'Roman Test Notes de fin',
-      chapters: [{
-        id: TEST_ENDNOTE_CHAPTER_ID,
-        title: 'Chapitre 1',
-        content: endnoteChapterContent,
-        order: 0,
-        metadata: { wordCount: 8, characterCount: 55, lastEdited: past },
-      }],
+      chapters: [
+        {
+          id: TEST_ENDNOTE_CHAPTER_ID,
+          title: 'Chapitre 1',
+          content: endnoteChapterContent,
+          order: 0,
+          metadata: { wordCount: 8, characterCount: 55, lastEdited: past },
+        },
+        {
+          id: TEST_ENDNOTE_CHAPTER_2_ID,
+          title: TEST_ENDNOTE_CHAPTER_2_TITLE,
+          content: endnoteChapter2Content,
+          order: 1,
+          metadata: { wordCount: 7, characterCount: 50, lastEdited: past },
+        },
+      ],
       activeChapterId: TEST_ENDNOTE_CHAPTER_ID,
       providerId: null,
       createdAt: past,

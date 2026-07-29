@@ -2,7 +2,12 @@
 // ABOUTME: Also guards that the Notes section-title setting is editable and persists.
 
 import { test, expect } from '@playwright/test';
-import { TEST_ENDNOTE_PROJECT_ID, TEST_ENDNOTE_NOTE_SENTINEL } from '../helpers/seed';
+import {
+  TEST_ENDNOTE_PROJECT_ID,
+  TEST_ENDNOTE_NOTE_SENTINEL,
+  TEST_ENDNOTE_CHAPTER_2_TITLE,
+  TEST_ENDNOTE_NOTE_2_SENTINEL,
+} from '../helpers/seed';
 
 const EDITOR_URL = `/editor?project=${TEST_ENDNOTE_PROJECT_ID}`;
 const SETTINGS_URL = `/project/${TEST_ENDNOTE_PROJECT_ID}/cockpit/settings`;
@@ -41,6 +46,20 @@ test.describe('endnotes — reading preview', () => {
 
     await expect(bubble).toBeVisible();
     await expect(bubble).toContainText(TEST_ENDNOTE_NOTE_SENTINEL);
+  });
+});
+
+test.describe('endnotes — read-only list panel', () => {
+  test('opens from the toolbar and lists both chapters and their notes', async ({ page }) => {
+    await page.goto(EDITOR_URL);
+
+    await page.getByRole('button', { name: 'Liste des notes' }).click();
+
+    const panel = page.getByRole('dialog');
+    await expect(panel.getByText('Chapitre 1')).toBeVisible();
+    await expect(panel.getByText(TEST_ENDNOTE_CHAPTER_2_TITLE)).toBeVisible();
+    await expect(panel.getByText(TEST_ENDNOTE_NOTE_SENTINEL)).toBeVisible();
+    await expect(panel.getByText(TEST_ENDNOTE_NOTE_2_SENTINEL)).toBeVisible();
   });
 });
 

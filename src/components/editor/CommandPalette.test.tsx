@@ -178,6 +178,32 @@ describe('CommandPalette', () => {
     expect(screen.queryByText('Insérer une note de fin')).not.toBeInTheDocument();
   });
 
+  it('shows the endnote list command, runs it, and closes the palette when onOpenEndnotes is provided', async () => {
+    const onOpenEndnotes = vi.fn();
+    const onOpenChange = vi.fn();
+    render(
+      <CommandPalette
+        {...defaultProps}
+        open={true}
+        onOpenChange={onOpenChange}
+        onOpenEndnotes={onOpenEndnotes}
+      />
+    );
+
+    const entry = screen.getByText('Liste des notes de fin');
+    expect(entry).toBeInTheDocument();
+
+    fireEvent.click(entry);
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    await waitFor(() => expect(onOpenEndnotes).toHaveBeenCalledTimes(1));
+  });
+
+  it('does not show the endnote list command when onOpenEndnotes is absent', () => {
+    render(<CommandPalette {...defaultProps} open={true} />);
+    expect(screen.queryByText('Liste des notes de fin')).not.toBeInTheDocument();
+  });
+
   it('does not show long-form generation commands by default', () => {
     render(
       <CommandPalette

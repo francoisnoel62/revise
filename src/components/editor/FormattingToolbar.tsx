@@ -29,6 +29,7 @@ import {
   Redo2,
   Search,
   Superscript,
+  ListOrdered,
 } from 'lucide-react';
 
 export type EditorProfile = 'print-ready' | 'passerelle';
@@ -223,6 +224,7 @@ interface FormattingToolbarProps {
   onOpenCommandPalette?: () => void;
   onSearchClick?: () => void;
   onInsertEndnote?: () => void;
+  onOpenEndnotes?: () => void;
   onAnalyze?: () => void;
   analysisLoading?: boolean;
 }
@@ -248,6 +250,7 @@ export function FormattingToolbar({
   onOpenCommandPalette,
   onSearchClick,
   onInsertEndnote,
+  onOpenEndnotes,
   onAnalyze,
   analysisLoading = false,
 }: FormattingToolbarProps) {
@@ -322,6 +325,18 @@ export function FormattingToolbar({
     </Button>
   );
 
+  const endnoteListButton = onOpenEndnotes && (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={onOpenEndnotes}
+      title="Liste des notes"
+      className="w-8 h-8 md:w-9 md:h-9"
+    >
+      <ListOrdered className="h-3.5 w-3.5 md:h-4 md:w-4" />
+    </Button>
+  );
+
   const aiMenu = showAIFeatures && onRewrite && onProviderChange && onHistoryClick && onAutocompleteChange && (
     <div className="flex items-center ml-auto mt-1 md:mt-0">
       <AIMenuDropdown
@@ -391,6 +406,9 @@ export function FormattingToolbar({
 
           {/* Endnote insertion */}
           {endnoteButton}
+
+          {/* Endnote list panel */}
+          {endnoteListButton}
 
           <div className="hidden md:block w-px h-8 bg-slate-300 mx-1" />
 
@@ -538,6 +556,9 @@ export function FormattingToolbar({
 
         {/* Endnote insertion */}
         {endnoteButton}
+
+        {/* Endnote list panel */}
+        {endnoteListButton}
 
         {/* Separator - hidden on mobile */}
         <div className="hidden md:block w-px h-8 bg-slate-300 mx-1" />
