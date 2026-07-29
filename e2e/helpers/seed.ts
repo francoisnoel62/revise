@@ -82,6 +82,33 @@ export const TEST_BOOK_PREVIEW_LARGE_CHAPTER_COUNT = 6;
 export const TEST_ENDNOTE_PROJECT_ID = 'e2e-endnote-project-001';
 export const TEST_ENDNOTE_CHAPTER_ID = 'e2e-endnote-chapter-001';
 export const TEST_ENDNOTE_NOTE_SENTINEL = 'Lugdunum';
+// A second chapter, added AFTER the first so activeChapterId (chapter 1) and the existing
+// endnotes.spec.ts assertions are undisturbed — used to prove the endnotes panel lists notes
+// across chapters, not just the active one.
+export const TEST_ENDNOTE_CHAPTER_2_ID = 'e2e-endnote-chapter-002';
+export const TEST_ENDNOTE_CHAPTER_2_TITLE = 'Chapitre 2';
+export const TEST_ENDNOTE_NOTE_2_SENTINEL = 'Massalia';
+
+// Dedicated projects for the endnotes panel's edit/delete E2E tests — separate from
+// TEST_ENDNOTE_PROJECT_ID (shared by read-only assertions above) so a mutating test never
+// disturbs a sibling test's expectations on the same seeded document.
+export const TEST_ENDNOTE_PANEL_EDIT_PROJECT_ID = 'e2e-endnote-panel-edit-001';
+export const TEST_ENDNOTE_PANEL_EDIT_CHAPTER_ID = 'e2e-endnote-panel-edit-chapter-001';
+export const TEST_ENDNOTE_PANEL_EDIT_NOTE_SENTINEL = 'Tolosa';
+
+export const TEST_ENDNOTE_PANEL_DELETE_PROJECT_ID = 'e2e-endnote-panel-delete-001';
+export const TEST_ENDNOTE_PANEL_DELETE_CHAPTER_ID = 'e2e-endnote-panel-delete-chapter-001';
+export const TEST_ENDNOTE_PANEL_DELETE_NOTE_SENTINEL = 'Nemausus';
+
+// A two-chapter project, chapter 1 active, whose second (inactive) chapter carries a note —
+// for the E2E proving that editing a non-active chapter's note from the panel switches to it
+// and resolves against its own document. Its own project so the chapter switch this test
+// triggers never disturbs TEST_ENDNOTE_PROJECT_ID's activeChapterId used by sibling tests.
+export const TEST_ENDNOTE_PANEL_CROSS_CHAPTER_PROJECT_ID = 'e2e-endnote-panel-cross-001';
+export const TEST_ENDNOTE_PANEL_CROSS_CHAPTER_1_ID = 'e2e-endnote-panel-cross-chapter-001';
+export const TEST_ENDNOTE_PANEL_CROSS_CHAPTER_2_ID = 'e2e-endnote-panel-cross-chapter-002';
+export const TEST_ENDNOTE_PANEL_CROSS_CHAPTER_2_TITLE = 'Chapitre 2';
+export const TEST_ENDNOTE_PANEL_CROSS_NOTE_2_SENTINEL = 'Burdigala';
 
 // Book-preview E2E fixtures — a genuinely large manuscript (~90k words / ~200 pages),
 // matching the production target. Seeded ON DEMAND by the opt-in heavy test (not in
@@ -877,20 +904,245 @@ export async function seedAll(): Promise<void> {
       },
     ],
   });
+  // A second chapter carrying its own note, for the endnotes panel's cross-chapter listing.
+  const endnoteChapter2Content = JSON.stringify({
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'text', text: 'Un autre voyageur visita' },
+          {
+            type: 'endnoteRef',
+            attrs: {
+              content: {
+                type: 'doc',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      { type: 'text', text: 'Colonie grecque devenue ' },
+                      { type: 'text', text: TEST_ENDNOTE_NOTE_2_SENTINEL, marks: [{ type: 'bold' }] },
+                      { type: 'text', text: '.' },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+          { type: 'text', text: ' au printemps.' },
+        ],
+      },
+    ],
+  });
+
   await db.collection('projects').replaceOne(
     { _id: TEST_ENDNOTE_PROJECT_ID } as object,
     {
       _id: TEST_ENDNOTE_PROJECT_ID,
       ownerId: TEST_USER_ID,
       title: 'Roman Test Notes de fin',
+      chapters: [
+        {
+          id: TEST_ENDNOTE_CHAPTER_ID,
+          title: 'Chapitre 1',
+          content: endnoteChapterContent,
+          order: 0,
+          metadata: { wordCount: 8, characterCount: 55, lastEdited: past },
+        },
+        {
+          id: TEST_ENDNOTE_CHAPTER_2_ID,
+          title: TEST_ENDNOTE_CHAPTER_2_TITLE,
+          content: endnoteChapter2Content,
+          order: 1,
+          metadata: { wordCount: 7, characterCount: 50, lastEdited: past },
+        },
+      ],
+      activeChapterId: TEST_ENDNOTE_CHAPTER_ID,
+      providerId: null,
+      createdAt: past,
+      updatedAt: now,
+      isPublished: false,
+      shareToken: null,
+      publishedAt: null,
+      publishedChapterIds: null,
+    },
+    { upsert: true }
+  );
+
+  // 5f. Dedicated project for the endnotes panel's "edit" E2E test — its own project so
+  // mutating the note doesn't disturb the read-only assertions above.
+  const endnotePanelEditChapterContent = JSON.stringify({
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'text', text: 'La caravane franchit' },
+          {
+            type: 'endnoteRef',
+            attrs: {
+              content: {
+                type: 'doc',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      { type: 'text', text: 'Aujourd’hui ' },
+                      { type: 'text', text: TEST_ENDNOTE_PANEL_EDIT_NOTE_SENTINEL, marks: [{ type: 'bold' }] },
+                      { type: 'text', text: '.' },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+          { type: 'text', text: ' avant la nuit.' },
+        ],
+      },
+    ],
+  });
+  await db.collection('projects').replaceOne(
+    { _id: TEST_ENDNOTE_PANEL_EDIT_PROJECT_ID } as object,
+    {
+      _id: TEST_ENDNOTE_PANEL_EDIT_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      title: 'Roman Test Panneau Notes — Édition',
       chapters: [{
-        id: TEST_ENDNOTE_CHAPTER_ID,
+        id: TEST_ENDNOTE_PANEL_EDIT_CHAPTER_ID,
         title: 'Chapitre 1',
-        content: endnoteChapterContent,
+        content: endnotePanelEditChapterContent,
         order: 0,
         metadata: { wordCount: 8, characterCount: 55, lastEdited: past },
       }],
-      activeChapterId: TEST_ENDNOTE_CHAPTER_ID,
+      activeChapterId: TEST_ENDNOTE_PANEL_EDIT_CHAPTER_ID,
+      providerId: null,
+      createdAt: past,
+      updatedAt: now,
+      isPublished: false,
+      shareToken: null,
+      publishedAt: null,
+      publishedChapterIds: null,
+    },
+    { upsert: true }
+  );
+
+  // 5g. Dedicated project for the endnotes panel's "delete" E2E test — kept separate from the
+  // edit project so the two mutating tests can run fully in parallel without racing.
+  const endnotePanelDeleteChapterContent = JSON.stringify({
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'text', text: 'Le marchand rejoignit' },
+          {
+            type: 'endnoteRef',
+            attrs: {
+              content: {
+                type: 'doc',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      { type: 'text', text: 'De nos jours ' },
+                      { type: 'text', text: TEST_ENDNOTE_PANEL_DELETE_NOTE_SENTINEL, marks: [{ type: 'bold' }] },
+                      { type: 'text', text: '.' },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+          { type: 'text', text: ' à dos de mule.' },
+        ],
+      },
+    ],
+  });
+  await db.collection('projects').replaceOne(
+    { _id: TEST_ENDNOTE_PANEL_DELETE_PROJECT_ID } as object,
+    {
+      _id: TEST_ENDNOTE_PANEL_DELETE_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      title: 'Roman Test Panneau Notes — Suppression',
+      chapters: [{
+        id: TEST_ENDNOTE_PANEL_DELETE_CHAPTER_ID,
+        title: 'Chapitre 1',
+        content: endnotePanelDeleteChapterContent,
+        order: 0,
+        metadata: { wordCount: 8, characterCount: 55, lastEdited: past },
+      }],
+      activeChapterId: TEST_ENDNOTE_PANEL_DELETE_CHAPTER_ID,
+      providerId: null,
+      createdAt: past,
+      updatedAt: now,
+      isPublished: false,
+      shareToken: null,
+      publishedAt: null,
+      publishedChapterIds: null,
+    },
+    { upsert: true }
+  );
+
+  // 5h. Dedicated two-chapter project for the "act on a non-active chapter" E2E test — chapter 1
+  // is active and note-free, chapter 2 carries the note the test targets from the panel.
+  const endnotePanelCrossChapter1Content = JSON.stringify({
+    type: 'doc',
+    content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Rien à signaler ici.' }] }],
+  });
+  const endnotePanelCrossChapter2Content = JSON.stringify({
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'text', text: 'Plus loin sur la route' },
+          {
+            type: 'endnoteRef',
+            attrs: {
+              content: {
+                type: 'doc',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      { type: 'text', text: 'Port fluvial connu sous le nom de ' },
+                      { type: 'text', text: TEST_ENDNOTE_PANEL_CROSS_NOTE_2_SENTINEL, marks: [{ type: 'bold' }] },
+                      { type: 'text', text: '.' },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+          { type: 'text', text: ' se dressait la cité.' },
+        ],
+      },
+    ],
+  });
+  await db.collection('projects').replaceOne(
+    { _id: TEST_ENDNOTE_PANEL_CROSS_CHAPTER_PROJECT_ID } as object,
+    {
+      _id: TEST_ENDNOTE_PANEL_CROSS_CHAPTER_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      title: 'Roman Test Panneau Notes — Chapitre non actif',
+      chapters: [
+        {
+          id: TEST_ENDNOTE_PANEL_CROSS_CHAPTER_1_ID,
+          title: 'Chapitre 1',
+          content: endnotePanelCrossChapter1Content,
+          order: 0,
+          metadata: { wordCount: 4, characterCount: 20, lastEdited: past },
+        },
+        {
+          id: TEST_ENDNOTE_PANEL_CROSS_CHAPTER_2_ID,
+          title: TEST_ENDNOTE_PANEL_CROSS_CHAPTER_2_TITLE,
+          content: endnotePanelCrossChapter2Content,
+          order: 1,
+          metadata: { wordCount: 8, characterCount: 55, lastEdited: past },
+        },
+      ],
+      activeChapterId: TEST_ENDNOTE_PANEL_CROSS_CHAPTER_1_ID,
       providerId: null,
       createdAt: past,
       updatedAt: now,

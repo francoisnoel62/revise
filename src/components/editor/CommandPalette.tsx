@@ -16,6 +16,7 @@ import {
   Check,
   CheckCircle,
   Superscript,
+  ListOrdered,
 } from 'lucide-react';
 import {
   CommandDialog,
@@ -52,6 +53,7 @@ interface CommandPaletteProps {
 
   // Endnotes
   onInsertEndnote?: () => void;
+  onOpenEndnotes?: () => void;
 
   // Provider
   providers: SafeProvider[];
@@ -86,6 +88,7 @@ export function CommandPalette({
   onAnalyze,
   analysisLoading = false,
   onInsertEndnote,
+  onOpenEndnotes,
   providers,
   selectedProviderId,
   onProviderChange,
@@ -178,6 +181,16 @@ export function CommandPalette({
       available: true,
       category: 'writing' as const,
       keywords: ['note', 'endnote', 'note de fin', 'footnote', 'renvoi', 'appel'],
+    }] : []),
+    ...(onOpenEndnotes ? [{
+      id: 'open-endnotes',
+      label: 'Liste des notes de fin',
+      description: 'Voir toutes les notes du projet, groupées par chapitre',
+      icon: <ListOrdered className="h-4 w-4" />,
+      action: () => executeCommand(onOpenEndnotes),
+      available: true,
+      category: 'writing' as const,
+      keywords: ['note', 'notes', 'endnote', 'liste', 'panneau'],
     }] : []),
     // Settings commands
     {

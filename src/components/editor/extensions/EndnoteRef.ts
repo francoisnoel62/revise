@@ -87,6 +87,17 @@ export function collectEndnoteRefs(doc: PMNode): EndnoteEntry[] {
 }
 
 /**
+ * Resolve a 1-based rank (as shown in the endnotes panel, matching document order) to its
+ * call's document position and body. Rank is only ever converted to a position at the moment
+ * of acting on a note — never while rendering a list of notes, since a position captured
+ * earlier goes stale the instant the author types before it.
+ */
+export function findEndnoteRefByRank(doc: PMNode, rank: number): EndnoteRefTarget | null {
+  const entry = collectEndnoteRefs(doc).find((e) => e.number === rank);
+  return entry ? { pos: entry.pos, content: entry.content } : null;
+}
+
+/**
  * Find the endnote call a Backspace ('before') or Delete ('after') keypress would
  * remove, so the host can confirm before dropping a non-empty note. Also matches a
  * NodeSelection sitting directly on a call. Returns null when none is adjacent.

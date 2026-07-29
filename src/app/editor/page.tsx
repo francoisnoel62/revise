@@ -52,7 +52,9 @@ import { PublishDialog } from '@/components/publish/PublishDialog';
 import { CommandPalette } from '@/components/editor/CommandPalette';
 import { SearchReplaceBar } from '@/components/editor/SearchReplaceBar';
 import { EndnoteModal } from '@/components/editor/EndnoteModal';
-import type { EndnoteContent } from '@/components/editor/extensions/EndnoteRef';
+import { EndnotesPanel } from '@/components/editor/EndnotesPanel';
+import { isEndnoteContentEmpty, type EndnoteContent } from '@/components/editor/extensions/EndnoteRef';
+import { useEndnoteLocator } from '@/hooks/useEndnoteLocator';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -331,6 +333,10 @@ function EditorContent() {
     pos: number;
     content: EndnoteContent | null;
   } | null>(null);
+  const [showEndnotesPanel, setShowEndnotesPanel] = useState(false);
+  // The chapter TextEditor last confirmed it finished re-seeding its document for — distinct
+  // from project.activeChapterId, which the store updates before the editor has caught up.
+  const [readyChapterId, setReadyChapterId] = useState<string | null>(null);
 
   const openInsertEndnote = () => setEndnoteModal({ open: true, pos: null, content: null });
   const openEditEndnote = (pos: number, content: EndnoteContent | null) =>
@@ -354,6 +360,22 @@ function EditorContent() {
     }
     setEndnoteToDelete(null);
   };
+
+  // Switches the active chapter and reports whether it actually took, so the endnotes panel's
+  // locator knows whether to keep waiting for the document handshake or give up.
+  const switchToChapter = async (chapterId: string): Promise<boolean> => {
+    await useProjectStore.getState().setActiveChapter(chapterId);
+    return useProjectStore.getState().project?.activeChapterId === chapterId;
+  };
+
+  const endnoteLocator = useEndnoteLocator({
+    editor,
+    activeChapterId: project?.activeChapterId ?? null,
+    readyChapterId,
+    switchToChapter,
+    onEdit: openEditEndnote,
+    onDelete: (pos, content) => setEndnoteToDelete({ pos, content }),
+  });
 
   // Search/Replace state
   const [showSearchReplace, setShowSearchReplace] = useState(false);
@@ -911,6 +933,7 @@ function EditorContent() {
               onOpenCommandPalette={() => setShowCommandPalette(true)}
               onSearchClick={() => setShowSearchReplace(true)}
               onInsertEndnote={openInsertEndnote}
+              onOpenEndnotes={() => setShowEndnotesPanel(true)}
               onAnalyze={handleOpenAnalysisConfig}
               analysisLoading={analysisLoading}
             />
@@ -943,6 +966,7 @@ function EditorContent() {
               onEndnoteInsertRequest={openInsertEndnote}
               onEndnoteEditRequest={openEditEndnote}
               onEndnoteDeleteRequest={(pos, content) => setEndnoteToDelete({ pos, content })}
+              onChapterDocumentReady={setReadyChapterId}
             />
             {/* Thesaurus palette — opens on right-click of a word in the editor */}
             <ThesaurusPalette
@@ -1029,6 +1053,7 @@ function EditorContent() {
           }}
           analysisLoading={analysisLoading}
           onInsertEndnote={openInsertEndnote}
+          onOpenEndnotes={() => setShowEndnotesPanel(true)}
           providers={providers}
           selectedProviderId={selectedProviderId}
           onProviderChange={handleProviderChange}
@@ -1043,7 +1068,37 @@ function EditorContent() {
         onCancel={closeEndnoteModal}
       />
 
-      {/* Confirm deletion of a non-empty note */}
+      {/* Endnotes list panel */}
+      <EndnotesPanel
+        open={showEndnotesPanel}
+        onOpenChange={setShowEndnotesPanel}
+        chapters={project.chapters}
+        activeChapterId={project.activeChapterId}
+        activeContent={activeContent}
+        onEditNote={(chapterId, rank) => endnoteLocator.locateEndnote(chapterId, rank, 'edit')}
+        onDeleteNote={(chapterId, rank) => endnoteLocator.locateEndnote(chapterId, rank, 'delete')}
+        isLocating={endnoteLocator.isLocating}
+      />
+
+      {/* A note the panel couldn't act on — a rank missing once loaded, or a failed chapter
+          switch — surfaced, never a silent no-op. */}
+      <AlertDialog
+        open={endnoteLocator.error !== null}
+        onOpenChange={(open) => !open && endnoteLocator.clearError()}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Action impossible</AlertDialogTitle>
+            <AlertDialogDescription>{endnoteLocator.error}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={endnoteLocator.clearError}>Fermer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirm deletion of a note — systematic even for an empty one, since a trash icon in a
+          list must never delete silently. */}
       <AlertDialog
         open={endnoteToDelete !== null}
         onOpenChange={(open) => !open && setEndnoteToDelete(null)}
@@ -1052,7 +1107,9 @@ function EditorContent() {
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer la note ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Cette note contient du texte. Sa suppression retirera l’appel et son contenu.
+              {endnoteToDelete && isEndnoteContentEmpty(endnoteToDelete.content)
+                ? 'Cette note est vide. Sa suppression retirera l’appel.'
+                : 'Cette note contient du texte. Sa suppression retirera l’appel et son contenu.'}{' '}
               Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>
