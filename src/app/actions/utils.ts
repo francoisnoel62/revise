@@ -13,6 +13,7 @@ import {
   getCustomAnnexRepository,
   getCorrectionHistoryRepository,
   getSnapshotRepository,
+  getAutomaticSnapshotRepository,
   getWritingGoalRepository,
   getWordCountSnapshotRepository,
   getWritingQuotaRepository,
@@ -52,6 +53,7 @@ import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
 import { CustomAnnexRepository } from '@/domain/interfaces/CustomAnnexRepository';
 import { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
 import { SnapshotRepository } from '@/domain/interfaces/SnapshotRepository';
+import { AutomaticSnapshotRepository } from '@/domain/interfaces/AutomaticSnapshotRepository';
 import { WritingGoalRepository } from '@/domain/interfaces/WritingGoalRepository';
 import { WordCountSnapshotRepository } from '@/domain/interfaces/WordCountSnapshotRepository';
 import { WritingQuotaRepository } from '@/domain/interfaces/WritingQuotaRepository';
@@ -202,6 +204,11 @@ export async function getCorrectionHistoryRepo(): Promise<CorrectionHistoryRepos
  */
 export async function getSnapshotRepo(): Promise<SnapshotRepository> {
   return await getSnapshotRepository();
+}
+
+/** Get the server-side automatic snapshot scheduler. */
+export async function getAutomaticSnapshotRepo(): Promise<AutomaticSnapshotRepository> {
+  return await getAutomaticSnapshotRepository();
 }
 
 /**

@@ -9,11 +9,13 @@ import { SnapshotType } from '@/domain/value-objects/SnapshotType';
 import { CreateSnapshotUseCase } from '@/application/use-cases/CreateSnapshotUseCase';
 import { ListSnapshotsUseCase } from '@/application/use-cases/ListSnapshotsUseCase';
 import { RestoreSnapshotUseCase } from '@/application/use-cases/RestoreSnapshotUseCase';
+import { ProcessAutomaticSnapshotUseCase } from '@/application/use-cases/ProcessAutomaticSnapshotUseCase';
 import {
   ActionResult,
   getAuthenticatedUserId,
   getRepository,
   getSnapshotRepo,
+  getAutomaticSnapshotRepo,
   getProjectSettingsRepo,
   getIdGenerator,
   withErrorHandling,
@@ -113,7 +115,34 @@ export async function createSnapshotAction(
       comment,
     });
 
+    // Any snapshot, including a manual milestone, restarts the automatic clock.
+    await (await getAutomaticSnapshotRepo()).completeSnapshot(auth.userId, projectId, null, new Date());
+
     return serializeSnapshot(result.snapshot);
+  });
+}
+
+/**
+ * Record an editor session heartbeat and let the server decide whether a snapshot is due.
+ * The client interval is only a wake-up mechanism; the persisted schedule is the clock.
+ */
+export async function automaticSnapshotHeartbeatAction(
+  projectId: string,
+  sessionId: string,
+  timeZone: string,
+): Promise<ActionResult<{ created: boolean; error?: string; prunedCount: number }>> {
+  const auth = await getAuthenticatedUserId();
+  if ('error' in auth) return auth.error;
+
+  return withErrorHandling(async () => {
+    const useCase = new ProcessAutomaticSnapshotUseCase(
+      await getAutomaticSnapshotRepo(),
+      await getSnapshotRepo(),
+      await getRepository(),
+      await getProjectSettingsRepo(),
+      await getIdGenerator(),
+    );
+    return useCase.execute({ ownerId: auth.userId, projectId, sessionId, timeZone });
   });
 }
 
@@ -181,6 +210,9 @@ export async function restoreSnapshotAction(
       snapshotId,
       expectedProjectUpdatedAt: new Date(expectedProjectUpdatedAt),
     });
+
+    // A restoration is itself a snapshot creation and must restart the next due time.
+    await (await getAutomaticSnapshotRepo()).completeSnapshot(auth.userId, projectId, null, new Date());
 
     return {
       project: serializeProject(result.project),

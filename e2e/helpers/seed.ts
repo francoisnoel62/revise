@@ -81,6 +81,11 @@ export const TEST_SNAPSHOT_PROJECT_ID = 'e2e-snapshot-project-001';
 export const TEST_SNAPSHOT_CHAPTER_ID = 'e2e-snapshot-chapter-001';
 export const TEST_SNAPSHOT_CHAPTER_TEXT = 'Le phare veillait seul sur la côte déserte.';
 
+// Automatic snapshot fixture — its server-side due time is deliberately in the past.
+// Opening the editor sends the heartbeat that turns it into a real automatic snapshot.
+export const TEST_AUTOMATIC_SNAPSHOT_PROJECT_ID = 'e2e-automatic-snapshot-project-001';
+export const TEST_AUTOMATIC_SNAPSHOT_CHAPTER_ID = 'e2e-automatic-snapshot-chapter-001';
+
 // Snapshot-restore E2E fixtures — a pre-existing v1 snapshot plus a diverged live chapter,
 // so restoring exercises both the safety-snapshot path and the chapter/metadata restore.
 export const TEST_RESTORE_PROJECT_ID = 'e2e-restore-project-001';
@@ -330,6 +335,61 @@ export async function resetSnapshotFixture(): Promise<void> {
     );
     await db.collection('snapshots').deleteMany({ ownerId: TEST_USER_ID, projectId: TEST_SNAPSHOT_PROJECT_ID });
     await db.collection('snapshotCounters').deleteMany({ _id: TEST_SNAPSHOT_PROJECT_ID } as object);
+  } finally {
+    await client.close();
+  }
+}
+
+export async function resetAutomaticSnapshotFixture(): Promise<void> {
+  const client = new MongoClient(MONGODB_URI);
+  await client.connect();
+  try {
+    const db = client.db(MONGODB_DB_NAME);
+    const now = new Date();
+    const past = new Date(now.getTime() - 10 * 60_000);
+    await db.collection('projects').replaceOne(
+      { _id: TEST_AUTOMATIC_SNAPSHOT_PROJECT_ID } as object,
+      {
+        _id: TEST_AUTOMATIC_SNAPSHOT_PROJECT_ID,
+        ownerId: TEST_USER_ID,
+        title: 'Roman Test Snapshots Automatiques',
+        chapters: [{
+          id: TEST_AUTOMATIC_SNAPSHOT_CHAPTER_ID,
+          title: 'Chapitre 1',
+          content: JSON.stringify({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Un changement déjà sauvegardé.' }] }] }),
+          order: 0,
+          metadata: { wordCount: 4, characterCount: 31, lastEdited: past },
+        }],
+        activeChapterId: TEST_AUTOMATIC_SNAPSHOT_CHAPTER_ID,
+        providerId: null,
+        createdAt: past,
+        updatedAt: past,
+        isPublished: false,
+        shareToken: null,
+        publishedAt: null,
+        publishedChapterIds: null,
+      },
+      { upsert: true },
+    );
+    await Promise.all([
+      db.collection('snapshots').deleteMany({ ownerId: TEST_USER_ID, projectId: TEST_AUTOMATIC_SNAPSHOT_PROJECT_ID }),
+      db.collection('snapshotCounters').deleteMany({ _id: TEST_AUTOMATIC_SNAPSHOT_PROJECT_ID } as object),
+      db.collection('automaticSnapshotSessions').deleteMany({ ownerId: TEST_USER_ID, projectId: TEST_AUTOMATIC_SNAPSHOT_PROJECT_ID }),
+    ]);
+    await db.collection('automaticSnapshotSchedules').replaceOne(
+      { _id: `${TEST_USER_ID}:${TEST_AUTOMATIC_SNAPSHOT_PROJECT_ID}` },
+      {
+        _id: `${TEST_USER_ID}:${TEST_AUTOMATIC_SNAPSHOT_PROJECT_ID}`,
+        ownerId: TEST_USER_ID,
+        projectId: TEST_AUTOMATIC_SNAPSHOT_PROJECT_ID,
+        intervalMinutes: 5,
+        changedAt: past,
+        nextDueAt: past,
+        changeRevision: 1,
+        leaseUntil: null,
+      },
+      { upsert: true },
+    );
   } finally {
     await client.close();
   }
@@ -1412,6 +1472,9 @@ export async function cleanupAll(): Promise<void> {
     db.collection('book_preview_cache').deleteMany({ ownerId: TEST_USER_ID }),
     db.collection('snapshots').deleteMany({ ownerId: TEST_USER_ID }),
     db.collection('snapshotCounters').deleteMany({ ownerId: TEST_USER_ID }),
+    db.collection('automaticSnapshotSchedules').deleteMany({ ownerId: TEST_USER_ID }),
+    db.collection('automaticSnapshotSessions').deleteMany({ ownerId: TEST_USER_ID }),
+    db.collection('automaticSnapshotActivity').deleteMany({ ownerId: TEST_USER_ID }),
   ]);
 
   // Whole-book preview PDFs live in a GridFS bucket (files + chunks); remove both.

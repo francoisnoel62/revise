@@ -14,6 +14,7 @@ import { SwitchChapterUseCase } from '@/application/use-cases/SwitchChapterUseCa
 import {
   ActionResult,
   getAuthenticatedUserId,
+  getAutomaticSnapshotRepo,
   getRepository,
   withErrorHandling,
 } from './utils';
@@ -227,6 +228,18 @@ export async function updateChapterContentAction(
       timeZone,
       previousTotalWords
     );
+
+    // Best-effort just like word-count tracking: an automatic snapshot concern
+    // must never make the author's autosave fail.
+    try {
+      await (await getAutomaticSnapshotRepo()).recordSavedChange(
+        auth.userId,
+        projectId,
+        new Date(),
+      );
+    } catch (error) {
+      console.error('Unable to record automatic snapshot change', { projectId, error });
+    }
 
     // Read back the persisted updatedAt rather than computing a fresh Date here:
     // updateChapter's underlying $set stamps its own timestamp, so this call's

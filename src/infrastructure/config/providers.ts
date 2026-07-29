@@ -9,6 +9,7 @@ import { MetadataRepository } from '@/domain/interfaces/MetadataRepository';
 import { CustomAnnexRepository } from '@/domain/interfaces/CustomAnnexRepository';
 import { CorrectionHistoryRepository } from '@/domain/interfaces/CorrectionHistoryRepository';
 import { SnapshotRepository } from '@/domain/interfaces/SnapshotRepository';
+import { AutomaticSnapshotRepository } from '@/domain/interfaces/AutomaticSnapshotRepository';
 import { WritingGoalRepository } from '@/domain/interfaces/WritingGoalRepository';
 import { WordCountSnapshotRepository } from '@/domain/interfaces/WordCountSnapshotRepository';
 import { WritingQuotaRepository } from '@/domain/interfaces/WritingQuotaRepository';
@@ -35,6 +36,7 @@ import { MongoDBMetadataRepository } from '@/infrastructure/persistence/MongoDBM
 import { MongoDBCustomAnnexRepository } from '@/infrastructure/persistence/MongoDBCustomAnnexRepository';
 import { MongoDBCorrectionHistoryRepository } from '@/infrastructure/persistence/MongoDBCorrectionHistoryRepository';
 import { MongoDBSnapshotRepository } from '@/infrastructure/persistence/MongoDBSnapshotRepository';
+import { MongoDBAutomaticSnapshotRepository } from '@/infrastructure/persistence/MongoDBAutomaticSnapshotRepository';
 import { MongoDBWritingGoalRepository } from '@/infrastructure/persistence/MongoDBWritingGoalRepository';
 import { MongoDBWordCountSnapshotRepository } from '@/infrastructure/persistence/MongoDBWordCountSnapshotRepository';
 import { MongoDBWritingQuotaRepository } from '@/infrastructure/persistence/MongoDBWritingQuotaRepository';
@@ -185,6 +187,18 @@ export async function getSnapshotRepository(): Promise<SnapshotRepository> {
     await snapshotRepoInstance.ensureIndexes();
   }
   return snapshotRepoInstance;
+}
+
+/** Get the shared server-side scheduler for automatic project snapshots. */
+let automaticSnapshotRepoInstance: MongoDBAutomaticSnapshotRepository | null = null;
+
+export async function getAutomaticSnapshotRepository(): Promise<AutomaticSnapshotRepository> {
+  if (!automaticSnapshotRepoInstance) {
+    const db = await getDatabase();
+    automaticSnapshotRepoInstance = new MongoDBAutomaticSnapshotRepository(db);
+    await automaticSnapshotRepoInstance.ensureIndexes();
+  }
+  return automaticSnapshotRepoInstance;
 }
 
 /**

@@ -42,6 +42,8 @@ function baseSettings(overrides: Partial<SerializedProjectSettings> = {}): Seria
     levelStylesByProfile: {},
     tocPreferences: { depth: 'chapters', style: 'classique' },
     endnotesTitle: 'Notes',
+    automaticSnapshotIntervalMinutes: null,
+    snapshotTimeZone: 'Europe/Paris',
     ...overrides,
   };
 }
@@ -115,6 +117,34 @@ describe('ProjectSettingsForm — Sommaire card', () => {
         expect.objectContaining({
           tocPreferences: { depth: 'chapters-and-subtitles', style: 'litteraire' },
         }),
+      );
+    });
+  });
+});
+
+describe('ProjectSettingsForm — snapshots automatiques', () => {
+  it('shows automatic snapshots disabled by default', () => {
+    render(<ProjectSettingsForm projectId="proj-1" initialSettings={baseSettings()} />);
+
+    expect(screen.getByText('Snapshots automatiques')).toBeInTheDocument();
+    expect(screen.getByText('Désactivés')).toBeInTheDocument();
+  });
+
+  it('includes the stored snapshot frequency in the save payload', async () => {
+    render(
+      <ProjectSettingsForm
+        projectId="proj-1"
+        initialSettings={baseSettings({ automaticSnapshotIntervalMinutes: 15 })}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText('Genre'), { target: { value: 'Fantasy' } });
+    fireEvent.click(screen.getByRole('button', { name: /enregistrer/i }));
+
+    await waitFor(() => {
+      expect(updateProjectSettingsAction).toHaveBeenCalledWith(
+        'proj-1',
+        expect.objectContaining({ automaticSnapshotIntervalMinutes: 15 }),
       );
     });
   });

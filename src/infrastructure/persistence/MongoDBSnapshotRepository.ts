@@ -88,6 +88,16 @@ export class MongoDBSnapshotRepository implements SnapshotRepository {
     return deserializeSnapshot(doc);
   }
 
+  async deleteByIds(ownerId: string, snapshotIds: string[]): Promise<number> {
+    if (snapshotIds.length === 0) return 0;
+    const result = await this.collection().deleteMany({
+      ownerId,
+      _id: { $in: snapshotIds },
+      type: 'automatic',
+    });
+    return result.deletedCount;
+  }
+
   async deleteByProjectId(ownerId: string, projectId: string): Promise<void> {
     await this.collection().deleteMany({ projectId, ownerId });
     await this.countersCollection().deleteMany({ _id: projectId, ownerId });

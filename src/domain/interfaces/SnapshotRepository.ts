@@ -41,6 +41,9 @@ export interface SnapshotRepository {
    */
   findById(ownerId: string, snapshotId: string): Promise<Snapshot | null>;
 
+  /** Delete selected automatic snapshots after applying the retention policy. */
+  deleteByIds?(ownerId: string, snapshotIds: string[]): Promise<number>;
+
   /**
    * Delete all snapshots for a project.
    * Used when deleting a project.

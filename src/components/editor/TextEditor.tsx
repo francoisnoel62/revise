@@ -24,6 +24,7 @@ import { useSpellCheck } from '@/hooks/useSpellCheck';
 
 import { useEffect, useCallback, useState, useRef } from 'react';
 import { useAutosave } from '@/hooks/useAutosave';
+import { useAutomaticSnapshots } from '@/hooks/useAutomaticSnapshots';
 import { useSemanticMigration } from '@/hooks/useSemanticMigration';
 import { useProjectStore } from '@/store/projectStore';
 import { generateCompletionAction } from '@/app/actions/completion-actions';
@@ -146,6 +147,7 @@ export function TextEditor({
 
   // Enable autosave
   useAutosave();
+  const automaticSnapshotError = useAutomaticSnapshots(projectId || project?.id);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -337,6 +339,11 @@ export function TextEditor({
     <div className="w-full bg-slate-50 relative">
       <SemanticAmbiguityBanner ambiguities={ambiguities} onDismiss={dismissAmbiguities} />
       <AutocompleteDot state={dotState} />
+      {automaticSnapshotError && (
+        <p className="px-2 py-1 text-xs text-muted-foreground" role="status">
+          Le dernier snapshot automatique n’a pas pu être créé. Une nouvelle tentative aura lieu plus tard.
+        </p>
+      )}
       <SpellCheckPalette
         editor={editor}
         onIgnoreWord={ignoreWord}

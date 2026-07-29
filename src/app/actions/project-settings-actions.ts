@@ -3,7 +3,7 @@
 
 'use server';
 
-import { getProjectSettingsRepo, getIdGenerator, getBlobStorageInstance, getAuthenticatedUserId } from './utils';
+import { getProjectSettingsRepo, getAutomaticSnapshotRepo, getIdGenerator, getBlobStorageInstance, getAuthenticatedUserId } from './utils';
 import { CreateProjectSettingsUseCase } from '@/application/use-cases/CreateProjectSettingsUseCase';
 import { LoadProjectSettingsUseCase } from '@/application/use-cases/LoadProjectSettingsUseCase';
 import { UpdateProjectSettingsUseCase, ProjectSettingsUpdates } from '@/application/use-cases/UpdateProjectSettingsUseCase';
@@ -18,6 +18,7 @@ import { CanonExtractionPreferences } from '@/domain/value-objects/CanonExtracti
 import type { PublicationProfileId } from '@/domain/value-objects/PublicationProfile';
 import type { LevelStylesByProfile } from '@/domain/entities/ProjectSettings';
 import type { TocPreferences } from '@/domain/value-objects/TocPreferences';
+import type { AutomaticSnapshotInterval } from '@/domain/value-objects/AutomaticSnapshotInterval';
 
 export interface SerializedProjectSettings {
   id: string;
@@ -44,6 +45,8 @@ export interface SerializedProjectSettings {
   levelStylesByProfile: LevelStylesByProfile;
   tocPreferences: TocPreferences;
   endnotesTitle: string;
+  automaticSnapshotIntervalMinutes: AutomaticSnapshotInterval | null;
+  snapshotTimeZone: string;
 }
 
 function serializeProjectSettings(settings: ProjectSettings): SerializedProjectSettings {
@@ -72,6 +75,8 @@ function serializeProjectSettings(settings: ProjectSettings): SerializedProjectS
     levelStylesByProfile: settings.getLevelStylesByProfile(),
     tocPreferences: settings.getTocPreferences(),
     endnotesTitle: settings.getEndnotesTitle(),
+    automaticSnapshotIntervalMinutes: settings.getAutomaticSnapshotIntervalMinutes(),
+    snapshotTimeZone: settings.getSnapshotTimeZone(),
   };
 }
 
@@ -142,7 +147,11 @@ export async function updateProjectSettingsAction(
       return { success: false, error: 'Non authentifié' };
     }
 
-    const useCase = new UpdateProjectSettingsUseCase(await getProjectSettingsRepo(), await getIdGenerator());
+    const useCase = new UpdateProjectSettingsUseCase(
+      await getProjectSettingsRepo(),
+      await getIdGenerator(),
+      await getAutomaticSnapshotRepo(),
+    );
 
     const settings = await useCase.execute({
       userId: authResult.userId,
