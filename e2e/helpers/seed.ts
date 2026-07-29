@@ -390,7 +390,6 @@ export async function resetAutomaticSnapshotFixture(): Promise<void> {
     await db.collection<AutomaticSnapshotScheduleFixture>('automaticSnapshotSchedules').replaceOne(
       { _id: `${TEST_USER_ID}:${TEST_AUTOMATIC_SNAPSHOT_PROJECT_ID}` },
       {
-        _id: `${TEST_USER_ID}:${TEST_AUTOMATIC_SNAPSHOT_PROJECT_ID}`,
         ownerId: TEST_USER_ID,
         projectId: TEST_AUTOMATIC_SNAPSHOT_PROJECT_ID,
         intervalMinutes: 5,
