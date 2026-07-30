@@ -43,7 +43,7 @@ Check each documentation file and determine if it needs updates based on the cha
 | `CLAUDE.md` | Development rules, architecture constraints, or AI behavior changes |
 | `CHANGELOG.md` | Any significant changes (features, fixes, breaking changes) |
 | `docs/architecture.md` | Architectural changes, new layers, patterns, or dependencies |
-| `docs/user-guide.md` | User-facing features or workflows change |
+| `src/app/guide/**/page.tsx` | User-facing features or workflows change (in-app guide, linked from the landing page) |
 | `docs/developer/api-reference.md` | API endpoints, Server Actions, or interfaces change |
 | `docs/user/provider-management.md` | AI provider configuration changes |
 | `src/domain/README.md` | Domain entities, value objects, or interfaces change |

@@ -5,7 +5,7 @@
 ## Overview
 
 AI Provider Management allows you to:
-- Use multiple AI providers (OpenAI, Anthropic, Mistral, Cohere, Google)
+- Use multiple AI providers (OpenAI, Anthropic, Google)
 - Store API keys securely with AES-256-GCM encryption
 - Test connections before saving
 - Select different providers for different projects
@@ -46,20 +46,6 @@ Before adding an AI provider, you need:
 4. Click "Create Key"
 5. Copy the key (starts with `sk-ant-`)
 
-### Mistral
-1. Visit [Mistral Console](https://console.mistral.ai/)
-2. Sign in or create an account
-3. Go to "API Keys" section
-4. Generate a new API key
-5. Copy and save the key securely
-
-### Cohere
-1. Visit [Cohere Dashboard](https://dashboard.cohere.com/)
-2. Sign in or create an account
-3. Navigate to "API Keys"
-4. Create a new production key
-5. Copy the key
-
 ### Google AI
 1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
 2. Sign in with your Google account
@@ -99,18 +85,13 @@ Once in the editor, you can also access provider management through the AI Menu:
 2. **Provider Type**: Select from dropdown
    - OpenAI
    - Anthropic
-   - Mistral
-   - Cohere
    - Google
 
-3. **Model**: Select the AI model
-   - Options automatically update based on provider type
-   - Common models:
-     - OpenAI: gpt-5.2 (recommended), gpt-5-mini, gpt-5-nano, gpt-4o
-     - Anthropic: claude-sonnet-4-5 (recommended), claude-haiku-4-5, claude-opus-4-5, claude-opus-4-6
-     - Mistral: mistral-large-latest, mistral-medium-latest
-     - Cohere: command-r-plus, command-r
-     - Google: gemini-3-flash-preview (recommended), gemini-3-pro-preview
+3. **Model**: Type the exact model name (free-text field, not a dropdown)
+   - There is no predefined list — Revise sends whatever model name you type directly to the
+     provider's API, so newly released models work immediately without waiting for an update
+   - Examples: `gpt-5.2`, `claude-sonnet-4-5`, `claude-opus-4-6`, `gemini-3-flash-preview`
+   - Check your provider's documentation for the exact current model identifier
 
 4. **API Key**: Paste your API key
    - The key will be encrypted before storage
@@ -215,9 +196,9 @@ When you create or edit a project:
 ### Per-Project Provider
 
 Each project can use a different provider:
-- Project A → OpenAI GPT-4o-mini
+- Project A → OpenAI GPT-5-mini
 - Project B → Anthropic Claude Opus 4.6
-- Project C → Mistral Large
+- Project C → Google Gemini 3 Flash
 
 ### Changing Project Provider
 
@@ -323,8 +304,6 @@ If your selected provider fails:
 2. **Verify key format**:
    - OpenAI: starts with `sk-proj-` or `sk-`
    - Anthropic: starts with `sk-ant-`
-   - Mistral: custom format
-   - Cohere: custom format
    - Google: custom format
 3. **Check key is active**: Visit provider dashboard to confirm
 4. **Generate new key**: If key is revoked, create a new one
@@ -387,7 +366,7 @@ If your selected provider fails:
 **Yes!** Each project can use a different provider. For example:
 - Project 1 → OpenAI
 - Project 2 → Anthropic
-- Project 3 → Mistral
+- Project 3 → Google
 
 ### Are my API keys secure?
 
@@ -408,26 +387,25 @@ If your selected provider fails:
 - **OpenAI GPT-5.2**: Best balance of speed, quality, and cost (recommended)
 - **Anthropic Claude Sonnet 4.5**: Excellent for long-form content, strong instruction following
 - **Anthropic Claude Opus 4.6**: Flagship model with adaptive thinking and 128K output
-- **Mistral Large**: European option, good for multilingual text
-- **Cohere Command R+**: Specialized for business writing
 - **Google Gemini 3 Flash**: Fast and cost-effective with 1M context
 
 **Recommendation**: Start with OpenAI GPT-5.2 or Anthropic Claude Sonnet 4.5 for the best experience.
 
 ### How much does it cost?
 
-**Costs vary by provider and model.** Check provider pricing pages:
+**Costs vary by provider and model.** Revise shows the euro cost of every AI call directly in the
+app (cockpit "Utilisation IA" page), computed from a pricing table synced automatically from
+OpenRouter and kept up to date — no need to track prices manually. Check provider pricing pages
+for the underlying rates if you want the full detail:
 - [OpenAI Pricing](https://openai.com/pricing)
 - [Anthropic Pricing](https://www.anthropic.com/pricing)
-- [Mistral Pricing](https://mistral.ai/technology/#pricing)
-- [Cohere Pricing](https://cohere.com/pricing)
 - [Google AI Pricing](https://ai.google.dev/pricing)
 
-**Typical costs** for 100 rewrites (500 proposals):
+**Illustrative costs** for 100 rewrites (500 proposals) — check the in-app cost tracking for
+current, model-specific figures:
 - GPT-5-mini: ~$0.05-0.10
 - Claude Sonnet 4.5: ~$0.30-0.50
 - Claude Opus 4.6: ~$0.50-1.00
-- Mistral Large: ~$0.20-0.40
 
 ### Can I use the free environment variable method instead?
 
@@ -469,7 +447,7 @@ This follows RGPD requirements for data deletion. Export your data before deleti
 
 **Need Help?**
 - Check [Troubleshooting](#troubleshooting)
-- Visit [GitHub Issues](https://github.com/anthropics/claude-code/issues)
+- Visit [GitHub Issues](https://github.com/francoisnoel62/revise/issues)
 - Contact support (if available)
 
 **Security Concern?**

@@ -44,6 +44,12 @@ export default function GuideManuscritPage() {
                 devient un chapitre.
               </li>
             </ul>
+            <p className="text-sm text-muted-foreground">
+              Le gras, l&apos;italique, le souligné et le surlignage sont préservés à l&apos;import.
+              La police, la taille et l&apos;alignement le sont partiellement. Les tableaux, images
+              et mises en page complexes ne sont pas conservés — un import donne un texte propre,
+              pas un fac-similé pixel près.
+            </p>
           </section>
 
           <section className="space-y-4">
