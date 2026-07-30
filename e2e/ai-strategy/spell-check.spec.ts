@@ -96,6 +96,26 @@ test.describe('Spell-check in the editor', () => {
     await expect(editor).not.toContainText('maisson');
   });
 
+  test('editing before an underlined word keeps its correction aligned', async ({ page }) => {
+    const editor = await openSpellCheckEditor(page);
+    await typeAtEnd(page, editor, ' maisson');
+
+    const spellerror = page.locator('.spell-error[data-spell-word="maisson"]');
+    await expect(spellerror).toBeVisible({ timeout: 15_000 });
+
+    await editor.click();
+    await page.keyboard.press('Control+Home');
+    await page.keyboard.type('Cher ');
+
+    await spellerror.click();
+    const suggestionBtn = page.getByRole('button', { name: 'maison' });
+    await expect(suggestionBtn).toBeVisible();
+    await suggestionBtn.click();
+
+    await expect(editor).toContainText('Cher La vieille bibliothèque sentait le bois. maison');
+    await expect(editor).not.toContainText('maisson');
+  });
+
   test('clicking Ignorer closes the palette without changing the text', async ({ page }) => {
     const editor = await openSpellCheckEditor(page);
     await typeAtEnd(page, editor, ' maisson');
