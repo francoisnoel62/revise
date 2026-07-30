@@ -8,7 +8,7 @@
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
-[![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
+![Licence propriétaire — tous droits réservés](https://img.shields.io/badge/licence-propri%C3%A9taire%20%E2%80%94%20tous%20droits%20r%C3%A9serv%C3%A9s-5b21b6?style=flat-square)
 
 [Pourquoi Revise](#pourquoi-revise) • [Fonctionnalités](#-fonctionnalités) • [Installation](#-installation) • [Documentation](#-documentation) • [Contribuer](#-contribuer)
 

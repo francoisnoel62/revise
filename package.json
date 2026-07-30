@@ -2,6 +2,7 @@
   "name": "revise",
   "version": "0.1.0",
   "private": true,
+  "license": "UNLICENSED",
   "scripts": {
     "dev": "next dev",
     "dev:worktree": "powershell -ExecutionPolicy Bypass -File scripts/worktree.ps1 dev",
