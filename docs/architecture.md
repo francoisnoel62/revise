@@ -30,10 +30,14 @@ Pure business logic with no framework dependencies.
 - `WordCountSnapshot` - Daily word-count checkpoint per project for activity tracking and milestone metrics
 - `WritingQuota` - Recurring writing quota with daily/weekly period, target word rate, and progress tracking against `WordCountSnapshot`
 - `AutocompleteEvent` - Full lifecycle of one autocomplete suggestion (triggered → displayed → accepted/rejected/expired); carries provider, model, latency, outcome, and session identifiers for telemetry (Phase 10.0)
-- `CanonFact` - Established fact extracted from the manuscript (character, location, relation, event); tracks source (`derived` | `authored`), validity, and the chapter it was extracted from; author can validate or invalidate (Phase 10.0)
-- `ChapterAnalysis` - Complete chapter analysis result with issues, repetitions, statistics (Phase 7)
+- `CanonFact` - Established fact about an entity/character with **temporal validity**: `validFromChapter`/`validToChapter` chapter range (not a boolean); `withValidToChapter()` closes a fact superseded by a later one. Classified into 5 numbered narrative categories — objectif, état de connaissance, croyance, croyance sur autrui, dynamique relationnelle (see [ADR 0003](../docs/adr/0003-cinq-categories-faits-canon.md)) — rather than a `character`/`location`/`relation`/`event` typology. Tracks source (`derived` | `author`) (Phase 10.0; model corrected 2026-07-29)
+- `ChapterAnalysis` - Complete chapter analysis result with issues, repetitions, statistics (Phase 7); covers grammar/punctuation/style/repetition only — spelling was removed from this AI-based path 2026-06-25 (see `SpellChecker` below)
 - `CharacterConversation` - Persisted conversation between the author and a character persona; owns an ordered list of `ChatMessage` value objects (Phase 9.0)
 - `TextDocument` - Legacy single document (Phase 1)
+- `PasswordResetToken` - Single-use, expiring (1h) password-reset token (2026-01-31)
+- `Snapshot` - Immutable captured project version: sequential number (never reused), full chapter copies, captured editorial metadata, type (`manual`/`automatic`/`restore`/`safety`); tombstone model (`tombstone()` erases restorable content but keeps an audit entry) (2026-07-25 – 07-29)
+- `CustomAnnex` - Author-inserted front/back-matter annex (title + TipTap content), placement (`front`|`back`) + order (2026-07-11)
+- `BookPreviewCacheEntry` - Cache of a whole-book PDF preview's page metrics (chapter/subtitle offsets), keyed by project+profile+owner, invalidated by content-hash fingerprint (2026-06 – 07)
 
 **Value Objects**:
 - `TextSelection` - Selection range
@@ -56,11 +60,21 @@ Pure business logic with no framework dependencies.
 - `AutocompletePreferences` - 6 per-project autocomplete settings: `enabled`, `suggestionLength` (short/medium/long), `audace` (prudent/balanced/bold), `smartPrefetch`, `partialAcceptance`, `learnFromRejections`; stored on `ProjectSettings` (Phase 10.0)
 - `CanonExtractionPreferences` - Per-project settings for canon extraction trigger (auto at session-end vs manual)
 - `WordAlternative` - Synonym / word alternative with relevance score, produced by the `Thesaurus`
-- `AutocompleteIntent` - Detected intention of the writing context (`dialogue`, `description`, `action`, `introspection`, `other`); drives variant generation (Phase 10.0)
-- `AutocompleteOutcome` - Result of a suggestion (`accepted_full`, `accepted_partial`, `rejected`, `expired`, `ignored`) (Phase 10.0)
+- `AutocompleteIntent` - Detected intention of the writing context (`natural`, `shorter`, `tenser`, `more_concrete`, `dialogue`); drives variant generation (Phase 10.0; corrected 2026-07-29, the original 5-value set — `dialogue`/`description`/`action`/`introspection`/`other` — was redesigned during implementation)
+- `AutocompleteOutcome` - Result of a suggestion (`accepted_full`, `accepted_partial`, `rejected_escape`, `superseded_typing`, `empty`, `prefetch_discarded`); the last tracks LLM calls wasted by smart prefetch (Phase 10.0; corrected 2026-07-29)
 - `CanonFacts` - Typed collection of `CanonFact` items (Phase 10.0)
-- `CanonFactSource` - Enum for fact provenance: `derived` (LLM-extracted) | `authored` (manually added) (Phase 10.0)
+- `CanonFactSource` - Enum for fact provenance: `derived` (LLM-extracted) | `author` (manually added) (Phase 10.0; corrected 2026-07-29, was documented as `authored`)
 - `AIOperationPolicy` - Maps `AIOperationType` to provider selection policy (fast vs standard models); autocomplete always uses fast models (Phase 10.0)
+- `PublicationProfile` - Immutable print presets: `kdp-6x9`, `a5`, `passerelle` (non-paginated bridge profile); `fromId()` falls back to `kdp-6x9` for a removed/unknown id, so old projects still open (2026-06-28 – 06-29; 3 earlier KDP trim-size profiles removed and auto-migrated)
+- `SemanticRole` - Content-block role (`corps`, `titre-de-chapitre`, `sous-titre`, `citation`, `epigraphe`, `separateur-de-scene`), decoupled from visual style (2026-06-28)
+- `LevelStyleSet` - Per-profile typography (size/weight/italic/alignment/line-height) for each semantic role, with clamping and closed-value validation (2026-06-28 – 07-05)
+- `TocPreferences` - Table-of-contents depth (chapters vs chapters+subtitles) and style (classique/épuré/littéraire) (2026-07-06)
+- `PresentationOverride` - Per-node presentation overrides (font/size/alignment), scoped to the `passerelle` profile only, kept as a layer separate from semantic content (2026-06-28)
+- `SnapshotType` - `manual` | `automatic` | `restore` | `safety` (2026-07-25)
+- `AutomaticSnapshotInterval` - Allowed automatic-snapshot intervals: 5/15/30/60 minutes (2026-07-29)
+
+**Domain Services**:
+- `AutomaticSnapshotRetention` - The one pure domain service in the codebase: `automaticSnapshotsToPrune()` computes which automatic snapshots to purge (20 latest kept, then 1/day for 30 days, 1/week for 6 months, timezone-aware) (2026-07-29)
 
 **Interfaces**:
 - `DocumentParser` - Parse documents to entities
@@ -104,6 +118,13 @@ Pure business logic with no framework dependencies.
 - `PaginatedResult` - Pagination result interface for blog articles (Phase 4.1+)
 - `IdGenerator` - UUID generation abstraction (Phase 3.5)
 - `LLMProviderFactory` - Factory for creating LLM providers (Phase 3.5)
+- `SpellChecker` - Offline dictionary-based spell-check contract (`correct`/`suggest`); **replaces** the AI-based `SpellingAnalysisStrategy` for spelling specifically (2026-06-23 – 06-25), consuming zero AI tokens. Grammar/punctuation/style/repetition remain AI-based (`AnalysisLLMClient`)
+- `PasswordResetTokenRepository` - Create (invalidates prior tokens), find valid token, mark used, invalidate all for user, delete expired (2026-01-31)
+- `SnapshotRepository` - Sequential numbering, paginated history, presentation-only metadata edits, tombstoning, activity log (2026-07-25 – 07-29)
+- `AutomaticSnapshotRepository` - Server-side scheduling clock: `configure`, `recordSavedChange`, `heartbeat`, `claimDueSnapshot`/`completeSnapshot`/`releaseFailedSnapshot` (distributed-lock-style claim pattern) (2026-07-29)
+- `BookPreviewCacheRepository` - Save/load whole-book preview metrics + cached PDF bytes (GridFS-backed) (2026-07-05)
+- `CustomAnnexRepository` - CRUD + `countByProjectAndPlacement`, cascade deletes (2026-07-11)
+- `PresentationOverrideRepository` - Save/load/delete per-chapter presentation overrides (2026-06-28)
 
 ### Application Layer (`src/application/`)
 
@@ -144,7 +165,10 @@ Use cases orchestrating domain logic.
 **User Use Cases**:
 - `RegisterUserUseCase` - User registration with consent validation
 - `ApproveUserUseCase` - Admin approval with HMAC token validation (Phase 3.8)
-- `DeleteUserAccountUseCase` - Account deletion with cascade delete (Phase 3.11)
+- `RequestPasswordResetUseCase` - Anti-enumeration (identical response for unknown/unapproved accounts), 1h token, emails reset link (2026-01-31)
+- `ResetPasswordUseCase` - Validates token, updates password, invalidates remaining tokens (2026-01-31)
+- `ChangePasswordUseCase` - Authenticated password change; invalidates all existing reset tokens (2026-01-31)
+- `DeleteUserAccountUseCase` - RGPD Article 17 "right to erasure"; cascades across ~15 repositories (Project, Provider, Metadata, CorrectionHistory, ProjectSettings, WordCountSnapshot, WritingQuota, WritingGoal, Character, ProjectTask, AIUsage, AIExchange, AutocompleteEvent, CanonFact, Snapshot), most as optional constructor params for backward compatibility (Phase 3.11; dependency list corrected 2026-07-29 — previously documented as 5 repositories)
 
 **Metadata Use Cases** (Phase 3.6, 3.7):
 - **CRUD**: `CreateMetadata`, `LoadMetadata`, `ListMetadata`, `UpdateMetadataContent`, `UpdateMetadataTitle`, `DeleteMetadata`
@@ -165,6 +189,28 @@ Use cases orchestrating domain logic.
 **Pricing Use Cases**:
 - `SyncModelPricingUseCase` - Fetches model pricing from `PricingClient`, validates diff (quarantines collisions and large swings), upserts to repository, sends email report
 - `PruneObsoletePricingUseCase` - Deletes stored pricing entries absent from the latest `PricingClient` fetch; never deletes when the fetch fails
+
+**Snapshot Use Cases** (2026-07-25 – 07-29):
+- `CreateSnapshotUseCase` - Manual snapshot creation (sequential number, captures chapters + editorial metadata)
+- `ProcessAutomaticSnapshotUseCase` - Heartbeats a session, claims at most one due automatic snapshot per interval, verifies a session is still open before committing, prunes via `AutomaticSnapshotRetention`
+- `ListSnapshotsUseCase` - Paginated history + `hasUnsnapshottedChanges` flag
+- `LoadSnapshotComparisonUseCase` - Loads a past snapshot alongside a coherent point-in-time "current" state (triple-read race detection, no cross-collection Mongo transaction)
+- `RestoreSnapshotUseCase` - Optimistic-concurrency guarded (`expectedProjectUpdatedAt`); takes a safety snapshot of unsaved current work first; atomic compare-and-swap; best-effort compensation if a post-swap step fails
+- `GovernSnapshotHistoryUseCase` - Role-gated (`owner`/`editor`/`reader`) metadata edits and tombstone-style deletion — groundwork for future multi-collaborator support; this is the one snapshot use case still exported from `application/index.ts`'s barrel
+
+**Publication / Pagination / Book-Preview Services** (2026-06-28 – 07-19):
+- `WholeBookHtmlAssembler` - Assembles the whole-book body HTML from ordered chapters, strips presentation overrides to semantic-only, builds the endnote compilation, tags nested TOC sub-entries
+- `BookPreviewCacheComputer` - Drives a headless browser (Paged.js) to paginate the assembled HTML, extracts page-count/chapter-offset/subtitle-offset metrics (120s timeout)
+- `BookOffsetCalculator` - Pure function computing each chapter's first Arabic page number, honoring odd-page chapter starts
+- `bookPreviewContentHash` - Fingerprints everything visible in the whole-book preview for cache invalidation
+- `endnoteIndex` / `endnoteCompilation` - Build the per-chapter endnote index and the single numbering source shared by PDF/DOCX export
+- `PresentationOverrideService` (`rendering/`) - `applyOverrides`/`stripToSemantic`/`extractOverrides` round-trip for the `passerelle` profile
+- `PublicationProfileSwitch` (`rendering/`) - Switches rendered content between publication profiles
+
+**Content Migrations** (`migration/`, 2026-06-28 – 07-04):
+- `ContentMigrator` / `ContentDemigrator` - Reversible migration of legacy TipTap content into the semantic-content model; flags ambiguous cases (e.g. centered text) for manual review
+- `RemovedPublicationProfileMigration` - Maps the 3 removed KDP trim-size profiles to `kdp-6x9`
+- `ChapterTitleHeadingMigration` - One-shot insertion of a missing `titre-de-chapitre` H1 into a chapter
 
 **Character Chat Use Cases** (Phase 9.0):
 - `ChatWithCharacterUseCase` - Streaming use case; builds the character persona via `AIContextBuilder.buildCharacterPersona`, hydrates/creates the conversation, streams reply via `LLMProvider.chatStream`, persists the accumulated reply. Returns an `AsyncIterableIterator` of text chunks. History capped at 20 messages.
@@ -187,7 +233,7 @@ Use cases orchestrating domain logic.
 - `ApplyBatchCorrectionsUseCase` - Apply multiple corrections in batch
 
 **Analysis Strategies** (Phase 7):
-- `SpellingAnalysisStrategy` - Spelling error detection via AI
+- ~~`SpellingAnalysisStrategy`~~ - **Removed 2026-06-25**; spelling detection now goes through the offline `SpellChecker` (nspell) instead of an AI strategy — see Infrastructure/Lexical below
 - `GrammarAnalysisStrategy` - Grammar issue detection via AI
 - `PunctuationAnalysisStrategy` - Punctuation error detection via AI
 - `StyleAnalysisStrategy` - Style improvement suggestions via AI
@@ -212,8 +258,10 @@ External service implementations.
 - `DocxParser` - Mammoth-based parser with chapter splitting
 - `MarkdownParser` - Single .md file parser to TipTap JSON (Phase 5.1)
 - `MarkdownFolderParser` - Folder of .md files parser to chapters (Phase 5.1)
-- `DocxExporter` - docx library exporter with full typography support and cover image
-- `PdfExporter` - PDF export with full typography, cover image, and word-based text justification (Phase 3.7, 6.1)
+- `DocxExporter` - docx library exporter with full typography support, cover image, custom annexes, and endnotes rendered as native Word footnotes (Phase 3.7, 6.1; endnotes 2026-07-24)
+- `PagedPdfExporter` - **Production PDF exporter** since 2026-06-28: headless Chromium + Paged.js (via `PlaywrightBrowserLauncher` + `PagedJsRenderer`), rendering the whole book through the publication-profile/semantic-content pipeline (see "Publication Profiles & Pagination" below). Wired in `infrastructure/config/providers.ts#getDocumentExporter()`.
+  - `PdfExporter` (pdf-lib-based) - **superseded, now dead code**: no longer imported by `providers.ts` or any non-test file; kept only for its own test. Do not extend.
+- `document/paged/` - Rendering subsystem backing `PagedPdfExporter` and the whole-book preview: `TipTapToBookHtml`, `BookCssBuilder`, `TocHtmlBuilder`, `FrontMatterHtmlBuilder`, `BackMatterHtmlBuilder`, `EndnotesHtmlBuilder`, French-spacing utilities (2026-06-28 – 07-19)
 - `TipTapContentService` - TipTap content manipulation (Phase 4.1)
 - TipTap conversion utilities (HTML ↔ JSON)
 
@@ -240,7 +288,7 @@ External service implementations.
 - `FieldEncryption` - AES-256-GCM encryption for transparency-ledger content fields; derives its key from `ENCRYPTION_KEY` via PBKDF2 with a distinct salt (domain-separated from API-key encryption)
 
 **Email** (Phase 3.8):
-- `ResendEmailService` - Email notifications via Resend API
+- `ResendEmailService` - Email notifications via Resend API. Real methods: `sendRegistrationNotification`, `sendWelcomeEmail`, `sendPasswordResetEmail`, `sendPasswordChangedEmail`, `sendPricingSyncReport` (corrected 2026-07-29 — previously documented method names `sendApprovalRequest`/`sendApprovalConfirmation`/`sendRejectionNotification` do not exist in the current class)
 
 **Authentication** (Phase 3, 3.8):
 - `AuthJsProvider` - Auth.js implementation
@@ -271,6 +319,11 @@ External service implementations.
 - `MongoDBModelPricingRepository` - Model pricing entries persistence; queried by `TrackedLLMProvider` for cost snapshots
 - `MongoDBWordCountSnapshotRepository` - Daily word-count snapshot persistence with TTL
 - `MongoDBWritingQuotaRepository` - Writing quota persistence scoped by `ownerId`
+- `MongoDBPasswordResetTokenRepository` - Password-reset token persistence (2026-01-31)
+- `MongoDBSnapshotRepository` / `MongoDBAutomaticSnapshotRepository` - Project snapshot + automatic-snapshot scheduling persistence (2026-07-25 – 07-29)
+- `MongoDBBookPreviewCacheRepository` - GridFS-backed whole-book PDF preview cache (2026-07-05)
+- `MongoDBCustomAnnexRepository` - Custom front/back-matter annex persistence (2026-07-11)
+- `MongoDBPresentationOverrideRepository` - Per-chapter presentation-override persistence (2026-06-28)
 - `InMemoryProjectRepository` - Ephemeral storage (testing/legacy)
 - All repositories support `deleteAllByOwner()` for RGPD compliance (Phase 3.11)
 - Serialization utilities for all entity types
@@ -282,6 +335,7 @@ External service implementations.
 - `ConjugationAwareThesaurus` - Implements `Thesaurus`; wraps `JeuxDeMotsThesaurus` with conjugation-aware lookup via `FrenchMorphology`
 - `JeuxDeMotsThesaurus` - Fetches synonyms from the JeuxDeMots French thesaurus API
 - `FrenchMorphology` - Implements `Morphology`; French lemmatisation via the lexique index
+- `NspellSpellChecker` - Implements `SpellChecker`; offline dictionary-based spell-check via **nspell + fr-FR dictionary**, zero AI tokens (2026-06-23 – 06-25)
 
 **Pricing**:
 - `OpenRouterPricingClient` - Implements `PricingClient`; fetches model pricing from the OpenRouter public API; normalises provider/prefix keys
@@ -336,6 +390,11 @@ React components and UI.
 - `api/completion/telemetry/route.ts` - Receives autocomplete lifecycle events from the client; sliding-window rate-limited (Phase 10.0)
 - `api/completion/telemetry/stats/route.ts` - Returns aggregated autocomplete metrics per project (acceptance rate, latency by provider) (Phase 10.0)
 - `api/character-chat/stream/route.ts` - Character chat SSE endpoint; emits a `meta` event (conversationId) then streams character reply chunks (Phase 9.0)
+- `auth/forgot-password/page.tsx`, `auth/reset-password/page.tsx` - Password-reset request/reset flow (2026-01-31)
+- `book-preview/page.tsx` - Whole-book preview: cached, server-generated (Chromium/Paged.js) export PDF in an iframe viewer, profile switcher, `#page=N` navigation, "passerelle" fallback mode (2026-06-30 – 07-05)
+- `api/book-preview/pdf/route.ts` - Streams the cached whole-book PDF from GridFS for the authenticated owner (2026-07-05)
+- `api/cron/sync-pricing/route.ts` - Daily cron (06:00 UTC) triggering `SyncModelPricingUseCase`, emails a report
+- `editor/paged-spike/page.tsx` + `api/paged-spike/export/route.ts` - Experimental route that validated the paginated-preview pipeline before production; 404s in production, kept as a reference implementation
 
 **Components**:
 - **Auth**: `UserMenu` - User profile dropdown with sign-out and provider access
@@ -356,6 +415,11 @@ React components and UI.
 - **Transparency**: `AIExchangeLedger` (browsable list of captured exchanges), `AIExchangeLoggingCard` (opt-in toggle)
 - **Admin**: `ModelPricingTable`, `ModelPricingForm`, `SyncButton`, `PruneButton`
 - **Editor**: `ThesaurusPalette` - palette for browsing and inserting word alternatives via the conjugation-aware thesaurus
+- **Editor**: `SpellCheckPalette`, `SpellCheckExtension` - red-underline offline spell-check UI (nspell); `SpellCheckSettingsCard` manages the custom dictionary/ignored words (2026-06-23 – 06-25)
+- **Editor**: `EndnoteModal`, `EndnotesPanel`, `EndnoteRef` (TipTap extension) - endnote insertion, reading bubble, per-chapter management panel (2026-07-24 – 07-29)
+- **Editor**: `PublicationPreview`, `PublicationProfileSelector`, `LevelStylesPanel`, `BackgroundPageCounter` - in-editor paginated preview, profile switching, per-profile typography controls (2026-06-28 – 07-05)
+- **History**: `SnapshotHistoryDialog`, `SnapshotComparisonDialog` - create/consult/restore snapshots; structural then textual diff against the current state (2026-07-25 – 07-29), distinct from `CorrectionHistoryDialog` (AI-rewrite history)
+- **Editorial**: `EditorialCard`, `EditorialEditor`, `CustomAnnexSection` - front/back-matter annexes, including author-defined custom annexes (2026-07-11)
 - **Characters**: `CharacterCard` (with Chat button opening CharacterChatSheet), `CharacterForm` (with Auto-fill button), `CharacterChatSheet` (streaming chat sheet) (Phase 6, 9.0)
 - **Tasks**: `TaskForm`, `TaskRow`, `TaskSummaryCard` (Phase 6)
 - **Goals**: `GoalCard`, `GoalForm` (Phase 6)
@@ -392,10 +456,17 @@ React components and UI.
 - `canon-actions` - Generate, list, validate, invalidate, and delete canon facts (→ GenerateCanonFactsUseCase, Phase 10.0)
 - `writing-quota-actions` - Writing quota CRUD (→ WritingQuota Use Cases)
 - `word-count-tracking` - Record word-count snapshots (→ RecordWordCountSnapshotUseCase)
-- `exchange-actions` - Load exchange history for the transparency ledger (→ AIExchangeRepository)
+- `exchange-actions` - Load exchange history for the transparency ledger (→ AIExchangeRepository). **Architecture note**: no Application-layer use case *writes* an `AIExchange` — `AIExchangeRepository` is referenced only by `DeleteUserAccountUseCase` (cascade delete). The write path lives outside the Application layer's use-case pattern (directly where providers are invoked), which is an acknowledged deviation from the Clean Architecture flow used elsewhere and worth revisiting.
 - `thesaurus-actions` - Suggest word alternatives (→ SuggestAlternativesUseCase)
 - `pricing-admin-actions` - Trigger pricing sync and prune (→ SyncModelPricingUseCase, PruneObsoletePricingUseCase)
 - `analysis-actions` - Chapter analysis operations (→ Analysis Use Cases, Phase 7)
+- `spell-check-actions` - Offline spell-check via `SpellChecker`/nspell (2026-06-23)
+- `password-actions` - Request/reset/change password (→ Password Reset Use Cases, 2026-01-31)
+- `snapshot-actions` - Snapshot creation, listing/metadata, deletion, restore (→ Snapshot Use Cases, 2026-07-25 – 07-29)
+- `book-preview-actions` - Lazily generates/caches the whole-book export PDF, returns navigation metrics (2026-06-30 – 07-05)
+- `presentation-override-actions` - Save/load "passerelle"-only presentation overrides (2026-06-28)
+- `custom-annex-actions` - CRUD + reordering for author-inserted custom annexes (2026-07-11)
+- `editorial-actions` - List/save/delete editorial front/back-matter annexes (2026-07-11)
 
 **Dependency Injection** (`utils.ts`):
 - `getRepository()` - Project repository

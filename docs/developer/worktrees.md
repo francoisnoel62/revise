@@ -12,6 +12,8 @@ Un worktree est une tâche de code isolée, pas une seconde copie permanente du 
 
 ## Créer une session
 
+### Windows (PowerShell) — flux complet avec isolation port/DB
+
 Depuis le dépôt principal :
 
 ```powershell
@@ -34,6 +36,21 @@ Le lanceur met à jour `origin/main`, crée `feature/193-endnotes-panel`, un dos
 
 Il lance Claude à la fin. Ajoutez `-NoLaunch` pour préparer seulement le worktree et `-DryRun` pour afficher les valeurs qui seraient choisies sans rien modifier.
 
+### macOS / Linux (bash) — équivalent simplifié
+
+```bash
+./scripts/new-session.sh 193-endnotes-panel
+```
+
+Crée le worktree (`session/193-endnotes-panel`), lie `node_modules` par symlink et copie `.env.local`
+avec un `MONGODB_DB_NAME` unique à la session. **Différences avec la version PowerShell** : pas
+d'isolation de port (le worktree partage le port `3000` avec le dépôt principal — ne lancez pas les
+deux `npm run dev` en même temps), pas de `.worktree.json`, convention de branche `session/<nom>` au
+lieu de `feature/<nom>`. Il n'existe pas d'équivalent bash à `npm run dev:worktree` /
+`npm run worktree -- status|finish` (voir ci-dessous) — sur macOS/Linux, utilisez le flux manuel décrit
+dans le [Git Workflow de CLAUDE.md](../../CLAUDE.md) (`git worktree add`, `npm run dev` classique,
+nettoyage via `git worktree remove`).
+
 ## Travailler dans le worktree
 
 ```powershell
@@ -42,7 +59,11 @@ npm run worktree -- status
 npm run worktree -- finish
 ```
 
-`dev:worktree` est le seul moyen recommandé de démarrer Next.js dans un worktree : il utilise le port attribué plutôt que `3000`. MongoDB reste un unique conteneur local ; seule la base est isolée.
+`dev:worktree` est le seul moyen recommandé de démarrer Next.js dans un worktree sous Windows : il
+utilise le port attribué plutôt que `3000`. MongoDB reste un unique conteneur local ; seule la base
+est isolée. **Ces deux commandes npm invoquent `scripts/worktree.ps1` et ne fonctionnent qu'avec
+PowerShell** — sur macOS/Linux, lancez `npm run dev` normalement depuis le dossier du worktree créé
+par `new-session.sh`.
 
 ## Intégrer proprement
 

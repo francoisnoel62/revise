@@ -49,6 +49,16 @@ export default function GuideAssistantIaPage() {
           </section>
 
           <section className="space-y-4">
+            <h2 className="text-2xl font-semibold">Thésaurus contextuel</h2>
+            <p>
+              Cliquez sur un mot pour ouvrir une palette d&apos;alternatives, construite en deux
+              couches : une recherche lexicale instantanée (aucun token IA consommé), puis, à la
+              demande, une suggestion IA ancrée sur votre propre profil de voix plutôt que sur un
+              registre générique. De quoi trouver le mot juste sans jamais standardiser votre style.
+            </p>
+          </section>
+
+          <section className="space-y-4">
             <h2 className="text-2xl font-semibold">Autocomplétion</h2>
             <p>
               L&apos;autocomplétion est la fonctionnalité IA centrale de Revise. Elle vous tend

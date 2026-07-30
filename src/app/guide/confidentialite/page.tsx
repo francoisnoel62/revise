@@ -48,6 +48,25 @@ export default function GuideConfidentialitePage() {
           </section>
 
           <section className="space-y-4">
+            <h2 className="text-2xl font-semibold">Journal de transparence IA</h2>
+            <p>
+              Vous pouvez activer, en <strong>opt-in</strong>, un journal qui conserve le contenu
+              exact envoyé à l&apos;IA et sa réponse — pour savoir précisément ce qui a été partagé,
+              plutôt que de le deviner. Ce contenu est chiffré au repos avec une clé distincte de
+              celle de vos clés API, et purgé automatiquement après la durée de rétention que vous
+              choisissez. C&apos;est désactivé par défaut : Revise ne conserve rien de plus que le
+              nécessaire sans votre accord explicite.
+            </p>
+            <p>
+              Consultez et gérez ce journal depuis{' '}
+              <Link href="/historique-ia" className="text-primary hover:underline">
+                votre historique IA
+              </Link>
+              .
+            </p>
+          </section>
+
+          <section className="space-y-4">
             <h2 className="text-2xl font-semibold">Vos droits RGPD, en pratique</h2>
             <ul className="list-disc pl-6 space-y-1">
               <li><strong>Export de vos données</strong> personnelles (droit à la portabilité, article 20).</li>

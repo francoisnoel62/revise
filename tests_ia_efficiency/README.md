@@ -3,6 +3,13 @@
 But : vérifier, de façon **facile à suivre**, que tout ce qui a été construit fonctionne :
 le contexte intentionnel (research docs), le respect des éditions de l'auteur, la fraîcheur des analyses, et la non-régression des features IA.
 
+> Chaque workflow A–D a aussi un pendant **automatisé** : `workflow-A-plan-vers-prose.test.ts`,
+> `workflow-B-auteur-corrige-ia-suit.test.ts`, `workflow-C-non-regression-providers.test.ts`,
+> `workflow-D-boucle-research-fraicheur.test.ts` (Vitest, mocks sur `AIContextBuilder`/
+> `ResearchDocument`). Ce README ne documente que le protocole **manuel** ci-dessous — les tests
+> automatisés tournent avec `npm test` comme le reste de la suite et ne nécessitent pas de provider
+> IA réel ni de suivre ce guide pas-à-pas.
+
 ## Comment ça marche
 Chaque dossier `workflow-*` contient :
 - un ou plusieurs **extraits de roman** (`.md`) à **copier-coller** dans l'éditeur ou dans un document de recherche ;

@@ -44,6 +44,12 @@ export default function GuideManuscritPage() {
                 devient un chapitre.
               </li>
             </ul>
+            <p className="text-sm text-muted-foreground">
+              Le gras, l&apos;italique, le souligné et le surlignage sont préservés à l&apos;import.
+              La police, la taille et l&apos;alignement le sont partiellement. Les tableaux, images
+              et mises en page complexes ne sont pas conservés — un import donne un texte propre,
+              pas un fac-similé pixel près.
+            </p>
           </section>
 
           <section className="space-y-4">
@@ -51,11 +57,15 @@ export default function GuideManuscritPage() {
             <p>Exportez votre manuscrit en deux formats, en conservant votre typographie :</p>
             <ul className="list-disc pl-6 space-y-1">
               <li><strong>DOCX</strong> — pour Word, vos relectures, vos bêta-lecteurs.</li>
-              <li><strong>PDF</strong> — pour partager une version figée, avec image de couverture.</li>
+              <li><strong>PDF</strong> — mis en page par le même moteur de pagination que l&apos;aperçu du livre, avec image de couverture, table des matières et notes de bas de page.</li>
             </ul>
             <p>
               Vous <strong>choisissez les chapitres</strong> à inclure : exportez tout le roman, ou
-              seulement les chapitres prêts.
+              seulement les chapitres prêts. Le rendu (marges, police, numérotation) dépend du{' '}
+              <Link href="/guide/publication" className="text-primary hover:underline">
+                profil de publication
+              </Link>{' '}
+              choisi pour le projet.
             </p>
           </section>
 
@@ -89,6 +99,7 @@ export default function GuideManuscritPage() {
           <p className="text-sm text-muted-foreground mb-4">Voir aussi :</p>
           <div className="flex flex-wrap gap-4">
             <Link href="/guide/editeur" className="text-sm text-primary hover:underline">L&apos;éditeur</Link>
+            <Link href="/guide/publication" className="text-sm text-primary hover:underline">Profils de publication &amp; aperçu du livre</Link>
             <Link href="/guide/cockpit" className="text-sm text-primary hover:underline">Le Project Cockpit</Link>
             <Link href="/guide/analyses" className="text-sm text-primary hover:underline">Analyser &amp; vérifier</Link>
             <Link href="/guide" className="text-sm text-primary hover:underline">Retour au guide</Link>

@@ -37,6 +37,10 @@ export default function GuideDemarrerPage() {
               est validé. Vous pourrez ensuite vous{' '}
               <Link href="/auth/signin" className="text-primary hover:underline">connecter</Link>.
             </p>
+            <p className="text-sm text-muted-foreground">
+              Mot de passe oublié ? Un lien de réinitialisation est disponible depuis la page de
+              connexion.
+            </p>
           </section>
 
           <section className="space-y-4">

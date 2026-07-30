@@ -1,6 +1,12 @@
 # AI Provider Management - Developer API Reference
 
-This document provides technical documentation for the AI Provider Management system in Revise.
+This document provides technical documentation for the AI Provider Management and Publishing
+server actions in Revise. **Scope note**: despite the generic filename, this document only covers
+these two feature areas — it does not document the app's other ~30 server-action files or its 9
+API routes (`/api/character-chat/stream`, `/api/completion/stream`, `/api/completion/telemetry`,
+`/api/book-preview/pdf`, `/api/cron/sync-pricing`, `/api/paged-spike/export`, `/api/approve`,
+`/api/auth/[...nextauth]`, etc.). For those, see [src/app/README.md](../../src/app/README.md),
+which is kept current with the full Interface layer.
 
 ## Table of Contents
 
@@ -73,7 +79,7 @@ createProviderAction(data: CreateProviderInput): Promise<ActionResult<SafeProvid
 ```typescript
 interface CreateProviderInput {
   name: string;          // Display name (e.g., "My OpenAI Account")
-  type: ProviderType;    // 'openai' | 'anthropic' | 'mistral' | 'cohere' | 'google'
+  type: ProviderType;    // 'openai' | 'anthropic' | 'google'
   apiKey: string;        // Plain text API key (will be encrypted)
   model: string;         // Model identifier (e.g., "gpt-4o-mini")
 }
@@ -517,16 +523,18 @@ export class Provider {
 Enum of supported AI providers.
 
 ```typescript
-export type ProviderType = 'openai' | 'anthropic' | 'mistral' | 'cohere' | 'google';
+export type ProviderType = 'openai' | 'anthropic' | 'google';
 
 export const PROVIDER_TYPES: ProviderType[] = [
   'openai',
   'anthropic',
-  'mistral',
-  'cohere',
   'google'
 ];
 ```
+
+> Corrected 2026-07-29: this document previously listed `mistral`/`cohere` as supported provider
+> types. They never had a working implementation (`LLMProviderFactoryImpl` throws
+> `Unsupported provider type` for both) — only OpenAI, Anthropic, and Google are real.
 
 ### SafeProvider
 
@@ -998,8 +1006,9 @@ async function rotateProviderKey(providerId: string, newKey: string) {
 
 - **Code Examples**: See `/src/components/providers/` for real implementations
 - **Test Examples**: See `/src/app/actions/provider-actions.test.ts`
-- **Architecture Docs**: See `CLAUDE.md` for high-level architecture
+- **Architecture Docs**: See `docs/architecture.md` for the full layer-by-layer inventory
 - **User Guide**: See `/docs/user/provider-management.md`
+- **Full Interface layer reference**: See `/src/app/README.md`
 
 ---
 
