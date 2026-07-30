@@ -2,6 +2,7 @@
 // ABOUTME: Adds red underline decorations to misspelled words via ProseMirror Plugin
 
 import { Extension } from '@tiptap/core';
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { Plugin, PluginKey, type Transaction } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 
@@ -16,6 +17,19 @@ export const spellCheckPluginKey = new PluginKey<{
   decorations: DecorationSet;
   errors: SpellError[];
 }>('spellCheck');
+
+function createDecorations(doc: ProseMirrorNode, errors: SpellError[]): DecorationSet {
+  return DecorationSet.create(
+    doc,
+    errors.map(({ from, to, word, suggestions }) =>
+      Decoration.inline(from, to, {
+        class: 'spell-error',
+        'data-spell-word': word,
+        'data-spell-suggestions': suggestions.join('|'),
+      })
+    )
+  );
+}
 
 function mapUntouchedErrors(tr: Transaction, errors: SpellError[]): SpellError[] {
   return errors.flatMap((error) => {
@@ -54,22 +68,14 @@ export function createSpellCheckPlugin() {
       apply(tr, prev, _oldState, newState) {
         const meta = tr.getMeta(spellCheckPluginKey);
         if (meta?.errors !== undefined) {
-          const decorations = DecorationSet.create(
-            newState.doc,
-            (meta.errors as SpellError[]).map(({ from, to, word, suggestions }) =>
-              Decoration.inline(from, to, {
-                class: 'spell-error',
-                'data-spell-word': word,
-                'data-spell-suggestions': suggestions.join('|'),
-              })
-            )
-          );
-          return { decorations, errors: meta.errors as SpellError[] };
+          const errors = meta.errors as SpellError[];
+          return { decorations: createDecorations(newState.doc, errors), errors };
         }
         if (tr.docChanged) {
+          const errors = mapUntouchedErrors(tr, prev.errors);
           return {
-            decorations: prev.decorations.map(tr.mapping, tr.doc),
-            errors: mapUntouchedErrors(tr, prev.errors),
+            decorations: createDecorations(tr.doc, errors),
+            errors,
           };
         }
         return prev;

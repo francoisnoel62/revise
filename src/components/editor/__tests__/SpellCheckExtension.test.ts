@@ -34,6 +34,10 @@ function getErrors(state: EditorState): SpellError[] {
   return spellCheckPluginKey.getState(state)?.errors ?? [];
 }
 
+function getDecorations(state: EditorState) {
+  return spellCheckPluginKey.getState(state)?.decorations.find() ?? [];
+}
+
 describe('SpellCheckExtension', () => {
   it('maps an error when text is inserted before its range', () => {
     let state = setErrors(createState('Bonjour maisson'), [
@@ -55,5 +59,6 @@ describe('SpellCheckExtension', () => {
     state = state.apply(state.tr.insertText('n', 15));
 
     expect(getErrors(state)).toEqual([]);
+    expect(getDecorations(state)).toEqual([]);
   });
 });
