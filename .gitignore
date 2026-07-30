@@ -56,6 +56,9 @@ lerna-debug.log*
 *.sublime-project
 *.sublime-workspace
 
+# Claude Code skill-creator eval scratch output — not a deliverable, regenerated per test run
+.claude/skills/*-workspace/
+
 # OS
 Thumbs.db
 Desktop.ini

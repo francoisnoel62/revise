@@ -1,0 +1,35 @@
+{
+  "skill_name": "docs-audit",
+  "evals": [
+    {
+      "id": 1,
+      "name": "scoped-two-files",
+      "prompt": "J'ai l'impression que docs/architecture.md et src/domain/README.md ne collent plus vraiment à l'état réel du code — tu peux vérifier et corriger ce qui est faux ou manquant ?",
+      "expected_output": "Should read the real domain layer code (not just the docs) and find at least several of these known, real discrepancies: PdfExporter documented as the live PDF exporter when PagedPdfExporter is the real one; AutocompleteIntent value set wrong (dialogue/description/action/introspection/other instead of the real natural/shorter/tenser/more_concrete/dialogue); AutocompleteOutcome missing prefetch_discarded; CanonFactSource says 'authored' instead of 'author'; CanonFact validity model described as boolean instead of the real temporal validFromChapter/validToChapter model; AnalysisHistory entity and AnalysisRepository interface documented despite not existing in the code (removed during a simplification). Should fix the files it audits rather than just producing a report, and should not need to touch unrelated files.",
+      "files": [],
+      "assertions": [
+        { "text": "Identifies PdfExporter as dead/superseded code and PagedPdfExporter as the real production PDF exporter" },
+        { "text": "Corrects the AutocompleteIntent value set to natural|shorter|tenser|more_concrete|dialogue" },
+        { "text": "Adds the missing prefetch_discarded value to AutocompleteOutcome" },
+        { "text": "Fixes CanonFactSource from 'authored' to the real 'author'" },
+        { "text": "Documents CanonFact's real temporal validity model (validFromChapter/validToChapter) instead of a simple boolean" },
+        { "text": "Removes or explicitly flags the AnalysisHistory entity / AnalysisRepository interface as no longer existing in code" },
+        { "text": "Both target files (docs/architecture.md and src/domain/README.md) were actually edited, not just discussed in a report" }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "broad-audit-scope",
+      "prompt": "Je ne suis plus sûr que toute notre documentation soit à jour par rapport au code, ça fait des mois qu'on n'a pas vérifié. Tu peux jeter un oeil ?",
+      "expected_output": "Should recognize this as a broad, untargeted ask and enumerate the real documentation surface (root README, docs/, all 4 layer READMEs, the in-app guide pages under src/app/guide, CHANGELOG) rather than only checking one or two obvious files. Should check whether the git history is a shallow clone before reasoning about chronology. Should build ground truth by reading real code (ideally via parallel research per architectural layer) rather than trusting existing docs, and should present a concrete plan (ideally via plan mode) before making sweeping edits, given the scope. Full execution of every fix is not required to pass — the important signal is whether it correctly scopes the problem and produces an accurate, code-verified diagnosis rather than a shallow diff-based pass.",
+      "files": [],
+      "assertions": [
+        { "text": "Checks whether the git history is a shallow clone before reasoning about chronology" },
+        { "text": "Enumerates documentation beyond the two most obvious files — identifies at least the 4 layer READMEs and the in-app guide pages as in scope" },
+        { "text": "Builds ground truth by reading real source code across the codebase, not just by diffing against a recent commit" },
+        { "text": "Produces a concrete, itemized diagnosis (specific wrong claims with reasons) rather than a vague or generic summary" },
+        { "text": "Uses plan mode, or an equivalent explicit plan-and-confirm step, before committing to large-scale edits given the broad scope" }
+      ]
+    }
+  ]
+}
