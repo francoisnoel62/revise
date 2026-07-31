@@ -9,8 +9,17 @@ import { FrontMatterHtmlBuilder } from './FrontMatterHtmlBuilder';
 import { TipTapToBookHtml } from './TipTapToBookHtml';
 import { TocHtmlBuilder } from './TocHtmlBuilder';
 
+export interface PagedJsRendererOptions {
+  /**
+   * A trusted Paged.js bundle to embed in the generated document. Server-side PDF rendering
+   * supplies this so Chromium does not need an HTTP request back to the deployed application.
+   */
+  readonly pagedJsSource?: string;
+}
+
 export class PagedJsRenderer implements PagedRenderer {
   constructor(
+    private readonly options: PagedJsRendererOptions = {},
     private readonly cssBuilder = new BookCssBuilder(),
     private readonly frontMatterBuilder = new FrontMatterHtmlBuilder(new TipTapToBookHtml()),
     private readonly tocBuilder = new TocHtmlBuilder(),
@@ -20,6 +29,9 @@ export class PagedJsRenderer implements PagedRenderer {
 
   render(request: PagedRenderRequest): string {
     const assets = request.assetBaseUrl.replace(/\/$/, '');
+    const pagedJsScript = this.options.pagedJsSource
+      ? `<script>${this.options.pagedJsSource}</script>`
+      : `<script src='${assets}/vendor/paged.polyfill.min.js'></script>`;
 
     const frontMatterHtml = request.frontMatter
       ? this.frontMatterBuilder.build(request.frontMatter)
@@ -37,14 +49,17 @@ export class PagedJsRenderer implements PagedRenderer {
 
     const hasExtras = Boolean(frontMatterHtml || tocHtml || backMatterHtml || endnotesHtml);
 
-    // Liminal pages suppress the Arabic 'page' increment (see BookCssBuilder), so the
-    // first body page reads "1" while the front matter is numbered in roman folios.
+    // Folios are resolved from Paged.js's physical page boxes after pagination, so body blank
+    // versos count while liminaire blank versos remain outside Arabic numbering.
     const css = this.cssBuilder.build(
       request.profile,
       assets,
       request.startPageNumber,
       request.levelStyles,
     );
+    const bodyStartPageNumber = request.startPageNumber && request.startPageNumber > 0
+      ? Math.floor(request.startPageNumber)
+      : 1;
 
     // Endnotes are back matter: after the body, before the legal-notice colophon (the last page).
     const fullBodyHtml = hasExtras
@@ -54,13 +69,68 @@ export class PagedJsRenderer implements PagedRenderer {
     return `<!doctype html><html lang='fr'><head><meta charset='utf-8'>
       <style>${css}</style>
       <script>window.PagedConfig={auto:false}</script>
-      <script src='${assets}/vendor/paged.polyfill.min.js'></script>
+      ${pagedJsScript}
       </head><body><main class='book'>${fullBodyHtml}</main>
       <script>(async()=>{
       try{
       if(!window.PagedPolyfill){throw new Error('PagedPolyfill non chargé ('+${JSON.stringify(`${assets}/vendor/paged.polyfill.min.js`)}+')');}
       await document.fonts.ready;const start=performance.now();
       const flow=await window.PagedPolyfill.preview();
+      // Paged.js exposes the physical page boxes only after pagination. Resolve folios from
+      // those boxes rather than its global CSS page counter: that counter cannot distinguish a
+      // front-matter blank verso (outside Arabic pagination) from a body blank verso (which must
+      // advance the next Arabic page). The same pass also keeps classic-TOC references aligned.
+      (function resolveBookFolios(bodyStart){
+        var pages=Array.prototype.slice.call(document.querySelectorAll('.pagedjs_pages .pagedjs_page'));
+        var firstBody=-1;
+        var halfTitle=-1;
+        var targets={};
+        for(var i=0;i<pages.length;i++){
+          if(firstBody===-1&&pages[i].querySelector('section.chapter[id]'))firstBody=i;
+          if(halfTitle===-1&&pages[i].querySelector('.half-title'))halfTitle=i;
+          var ids=pages[i].querySelectorAll('[id]');
+          for(var j=0;j<ids.length;j++){
+            var id=ids[j].id;
+            if(id&&!Object.prototype.hasOwnProperty.call(targets,id))targets[id]=i;
+          }
+        }
+        if(firstBody===-1)return;
+        function footer(page){return page.querySelector('.pagedjs_margin-bottom-center');}
+        function writeFooter(slot,text){
+          var content=slot.querySelector('.pagedjs_margin-content');
+          if(!content)return;
+          content.textContent=text;
+          slot.classList.toggle('hasContent',Boolean(text));
+        }
+        function roman(value){
+          var pairs=[[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],[50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];
+          var result='';
+          for(var n=0;n<pairs.length;n++)while(value>=pairs[n][0]){result+=pairs[n][1];value-=pairs[n][0];}
+          return result;
+        }
+        var liminalFolio=0;
+        for(var pageIndex=0;pageIndex<pages.length;pageIndex++){
+          var page=pages[pageIndex];
+          var margin=footer(page);
+          if(!margin)continue;
+          writeFooter(margin,'');
+          if(page.classList.contains('pagedjs_blank_page'))continue;
+          if(pageIndex<firstBody){
+            if(pageIndex!==halfTitle){liminalFolio++;writeFooter(margin,roman(liminalFolio));}
+            continue;
+          }
+          if(!page.querySelector('.colophon'))writeFooter(margin,String(bodyStart+pageIndex-firstBody));
+        }
+        var tocLinks=document.querySelectorAll('.toc a[href^="#"]');
+        for(var linkIndex=0;linkIndex<tocLinks.length;linkIndex++){
+          var link=tocLinks[linkIndex];
+          var targetId=link.getAttribute('href').slice(1);
+          var targetPage=targets[targetId];
+          if(typeof targetPage==='number'&&targetPage>=firstBody){
+            link.setAttribute('data-resolved-page',String(bodyStart+targetPage-firstBody));
+          }
+        }
+      })(${JSON.stringify(bodyStartPageNumber)});
       document.documentElement.dataset.pageCount=String(flow.total);
       document.documentElement.dataset.paginationMs=String(performance.now()-start);
       document.documentElement.dataset.pagedReady='true';

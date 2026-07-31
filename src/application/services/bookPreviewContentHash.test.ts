@@ -125,6 +125,12 @@ describe('computeBookPreviewContentHash', () => {
     );
   });
 
+  it('changes when the paged renderer revision changes (invalidates PDFs after renderer fixes)', () => {
+    expect(
+      computeBookPreviewContentHash({ ...base, rendererRevision: 'renderer-before-fix' }),
+    ).not.toBe(computeBookPreviewContentHash({ ...base, rendererRevision: 'renderer-after-fix' }));
+  });
+
   it('treats an absent optional field differently from an empty string', () => {
     const withoutSubtitle = {
       ...base,

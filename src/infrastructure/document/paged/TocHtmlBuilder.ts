@@ -1,5 +1,5 @@
 // ABOUTME: Generates the HTML table of contents (nav.toc) from a list of chapter entries.
-// ABOUTME: Entries link to chapter section IDs; Paged.js resolves page numbers via target-counter.
+// ABOUTME: Entries link to chapter section IDs; the paged renderer resolves physical page numbers.
 
 import type { TocEntry, TocSubEntry } from '@/application/interfaces/PagedRenderer';
 import type { TocStyle } from '@/domain/value-objects/TocPreferences';
@@ -37,7 +37,7 @@ ${items}
 
   // The title and a dedicated leader element. The leader carries a dotted bottom border in CSS
   // and stretches with flex to fill exactly the space left up to the page number — one line, no
-  // wrapping. It is decorative, hence aria-hidden. The page number itself is added by CSS ::after.
+  // wrapping. It is decorative, hence aria-hidden. The renderer fills the CSS ::after value.
   private link(escapedTitle: string): string {
     return `<span class="toc-title">${escapedTitle}</span><span class="toc-leader" aria-hidden="true"></span>`;
   }
