@@ -51,6 +51,8 @@ const EmDashExtension = Extension.create({
   },
 });
 
+const EMPTY_PRESENTATION_OVERRIDES: PresentationOverrideLayer = [];
+
 interface TextEditorProps {
   onSelectionChange: (from: number, to: number) => void;
   onEditorReady?: (editor: Editor) => void;
@@ -84,7 +86,7 @@ export function TextEditor({
   autocompleteEnabled = true,
   autocompletePreferences,
   publicationProfileId = 'kdp-6x9',
-  presentationOverrides = [],
+  presentationOverrides = EMPTY_PRESENTATION_OVERRIDES,
   onPresentationOverridesChange,
   onEndnoteInsertRequest,
   onEndnoteEditRequest,
@@ -117,6 +119,12 @@ export function TextEditor({
   const publicationProfileRef = useRef(publicationProfileId);
   const presentationOverridesRef = useRef(presentationOverrides);
   const onPresentationOverridesChangeRef = useRef(onPresentationOverridesChange);
+  // An autosave echoes the active content back through project.updatedAt. Keep the last
+  // editor-originated value so that echo cannot replace the live ProseMirror document and
+  // move its selection to another position.
+  const lastEditorContentRef = useRef<string | null>(null);
+  const lastSeededChapterIdRef = useRef<string | null>(null);
+  const lastPresentationSignatureRef = useRef<string | null>(null);
   publicationProfileRef.current = publicationProfileId;
   presentationOverridesRef.current = presentationOverrides;
   onPresentationOverridesChangeRef.current = onPresentationOverridesChange;
@@ -205,7 +213,9 @@ export function TextEditor({
           'passerelle',
           presentationOverridesRef.current
         );
-        updateActiveContent(JSON.stringify(stripToSemantic(content)));
+        const semanticContent = JSON.stringify(stripToSemantic(content));
+        lastEditorContentRef.current = semanticContent;
+        updateActiveContent(semanticContent);
         if (
           JSON.stringify(switched.overrides) !==
           JSON.stringify(presentationOverridesRef.current)
@@ -214,7 +224,9 @@ export function TextEditor({
         }
         return;
       }
-      updateActiveContent(JSON.stringify(content));
+      const serializedContent = JSON.stringify(content);
+      lastEditorContentRef.current = serializedContent;
+      updateActiveContent(serializedContent);
     },
     onSelectionUpdate: ({ editor: e }) => {
       const { from, to } = e.state.selection;
@@ -268,6 +280,20 @@ export function TextEditor({
   useEffect(() => {
     if (!editor) return;
 
+    const activeChapterId = project?.activeChapterId ?? null;
+    const presentationSignature = `${publicationProfileId}:${JSON.stringify(presentationOverrides)}`;
+    const isAutosaveEcho =
+      activeChapterId === lastSeededChapterIdRef.current &&
+      activeContent === lastEditorContentRef.current &&
+      presentationSignature === lastPresentationSignatureRef.current;
+
+    if (isAutosaveEcho) {
+      if (activeChapterId) {
+        onChapterDocumentReadyRef.current?.(activeChapterId);
+      }
+      return;
+    }
+
     const semanticContent = activeContent
       ? (JSON.parse(activeContent) as ContentNode)
       : { type: 'doc', content: [] };
@@ -282,6 +308,8 @@ export function TextEditor({
         emitUpdate: false, // Don't trigger update event during switch
       });
     }
+    lastSeededChapterIdRef.current = activeChapterId;
+    lastPresentationSignatureRef.current = presentationSignature;
     // Announce unconditionally — including when the guard above skipped setContent, since the
     // document already matches. The endnotes panel's locator relies on this firing only once
     // the ProseMirror document genuinely carries this chapter's content.
@@ -289,7 +317,7 @@ export function TextEditor({
       onChapterDocumentReadyRef.current?.(project.activeChapterId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editor, project?.activeChapterId, project?.updatedAt, publicationProfileId, presentationOverrides]);
+  }, [editor, project, publicationProfileId, presentationOverrides]);
 
   // Update autocomplete extension when enabled state changes
   useEffect(() => {

@@ -351,7 +351,16 @@ export async function resetSnapshotFixture(): Promise<void> {
   }
 }
 
-export async function resetAutomaticSnapshotFixture(): Promise<void> {
+export async function resetAutomaticSnapshotFixture(
+  chapterContent = JSON.stringify({
+    type: 'doc',
+    content: [{
+      type: 'paragraph',
+      attrs: { semanticRole: 'corps' },
+      content: [{ type: 'text', text: 'Un changement déjà sauvegardé.' }],
+    }],
+  }),
+): Promise<void> {
   const client = new MongoClient(MONGODB_URI);
   await client.connect();
   try {
@@ -367,7 +376,7 @@ export async function resetAutomaticSnapshotFixture(): Promise<void> {
         chapters: [{
           id: TEST_AUTOMATIC_SNAPSHOT_CHAPTER_ID,
           title: 'Chapitre 1',
-          content: JSON.stringify({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Un changement déjà sauvegardé.' }] }] }),
+          content: chapterContent,
           order: 0,
           metadata: { wordCount: 4, characterCount: 31, lastEdited: past },
         }],
