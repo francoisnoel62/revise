@@ -4,7 +4,7 @@
 import type { JSONContent } from '@tiptap/core';
 import { chromium } from '@playwright/test';
 import { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
-import { PagedJsRenderer } from '@/infrastructure/document/paged/PagedJsRenderer';
+import { createServerPagedJsRenderer } from '@/infrastructure/document/paged/ServerPagedJsRenderer';
 import { TipTapToBookHtml } from '@/infrastructure/document/paged/TipTapToBookHtml';
 
 export const runtime = 'nodejs';
@@ -25,7 +25,7 @@ export async function POST(request: globalThis.Request): Promise<Response> {
   }
 
   const converter = new TipTapToBookHtml();
-  const renderer = new PagedJsRenderer();
+  const renderer = createServerPagedJsRenderer();
   const html = renderer.render({
     bodyHtml: converter.convert(payload.content),
     profile: PublicationProfile.kdpSixByNine(),

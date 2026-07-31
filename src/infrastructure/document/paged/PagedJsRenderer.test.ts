@@ -11,6 +11,16 @@ const profile = PublicationProfile.kdpSixByNine();
 const assetBaseUrl = 'http://localhost:3000';
 
 describe('PagedJsRenderer', () => {
+  it('embeds a supplied Paged.js bundle so server-side rendering never fetches it', () => {
+    const inlinePagedJs = 'window.PagedPolyfill={preview:()=>Promise.resolve({total:1})};';
+    const serverRenderer = new PagedJsRenderer({ pagedJsSource: inlinePagedJs });
+
+    const html = serverRenderer.render({ bodyHtml: '<p>Texte</p>', profile, assetBaseUrl });
+
+    expect(html).toContain(`<script>${inlinePagedJs}</script>`);
+    expect(html).not.toContain(`src='${assetBaseUrl}/vendor/paged.polyfill.min.js'`);
+  });
+
   describe('basic render', () => {
     it('returns a complete HTML document', () => {
       const html = renderer.render({ bodyHtml: '<p>Texte</p>', profile, assetBaseUrl });
