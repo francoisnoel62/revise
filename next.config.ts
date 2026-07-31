@@ -9,9 +9,18 @@ const nextConfig: NextConfig = {
   // so force them in explicitly. Scoped to the routes that actually launch Chromium — the
   // ~67MB bin/ folder would otherwise bloat every unrelated function's deployment bundle.
   outputFileTracingIncludes: {
-    '/book-preview': ['./node_modules/@sparticuz/chromium/**/*'],
-    '/editor': ['./node_modules/@sparticuz/chromium/**/*'],
-    '/api/paged-spike/export': ['./node_modules/@sparticuz/chromium/**/*'],
+    '/book-preview': [
+      './node_modules/@sparticuz/chromium/**/*',
+      './public/vendor/paged.polyfill.min.js',
+    ],
+    '/editor': [
+      './node_modules/@sparticuz/chromium/**/*',
+      './public/vendor/paged.polyfill.min.js',
+    ],
+    '/api/paged-spike/export': [
+      './node_modules/@sparticuz/chromium/**/*',
+      './public/vendor/paged.polyfill.min.js',
+    ],
   },
   images: {
     remotePatterns: [

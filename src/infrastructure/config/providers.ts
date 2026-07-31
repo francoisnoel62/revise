@@ -77,7 +77,7 @@ import { FolderParser } from '@/domain/interfaces/FolderParser';
 import { DocxExporter } from '@/infrastructure/document/exporters/DocxExporter';
 import { PagedPdfExporter } from '@/infrastructure/document/exporters/PagedPdfExporter';
 import { PlaywrightBrowserLauncher } from '@/infrastructure/document/paged/PlaywrightBrowserLauncher';
-import { PagedJsRenderer } from '@/infrastructure/document/paged/PagedJsRenderer';
+import { createServerPagedJsRenderer } from '@/infrastructure/document/paged/ServerPagedJsRenderer';
 import { TipTapToBookHtml } from '@/infrastructure/document/paged/TipTapToBookHtml';
 import { MongoDBBookPreviewCacheRepository } from '@/infrastructure/persistence/MongoDBBookPreviewCacheRepository';
 import { BookPreviewCacheComputer } from '@/application/services/BookPreviewCacheComputer';
@@ -540,7 +540,11 @@ export type ExportFormat = 'docx' | 'pdf';
  */
 export function getDocumentExporter(format: ExportFormat = 'docx'): DocumentExporter {
   if (format === 'pdf') {
-    return new PagedPdfExporter(config.app.baseUrl, new PlaywrightBrowserLauncher());
+    return new PagedPdfExporter(
+      config.app.baseUrl,
+      new PlaywrightBrowserLauncher(),
+      createServerPagedJsRenderer(),
+    );
   }
   return new DocxExporter();
 }
@@ -567,7 +571,7 @@ export function getBookPreviewCacheComputer(): BookPreviewCacheComputer {
   return new BookPreviewCacheComputer(
     new PlaywrightBrowserLauncher(),
     () => new Date(),
-    new PagedJsRenderer(),
+    createServerPagedJsRenderer(),
     new WholeBookHtmlAssembler(new TipTapToBookHtml()),
   );
 }

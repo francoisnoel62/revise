@@ -9,8 +9,17 @@ import { FrontMatterHtmlBuilder } from './FrontMatterHtmlBuilder';
 import { TipTapToBookHtml } from './TipTapToBookHtml';
 import { TocHtmlBuilder } from './TocHtmlBuilder';
 
+export interface PagedJsRendererOptions {
+  /**
+   * A trusted Paged.js bundle to embed in the generated document. Server-side PDF rendering
+   * supplies this so Chromium does not need an HTTP request back to the deployed application.
+   */
+  readonly pagedJsSource?: string;
+}
+
 export class PagedJsRenderer implements PagedRenderer {
   constructor(
+    private readonly options: PagedJsRendererOptions = {},
     private readonly cssBuilder = new BookCssBuilder(),
     private readonly frontMatterBuilder = new FrontMatterHtmlBuilder(new TipTapToBookHtml()),
     private readonly tocBuilder = new TocHtmlBuilder(),
@@ -20,6 +29,9 @@ export class PagedJsRenderer implements PagedRenderer {
 
   render(request: PagedRenderRequest): string {
     const assets = request.assetBaseUrl.replace(/\/$/, '');
+    const pagedJsScript = this.options.pagedJsSource
+      ? `<script>${this.options.pagedJsSource}</script>`
+      : `<script src='${assets}/vendor/paged.polyfill.min.js'></script>`;
 
     const frontMatterHtml = request.frontMatter
       ? this.frontMatterBuilder.build(request.frontMatter)
@@ -54,7 +66,7 @@ export class PagedJsRenderer implements PagedRenderer {
     return `<!doctype html><html lang='fr'><head><meta charset='utf-8'>
       <style>${css}</style>
       <script>window.PagedConfig={auto:false}</script>
-      <script src='${assets}/vendor/paged.polyfill.min.js'></script>
+      ${pagedJsScript}
       </head><body><main class='book'>${fullBodyHtml}</main>
       <script>(async()=>{
       try{
