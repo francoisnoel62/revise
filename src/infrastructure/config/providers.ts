@@ -28,6 +28,7 @@ import { LLMProvider } from '@/domain/interfaces/LLMProvider';
 import { DocumentParser } from '@/domain/interfaces/DocumentParser';
 import { DocumentExporter } from '@/domain/interfaces/DocumentExporter';
 import { ContentConverter } from '@/domain/interfaces/ContentConverter';
+import { GrammarChecker } from '@/domain/interfaces/GrammarChecker';
 import { AuthJsProvider } from '@/infrastructure/auth/AuthJsProvider';
 import { MongoDBProjectRepository } from '@/infrastructure/persistence/MongoDBProjectRepository';
 import { MongoDBUserRepository } from '@/infrastructure/persistence/MongoDBUserRepository';
@@ -83,6 +84,7 @@ import { MongoDBBookPreviewCacheRepository } from '@/infrastructure/persistence/
 import { BookPreviewCacheComputer } from '@/application/services/BookPreviewCacheComputer';
 import { WholeBookHtmlAssembler } from '@/application/services/WholeBookHtmlAssembler';
 import { TipTapContentService } from '@/infrastructure/document/utils/TipTapContentService';
+import { GrammalecteGrammarChecker } from '@/infrastructure/grammar/GrammalecteGrammarChecker';
 import { Provider } from '@/domain/entities/Provider';
 import { config } from './env';
 import { getDatabase } from './database';
@@ -578,4 +580,14 @@ export function getBookPreviewCacheComputer(): BookPreviewCacheComputer {
  */
 export function getContentConverter(): ContentConverter {
   return new TipTapContentService();
+}
+
+/** Get the process-local grammar checker backed by the private Grammalecte package. */
+let grammarCheckerInstance: GrammarChecker | null = null;
+
+export function getGrammarChecker(): GrammarChecker {
+  if (!grammarCheckerInstance) {
+    grammarCheckerInstance = new GrammalecteGrammarChecker();
+  }
+  return grammarCheckerInstance;
 }

@@ -14,6 +14,7 @@ import type { LevelStyleSetProperties } from '@/domain/value-objects/LevelStyleS
 import type { TocPreferences } from '@/domain/value-objects/TocPreferences';
 import type { AutomaticSnapshotInterval } from '@/domain/value-objects/AutomaticSnapshotInterval';
 import type { AutomaticSnapshotRepository } from '@/domain/interfaces/AutomaticSnapshotRepository';
+import type { GrammarRuleProfile } from '@/domain/value-objects/GrammarRuleProfile';
 
 export interface ProjectSettingsUpdates {
   title?: string;
@@ -31,6 +32,7 @@ export interface ProjectSettingsUpdates {
   canonExtractionPreferences?: Partial<CanonExtractionPreferences>;
   customDictionary?: string[];
   ignoredWords?: string[];
+  grammarRuleProfile?: GrammarRuleProfile;
   publicationProfileId?: PublicationProfileId;
   levelStyles?: {
     profileId: PublicationProfileId;
@@ -131,6 +133,10 @@ export class UpdateProjectSettingsUseCase {
 
     if ('ignoredWords' in updates) {
       updated = updated.updateIgnoredWords(updates.ignoredWords!);
+    }
+
+    if ('grammarRuleProfile' in updates) {
+      updated = updated.updateGrammarRuleProfile(updates.grammarRuleProfile!);
     }
 
     if ('publicationProfileId' in updates) {

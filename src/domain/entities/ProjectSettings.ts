@@ -30,6 +30,11 @@ import {
   isAutomaticSnapshotInterval,
   type AutomaticSnapshotInterval,
 } from '../value-objects/AutomaticSnapshotInterval';
+import {
+  copyGrammarRuleProfile,
+  DEFAULT_FICTION_GRAMMAR_RULE_PROFILE,
+  type GrammarRuleProfile,
+} from '../value-objects/GrammarRuleProfile';
 
 export type PdfPublicationProfileId = Exclude<PublicationProfileId, 'passerelle'>;
 export type LevelStylesByProfile = Partial<
@@ -63,6 +68,7 @@ export interface ProjectSettingsProperties {
   canonExtractionMode?: CanonExtractionMode;
   customDictionary?: string[];
   ignoredWords?: string[];
+  grammarRuleProfile?: GrammarRuleProfile;
   publicationProfileId?: PublicationProfileId;
   levelStylesByProfile?: LevelStylesByProfile;
   tocDepth?: TocDepth;
@@ -102,6 +108,7 @@ export class ProjectSettings {
   private canonExtractionMode?: CanonExtractionMode;
   private customDictionary: string[];
   private ignoredWords: string[];
+  private grammarRuleProfile: Record<string, boolean>;
   private publicationProfileId: PublicationProfileId;
   private levelStylesByProfile: LevelStylesByProfile;
   private tocDepth?: TocDepth;
@@ -139,6 +146,9 @@ export class ProjectSettings {
     this.canonExtractionMode = props.canonExtractionMode;
     this.customDictionary = [...(props.customDictionary ?? [])];
     this.ignoredWords = [...(props.ignoredWords ?? [])];
+    this.grammarRuleProfile = copyGrammarRuleProfile(
+      props.grammarRuleProfile ?? DEFAULT_FICTION_GRAMMAR_RULE_PROFILE,
+    );
     this.publicationProfileId = props.publicationProfileId ?? 'kdp-6x9';
     this.levelStylesByProfile = Object.fromEntries(
       Object.entries(props.levelStylesByProfile ?? {}).map(([profileId, styles]) => [
@@ -543,6 +553,18 @@ export class ProjectSettings {
     return [...this.ignoredWords];
   }
 
+  getGrammarRuleProfile(): Record<string, boolean> {
+    return copyGrammarRuleProfile(this.grammarRuleProfile);
+  }
+
+  updateGrammarRuleProfile(profile: GrammarRuleProfile): ProjectSettings {
+    return new ProjectSettings({
+      ...this.toProperties(),
+      grammarRuleProfile: copyGrammarRuleProfile(profile),
+      updatedAt: new Date(),
+    });
+  }
+
   addIgnoredWord(word: string): ProjectSettings {
     const trimmed = word.trim();
     if (!trimmed) throw new Error('Word cannot be empty');
@@ -607,6 +629,7 @@ export class ProjectSettings {
       canonExtractionMode: this.canonExtractionMode,
       customDictionary: [...this.customDictionary],
       ignoredWords: [...this.ignoredWords],
+      grammarRuleProfile: this.getGrammarRuleProfile(),
       publicationProfileId: this.publicationProfileId,
       levelStylesByProfile: this.getLevelStylesByProfile(),
       tocDepth: this.tocDepth,

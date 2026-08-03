@@ -1,0 +1,68 @@
+// ABOUTME: Integration tests for the real private Grammalecte Node package.
+// ABOUTME: Verifies engine result mapping and project-owned rule-family switches without mocks.
+
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { DEFAULT_FICTION_GRAMMAR_RULE_PROFILE } from '@/domain/value-objects/GrammarRuleProfile';
+import { getGrammarChecker } from '@/infrastructure/config/providers';
+import { GrammalecteGrammarChecker } from './GrammalecteGrammarChecker';
+
+describe('GrammalecteGrammarChecker', () => {
+  const checker = new GrammalecteGrammarChecker();
+  const checkFixture = (fixtureName: string) =>
+    readFileSync(resolve(process.cwd(), 'src/infrastructure/grammar/fixtures', fixtureName), 'utf8')
+      .trim()
+      .split('\n\n---\n\n');
+
+  it('maps an agreement error from the real French engine', () => {
+    const errors = checker.checkParagraph('Les chien de la voisine sont partis.', {
+      ruleProfile: DEFAULT_FICTION_GRAMMAR_RULE_PROFILE,
+    });
+
+    expect(errors).toContainEqual(
+      expect.objectContaining({
+        range: expect.objectContaining({ start: 4, end: 9 }),
+        ruleFamily: expect.objectContaining({ value: 'gn' }),
+        ruleId: 'g3__gn_les_1m__b3_a1_1',
+      }),
+    );
+  });
+
+  it('uses the supplied project profile for the current paragraph', () => {
+    const errors = checker.checkParagraph('Les chien de la voisine sont partis.', {
+      ruleProfile: {
+        ...DEFAULT_FICTION_GRAMMAR_RULE_PROFILE,
+        gn: false,
+      },
+    });
+
+    expect(errors.map((error) => error.ruleFamily.value)).not.toContain('gn');
+  });
+
+  it('is composed once for the server process', () => {
+    expect(getGrammarChecker()).toBeInstanceOf(GrammalecteGrammarChecker);
+    expect(getGrammarChecker()).toBe(getGrammarChecker());
+  });
+
+  it('reports no false positives in the clean fiction corpus', () => {
+    const results = checkFixture('fiction-clean.txt').map((paragraph) =>
+      checker.checkParagraph(paragraph, {
+        ruleProfile: DEFAULT_FICTION_GRAMMAR_RULE_PROFILE,
+      }),
+    );
+
+    expect(results).toEqual(Array.from({ length: 15 }, () => []));
+  });
+
+  it('detects grammar mistakes in at least 12 excerpts of the faulty fiction corpus', () => {
+    const detectedExcerpts = checkFixture('fiction-errors.txt').filter(
+      (paragraph) =>
+        checker.checkParagraph(paragraph, {
+          ruleProfile: DEFAULT_FICTION_GRAMMAR_RULE_PROFILE,
+        }).length > 0,
+    );
+
+    expect(detectedExcerpts.length).toBeGreaterThanOrEqual(12);
+  });
+});

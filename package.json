@@ -37,6 +37,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@fontsource/eb-garamond": "^5.2.7",
+    "@francoisnoel62/grammalecte": "2.3.0-revise.0",
     "@google/genai": "^1.37.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",

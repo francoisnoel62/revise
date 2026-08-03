@@ -12,6 +12,7 @@ import type { PublicationProfileId } from '@/domain/value-objects/PublicationPro
 import type { LevelStylesByProfile } from '@/domain/entities/ProjectSettings';
 import type { TocDepth, TocStyle } from '@/domain/value-objects/TocPreferences';
 import type { AutomaticSnapshotInterval } from '@/domain/value-objects/AutomaticSnapshotInterval';
+import type { GrammarRuleProfile } from '@/domain/value-objects/GrammarRuleProfile';
 
 export interface ContributorDocument {
   name: string;
@@ -50,6 +51,7 @@ export interface ProjectSettingsDocument {
   canonExtractionMode?: CanonExtractionMode;
   customDictionary?: string[];
   ignoredWords?: string[];
+  grammarRuleProfile?: GrammarRuleProfile;
   publicationProfileId?: PublicationProfileId;
   levelStylesByProfile?: LevelStylesByProfile;
   tocDepth?: TocDepth;
@@ -96,6 +98,7 @@ export function serializeProjectSettings(
     canonExtractionMode: props.canonExtractionMode,
     customDictionary: props.customDictionary ?? [],
     ignoredWords: props.ignoredWords ?? [],
+    grammarRuleProfile: props.grammarRuleProfile,
     publicationProfileId: props.publicationProfileId,
     levelStylesByProfile: props.levelStylesByProfile,
     tocDepth: props.tocDepth,
@@ -144,6 +147,7 @@ export function deserializeProjectSettings(doc: ProjectSettingsDocument): Projec
     canonExtractionMode: doc.canonExtractionMode,
     customDictionary: doc.customDictionary ?? [],
     ignoredWords: doc.ignoredWords ?? [],
+    grammarRuleProfile: doc.grammarRuleProfile,
     publicationProfileId: doc.publicationProfileId,
     levelStylesByProfile: doc.levelStylesByProfile,
     tocDepth: doc.tocDepth,

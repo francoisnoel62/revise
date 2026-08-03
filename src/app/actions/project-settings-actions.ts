@@ -19,6 +19,7 @@ import type { PublicationProfileId } from '@/domain/value-objects/PublicationPro
 import type { LevelStylesByProfile } from '@/domain/entities/ProjectSettings';
 import type { TocPreferences } from '@/domain/value-objects/TocPreferences';
 import type { AutomaticSnapshotInterval } from '@/domain/value-objects/AutomaticSnapshotInterval';
+import type { GrammarRuleProfile } from '@/domain/value-objects/GrammarRuleProfile';
 
 export interface SerializedProjectSettings {
   id: string;
@@ -41,6 +42,7 @@ export interface SerializedProjectSettings {
   canonExtractionPreferences: CanonExtractionPreferences;
   customDictionary: string[];
   ignoredWords: string[];
+  grammarRuleProfile: GrammarRuleProfile;
   publicationProfileId: PublicationProfileId;
   levelStylesByProfile: LevelStylesByProfile;
   tocPreferences: TocPreferences;
@@ -71,6 +73,7 @@ function serializeProjectSettings(settings: ProjectSettings): SerializedProjectS
     canonExtractionPreferences: settings.getCanonExtractionPreferences(),
     customDictionary: settings.getCustomDictionary(),
     ignoredWords: settings.getIgnoredWords(),
+    grammarRuleProfile: settings.getGrammarRuleProfile(),
     publicationProfileId: settings.getPublicationProfileId(),
     levelStylesByProfile: settings.getLevelStylesByProfile(),
     tocPreferences: settings.getTocPreferences(),

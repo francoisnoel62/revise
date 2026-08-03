@@ -8,6 +8,13 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+  packages: read
+
+env:
+  NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
   quality:
     name: Quality (lint + typecheck)

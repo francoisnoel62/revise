@@ -97,6 +97,27 @@ describe('ProjectSettings', () => {
   });
 
   describe('update methods', () => {
+    it('stores an editable grammar rule profile for fiction without mutating the original', () => {
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'My Title');
+
+      expect(settings.getGrammarRuleProfile()).toMatchObject({
+        gn: true,
+        conj: true,
+        conf: true,
+        poncfin: true,
+        typo: false,
+        chim: false,
+      });
+
+      const updated = settings.updateGrammarRuleProfile({
+        ...settings.getGrammarRuleProfile(),
+        conf: false,
+      });
+
+      expect(updated.getGrammarRuleProfile().conf).toBe(false);
+      expect(settings.getGrammarRuleProfile().conf).toBe(true);
+    });
+
     it('persists the active publication profile with a KDP default', () => {
       const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'My Title');
 
@@ -281,6 +302,7 @@ describe('ProjectSettings', () => {
         customDictionary: [],
         ignoredWords: [],
         publicationProfileId: 'kdp-6x9',
+        grammarRuleProfile: expect.objectContaining({ gn: true }),
       });
     });
 
