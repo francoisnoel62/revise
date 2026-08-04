@@ -44,6 +44,11 @@ export {
   DEFAULT_FICTION_GRAMMAR_RULE_PROFILE,
   type GrammarRuleProfile,
 } from './value-objects/GrammarRuleProfile';
+export {
+  textIssueCategory,
+  type TextIssue,
+  type TextIssueNature,
+} from './value-objects/TextIssue';
 export { RewriteProposal } from './value-objects/RewriteProposal';
 export {
   type MetadataTypeDefinition,
