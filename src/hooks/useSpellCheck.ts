@@ -37,6 +37,16 @@ function extractWordsFromDoc(
   return result;
 }
 
+/** Drops the underlines of a word the author just accepted, without re-running a check. */
+function clearSpellingIssuesFor(editor: Editor | null, word: string): void {
+  if (!editor || editor.isDestroyed) return;
+  const pluginState = textIssuePluginKey.getState(editor.state);
+  if (!pluginState) return;
+
+  const spelling = pluginState.spelling.filter((issue) => issue.text !== word);
+  editor.view.dispatch(editor.state.tr.setMeta(textIssuePluginKey, { spelling }));
+}
+
 function debounce<T extends (...args: Parameters<T>) => void>(fn: T, ms: number) {
   let timer: ReturnType<typeof setTimeout>;
   const debounced = (...args: Parameters<T>) => {
@@ -129,11 +139,7 @@ export function useSpellCheck(
         addIgnoredWordAction(projectId, word);
       }
       // Remove the decoration immediately
-      if (!editor || editor.isDestroyed) return;
-      const pluginState = textIssuePluginKey.getState(editor.state);
-      if (!pluginState) return;
-      const spelling = pluginState.spelling.filter((issue) => issue.text !== word);
-      editor.view.dispatch(editor.state.tr.setMeta(textIssuePluginKey, { spelling }));
+      clearSpellingIssuesFor(editor, word);
     },
     [editor, projectId]
   );
@@ -143,11 +149,7 @@ export function useSpellCheck(
       if (!projectId) return;
       await addWordToCustomDictionaryAction(projectId, word);
       customDictionaryRef.current = [...customDictionaryRef.current, word];
-      if (!editor || editor.isDestroyed) return;
-      const pluginState = textIssuePluginKey.getState(editor.state);
-      if (!pluginState) return;
-      const spelling = pluginState.spelling.filter((issue) => issue.text !== word);
-      editor.view.dispatch(editor.state.tr.setMeta(textIssuePluginKey, { spelling }));
+      clearSpellingIssuesFor(editor, word);
       lastTextRef.current = '';
     },
     [editor, projectId]

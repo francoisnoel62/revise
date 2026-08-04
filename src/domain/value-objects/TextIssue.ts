@@ -47,3 +47,25 @@ export function textIssueCategory(issue: TextIssue): string {
   if (issue.nature === 'spelling') return 'Orthographe';
   return GRAMMAR_CATEGORIES[issue.ruleFamily ?? ''] ?? 'Grammaire';
 }
+
+/**
+ * Merges both sources into the single ordered list the author is shown.
+ *
+ * Spelling wins on overlap: the grammar engine stays silent on the morphology of
+ * a word it does not know, so a grammar range containing a misspelling is
+ * unreliable anyway. Arbitrating here — rather than when a click is resolved —
+ * keeps the rule in one place and makes the list deterministic to search.
+ */
+export function mergeTextIssues(
+  spelling: readonly TextIssue[],
+  grammar: readonly TextIssue[]
+): TextIssue[] {
+  const withoutOverlaps = grammar.filter(
+    (issue) =>
+      !spelling.some(
+        (misspelling) => misspelling.from < issue.to && misspelling.to > issue.from
+      )
+  );
+
+  return [...spelling, ...withoutOverlaps].sort((a, b) => a.from - b.from || a.to - b.to);
+}

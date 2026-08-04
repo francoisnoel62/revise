@@ -129,6 +129,37 @@ describe('TextIssueExtension', () => {
     expect(getIssues(state).map((issue) => issue.nature)).toEqual(['spelling']);
   });
 
+  // A transaction may carry new issues for one source AND change the document at
+  // the same time. The source it does not carry still points at the old document,
+  // so it has to be mapped — an unmapped range is one the palette would replace
+  // in the wrong place.
+  it('maps the source it is not given when the same transaction changes the document', () => {
+    let state = setIssues(createState('Les chien maisson'), {
+      grammar: [agreementError({ from: 5, to: 10, text: 'chien' })],
+    });
+
+    const tr = state.tr.insertText('Oh ', 1);
+    tr.setMeta(textIssuePluginKey, { spelling: [misspelling({ from: 14, to: 21 })] });
+    state = state.apply(tr);
+
+    expect(getIssues(state)).toEqual([
+      agreementError({ from: 8, to: 13, text: 'chien' }),
+      misspelling({ from: 14, to: 21 }),
+    ]);
+  });
+
+  it('drops the source it is not given when the same transaction edits its range', () => {
+    let state = setIssues(createState('Les chien maisson'), {
+      grammar: [agreementError({ from: 5, to: 10, text: 'chien' })],
+    });
+
+    const tr = state.tr.insertText('n', 9);
+    tr.setMeta(textIssuePluginKey, { spelling: [misspelling({ from: 12, to: 19 })] });
+    state = state.apply(tr);
+
+    expect(getIssues(state).map((issue) => issue.nature)).toEqual(['spelling']);
+  });
+
   it('decorates spelling and grammar issues with distinct classes', () => {
     const state = setIssues(createState('Les chien maisson'), {
       spelling: [misspelling({ from: 11, to: 18 })],

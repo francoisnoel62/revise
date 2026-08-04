@@ -5,7 +5,11 @@ import { Extension } from '@tiptap/core';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { Plugin, PluginKey, type Transaction } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
-import { textIssueCategory, type TextIssue } from '@/domain/value-objects/TextIssue';
+import {
+  mergeTextIssues,
+  textIssueCategory,
+  type TextIssue,
+} from '@/domain/value-objects/TextIssue';
 
 /** Issues of one nature, replacing the ones previously held for that nature. */
 export interface TextIssueMeta {
@@ -24,27 +28,6 @@ export interface TextIssueState {
 }
 
 export const textIssuePluginKey = new PluginKey<TextIssueState>('textIssues');
-
-/**
- * Merges both sources into the single list the palette works on.
- *
- * Spelling wins on overlap: the grammar engine stays silent on the morphology of
- * a word it does not know, so a grammar range containing a misspelling is
- * unreliable anyway.
- */
-export function mergeTextIssues(
-  spelling: readonly TextIssue[],
-  grammar: readonly TextIssue[]
-): TextIssue[] {
-  const withoutOverlaps = grammar.filter(
-    (issue) =>
-      !spelling.some(
-        (misspelling) => misspelling.from < issue.to && misspelling.to > issue.from
-      )
-  );
-
-  return [...spelling, ...withoutOverlaps].sort((a, b) => a.from - b.from || a.to - b.to);
-}
 
 function decorate(issue: TextIssue): Decoration {
   if (issue.nature === 'spelling') {
@@ -112,10 +95,17 @@ export function createTextIssuePlugin() {
       apply(tr, prev, _oldState, newState) {
         const meta = tr.getMeta(textIssuePluginKey) as TextIssueMeta | undefined;
         if (meta) {
+          // Issues the transaction does not replace were located in the previous
+          // document, so a transaction that also edits the text has to carry them
+          // over — an unmapped range is one a correction would replace in the
+          // wrong place.
+          const carriedOver = (issues: TextIssue[]) =>
+            tr.docChanged ? mapUntouchedIssues(tr, issues) : issues;
+
           return buildState(
             newState.doc,
-            meta.spelling ?? prev.spelling,
-            meta.grammar ?? prev.grammar
+            meta.spelling ?? carriedOver(prev.spelling),
+            meta.grammar ?? carriedOver(prev.grammar)
           );
         }
         if (tr.docChanged) {
