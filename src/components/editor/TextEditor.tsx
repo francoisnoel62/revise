@@ -19,6 +19,7 @@ import { EndnoteRef, type EndnoteContent } from './extensions/EndnoteRef';
 import { Autocomplete, AutocompleteStorage } from './extensions/Autocomplete';
 import { AutocompleteDot, AutocompleteDotState } from './AutocompleteDot';
 import { TextIssueExtension } from './TextIssueExtension';
+import { documentMatchesContent } from './documentMatchesContent';
 import { TextIssuePalette } from './TextIssuePalette';
 import { useSpellCheck } from '@/hooks/useSpellCheck';
 
@@ -263,7 +264,7 @@ export function TextEditor({
   // replaced from outside the editor (e.g. a snapshot restore) — project.updatedAt
   // moves on both a chapter switch and an external replacement, but NOT on the
   // editor's own keystroke-driven updateActiveContent calls, so this can't fight
-  // normal typing: the JSON diff below is a no-op whenever activeContent already
+  // normal typing: the comparison below is a no-op whenever activeContent already
   // matches what the editor itself just produced.
   useEffect(() => {
     if (!editor) return;
@@ -276,8 +277,7 @@ export function TextEditor({
       publicationProfileId,
       presentationOverrides
     ).content;
-    const currentJson = JSON.stringify(editor.getJSON());
-    if (JSON.stringify(displayedContent) !== currentJson) {
+    if (!documentMatchesContent(editor.schema, editor.state.doc, displayedContent)) {
       editor.commands.setContent(displayedContent, {
         emitUpdate: false, // Don't trigger update event during switch
       });
