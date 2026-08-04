@@ -6,6 +6,11 @@ import { TEST_GRAMMAR_PROJECT_ID, seedGrammarProject } from '../helpers/seed';
 
 const EDITOR_URL = `/editor?project=${TEST_GRAMMAR_PROJECT_ID}`;
 
+// The server loads the grammar engine's rules and dictionaries (~25 MB) the first
+// time a chapter is checked. That one-off cost dominates the first assertion;
+// later checks answer in a few seconds.
+const FIRST_UNDERLINE_TIMEOUT = 120_000;
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 async function openGrammarEditor(page: Page) {
@@ -27,8 +32,9 @@ async function correctChapter(page: Page) {
 
 test.describe('Grammar correction in the editor', () => {
   // The editor autosaves an applied correction back to the seeded chapter, so the
-  // faulty text has to be restored before each test.
-  test.describe.configure({ mode: 'serial' });
+  // faulty text has to be restored before each test. The timeout covers the
+  // engine's cold start on the server.
+  test.describe.configure({ mode: 'serial', timeout: 180_000 });
 
   test.beforeEach(async () => {
     await seedGrammarProject();
@@ -45,9 +51,8 @@ test.describe('Grammar correction in the editor', () => {
     await openGrammarEditor(page);
     await correctChapter(page);
 
-    // Budget: engine cold start on the server can take several seconds.
     const underlines = page.locator('.grammar-error');
-    await expect(underlines.first()).toBeVisible({ timeout: 30_000 });
+    await expect(underlines.first()).toBeVisible({ timeout: FIRST_UNDERLINE_TIMEOUT });
 
     // The chapter title and the paragraph each carry one error.
     await expect(page.locator('.grammar-error', { hasText: 'maison' })).toBeVisible();
@@ -59,7 +64,7 @@ test.describe('Grammar correction in the editor', () => {
     await correctChapter(page);
 
     const underline = page.locator('.grammar-error').first();
-    await expect(underline).toBeVisible({ timeout: 30_000 });
+    await expect(underline).toBeVisible({ timeout: FIRST_UNDERLINE_TIMEOUT });
 
     const style = await underline.evaluate(
       (element) => getComputedStyle(element).textDecorationStyle
@@ -72,7 +77,7 @@ test.describe('Grammar correction in the editor', () => {
     await correctChapter(page);
 
     const underline = page.locator('.grammar-error', { hasText: 'chien' });
-    await expect(underline).toBeVisible({ timeout: 30_000 });
+    await expect(underline).toBeVisible({ timeout: FIRST_UNDERLINE_TIMEOUT });
     await underline.click();
 
     // The nature is readable in words, not only by the underline colour.
@@ -86,7 +91,7 @@ test.describe('Grammar correction in the editor', () => {
     await correctChapter(page);
 
     const underline = page.locator('.grammar-error', { hasText: 'chien' });
-    await expect(underline).toBeVisible({ timeout: 30_000 });
+    await expect(underline).toBeVisible({ timeout: FIRST_UNDERLINE_TIMEOUT });
     await underline.click();
 
     await expect(page.getByRole('button', { name: 'Fermer' })).toBeVisible();
@@ -100,7 +105,7 @@ test.describe('Grammar correction in the editor', () => {
     await correctChapter(page);
 
     const underline = page.locator('.grammar-error', { hasText: 'chien' });
-    await expect(underline).toBeVisible({ timeout: 30_000 });
+    await expect(underline).toBeVisible({ timeout: FIRST_UNDERLINE_TIMEOUT });
     await underline.click();
 
     await page.getByRole('button', { name: 'chiens' }).click();
@@ -112,7 +117,9 @@ test.describe('Grammar correction in the editor', () => {
     await openGrammarEditor(page);
     await correctChapter(page);
 
-    await expect(page.locator('.grammar-error')).toHaveCount(2, { timeout: 30_000 });
+    await expect(page.locator('.grammar-error')).toHaveCount(2, {
+      timeout: FIRST_UNDERLINE_TIMEOUT,
+    });
 
     await page.locator('.grammar-error', { hasText: 'chien' }).click();
     await page.getByRole('button', { name: 'chiens' }).click();
@@ -126,7 +133,7 @@ test.describe('Grammar correction in the editor', () => {
     await correctChapter(page);
 
     const underline = page.locator('.grammar-error', { hasText: 'chien' });
-    await expect(underline).toBeVisible({ timeout: 30_000 });
+    await expect(underline).toBeVisible({ timeout: FIRST_UNDERLINE_TIMEOUT });
 
     await editor.click();
     await page.keyboard.press('Control+Home');
@@ -148,6 +155,8 @@ test.describe('Grammar correction in the editor', () => {
     await expect(entry).toBeVisible();
     await entry.click();
 
-    await expect(page.locator('.grammar-error').first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('.grammar-error').first()).toBeVisible({
+      timeout: FIRST_UNDERLINE_TIMEOUT,
+    });
   });
 });
