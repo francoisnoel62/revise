@@ -93,6 +93,7 @@ import type {
 import type { PresentationOverrideLayer } from '@/domain/value-objects/PresentationOverride';
 import type { ContentNode } from '@/domain/value-objects/ContentNode';
 import { useBookPageOffset } from '@/hooks/useBookPageOffset';
+import { useGrammarCheck } from '@/hooks/useGrammarCheck';
 import {
   buildSemanticInsertContent,
   getSemanticRoleFromAttrs,
@@ -287,6 +288,13 @@ function EditorContent() {
       ? undefined
       : levelStylesByProfile[publicationProfileId] ??
         LevelStyleSet.defaultsFor(PublicationProfile.fromId(publicationProfileId)).values;
+
+  // On-demand local grammar check — free, deterministic, no AI provider involved.
+  const {
+    checkChapter: correctChapter,
+    loading: correctionLoading,
+    status: correctionStatus,
+  } = useGrammarCheck(editor, project?.id, project?.activeChapterId ?? null);
 
   const { notification: canonNotification, dismissNotification: dismissCanonNotification } =
     useSessionEndTrigger({
@@ -965,8 +973,15 @@ function EditorContent() {
               onOpenEndnotes={() => setShowEndnotesPanel(true)}
               onAnalyze={handleOpenAnalysisConfig}
               analysisLoading={analysisLoading}
+              onCorrect={correctChapter}
+              correctionLoading={correctionLoading}
             />
           </div>
+          {correctionStatus && (
+            <p className="px-2 pt-1 text-xs text-muted-foreground" role="status">
+              {correctionStatus}
+            </p>
+          )}
         </div>
         {/* Search/Replace bar */}
         <div className="w-full max-w-198.5">
@@ -1066,35 +1081,39 @@ function EditorContent() {
         onOpenChange={setShowSnapshotHistoryDialog}
       />
 
-      {/* Command palette */}
-      {hasAIProviders && (
-        <CommandPalette
-          open={showCommandPalette}
-          onOpenChange={setShowCommandPalette}
-          hasSelection={hasSelection}
-          onRewrite={handleRewrite}
-          rewriteLoading={rewriteLoading}
-          isChapterEmpty={editor?.isEmpty ?? false}
-          onGenerate={handleGenerate}
-          generationLoading={generationLoading}
-          onHistoryClick={() => {
-            setShowCommandPalette(false);
-            setShowHistoryDialog(true);
-          }}
-          autocompleteEnabled={autocompleteEnabled}
-          onAutocompleteChange={setAutocompleteEnabled}
-          onAnalyze={() => {
-            setShowCommandPalette(false);
-            handleOpenAnalysisConfig();
-          }}
-          analysisLoading={analysisLoading}
-          onInsertEndnote={openInsertEndnote}
-          onOpenEndnotes={() => setShowEndnotesPanel(true)}
-          providers={providers}
-          selectedProviderId={selectedProviderId}
-          onProviderChange={handleProviderChange}
-        />
-      )}
+      {/* Command palette — always mounted: "Corriger le chapitre" needs no provider,
+          and every AI command inside is already gated on one. */}
+      <CommandPalette
+        open={showCommandPalette}
+        onOpenChange={setShowCommandPalette}
+        hasSelection={hasSelection}
+        onRewrite={handleRewrite}
+        rewriteLoading={rewriteLoading}
+        isChapterEmpty={editor?.isEmpty ?? false}
+        onGenerate={handleGenerate}
+        generationLoading={generationLoading}
+        onHistoryClick={() => {
+          setShowCommandPalette(false);
+          setShowHistoryDialog(true);
+        }}
+        autocompleteEnabled={autocompleteEnabled}
+        onAutocompleteChange={setAutocompleteEnabled}
+        onAnalyze={() => {
+          setShowCommandPalette(false);
+          handleOpenAnalysisConfig();
+        }}
+        analysisLoading={analysisLoading}
+        onCorrect={() => {
+          setShowCommandPalette(false);
+          correctChapter();
+        }}
+        correctionLoading={correctionLoading}
+        onInsertEndnote={openInsertEndnote}
+        onOpenEndnotes={() => setShowEndnotesPanel(true)}
+        providers={providers}
+        selectedProviderId={selectedProviderId}
+        onProviderChange={handleProviderChange}
+      />
 
       {/* Endnote insertion / edition modal */}
       <EndnoteModal

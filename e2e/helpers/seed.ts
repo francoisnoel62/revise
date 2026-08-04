@@ -45,6 +45,11 @@ export const TEST_RESEARCH_DOC_ID = '6475a8f3c1234567890abcde';
 export const TEST_AUTOCOMPLETE_SETTINGS_ID = '6475a8f3c1234567890abcdf';
 
 // Spell-check E2E fixtures
+// Grammar-check E2E fixtures — a chapter title and a paragraph, each with one
+// deterministic agreement error the fiction rule profile catches.
+export const TEST_GRAMMAR_PROJECT_ID = 'e2e-grammar-project-001';
+export const TEST_GRAMMAR_CHAPTER_ID = 'e2e-grammar-chapter-001';
+
 export const TEST_SPELLCHECK_PROJECT_ID = 'e2e-spellcheck-project-001';
 export const TEST_SPELLCHECK_CHAPTER_ID = 'e2e-spellcheck-chapter-001';
 
@@ -252,6 +257,69 @@ function buildSpellCheckProject(past: Date, now: Date): Record<string, unknown> 
     publishedAt: null,
     publishedChapterIds: null,
   };
+}
+
+// ── Grammar-check project document ────────────────────────────────────────────
+
+// A heading and a paragraph, each carrying one agreement error, plus a clean
+// paragraph. No AI provider: the corrector runs locally.
+function buildGrammarProject(past: Date, now: Date): Record<string, unknown> {
+  return {
+    _id: TEST_GRAMMAR_PROJECT_ID,
+    ownerId: TEST_USER_ID,
+    title: 'Projet Test Grammaire',
+    chapters: [{
+      id: TEST_GRAMMAR_CHAPTER_ID,
+      title: 'Chapitre Grammaire',
+      content: JSON.stringify({
+        type: 'doc',
+        content: [
+          {
+            type: 'heading',
+            attrs: { level: 1 },
+            content: [{ type: 'text', text: 'Les maison closes' }],
+          },
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: 'Les chien de la voisine sont partis.' }],
+          },
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: 'La vieille bibliothèque sentait le bois.' }],
+          },
+        ],
+      }),
+      order: 0,
+      metadata: { wordCount: 17, characterCount: 94, lastEdited: past },
+    }],
+    activeChapterId: TEST_GRAMMAR_CHAPTER_ID,
+    providerId: null,
+    createdAt: past,
+    updatedAt: now,
+    isPublished: false,
+    shareToken: null,
+    publishedAt: null,
+    publishedChapterIds: null,
+  };
+}
+
+// Re-seed only the grammar project. The editor autosaves applied corrections back
+// to this chapter, so each test must start from the same faulty text.
+export async function seedGrammarProject(): Promise<void> {
+  const client = new MongoClient(MONGODB_URI);
+  await client.connect();
+  try {
+    const db = client.db(MONGODB_DB_NAME);
+    const past = new Date('2025-01-01T10:00:00Z');
+    const now = new Date();
+    await db.collection('projects').replaceOne(
+      { _id: TEST_GRAMMAR_PROJECT_ID } as object,
+      buildGrammarProject(past, now),
+      { upsert: true }
+    );
+  } finally {
+    await client.close();
+  }
 }
 
 // Re-seed only the spell-check project to its clean state. Used in a beforeEach so
@@ -659,6 +727,13 @@ export async function seedAll(): Promise<void> {
   await db.collection('projects').replaceOne(
     { _id: TEST_SPELLCHECK_PROJECT_ID } as object,
     buildSpellCheckProject(past, now),
+    { upsert: true }
+  );
+
+  // 2c-ter. Grammar project — faulty French text, no AI provider needed.
+  await db.collection('projects').replaceOne(
+    { _id: TEST_GRAMMAR_PROJECT_ID } as object,
+    buildGrammarProject(past, now),
     { upsert: true }
   );
 

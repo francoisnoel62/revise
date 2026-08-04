@@ -3,7 +3,8 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import type { Editor } from '@tiptap/react';
-import { spellCheckPluginKey, type SpellError } from '@/components/editor/SpellCheckExtension';
+import { textIssuePluginKey } from '@/components/editor/TextIssueExtension';
+import type { TextIssue } from '@/domain/value-objects/TextIssue';
 import {
   checkSpellingAction,
   getCustomDictionaryAction,
@@ -80,7 +81,7 @@ export function useSpellCheck(
 
     if (uniqueWords.length === 0) {
       if (!ed.isDestroyed) {
-        ed.view.dispatch(ed.state.tr.setMeta(spellCheckPluginKey, { errors: [] }));
+        ed.view.dispatch(ed.state.tr.setMeta(textIssuePluginKey, { spelling: [] }));
       }
       return;
     }
@@ -100,16 +101,20 @@ export function useSpellCheck(
       ...ignoredWordsRef.current,
     ]);
 
-    const errors: SpellError[] = wordsWithPositions
+    const spelling: TextIssue[] = wordsWithPositions
       .filter((w) => misspelledMap.has(w.word.toLowerCase()))
       .filter((w) => !locallyAccepted.has(w.word))
       .map((w) => ({
-        ...w,
+        nature: 'spelling',
+        from: w.from,
+        to: w.to,
+        text: w.word,
+        message: '',
         suggestions: misspelledMap.get(w.word.toLowerCase()) ?? [],
       }));
 
     if (!ed.isDestroyed) {
-      ed.view.dispatch(ed.state.tr.setMeta(spellCheckPluginKey, { errors }));
+      ed.view.dispatch(ed.state.tr.setMeta(textIssuePluginKey, { spelling }));
     }
   }, []);
 
@@ -125,12 +130,10 @@ export function useSpellCheck(
       }
       // Remove the decoration immediately
       if (!editor || editor.isDestroyed) return;
-      const pluginState = spellCheckPluginKey.getState(editor.state);
+      const pluginState = textIssuePluginKey.getState(editor.state);
       if (!pluginState) return;
-      const filteredErrors = pluginState.errors.filter((e) => e.word !== word);
-      editor.view.dispatch(
-        editor.state.tr.setMeta(spellCheckPluginKey, { errors: filteredErrors })
-      );
+      const spelling = pluginState.spelling.filter((issue) => issue.text !== word);
+      editor.view.dispatch(editor.state.tr.setMeta(textIssuePluginKey, { spelling }));
     },
     [editor, projectId]
   );
@@ -141,12 +144,10 @@ export function useSpellCheck(
       await addWordToCustomDictionaryAction(projectId, word);
       customDictionaryRef.current = [...customDictionaryRef.current, word];
       if (!editor || editor.isDestroyed) return;
-      const pluginState = spellCheckPluginKey.getState(editor.state);
+      const pluginState = textIssuePluginKey.getState(editor.state);
       if (!pluginState) return;
-      const filteredErrors = pluginState.errors.filter((e) => e.word !== word);
-      editor.view.dispatch(
-        editor.state.tr.setMeta(spellCheckPluginKey, { errors: filteredErrors })
-      );
+      const spelling = pluginState.spelling.filter((issue) => issue.text !== word);
+      editor.view.dispatch(editor.state.tr.setMeta(textIssuePluginKey, { spelling }));
       lastTextRef.current = '';
     },
     [editor, projectId]

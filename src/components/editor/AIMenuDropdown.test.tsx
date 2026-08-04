@@ -193,4 +193,59 @@ describe('AIMenuDropdown', () => {
       expect(button).toBeDisabled();
     });
   });
+
+  describe('Chapter correction', () => {
+    it('renders "Corriger le chapitre" when onCorrect is provided', async () => {
+      const user = await import('@testing-library/user-event');
+      render(<AIMenuDropdown {...defaultProps} onCorrect={vi.fn()} />);
+
+      await user.default.setup().click(screen.getByRole('button'));
+
+      expect(screen.getByText('Corriger le chapitre')).toBeInTheDocument();
+    });
+
+    it('calls onCorrect when clicked', async () => {
+      const user = await import('@testing-library/user-event');
+      const onCorrect = vi.fn();
+      render(<AIMenuDropdown {...defaultProps} onCorrect={onCorrect} />);
+
+      await user.default.setup().click(screen.getByRole('button'));
+      await user.default.setup().click(screen.getByText('Corriger le chapitre'));
+
+      expect(onCorrect).toHaveBeenCalledTimes(1);
+    });
+
+    it('stays available without a configured AI provider — the engine is local', async () => {
+      const user = await import('@testing-library/user-event');
+      render(
+        <AIMenuDropdown
+          {...defaultProps}
+          selectedProviderId={null}
+          onCorrect={vi.fn()}
+          onAnalyze={vi.fn()}
+        />
+      );
+
+      await user.default.setup().click(screen.getByRole('button'));
+
+      expect(
+        screen.getByText('Corriger le chapitre').closest('[role="menuitem"]')
+      ).not.toHaveAttribute('data-disabled');
+      // The AI counterpart does need one.
+      expect(
+        screen.getByText('Vérifier le chapitre').closest('[role="menuitem"]')
+      ).toHaveAttribute('data-disabled');
+    });
+
+    it('disables "Corriger le chapitre" while a correction is running', async () => {
+      const user = await import('@testing-library/user-event');
+      render(<AIMenuDropdown {...defaultProps} onCorrect={vi.fn()} correctionLoading={true} />);
+
+      await user.default.setup().click(screen.getByRole('button'));
+
+      expect(
+        screen.getByText('Corriger le chapitre').closest('[role="menuitem"]')
+      ).toHaveAttribute('data-disabled');
+    });
+  });
 });

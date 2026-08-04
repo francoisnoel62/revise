@@ -1,0 +1,153 @@
+// ABOUTME: E2E tests for "Corriger le chapitre" — the local grammar corrector in the editor.
+// ABOUTME: Covers: green dotted underlines on demand, the palette naming "Accord", applying a fix.
+
+import { test, expect, type Page } from '@playwright/test';
+import { TEST_GRAMMAR_PROJECT_ID, seedGrammarProject } from '../helpers/seed';
+
+const EDITOR_URL = `/editor?project=${TEST_GRAMMAR_PROJECT_ID}`;
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+async function openGrammarEditor(page: Page) {
+  await page.goto(EDITOR_URL);
+  const editor = page.locator('.ProseMirror');
+  await expect(editor).toBeVisible({ timeout: 15_000 });
+  return editor;
+}
+
+/** Runs the correction from the command palette (Ctrl+Shift+I). */
+async function correctChapter(page: Page) {
+  await page.keyboard.press('Control+Shift+I');
+  const entry = page.getByText('Corriger le chapitre');
+  await expect(entry).toBeVisible({ timeout: 10_000 });
+  await entry.click();
+}
+
+// ── Tests ─────────────────────────────────────────────────────────────────────
+
+test.describe('Grammar correction in the editor', () => {
+  // The editor autosaves an applied correction back to the seeded chapter, so the
+  // faulty text has to be restored before each test.
+  test.describe.configure({ mode: 'serial' });
+
+  test.beforeEach(async () => {
+    await seedGrammarProject();
+  });
+
+  test('nothing is underlined before the author asks for a correction', async ({ page }) => {
+    await openGrammarEditor(page);
+
+    await page.waitForTimeout(4_000);
+    await expect(page.locator('.grammar-error')).toHaveCount(0);
+  });
+
+  test('"Corriger le chapitre" underlines the agreement errors', async ({ page }) => {
+    await openGrammarEditor(page);
+    await correctChapter(page);
+
+    // Budget: engine cold start on the server can take several seconds.
+    const underlines = page.locator('.grammar-error');
+    await expect(underlines.first()).toBeVisible({ timeout: 30_000 });
+
+    // The chapter title and the paragraph each carry one error.
+    await expect(page.locator('.grammar-error', { hasText: 'maison' })).toBeVisible();
+    await expect(page.locator('.grammar-error', { hasText: 'chien' })).toBeVisible();
+  });
+
+  test('a grammar underline is dotted, not the wavy line of a misspelling', async ({ page }) => {
+    await openGrammarEditor(page);
+    await correctChapter(page);
+
+    const underline = page.locator('.grammar-error').first();
+    await expect(underline).toBeVisible({ timeout: 30_000 });
+
+    const style = await underline.evaluate(
+      (element) => getComputedStyle(element).textDecorationStyle
+    );
+    expect(style).toBe('dotted');
+  });
+
+  test('clicking an underline opens the palette, which names the category', async ({ page }) => {
+    await openGrammarEditor(page);
+    await correctChapter(page);
+
+    const underline = page.locator('.grammar-error', { hasText: 'chien' });
+    await expect(underline).toBeVisible({ timeout: 30_000 });
+    await underline.click();
+
+    // The nature is readable in words, not only by the underline colour.
+    await expect(page.getByText('Accord', { exact: true })).toBeVisible();
+    await expect(page.getByText(/devrait être au pluriel/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'chiens' })).toBeVisible();
+  });
+
+  test('the palette offers no dictionary action for a grammar issue', async ({ page }) => {
+    await openGrammarEditor(page);
+    await correctChapter(page);
+
+    const underline = page.locator('.grammar-error', { hasText: 'chien' });
+    await expect(underline).toBeVisible({ timeout: 30_000 });
+    await underline.click();
+
+    await expect(page.getByRole('button', { name: 'Fermer' })).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Ajouter au dictionnaire' })
+    ).not.toBeVisible();
+  });
+
+  test('applying a suggestion replaces the flagged range', async ({ page }) => {
+    const editor = await openGrammarEditor(page);
+    await correctChapter(page);
+
+    const underline = page.locator('.grammar-error', { hasText: 'chien' });
+    await expect(underline).toBeVisible({ timeout: 30_000 });
+    await underline.click();
+
+    await page.getByRole('button', { name: 'chiens' }).click();
+
+    await expect(editor).toContainText('Les chiens de la voisine sont partis.');
+  });
+
+  test('the underline of a corrected range disappears, the others stay', async ({ page }) => {
+    await openGrammarEditor(page);
+    await correctChapter(page);
+
+    await expect(page.locator('.grammar-error')).toHaveCount(2, { timeout: 30_000 });
+
+    await page.locator('.grammar-error', { hasText: 'chien' }).click();
+    await page.getByRole('button', { name: 'chiens' }).click();
+
+    await expect(page.locator('.grammar-error')).toHaveCount(1);
+    await expect(page.locator('.grammar-error', { hasText: 'maison' })).toBeVisible();
+  });
+
+  test('underlines stay aligned when text is inserted before them', async ({ page }) => {
+    const editor = await openGrammarEditor(page);
+    await correctChapter(page);
+
+    const underline = page.locator('.grammar-error', { hasText: 'chien' });
+    await expect(underline).toBeVisible({ timeout: 30_000 });
+
+    await editor.click();
+    await page.keyboard.press('Control+Home');
+    await page.keyboard.type('Oh ');
+
+    await underline.click();
+    await page.getByRole('button', { name: 'chiens' }).click();
+
+    await expect(editor).toContainText('Les chiens de la voisine sont partis.');
+  });
+
+  test('the correction is reachable from the menu, with no AI provider configured', async ({
+    page,
+  }) => {
+    await openGrammarEditor(page);
+
+    await page.getByRole('button', { name: /^IA/i }).click();
+    const entry = page.getByRole('menuitem', { name: 'Corriger le chapitre' });
+    await expect(entry).toBeVisible();
+    await entry.click();
+
+    await expect(page.locator('.grammar-error').first()).toBeVisible({ timeout: 30_000 });
+  });
+});

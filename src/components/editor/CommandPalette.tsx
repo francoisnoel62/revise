@@ -15,6 +15,7 @@ import {
   Settings2,
   Check,
   CheckCircle,
+  SpellCheck,
   Superscript,
   ListOrdered,
 } from 'lucide-react';
@@ -51,6 +52,10 @@ interface CommandPaletteProps {
   onAnalyze?: () => void;
   analysisLoading?: boolean;
 
+  // Correction (local grammar engine — free, no provider needed)
+  onCorrect?: () => void;
+  correctionLoading?: boolean;
+
   // Endnotes
   onInsertEndnote?: () => void;
   onOpenEndnotes?: () => void;
@@ -69,7 +74,7 @@ interface Command {
   icon: React.ReactNode;
   action: () => void;
   available: boolean;
-  category: 'writing' | 'settings';
+  category: 'writing' | 'correction' | 'settings';
   keywords?: string[];
 }
 
@@ -87,6 +92,8 @@ export function CommandPalette({
   onAutocompleteChange,
   onAnalyze,
   analysisLoading = false,
+  onCorrect,
+  correctionLoading = false,
   onInsertEndnote,
   onOpenEndnotes,
   providers,
@@ -192,6 +199,16 @@ export function CommandPalette({
       category: 'writing' as const,
       keywords: ['note', 'notes', 'endnote', 'liste', 'panneau'],
     }] : []),
+    ...(onCorrect ? [{
+      id: 'correct-chapter',
+      label: 'Corriger le chapitre',
+      description: 'Souligner les fautes d’accord — moteur local, sans IA',
+      icon: <SpellCheck className="h-4 w-4" />,
+      action: () => executeCommand(onCorrect),
+      available: !correctionLoading,
+      category: 'correction' as const,
+      keywords: ['corriger', 'correction', 'grammaire', 'accord', 'faute', 'grammalecte'],
+    }] : []),
     // Settings commands
     {
       id: 'history',
@@ -256,6 +273,7 @@ export function CommandPalette({
   });
 
   const writingCommands = filteredCommands.filter((cmd) => cmd.category === 'writing');
+  const correctionCommands = filteredCommands.filter((cmd) => cmd.category === 'correction');
   const settingsCommands = filteredCommands.filter((cmd) => cmd.category === 'settings');
 
   // Sort by availability (available commands first) and relevance
@@ -267,6 +285,12 @@ export function CommandPalette({
       return 0;
     });
   };
+
+  const sections = [
+    { heading: 'Écriture', commands: sortByRelevance(writingCommands) },
+    { heading: 'Correction', commands: sortByRelevance(correctionCommands) },
+    { heading: 'Paramètres', commands: sortByRelevance(settingsCommands) },
+  ].filter((section) => section.commands.length > 0);
 
   return (
     <CommandDialog
@@ -284,53 +308,30 @@ export function CommandPalette({
       <CommandList>
         <CommandEmpty>Aucune commande trouvée.</CommandEmpty>
 
-        {sortByRelevance(writingCommands).length > 0 && (
-          <CommandGroup heading="Écriture">
-            {sortByRelevance(writingCommands).map((cmd) => (
-              <CommandItem
-                key={cmd.id}
-                onSelect={cmd.action}
-                disabled={!cmd.available}
-                className={!cmd.available ? 'opacity-50' : ''}
-              >
-                {cmd.icon}
-                <div className="flex-1 ml-2">
-                  <div>{cmd.label}</div>
-                  {cmd.description && (
-                    <div className="text-xs text-muted-foreground">{cmd.description}</div>
-                  )}
-                </div>
-                {cmd.shortcut && <CommandShortcut>{cmd.shortcut}</CommandShortcut>}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        )}
-
-        {writingCommands.length > 0 && settingsCommands.length > 0 && (
-          <CommandSeparator />
-        )}
-
-        {sortByRelevance(settingsCommands).length > 0 && (
-          <CommandGroup heading="Paramètres">
-            {sortByRelevance(settingsCommands).map((cmd) => (
-              <CommandItem
-                key={cmd.id}
-                onSelect={cmd.action}
-                disabled={!cmd.available}
-                className={!cmd.available ? 'opacity-50' : ''}
-              >
-                {cmd.icon}
-                <div className="flex-1 ml-2">
-                  <div>{cmd.label}</div>
-                  {cmd.description && (
-                    <div className="text-xs text-muted-foreground">{cmd.description}</div>
-                  )}
-                </div>
-                {cmd.shortcut && <CommandShortcut>{cmd.shortcut}</CommandShortcut>}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        )}
+        {sections.map((section, index) => (
+          <React.Fragment key={section.heading}>
+            {index > 0 && <CommandSeparator />}
+            <CommandGroup heading={section.heading}>
+              {section.commands.map((cmd) => (
+                <CommandItem
+                  key={cmd.id}
+                  onSelect={cmd.action}
+                  disabled={!cmd.available}
+                  className={!cmd.available ? 'opacity-50' : ''}
+                >
+                  {cmd.icon}
+                  <div className="flex-1 ml-2">
+                    <div>{cmd.label}</div>
+                    {cmd.description && (
+                      <div className="text-xs text-muted-foreground">{cmd.description}</div>
+                    )}
+                  </div>
+                  {cmd.shortcut && <CommandShortcut>{cmd.shortcut}</CommandShortcut>}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </React.Fragment>
+        ))}
       </CommandList>
 
       <div className="border-t px-3 py-2 text-xs text-muted-foreground flex items-center justify-between">

@@ -227,6 +227,8 @@ interface FormattingToolbarProps {
   onOpenEndnotes?: () => void;
   onAnalyze?: () => void;
   analysisLoading?: boolean;
+  onCorrect?: () => void;
+  correctionLoading?: boolean;
 }
 
 export function FormattingToolbar({
@@ -253,6 +255,8 @@ export function FormattingToolbar({
   onOpenEndnotes,
   onAnalyze,
   analysisLoading = false,
+  onCorrect,
+  correctionLoading = false,
 }: FormattingToolbarProps) {
   if (!editor) return null;
 
@@ -337,7 +341,9 @@ export function FormattingToolbar({
     </Button>
   );
 
-  const aiMenu = showAIFeatures && onRewrite && onProviderChange && onHistoryClick && onAutocompleteChange && (
+  // The menu also carries "Corriger le chapitre", which needs no AI provider —
+  // so an author without one still reaches the local corrector.
+  const aiMenu = (showAIFeatures || onCorrect) && onRewrite && onProviderChange && onHistoryClick && onAutocompleteChange && (
     <div className="flex items-center ml-auto mt-1 md:mt-0">
       <AIMenuDropdown
         hasSelection={hasSelection}
@@ -357,6 +363,8 @@ export function FormattingToolbar({
         onOpenCommandPalette={onOpenCommandPalette}
         onAnalyze={onAnalyze}
         analysisLoading={analysisLoading}
+        onCorrect={onCorrect}
+        correctionLoading={correctionLoading}
       />
     </div>
   );

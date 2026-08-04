@@ -18,8 +18,8 @@ import { IndentHeading } from './extensions/IndentHeading';
 import { EndnoteRef, type EndnoteContent } from './extensions/EndnoteRef';
 import { Autocomplete, AutocompleteStorage } from './extensions/Autocomplete';
 import { AutocompleteDot, AutocompleteDotState } from './AutocompleteDot';
-import { SpellCheckExtension } from './SpellCheckExtension';
-import { SpellCheckPalette } from './SpellCheckPalette';
+import { TextIssueExtension } from './TextIssueExtension';
+import { TextIssuePalette } from './TextIssuePalette';
 import { useSpellCheck } from '@/hooks/useSpellCheck';
 
 import { useEffect, useCallback, useState, useRef } from 'react';
@@ -181,7 +181,7 @@ export function TextEditor({
       EmDashExtension,
       Placeholder.configure({ placeholder }),
       CharacterCount,
-      SpellCheckExtension,
+      TextIssueExtension,
       Autocomplete.configure({
         enabled: autocompleteEnabled,
         onComplete: handleAutocomplete,
@@ -344,7 +344,7 @@ export function TextEditor({
           Le dernier snapshot automatique n’a pas pu être créé. Une nouvelle tentative aura lieu plus tard.
         </p>
       )}
-      <SpellCheckPalette
+      <TextIssuePalette
         editor={editor}
         onIgnoreWord={ignoreWord}
         onAddToDictionary={projectId ?? project?.id ? addToDictionary : undefined}
