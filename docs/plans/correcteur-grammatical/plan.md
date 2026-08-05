@@ -45,4 +45,10 @@ Le moteur mémorise la morphologie de chaque mot rencontré pour la durée du pr
 
 Orthographe, grammaire et ponctuation sont vérifiées hors ligne. Les demander en plus à un modèle de langue revenait à refaire, plus lentement et moins sûrement, un travail déjà fait — et l’orthographe était pire encore : proposée à l’auteur sans stratégie derrière, elle ne renvoyait rien. `AnalysisCategory` ne contient plus que les répétitions et le style, et `createAnalysisStrategies` refuse toute catégorie sans stratégie.
 
+## Ce que l’auteur garde la main dessus
+
+La ponctuation est la part du correcteur qui parle le plus et qui touche le plus à la voix : espaces fines, virgules, fins de phrase. Les quatre familles concernées (`esp`, `nbsp`, `virg`, `poncfin`) se coupent d’un seul geste depuis le bouton « Corriger », et le choix est persisté dans le profil du projet — le même mécanisme qui existait déjà, sans nouveau modèle. Les accords et les conjugaisons continuent, eux, de travailler : couper la ponctuation n’est pas éteindre le correcteur.
+
+Une remarque peut aussi être déclinée. L’auteur écarte la paire (famille de règle, texte signalé), pas une position : le texte bouge, le jugement tient. La même remarque ne remonte plus dans ce projet, la même règle continue ailleurs, et le même mot reste vérifié sous une autre règle. C’est l’équivalent, pour la grammaire, de « Ignorer dans ce projet » côté orthographe — à ceci près qu’ignorer un mot le rendrait muet partout, ce qui n’aurait pas de sens pour un accord.
+
 La distinction se lit aussi dans la barre d’outils : « Corriger le chapitre » a son propre bouton, à gauche du menu IA, toujours actif puisque le moteur est local et gratuit. Le ranger sous une étiquette « IA » disait le contraire de ce qu’il est. Le menu IA ne garde donc que ce qui consomme des jetons — réécriture, analyse du style, autocomplétion — et l’auteur sans fournisseur configuré voit un bouton actif plutôt qu’une entrée enfouie dans un menu qui ne le concerne pas. Une analyse n’étant jamais persistée, ce resserrement ne demande aucune migration ; un test échoue si un sérialiseur ou un dépôt se met à référencer l’entité.

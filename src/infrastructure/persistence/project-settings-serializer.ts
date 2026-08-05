@@ -15,6 +15,7 @@ import type { AutomaticSnapshotInterval } from '@/domain/value-objects/Automatic
 import type { GrammarRuleProfile } from '@/domain/value-objects/GrammarRuleProfile';
 import type { PersonalDictionaryEntry } from '@/domain/value-objects/PersonalDictionaryEntry';
 import type { GrammarPersonalDictionary } from '@/domain/interfaces/GrammarChecker';
+import type { IgnoredGrammarIssue } from '@/domain/value-objects/IgnoredGrammarIssue';
 
 export interface ContributorDocument {
   name: string;
@@ -54,6 +55,7 @@ export interface ProjectSettingsDocument {
   /** Bare strings are words stored before the author could describe them. */
   customDictionary?: (string | PersonalDictionaryEntry)[];
   grammarDictionary?: GrammarPersonalDictionary | null;
+  ignoredGrammarIssues?: IgnoredGrammarIssue[];
   ignoredWords?: string[];
   grammarRuleProfile?: GrammarRuleProfile;
   publicationProfileId?: PublicationProfileId;
@@ -102,6 +104,7 @@ export function serializeProjectSettings(
     canonExtractionMode: props.canonExtractionMode,
     customDictionary: props.customDictionary ?? [],
     grammarDictionary: props.grammarDictionary ?? null,
+    ignoredGrammarIssues: props.ignoredGrammarIssues ?? [],
     ignoredWords: props.ignoredWords ?? [],
     grammarRuleProfile: props.grammarRuleProfile,
     publicationProfileId: props.publicationProfileId,
@@ -152,6 +155,7 @@ export function deserializeProjectSettings(doc: ProjectSettingsDocument): Projec
     canonExtractionMode: doc.canonExtractionMode,
     customDictionary: doc.customDictionary ?? [],
     grammarDictionary: doc.grammarDictionary ?? null,
+    ignoredGrammarIssues: doc.ignoredGrammarIssues ?? [],
     ignoredWords: doc.ignoredWords ?? [],
     grammarRuleProfile: doc.grammarRuleProfile,
     publicationProfileId: doc.publicationProfileId,

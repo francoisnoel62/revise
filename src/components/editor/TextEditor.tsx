@@ -22,6 +22,7 @@ import { TextIssueExtension } from './TextIssueExtension';
 import { documentMatchesContent } from './documentMatchesContent';
 import { TextIssuePalette } from './TextIssuePalette';
 import { useSpellCheck } from '@/hooks/useSpellCheck';
+import { useGrammarIssueDecline } from '@/hooks/useGrammarIssueDecline';
 
 import { useEffect, useCallback, useState, useRef } from 'react';
 import { useAutosave } from '@/hooks/useAutosave';
@@ -327,6 +328,7 @@ export function TextEditor({
   }, []);
 
   const { ignoreWord, addToDictionary } = useSpellCheck(editor, projectId ?? project?.id);
+  const declineGrammarIssue = useGrammarIssueDecline(editor, projectId ?? project?.id);
 
   const { ambiguities, dismissAmbiguities } = useSemanticMigration(
     editor,
@@ -348,6 +350,9 @@ export function TextEditor({
         editor={editor}
         onIgnoreWord={ignoreWord}
         onAddToDictionary={projectId ?? project?.id ? addToDictionary : undefined}
+        onIgnoreGrammarIssue={
+          projectId ?? project?.id ? declineGrammarIssue : undefined
+        }
       />
       {/* Spoken counterpart of the (aria-hidden) dot: tells screen-reader users a
           suggestion is waiting and how to act on it. */}

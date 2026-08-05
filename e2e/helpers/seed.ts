@@ -49,6 +49,7 @@ export const TEST_AUTOCOMPLETE_SETTINGS_ID = '6475a8f3c1234567890abcdf';
 // deterministic agreement error the fiction rule profile catches.
 export const TEST_GRAMMAR_PROJECT_ID = 'e2e-grammar-project-001';
 export const TEST_GRAMMAR_CHAPTER_ID = 'e2e-grammar-chapter-001';
+export const TEST_GRAMMAR_SETTINGS_ID = '6475a8f3c1234567890abce4';
 
 export const TEST_SPELLCHECK_PROJECT_ID = 'e2e-spellcheck-project-001';
 export const TEST_SPELLCHECK_CHAPTER_ID = 'e2e-spellcheck-chapter-001';
@@ -310,8 +311,29 @@ function buildGrammarProject(past: Date, now: Date): Record<string, unknown> {
   };
 }
 
+// Settings with nothing declined and punctuation left at the fiction default, so a
+// test that declines a remark or flips the option starts from a known state.
+function buildGrammarSettings(past: Date, now: Date): Record<string, unknown> {
+  return {
+    _id: new ObjectId(TEST_GRAMMAR_SETTINGS_ID),
+    projectId: TEST_GRAMMAR_PROJECT_ID,
+    ownerId: TEST_USER_ID,
+    title: 'Projet Test Grammaire',
+    summary: '',
+    genre: '',
+    synopsis: '',
+    contributors: [],
+    relatedWorks: [],
+    ignoredGrammarIssues: [],
+    ignoredWords: [],
+    createdAt: past,
+    updatedAt: now,
+  };
+}
+
 // Re-seed only the grammar project. The editor autosaves applied corrections back
-// to this chapter, so each test must start from the same faulty text.
+// to this chapter, so each test must start from the same faulty text — and from
+// settings holding no declined remark.
 export async function seedGrammarProject(): Promise<void> {
   const client = new MongoClient(MONGODB_URI);
   await client.connect();
@@ -322,6 +344,11 @@ export async function seedGrammarProject(): Promise<void> {
     await db.collection('projects').replaceOne(
       { _id: TEST_GRAMMAR_PROJECT_ID } as object,
       buildGrammarProject(past, now),
+      { upsert: true }
+    );
+    await db.collection('project_settings').replaceOne(
+      { _id: new ObjectId(TEST_GRAMMAR_SETTINGS_ID) },
+      buildGrammarSettings(past, now),
       { upsert: true }
     );
   } finally {
@@ -826,6 +853,11 @@ export async function seedAll(): Promise<void> {
   await db.collection('projects').replaceOne(
     { _id: TEST_GRAMMAR_PROJECT_ID } as object,
     buildGrammarProject(past, now),
+    { upsert: true }
+  );
+  await db.collection('project_settings').replaceOne(
+    { _id: new ObjectId(TEST_GRAMMAR_SETTINGS_ID) },
+    buildGrammarSettings(past, now),
     { upsert: true }
   );
 

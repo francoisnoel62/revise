@@ -159,6 +159,39 @@ test.describe('Grammar correction in the editor', () => {
     });
   });
 
+  test('declining a remark drops its underline and it stays gone', async ({ page }) => {
+    await openGrammarEditor(page);
+    await correctChapter(page);
+
+    const underline = page.locator('.grammar-error', { hasText: 'chien' });
+    await expect(underline).toBeVisible({ timeout: FIRST_UNDERLINE_TIMEOUT });
+    await underline.click();
+
+    await page.getByRole('button', { name: 'Ignorer dans ce projet' }).click();
+    await expect(page.getByText(/ignoré dans ce projet/i)).toBeVisible();
+    await expect(page.locator('.grammar-error', { hasText: 'chien' })).toHaveCount(0);
+
+    // The other mistake is untouched: declining is not silencing the corrector.
+    await expect(page.locator('.grammar-error', { hasText: 'maison' })).toBeVisible();
+
+    // And the decision survives a fresh check.
+    await correctChapter(page);
+    await expect(page.locator('.grammar-error', { hasText: 'maison' })).toBeVisible({
+      timeout: FIRST_UNDERLINE_TIMEOUT,
+    });
+    await expect(page.locator('.grammar-error', { hasText: 'chien' })).toHaveCount(0);
+  });
+
+  test('the punctuation option is offered beside the correction button', async ({ page }) => {
+    await openGrammarEditor(page);
+
+    await page.getByRole('button', { name: 'Options de correction' }).click();
+
+    await expect(
+      page.getByRole('menuitemcheckbox', { name: /ponctuation/i })
+    ).toBeVisible();
+  });
+
   test('the local corrector is not filed under the AI menu', async ({ page }) => {
     await openGrammarEditor(page);
 

@@ -12,6 +12,7 @@ import {
   DEFAULT_FICTION_GRAMMAR_RULE_PROFILE,
   type GrammarRuleProfile,
 } from '../../domain/value-objects/GrammarRuleProfile';
+import { isIgnoredGrammarIssue } from '../../domain/value-objects/IgnoredGrammarIssue';
 import type { TextIssue } from '../../domain/value-objects/TextIssue';
 import { mapBlockFragmentOffset } from '../grammar/blockTextOffsets';
 import {
@@ -67,11 +68,12 @@ export class CheckChapterGrammarUseCase {
     // The project's own vocabulary was turned into an automaton when the author
     // declared it; the check only installs it.
     const personalDictionary = settings?.getGrammarDictionary() ?? undefined;
+    const declined = settings?.getIgnoredGrammarIssues() ?? [];
     const blocks = collectDocumentTextBlocks(parseChapterContent(chapter.getContent()));
 
-    const issues = blocks.flatMap((block) =>
-      this.checkBlock(block, ruleProfile, personalDictionary)
-    );
+    const issues = blocks
+      .flatMap((block) => this.checkBlock(block, ruleProfile, personalDictionary))
+      .filter((issue) => !isIgnoredGrammarIssue(issue, declined));
     issues.sort((a, b) => a.from - b.from);
 
     return { issues };

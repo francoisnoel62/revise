@@ -12,6 +12,8 @@ interface TextIssuePaletteProps {
   editor: Editor | null;
   onIgnoreWord?: (word: string) => void;
   onAddToDictionary?: (word: string) => Promise<void>;
+  /** Declines a grammar remark: the rule keeps working, this wording stops being raised. */
+  onIgnoreGrammarIssue?: (issue: TextIssue) => Promise<void>;
 }
 
 interface PaletteState {
@@ -25,6 +27,7 @@ export function TextIssuePalette({
   editor,
   onIgnoreWord,
   onAddToDictionary,
+  onIgnoreGrammarIssue,
 }: TextIssuePaletteProps) {
   const [state, setState] = useState<PaletteState>({
     visible: false,
@@ -120,11 +123,17 @@ export function TextIssuePalette({
     [editor, state.issue]
   );
 
-  const handleIgnore = useCallback(() => {
+  const handleIgnore = useCallback(async () => {
     if (!state.issue) return;
-    onIgnoreWord?.(state.issue.text);
+    // A misspelling is waved away by word; a grammar remark by rule and wording,
+    // so the same word stays checked everywhere else.
+    if (state.issue.nature === 'grammar') {
+      await onIgnoreGrammarIssue?.(state.issue);
+    } else {
+      onIgnoreWord?.(state.issue.text);
+    }
     showConfirmation('ignored');
-  }, [state.issue, onIgnoreWord, showConfirmation]);
+  }, [state.issue, onIgnoreWord, onIgnoreGrammarIssue, showConfirmation]);
 
   const handleAddToDictionary = useCallback(async () => {
     if (!state.issue || !onAddToDictionary) return;
@@ -157,8 +166,8 @@ export function TextIssuePalette({
   }
 
   const isMisspelling = issue.nature === 'spelling';
-  // Dictionary actions only make sense for a single unknown word.
-  const canIgnore = isMisspelling && onIgnoreWord;
+  const canIgnore = isMisspelling ? Boolean(onIgnoreWord) : Boolean(onIgnoreGrammarIssue);
+  // The dictionary only makes sense for a single unknown word.
   const canAddToDictionary = isMisspelling && onAddToDictionary;
 
   return (

@@ -5,7 +5,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Editor } from '@tiptap/react';
 import { textIssuePluginKey } from '@/components/editor/TextIssueExtension';
 import type { TextIssue } from '@/domain/value-objects/TextIssue';
-import { checkChapterGrammarAction } from '@/app/actions/grammar-actions';
+import {
+  checkChapterGrammarAction,
+  getPunctuationCheckingAction,
+  setPunctuationCheckingAction,
+} from '@/app/actions/grammar-actions';
 
 /**
  * The engine reads the chapter as last saved. Comparing the flagged text with
@@ -31,11 +35,42 @@ export function useGrammarCheck(
   checkChapter: () => Promise<void>;
   loading: boolean;
   status: string | null;
+  punctuationChecked: boolean;
+  setPunctuationChecked: (checked: boolean) => Promise<void>;
 } {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  // Optimistic until the project answers: the corrector's own default is on, so
+  // the switch never shows an option the author has not turned off.
+  const [punctuationChecked, setPunctuation] = useState(true);
   const editorRef = useRef(editor);
   editorRef.current = editor;
+
+  useEffect(() => {
+    if (!projectId) return;
+    let current = true;
+    getPunctuationCheckingAction(projectId).then((checked) => {
+      if (current) setPunctuation(checked);
+    });
+    return () => {
+      current = false;
+    };
+  }, [projectId]);
+
+  const setPunctuationChecked = useCallback(
+    async (checked: boolean) => {
+      if (!projectId) return;
+      const previous = punctuationChecked;
+      setPunctuation(checked);
+
+      const result = await setPunctuationCheckingAction(projectId, checked);
+      if (!result.success) {
+        setPunctuation(previous);
+        setStatus(result.error);
+      }
+    },
+    [projectId, punctuationChecked]
+  );
 
   // Underlines belong to the chapter they were computed for. A freshly mounted
   // editor holds none, so only an actual chapter switch has anything to clear.
@@ -78,5 +113,5 @@ export function useGrammarCheck(
     }
   }, [editor, projectId, chapterId]);
 
-  return { checkChapter, loading, status };
+  return { checkChapter, loading, status, punctuationChecked, setPunctuationChecked };
 }

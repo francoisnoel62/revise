@@ -68,7 +68,8 @@ describe('TextIssuePalette', () => {
 
   function openPalette(
     onIgnoreWord?: (w: string) => void,
-    onAddToDictionary?: (w: string) => Promise<void>
+    onAddToDictionary?: (w: string) => Promise<void>,
+    onIgnoreGrammarIssue?: (issue: TextIssue) => Promise<void>
   ) {
     const editor = createMockEditor();
     render(
@@ -76,6 +77,7 @@ describe('TextIssuePalette', () => {
         editor={editor}
         onIgnoreWord={onIgnoreWord}
         onAddToDictionary={onAddToDictionary}
+        onIgnoreGrammarIssue={onIgnoreGrammarIssue}
       />
     );
 
@@ -196,11 +198,53 @@ describe('TextIssuePalette', () => {
     it('offers no dictionary action, which only makes sense for a word', () => {
       openPalette(vi.fn(), vi.fn());
       expect(
-        screen.queryByRole('button', { name: 'Ignorer dans ce projet' })
-      ).not.toBeInTheDocument();
-      expect(
         screen.queryByRole('button', { name: 'Ajouter au dictionnaire' })
       ).not.toBeInTheDocument();
+    });
+
+    it('lets the author decline the remark', () => {
+      openPalette(undefined, undefined, vi.fn());
+      expect(
+        screen.getByRole('button', { name: 'Ignorer dans ce projet' })
+      ).toBeInTheDocument();
+    });
+
+    it('declines with the whole issue, so the rule travels with the text', async () => {
+      const onIgnoreGrammarIssue = vi.fn().mockResolvedValue(undefined);
+      openPalette(undefined, undefined, onIgnoreGrammarIssue);
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Ignorer dans ce projet' }));
+      });
+
+      expect(onIgnoreGrammarIssue).toHaveBeenCalledWith(agreementError);
+    });
+
+    it('confirms the remark was declined', async () => {
+      openPalette(undefined, undefined, vi.fn().mockResolvedValue(undefined));
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Ignorer dans ce projet' }));
+      });
+
+      expect(screen.getByText(/ignoré dans ce projet/i)).toBeInTheDocument();
+    });
+
+    it('offers no decline when the editor cannot record one', () => {
+      openPalette(vi.fn(), vi.fn());
+      expect(
+        screen.queryByRole('button', { name: 'Ignorer dans ce projet' })
+      ).not.toBeInTheDocument();
+    });
+
+    it('does not offer the word-level ignore, which would silence the word itself', () => {
+      // A misspelling is ignored by word; a grammar remark by rule and wording.
+      const onIgnoreWord = vi.fn();
+      openPalette(onIgnoreWord, undefined, vi.fn());
+
+      fireEvent.click(screen.getByRole('button', { name: 'Ignorer dans ce projet' }));
+
+      expect(onIgnoreWord).not.toHaveBeenCalled();
     });
   });
 });

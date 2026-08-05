@@ -823,6 +823,75 @@ describe('FormattingToolbar', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('offers the punctuation switch beside the correction button', async () => {
+      const editor = createMockEditor();
+      render(
+        <FormattingToolbar
+          editor={editor}
+          {...correctionProps}
+          onCorrect={vi.fn()}
+          punctuationChecked
+          onPunctuationChange={vi.fn()}
+        />
+      );
+
+      await userEvent.setup().click(
+        screen.getByRole('button', { name: 'Options de correction' })
+      );
+
+      expect(screen.getByRole('menuitemcheckbox', { name: /ponctuation/i })).toBeChecked();
+    });
+
+    it('reports the punctuation switch as off when the project turned it off', async () => {
+      const editor = createMockEditor();
+      render(
+        <FormattingToolbar
+          editor={editor}
+          {...correctionProps}
+          onCorrect={vi.fn()}
+          punctuationChecked={false}
+          onPunctuationChange={vi.fn()}
+        />
+      );
+
+      await userEvent.setup().click(
+        screen.getByRole('button', { name: 'Options de correction' })
+      );
+
+      expect(screen.getByRole('menuitemcheckbox', { name: /ponctuation/i })).not.toBeChecked();
+    });
+
+    it('asks to switch punctuation off when the author unchecks it', async () => {
+      const editor = createMockEditor();
+      const onPunctuationChange = vi.fn();
+      render(
+        <FormattingToolbar
+          editor={editor}
+          {...correctionProps}
+          onCorrect={vi.fn()}
+          punctuationChecked
+          onPunctuationChange={onPunctuationChange}
+        />
+      );
+
+      const user = userEvent.setup();
+      await user.click(screen.getByRole('button', { name: 'Options de correction' }));
+      await user.click(screen.getByRole('menuitemcheckbox', { name: /ponctuation/i }));
+
+      expect(onPunctuationChange).toHaveBeenCalledWith(false);
+    });
+
+    it('shows no options button when the project offers no punctuation switch', () => {
+      const editor = createMockEditor();
+      render(
+        <FormattingToolbar editor={editor} {...correctionProps} onCorrect={vi.fn()} />
+      );
+
+      expect(
+        screen.queryByRole('button', { name: 'Options de correction' })
+      ).not.toBeInTheDocument();
+    });
+
     it('renders the correction button in the print-ready profile too', () => {
       const editor = createMockEditor();
       render(

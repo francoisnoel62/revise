@@ -52,3 +52,26 @@ export const DEFAULT_FICTION_GRAMMAR_RULE_PROFILE: GrammarRuleProfile = Object.f
 export function copyGrammarRuleProfile(profile: GrammarRuleProfile): Record<string, boolean> {
   return { ...profile };
 }
+
+/**
+ * The families an author means by "la ponctuation": spacing, non-breaking
+ * spaces, commas, and end-of-sentence marks. Microtypography (typo, apos,
+ * liga) is a separate concern and stays off in fiction either way.
+ */
+export const PUNCTUATION_RULE_FAMILIES = ['esp', 'nbsp', 'virg', 'poncfin'] as const;
+
+/** True only when the engine would report on every punctuation family. */
+export function isPunctuationChecked(profile: GrammarRuleProfile): boolean {
+  return PUNCTUATION_RULE_FAMILIES.every((family) => profile[family] === true);
+}
+
+export function withPunctuationChecked(
+  profile: GrammarRuleProfile,
+  checked: boolean
+): Record<string, boolean> {
+  const next = copyGrammarRuleProfile(profile);
+  for (const family of PUNCTUATION_RULE_FAMILIES) {
+    next[family] = checked;
+  }
+  return next;
+}

@@ -569,6 +569,68 @@ describe('ProjectSettings', () => {
     });
   });
 
+  describe('declined grammar remarks', () => {
+    it('declines nothing to start with', () => {
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'Title');
+      expect(settings.getIgnoredGrammarIssues()).toEqual([]);
+    });
+
+    it('remembers a declined remark by rule and text', () => {
+      const settings = ProjectSettings.create(
+        'id-1',
+        'proj-1',
+        'owner-1',
+        'Title'
+      ).addIgnoredGrammarIssue({ ruleFamily: 'gn', text: 'chien' });
+
+      expect(settings.getIgnoredGrammarIssues()).toEqual([
+        { ruleFamily: 'gn', text: 'chien' },
+      ]);
+    });
+
+    it('returns the same instance when the remark is already declined', () => {
+      const settings = ProjectSettings.create(
+        'id-1',
+        'proj-1',
+        'owner-1',
+        'Title'
+      ).addIgnoredGrammarIssue({ ruleFamily: 'gn', text: 'chien' });
+
+      expect(settings.addIgnoredGrammarIssue({ ruleFamily: 'gn', text: 'chien' })).toBe(
+        settings
+      );
+    });
+
+    it('keeps the same text declined under a different rule apart', () => {
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'Title')
+        .addIgnoredGrammarIssue({ ruleFamily: 'gn', text: 'chien' })
+        .addIgnoredGrammarIssue({ ruleFamily: 'conj', text: 'chien' });
+
+      expect(settings.getIgnoredGrammarIssues()).toHaveLength(2);
+    });
+
+    it('refuses a remark with no text to recognise it by', () => {
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'Title');
+
+      expect(() =>
+        settings.addIgnoredGrammarIssue({ ruleFamily: 'gn', text: '  ' })
+      ).toThrow(/empty/i);
+    });
+
+    it('getIgnoredGrammarIssues returns a copy', () => {
+      const settings = ProjectSettings.create(
+        'id-1',
+        'proj-1',
+        'owner-1',
+        'Title'
+      ).addIgnoredGrammarIssue({ ruleFamily: 'gn', text: 'chien' });
+
+      settings.getIgnoredGrammarIssues().push({ ruleFamily: 'x', text: 'y' });
+
+      expect(settings.getIgnoredGrammarIssues()).toHaveLength(1);
+    });
+  });
+
   describe('grammar dictionary', () => {
     it('has no compiled dictionary until one is written', () => {
       const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'Title');

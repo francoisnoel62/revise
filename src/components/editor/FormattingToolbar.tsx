@@ -8,6 +8,7 @@ import { Editor } from '@tiptap/react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
@@ -231,6 +232,9 @@ interface FormattingToolbarProps {
   analysisLoading?: boolean;
   onCorrect?: () => void;
   correctionLoading?: boolean;
+  /** Whether the corrector reports on punctuation in this project. */
+  punctuationChecked?: boolean;
+  onPunctuationChange?: (checked: boolean) => void;
 }
 
 export function FormattingToolbar({
@@ -259,6 +263,8 @@ export function FormattingToolbar({
   analysisLoading = false,
   onCorrect,
   correctionLoading = false,
+  punctuationChecked = true,
+  onPunctuationChange,
 }: FormattingToolbarProps) {
   if (!editor) return null;
 
@@ -347,22 +353,52 @@ export function FormattingToolbar({
   // who configured no AI provider. It gets its own button rather than a place
   // under a menu labelled "IA", which would say the opposite.
   const correctionButton = onCorrect && (
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={onCorrect}
-      disabled={correctionLoading}
-      title="Corriger le chapitre"
-      aria-label="Corriger le chapitre"
-      className="h-8 md:h-9 gap-1.5 px-2"
-    >
-      {correctionLoading ? (
-        <Loader2 className="h-3.5 w-3.5 md:h-4 md:w-4 animate-spin" />
-      ) : (
-        <SpellCheck className="h-3.5 w-3.5 md:h-4 md:w-4" />
+    <div className="flex items-center">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onCorrect}
+        disabled={correctionLoading}
+        title="Corriger le chapitre"
+        aria-label="Corriger le chapitre"
+        className="h-8 md:h-9 gap-1.5 px-2"
+      >
+        {correctionLoading ? (
+          <Loader2 className="h-3.5 w-3.5 md:h-4 md:w-4 animate-spin" />
+        ) : (
+          <SpellCheck className="h-3.5 w-3.5 md:h-4 md:w-4" />
+        )}
+        <span className="hidden lg:inline text-xs">Corriger</span>
+      </Button>
+
+      {onPunctuationChange && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              title="Options de correction"
+              aria-label="Options de correction"
+              className="h-8 md:h-9 w-5 px-0 text-xs opacity-60"
+            >
+              ▾
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuCheckboxItem
+              checked={punctuationChecked}
+              onCheckedChange={onPunctuationChange}
+            >
+              Ponctuation
+            </DropdownMenuCheckboxItem>
+            <p className="px-2 pb-1.5 pt-0.5 text-xs text-muted-foreground">
+              Espaces, virgules et fins de phrase. Les accords et les conjugaisons
+              restent vérifiés.
+            </p>
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
-      <span className="hidden lg:inline text-xs">Corriger</span>
-    </Button>
+    </div>
   );
 
   const aiMenu = (showAIFeatures || onCorrect) && onRewrite && onProviderChange && onHistoryClick && onAutocompleteChange && (

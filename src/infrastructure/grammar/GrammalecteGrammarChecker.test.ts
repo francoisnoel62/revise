@@ -4,7 +4,10 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_FICTION_GRAMMAR_RULE_PROFILE } from '@/domain/value-objects/GrammarRuleProfile';
+import {
+  DEFAULT_FICTION_GRAMMAR_RULE_PROFILE,
+  withPunctuationChecked,
+} from '@/domain/value-objects/GrammarRuleProfile';
 import { getGrammarChecker } from '@/infrastructure/config/providers';
 import { GrammalecteDictionaryCompiler } from './GrammalecteDictionaryCompiler';
 import { GrammalecteGrammarChecker } from './GrammalecteGrammarChecker';
@@ -78,6 +81,29 @@ describe('GrammalecteGrammarChecker', () => {
         ruleProfile: DEFAULT_FICTION_GRAMMAR_RULE_PROFILE,
       })
     ).toEqual([]);
+  });
+
+  it('goes quiet on punctuation once the author switches it off', () => {
+    // A double space and a question mark with no narrow space before it.
+    const faulty = 'Elle entra  puis demanda : « Vraiment?  »';
+
+    const withPunctuation = checker.checkParagraph(faulty, {
+      ruleProfile: DEFAULT_FICTION_GRAMMAR_RULE_PROFILE,
+    });
+    const withoutPunctuation = checker.checkParagraph(faulty, {
+      ruleProfile: withPunctuationChecked(DEFAULT_FICTION_GRAMMAR_RULE_PROFILE, false),
+    });
+
+    expect(withPunctuation.length).toBeGreaterThan(0);
+    expect(withoutPunctuation).toEqual([]);
+  });
+
+  it('keeps checking agreement when punctuation is switched off', () => {
+    const errors = checker.checkParagraph('Les chien de la voisine sont partis.', {
+      ruleProfile: withPunctuationChecked(DEFAULT_FICTION_GRAMMAR_RULE_PROFILE, false),
+    });
+
+    expect(errors.map((error) => error.ruleFamily.value)).toContain('gn');
   });
 
   it('reports no false positives in the clean fiction corpus', () => {

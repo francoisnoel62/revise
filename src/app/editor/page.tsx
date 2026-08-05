@@ -294,6 +294,8 @@ function EditorContent() {
     checkChapter: correctChapter,
     loading: correctionLoading,
     status: correctionStatus,
+    punctuationChecked,
+    setPunctuationChecked,
   } = useGrammarCheck(editor, project?.id, project?.activeChapterId ?? null);
 
   const { notification: canonNotification, dismissNotification: dismissCanonNotification } =
@@ -975,6 +977,8 @@ function EditorContent() {
               analysisLoading={analysisLoading}
               onCorrect={correctChapter}
               correctionLoading={correctionLoading}
+              punctuationChecked={punctuationChecked}
+              onPunctuationChange={setPunctuationChecked}
             />
           </div>
           {correctionStatus && (

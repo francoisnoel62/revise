@@ -40,6 +40,7 @@ import {
   type PersonalDictionaryEntry,
 } from '../value-objects/PersonalDictionaryEntry';
 import type { GrammarPersonalDictionary } from '../interfaces/GrammarChecker';
+import type { IgnoredGrammarIssue } from '../value-objects/IgnoredGrammarIssue';
 
 export type PdfPublicationProfileId = Exclude<PublicationProfileId, 'passerelle'>;
 export type LevelStylesByProfile = Partial<
@@ -75,6 +76,8 @@ export interface ProjectSettingsProperties {
   customDictionary?: (string | PersonalDictionaryEntry)[];
   /** Automaton compiled from `customDictionary`, so no analysis ever has to build it. */
   grammarDictionary?: GrammarPersonalDictionary | null;
+  /** Grammar remarks the author has declined, by rule family and flagged text. */
+  ignoredGrammarIssues?: IgnoredGrammarIssue[];
   ignoredWords?: string[];
   grammarRuleProfile?: GrammarRuleProfile;
   publicationProfileId?: PublicationProfileId;
@@ -116,6 +119,7 @@ export class ProjectSettings {
   private canonExtractionMode?: CanonExtractionMode;
   private customDictionary: PersonalDictionaryEntry[];
   private grammarDictionary: GrammarPersonalDictionary | null;
+  private ignoredGrammarIssues: IgnoredGrammarIssue[];
   private ignoredWords: string[];
   private grammarRuleProfile: Record<string, boolean>;
   private publicationProfileId: PublicationProfileId;
@@ -155,6 +159,9 @@ export class ProjectSettings {
     this.canonExtractionMode = props.canonExtractionMode;
     this.customDictionary = (props.customDictionary ?? []).map(toPersonalDictionaryEntry);
     this.grammarDictionary = props.grammarDictionary ?? null;
+    this.ignoredGrammarIssues = (props.ignoredGrammarIssues ?? []).map((issue) => ({
+      ...issue,
+    }));
     this.ignoredWords = [...(props.ignoredWords ?? [])];
     this.grammarRuleProfile = copyGrammarRuleProfile(
       props.grammarRuleProfile ?? DEFAULT_FICTION_GRAMMAR_RULE_PROFILE,
@@ -585,6 +592,30 @@ export class ProjectSettings {
     return this.grammarDictionary;
   }
 
+  getIgnoredGrammarIssues(): IgnoredGrammarIssue[] {
+    return this.ignoredGrammarIssues.map((issue) => ({ ...issue }));
+  }
+
+  /** Records that the author has waved a remark away for good, in this project. */
+  addIgnoredGrammarIssue(issue: IgnoredGrammarIssue): ProjectSettings {
+    const text = issue.text.trim();
+    if (!text) throw new Error('An ignored grammar issue cannot have empty text');
+
+    const alreadyDeclined = this.ignoredGrammarIssues.some(
+      (declined) => declined.ruleFamily === issue.ruleFamily && declined.text === text
+    );
+    if (alreadyDeclined) return this;
+
+    return new ProjectSettings({
+      ...this.toProperties(),
+      ignoredGrammarIssues: [
+        ...this.ignoredGrammarIssues,
+        { ruleFamily: issue.ruleFamily, text },
+      ],
+      updatedAt: new Date(),
+    });
+  }
+
   getIgnoredWords(): string[] {
     return [...this.ignoredWords];
   }
@@ -665,6 +696,7 @@ export class ProjectSettings {
       canonExtractionMode: this.canonExtractionMode,
       customDictionary: this.getCustomDictionary(),
       grammarDictionary: this.grammarDictionary,
+      ignoredGrammarIssues: this.getIgnoredGrammarIssues(),
       ignoredWords: [...this.ignoredWords],
       grammarRuleProfile: this.getGrammarRuleProfile(),
       publicationProfileId: this.publicationProfileId,

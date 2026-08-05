@@ -121,6 +121,8 @@ Pure business logic with no framework dependencies.
 - `SpellChecker` - Offline dictionary-based spell-check contract (`correct`/`suggest`); **replaces** the AI-based `SpellingAnalysisStrategy` for spelling specifically (2026-06-23 – 06-25), consuming zero AI tokens
 - `GrammarChecker` - Synchronous paragraph-level grammar contract (`checkParagraph(paragraph, { ruleProfile, personalDictionary })`); offline, zero AI tokens. **Replaces** the AI-based grammar and punctuation strategies (2026-08-05). Only style and repetitions remain AI-based (`AnalysisLLMClient`)
 - `GrammarDictionaryCompiler` - Turns a project's declared vocabulary into an engine dictionary; returns `null` when nothing is declared (2026-08-05)
+- `IgnoredGrammarIssue` (value object) - A remark the author declined, keyed by rule family + flagged text rather than position, so the judgement survives the text moving. Filtered in `CheckChapterGrammarUseCase` (2026-08-05)
+- `PUNCTUATION_RULE_FAMILIES` / `isPunctuationChecked` / `withPunctuationChecked` - The four families (`esp`, `nbsp`, `virg`, `poncfin`) an author means by "punctuation", switched as one from the toolbar and persisted in the project's rule profile (2026-08-05)
 - `PasswordResetTokenRepository` - Create (invalidates prior tokens), find valid token, mark used, invalidate all for user, delete expired (2026-01-31)
 - `SnapshotRepository` - Sequential numbering, paginated history, presentation-only metadata edits, tombstoning, activity log (2026-07-25 – 07-29)
 - `AutomaticSnapshotRepository` - Server-side scheduling clock: `configure`, `recordSavedChange`, `heartbeat`, `claimDueSnapshot`/`completeSnapshot`/`releaseFailedSnapshot` (distributed-lock-style claim pattern) (2026-07-29)

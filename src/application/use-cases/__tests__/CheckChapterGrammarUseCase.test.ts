@@ -297,6 +297,47 @@ describe('CheckChapterGrammarUseCase', () => {
     });
   });
 
+  describe('remarks the author declined', () => {
+    it('stays silent on a remark declined in this project', async () => {
+      const settings = ProjectSettings.create(
+        'settings-1',
+        PROJECT_ID,
+        OWNER_ID,
+        'Roman'
+      ).addIgnoredGrammarIssue({ ruleFamily: 'gn', text: 'chien' });
+      const { useCase } = buildUseCase({ settings });
+
+      const { issues } = await useCase.execute({
+        ownerId: OWNER_ID,
+        projectId: PROJECT_ID,
+        chapterId: CHAPTER_ID,
+      });
+
+      const flagged = issues.map((issue) => issue.text);
+      expect(flagged).not.toContain('chien');
+      // The chapter's other mistake is untouched: declining is not silencing.
+      expect(flagged).toContain('maison');
+    });
+
+    it('keeps reporting the same rule on text the author never declined', async () => {
+      const settings = ProjectSettings.create(
+        'settings-1',
+        PROJECT_ID,
+        OWNER_ID,
+        'Roman'
+      ).addIgnoredGrammarIssue({ ruleFamily: 'gn', text: 'chat' });
+      const { useCase } = buildUseCase({ settings });
+
+      const { issues } = await useCase.execute({
+        ownerId: OWNER_ID,
+        projectId: PROJECT_ID,
+        chapterId: CHAPTER_ID,
+      });
+
+      expect(issues.map((issue) => issue.text)).toContain('chien');
+    });
+  });
+
   it('returns no issue for a chapter whose content is not a document', async () => {
     const project = buildProject([new Chapter(CHAPTER_ID, 'Vide', '', 0)]);
     const { useCase } = buildUseCase({ project });

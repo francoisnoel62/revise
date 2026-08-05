@@ -10,10 +10,18 @@ import { useGrammarCheck } from './useGrammarCheck';
 
 vi.mock('@/app/actions/grammar-actions', () => ({
   checkChapterGrammarAction: vi.fn(),
+  getPunctuationCheckingAction: vi.fn().mockResolvedValue(true),
+  setPunctuationCheckingAction: vi.fn().mockResolvedValue({ success: true, data: true }),
 }));
 
-import { checkChapterGrammarAction } from '@/app/actions/grammar-actions';
+import {
+  checkChapterGrammarAction,
+  getPunctuationCheckingAction,
+  setPunctuationCheckingAction,
+} from '@/app/actions/grammar-actions';
 const mockCheckGrammar = checkChapterGrammarAction as ReturnType<typeof vi.fn>;
+const mockGetPunctuation = getPunctuationCheckingAction as ReturnType<typeof vi.fn>;
+const mockSetPunctuation = setPunctuationCheckingAction as ReturnType<typeof vi.fn>;
 
 /**
  * Editor double whose document is a single paragraph, so a ProseMirror position
@@ -203,5 +211,76 @@ describe('useGrammarCheck', () => {
     });
 
     expect(dispatchedGrammar(editor._setMetaCalls.at(-1))).toEqual([]);
+  });
+
+  describe('the punctuation option', () => {
+    it('reads what the project has stored', async () => {
+      mockGetPunctuation.mockResolvedValue(false);
+      const editor = createMockEditor('Les chiens dorment');
+
+      const { result } = renderHook(() =>
+        useGrammarCheck(editor as unknown as Editor, 'proj-1', 'chap-1')
+      );
+
+      await act(async () => {});
+
+      expect(mockGetPunctuation).toHaveBeenCalledWith('proj-1');
+      expect(result.current.punctuationChecked).toBe(false);
+    });
+
+    it('assumes it is on until the project answers', () => {
+      mockGetPunctuation.mockReturnValue(new Promise(() => {}));
+      const editor = createMockEditor('Les chiens dorment');
+
+      const { result } = renderHook(() =>
+        useGrammarCheck(editor as unknown as Editor, 'proj-1', 'chap-1')
+      );
+
+      expect(result.current.punctuationChecked).toBe(true);
+    });
+
+    it('stores the switch and shows it straight away', async () => {
+      mockGetPunctuation.mockResolvedValue(true);
+      mockSetPunctuation.mockResolvedValue({ success: true, data: false });
+      const editor = createMockEditor('Les chiens dorment');
+
+      const { result } = renderHook(() =>
+        useGrammarCheck(editor as unknown as Editor, 'proj-1', 'chap-1')
+      );
+      await act(async () => {});
+
+      await act(async () => {
+        await result.current.setPunctuationChecked(false);
+      });
+
+      expect(mockSetPunctuation).toHaveBeenCalledWith('proj-1', false);
+      expect(result.current.punctuationChecked).toBe(false);
+    });
+
+    it('puts the switch back if the project refused the change', async () => {
+      mockGetPunctuation.mockResolvedValue(true);
+      mockSetPunctuation.mockResolvedValue({ success: false, error: 'nope' });
+      const editor = createMockEditor('Les chiens dorment');
+
+      const { result } = renderHook(() =>
+        useGrammarCheck(editor as unknown as Editor, 'proj-1', 'chap-1')
+      );
+      await act(async () => {});
+
+      await act(async () => {
+        await result.current.setPunctuationChecked(false);
+      });
+
+      expect(result.current.punctuationChecked).toBe(true);
+    });
+
+    it('asks nothing of a project that is not loaded yet', async () => {
+      const editor = createMockEditor('Les chiens dorment');
+
+      renderHook(() => useGrammarCheck(editor as unknown as Editor, undefined, 'chap-1'));
+      await act(async () => {});
+
+      expect(mockGetPunctuation).not.toHaveBeenCalled();
+    });
   });
 });
