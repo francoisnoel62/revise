@@ -32,6 +32,20 @@ const GRAPHSPELL_DIRECTORY = join(
   'graphspell'
 );
 
+/**
+ * The builder and the modules it requires, read from disk rather than imported.
+ *
+ * A bundler cannot see these, so every route that compiles a dictionary has to
+ * name them in `outputFileTracingIncludes` or the deployed function will not have
+ * them. `GrammalecteDictionaryCompiler.test.ts` checks that next.config.ts does.
+ */
+export const DICTIONARY_BUILDER_FILES = [
+  'dawg.js',
+  'helpers.js',
+  'str_transform.js',
+  'char_player.js',
+] as const;
+
 // The builder logs its progress to the console line by line; a project dictionary
 // holds a handful of words and its compilation is not news.
 const SILENT_CONSOLE = { log: () => {} };

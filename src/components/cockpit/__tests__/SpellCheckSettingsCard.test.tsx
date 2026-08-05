@@ -222,6 +222,28 @@ describe('SpellCheckSettingsCard', () => {
       });
     });
 
+    it('reads a plural that repeats the singular as no plural at all', async () => {
+      render(
+        <SpellCheckSettingsCard
+          projectId={projectId}
+          initialCustomDictionary={[{ word: 'krogan', nature: 'noun' }]}
+          initialIgnoredWords={[]}
+        />
+      );
+
+      const plural = screen.getByLabelText('Pluriel de krogan');
+      fireEvent.change(plural, { target: { value: 'krogan' } });
+      fireEvent.blur(plural);
+
+      await waitFor(() => {
+        expect(savePersonalDictionaryAction).toHaveBeenCalledWith(projectId, [
+          { word: 'krogan', nature: 'noun' },
+        ]);
+      });
+      // What was saved is what the author is left looking at.
+      expect(plural).toHaveValue('');
+    });
+
     it('saves the plural form once the author leaves the field', async () => {
       render(
         <SpellCheckSettingsCard
@@ -242,6 +264,7 @@ describe('SpellCheckSettingsCard', () => {
           { word: 'krogan', nature: 'noun', pluralForm: 'krogans' },
         ]);
       });
+      expect(plural).toHaveValue('krogans');
     });
   });
 });

@@ -17,6 +17,17 @@ const nextConfig: NextConfig = {
       // The adjacent spell checker uses the same lazy dictionary loading pattern.
       './node_modules/dictionary-fr/**/*',
     ],
+    // Declaring a word compiles the project's dictionary with Graphspell's automaton
+    // builder, which is read from disk rather than imported (it ships as a
+    // browser-worker script with no module exports). Only the builder and the two
+    // modules it requires are needed here — not the ~25MB of generated dictionaries
+    // the editor's engine loads.
+    '/project/[projectId]/cockpit/settings': [
+      './node_modules/@francoisnoel62/grammalecte/_build/nodejs/fr/core/grammalecte/graphspell/dawg.js',
+      './node_modules/@francoisnoel62/grammalecte/_build/nodejs/fr/core/grammalecte/graphspell/helpers.js',
+      './node_modules/@francoisnoel62/grammalecte/_build/nodejs/fr/core/grammalecte/graphspell/str_transform.js',
+      './node_modules/@francoisnoel62/grammalecte/_build/nodejs/fr/core/grammalecte/graphspell/char_player.js',
+    ],
     '/api/paged-spike/export': ['./node_modules/@sparticuz/chromium/**/*'],
   },
   images: {

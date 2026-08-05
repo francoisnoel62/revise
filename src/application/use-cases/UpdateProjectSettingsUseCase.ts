@@ -30,8 +30,9 @@ export interface ProjectSettingsUpdates {
   relatedWorks?: RelatedWork[];
   autocompletePreferences?: Partial<AutocompletePreferences>;
   canonExtractionPreferences?: Partial<CanonExtractionPreferences>;
-  // The project vocabulary is written by UpdatePersonalDictionaryUseCase, which
-  // recompiles the engine dictionary with it; a generic update would leave the two apart.
+  // Declaring a word changes the compiled engine dictionary, so that write goes
+  // through UpdatePersonalDictionaryUseCase, which rebuilds it. A generic update
+  // here would replace the list and leave the automaton describing other words.
   ignoredWords?: string[];
   grammarRuleProfile?: GrammarRuleProfile;
   publicationProfileId?: PublicationProfileId;

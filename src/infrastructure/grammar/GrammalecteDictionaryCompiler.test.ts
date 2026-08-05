@@ -1,10 +1,15 @@
 // ABOUTME: Integration tests compiling a project's invented vocabulary with the real Graphspell builder.
 // ABOUTME: Verifies the engine reads back the morphology the author declared, without mocks.
 
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { PersonalDictionaryEntry } from '@/domain/value-objects/PersonalDictionaryEntry';
 import { DEFAULT_FICTION_GRAMMAR_RULE_PROFILE } from '@/domain/value-objects/GrammarRuleProfile';
-import { GrammalecteDictionaryCompiler } from './GrammalecteDictionaryCompiler';
+import {
+  DICTIONARY_BUILDER_FILES,
+  GrammalecteDictionaryCompiler,
+} from './GrammalecteDictionaryCompiler';
 import { GrammalecteGrammarChecker } from './GrammalecteGrammarChecker';
 
 describe('GrammalecteDictionaryCompiler', () => {
@@ -55,6 +60,19 @@ describe('GrammalecteDictionaryCompiler', () => {
     const errors = check('Vhardun est parti.', [{ word: 'Vhardun' }]);
 
     expect(errors).toEqual([]);
+  });
+
+  it('has its builder files traced for the route that declares a word', () => {
+    // Read from disk, so no bundler can see them: a route that compiles without
+    // naming them here deploys a function that throws on the first save.
+    const config = readFileSync(resolve(process.cwd(), 'next.config.ts'), 'utf8');
+    const routeStart = config.indexOf("'/project/[projectId]/cockpit/settings'");
+
+    expect(routeStart).toBeGreaterThan(-1);
+    const settingsRoute = config.slice(routeStart, config.indexOf('],', routeStart));
+    for (const file of DICTIONARY_BUILDER_FILES) {
+      expect(settingsRoute).toContain(`graphspell/${file}`);
+    }
   });
 
   it('accepts the plural form the author declared', () => {

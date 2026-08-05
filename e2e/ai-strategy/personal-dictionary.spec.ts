@@ -79,6 +79,26 @@ test.describe("A project's own vocabulary", () => {
     await expect(page.getByLabel(`Genre de ${TEST_DICTIONARY_WORD}`)).toHaveValue('feminine');
   });
 
+  test('a plural form typed then left behind is kept', async ({ page }) => {
+    await openSettings(page);
+    await page.getByLabel(`Nature de ${TEST_DICTIONARY_WORD}`).selectOption('noun');
+
+    const plural = page.getByLabel(`Pluriel de ${TEST_DICTIONARY_WORD}`);
+    const save = page.waitForResponse(
+      (response) => response.request().method() === 'POST' && response.status() < 400
+    );
+    await plural.fill(`${TEST_DICTIONARY_WORD}s`);
+    await plural.blur();
+    await save;
+
+    await page.reload();
+
+    await expect(page.getByLabel(`Pluriel de ${TEST_DICTIONARY_WORD}`)).toHaveValue(
+      `${TEST_DICTIONARY_WORD}s`,
+      { timeout: 15_000 }
+    );
+  });
+
   test('an undeclared word draws no comment from the corrector', async ({ page }) => {
     await page.goto(EDITOR_URL);
     await expect(page.locator('.ProseMirror')).toBeVisible({ timeout: 15_000 });

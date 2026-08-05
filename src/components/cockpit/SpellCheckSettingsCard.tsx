@@ -16,10 +16,11 @@ import {
   clearIgnoredWordsAction,
 } from '@/app/actions/spell-check-actions';
 import { savePersonalDictionaryAction } from '@/app/actions/personal-dictionary-actions';
-import type {
-  PersonalDictionaryEntry,
-  PersonalDictionaryGender,
-  PersonalDictionaryNature,
+import {
+  toPersonalDictionaryEntry,
+  type PersonalDictionaryEntry,
+  type PersonalDictionaryGender,
+  type PersonalDictionaryNature,
 } from '@/domain/value-objects/PersonalDictionaryEntry';
 
 interface SpellCheckSettingsCardProps {
@@ -47,20 +48,6 @@ const FIELD_CLASS =
 
 function wordCount(n: number) {
   return n === 1 ? '1 mot' : `${n} mots`;
-}
-
-/** Drops what the author cleared, so an undeclared word stays a bare word. */
-function withDeclaration(
-  entry: PersonalDictionaryEntry,
-  change: Partial<PersonalDictionaryEntry>
-): PersonalDictionaryEntry {
-  const merged = { ...entry, ...change };
-  return {
-    word: merged.word,
-    ...(merged.nature ? { nature: merged.nature } : {}),
-    ...(merged.gender ? { gender: merged.gender } : {}),
-    ...(merged.pluralForm?.trim() ? { pluralForm: merged.pluralForm.trim() } : {}),
-  };
 }
 
 export function SpellCheckSettingsCard({
@@ -92,11 +79,18 @@ export function SpellCheckSettingsCard({
     setIsAdding(false);
   }, [projectId, newWord, dictionary]);
 
+  /** Holds what is being typed; normalization waits for the field to be left. */
+  const editPlural = useCallback((word: string, pluralForm: string) => {
+    setDictionary((prev) =>
+      prev.map((entry) => (entry.word === word ? { ...entry, pluralForm } : entry))
+    );
+  }, []);
+
   /** Declarations travel together: the engine dictionary is rebuilt from the whole list. */
   const saveDeclaration = useCallback(
     async (word: string, change: Partial<PersonalDictionaryEntry>) => {
       const updated = dictionary.map((entry) =>
-        entry.word === word ? withDeclaration(entry, change) : entry
+        entry.word === word ? toPersonalDictionaryEntry({ ...entry, ...change }) : entry
       );
       setDictionary(updated);
       await savePersonalDictionaryAction(projectId, updated);
@@ -193,13 +187,13 @@ export function SpellCheckSettingsCard({
                       ))}
                     </select>
 
+                    {/* Typed freely, saved on blur — one save per plural, not per keystroke. */}
                     <input
                       aria-label={`Pluriel de ${entry.word}`}
                       placeholder="Invariable"
-                      defaultValue={entry.pluralForm ?? ''}
-                      onBlur={(e) =>
-                        saveDeclaration(entry.word, { pluralForm: e.target.value })
-                      }
+                      value={entry.pluralForm ?? ''}
+                      onChange={(e) => editPlural(entry.word, e.target.value)}
+                      onBlur={() => saveDeclaration(entry.word, {})}
                       className={`${FIELD_CLASS} w-28`}
                     />
 

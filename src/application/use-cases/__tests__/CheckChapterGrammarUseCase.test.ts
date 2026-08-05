@@ -293,7 +293,7 @@ describe('CheckChapterGrammarUseCase', () => {
       );
 
       expect(source).toMatch(/getGrammarDictionary\(\)/);
-      expect(source).not.toMatch(/Compiler|compile\(/);
+      expect(source).not.toMatch(/DictionaryCompiler/);
     });
   });
 

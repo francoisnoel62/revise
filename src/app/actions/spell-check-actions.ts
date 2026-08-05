@@ -79,6 +79,14 @@ export async function getCustomDictionaryAction(projectId: string): Promise<stri
   return settings?.getCustomDictionaryWords() ?? [];
 }
 
+/**
+ * Adds a word without describing it, from the spell-check palette.
+ *
+ * It writes through the entity rather than UpdatePersonalDictionaryUseCase because
+ * an undeclared word produces no flexion: the compiled dictionary is unchanged and
+ * has nothing to rebuild. Removing a word can drop a declaration, so its sibling
+ * below does go through the use case.
+ */
 export async function addWordToCustomDictionaryAction(
   projectId: string,
   word: string

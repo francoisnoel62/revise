@@ -8,17 +8,6 @@ import { getGrammarDictionaryCompiler } from '@/infrastructure/config/providers'
 import type { PersonalDictionaryEntry } from '@/domain/value-objects/PersonalDictionaryEntry';
 import { getAuthenticatedUserId, getProjectSettingsRepo } from './utils';
 
-export async function getPersonalDictionaryAction(
-  projectId: string
-): Promise<PersonalDictionaryEntry[]> {
-  const authResult = await getAuthenticatedUserId();
-  if ('error' in authResult) return [];
-
-  const repo = await getProjectSettingsRepo();
-  const settings = await repo.findByProjectId(authResult.userId, projectId);
-  return settings?.getCustomDictionary() ?? [];
-}
-
 export async function savePersonalDictionaryAction(
   projectId: string,
   entries: PersonalDictionaryEntry[]

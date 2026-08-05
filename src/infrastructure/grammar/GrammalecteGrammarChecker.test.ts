@@ -47,16 +47,16 @@ describe('GrammalecteGrammarChecker', () => {
   });
 
   it('installs the dictionary and parses without ever suspending in between', () => {
+    // The whole adapter, not just checkParagraph: an await moved into a helper it
+    // calls would suspend just the same, and would let another project's request
+    // install its own dictionary into the shared engine mid-paragraph.
     const source = readFileSync(
       resolve(process.cwd(), 'src/infrastructure/grammar/GrammalecteGrammarChecker.ts'),
       'utf8'
     );
-    const checkParagraph = source.slice(source.indexOf('checkParagraph('));
 
-    // An await here would let another project's request install its own
-    // dictionary into the shared engine before this paragraph is parsed.
-    expect(checkParagraph).not.toMatch(/\bawait\b/);
-    expect(checkParagraph).not.toMatch(/\basync\b/);
+    expect(source).not.toMatch(/\bawait\b/);
+    expect(source).not.toMatch(/\basync\b/);
   });
 
   it('keeps one project vocabulary out of another project paragraph', () => {
