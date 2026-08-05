@@ -145,18 +145,28 @@ test.describe('Grammar correction in the editor', () => {
     await expect(editor).toContainText('Les chiens de la voisine sont partis.');
   });
 
-  test('the correction is reachable from the menu, with no AI provider configured', async ({
+  test('the correction has its own toolbar button, needing no AI provider', async ({
     page,
   }) => {
     await openGrammarEditor(page);
 
-    await page.getByRole('button', { name: /^IA/i }).click();
-    const entry = page.getByRole('menuitem', { name: 'Corriger le chapitre' });
-    await expect(entry).toBeVisible();
-    await entry.click();
+    const button = page.getByRole('button', { name: 'Corriger le chapitre' });
+    await expect(button).toBeEnabled();
+    await button.click();
 
     await expect(page.locator('.grammar-error').first()).toBeVisible({
       timeout: FIRST_UNDERLINE_TIMEOUT,
     });
+  });
+
+  test('the local corrector is not filed under the AI menu', async ({ page }) => {
+    await openGrammarEditor(page);
+
+    await page.getByRole('button', { name: /^IA/i }).click();
+
+    await expect(page.getByRole('menuitem', { name: 'Analyser le style' })).toBeVisible();
+    await expect(
+      page.getByRole('menuitem', { name: 'Corriger le chapitre' })
+    ).toHaveCount(0);
   });
 });

@@ -30,6 +30,8 @@ import {
   Search,
   Superscript,
   ListOrdered,
+  SpellCheck,
+  Loader2,
 } from 'lucide-react';
 
 export type EditorProfile = 'print-ready' | 'passerelle';
@@ -341,10 +343,31 @@ export function FormattingToolbar({
     </Button>
   );
 
-  // The menu also carries "Corriger le chapitre", which needs no AI provider —
-  // so an author without one still reaches the local corrector.
+  // The corrector runs locally: free, deterministic, and available to an author
+  // who configured no AI provider. It gets its own button rather than a place
+  // under a menu labelled "IA", which would say the opposite.
+  const correctionButton = onCorrect && (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={onCorrect}
+      disabled={correctionLoading}
+      title="Corriger le chapitre"
+      aria-label="Corriger le chapitre"
+      className="h-8 md:h-9 gap-1.5 px-2"
+    >
+      {correctionLoading ? (
+        <Loader2 className="h-3.5 w-3.5 md:h-4 md:w-4 animate-spin" />
+      ) : (
+        <SpellCheck className="h-3.5 w-3.5 md:h-4 md:w-4" />
+      )}
+      <span className="hidden lg:inline text-xs">Corriger</span>
+    </Button>
+  );
+
   const aiMenu = (showAIFeatures || onCorrect) && onRewrite && onProviderChange && onHistoryClick && onAutocompleteChange && (
-    <div className="flex items-center ml-auto mt-1 md:mt-0">
+    <div className="flex items-center ml-auto mt-1 md:mt-0 gap-0.5 md:gap-1">
+      {correctionButton}
       <AIMenuDropdown
         hasSelection={hasSelection}
         onRewrite={onRewrite}
@@ -363,8 +386,6 @@ export function FormattingToolbar({
         onOpenCommandPalette={onOpenCommandPalette}
         onAnalyze={onAnalyze}
         analysisLoading={analysisLoading}
-        onCorrect={onCorrect}
-        correctionLoading={correctionLoading}
       />
     </div>
   );

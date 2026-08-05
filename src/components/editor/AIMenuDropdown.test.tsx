@@ -194,70 +194,29 @@ describe('AIMenuDropdown', () => {
     });
   });
 
-  describe('Chapter correction', () => {
-    it('renders "Corriger le chapitre" when onCorrect is provided', async () => {
+  describe('what belongs under "IA"', () => {
+    it('offers only what needs an AI provider', async () => {
       const user = await import('@testing-library/user-event');
-      render(<AIMenuDropdown {...defaultProps} onCorrect={vi.fn()} />);
+      render(<AIMenuDropdown {...defaultProps} onAnalyze={vi.fn()} />);
 
       await user.default.setup().click(screen.getByRole('button'));
 
-      expect(screen.getByText('Corriger le chapitre')).toBeInTheDocument();
+      // The local corrector has its own toolbar button; under "IA" it would be
+      // labelled by what it is not.
+      expect(screen.queryByText('Corriger le chapitre')).not.toBeInTheDocument();
+      expect(screen.getByText('Analyser le style')).toBeInTheDocument();
     });
 
-    it('calls onCorrect when clicked', async () => {
-      const user = await import('@testing-library/user-event');
-      const onCorrect = vi.fn();
-      render(<AIMenuDropdown {...defaultProps} onCorrect={onCorrect} />);
-
-      await user.default.setup().click(screen.getByRole('button'));
-      await user.default.setup().click(screen.getByText('Corriger le chapitre'));
-
-      expect(onCorrect).toHaveBeenCalledTimes(1);
-    });
-
-    it('stays available without a configured AI provider — the engine is local', async () => {
+    it('needs a configured provider for the style analysis', async () => {
       const user = await import('@testing-library/user-event');
       render(
-        <AIMenuDropdown
-          {...defaultProps}
-          selectedProviderId={null}
-          onCorrect={vi.fn()}
-          onAnalyze={vi.fn()}
-        />
+        <AIMenuDropdown {...defaultProps} selectedProviderId={null} onAnalyze={vi.fn()} />
       );
 
       await user.default.setup().click(screen.getByRole('button'));
 
       expect(
-        screen.getByText('Corriger le chapitre').closest('[role="menuitem"]')
-      ).not.toHaveAttribute('data-disabled');
-      // The AI counterpart does need one.
-      expect(
         screen.getByText('Analyser le style').closest('[role="menuitem"]')
-      ).toHaveAttribute('data-disabled');
-    });
-
-    it('names the local corrector and the AI analysis differently', async () => {
-      const user = await import('@testing-library/user-event');
-      render(<AIMenuDropdown {...defaultProps} onCorrect={vi.fn()} onAnalyze={vi.fn()} />);
-
-      await user.default.setup().click(screen.getByRole('button'));
-
-      const entries = screen
-        .getAllByRole('menuitem')
-        .map((item) => item.textContent?.trim());
-      expect(entries).toContain('Corriger le chapitre');
-      expect(entries).toContain('Analyser le style');
-    });
-
-    it('disables "Corriger le chapitre" while a correction is running', async () => {
-      const user = await import('@testing-library/user-event');
-      render(<AIMenuDropdown {...defaultProps} onCorrect={vi.fn()} correctionLoading={true} />);
-
-      await user.default.setup().click(screen.getByRole('button'));
-
-      expect(
-        screen.getByText('Corriger le chapitre').closest('[role="menuitem"]')
       ).toHaveAttribute('data-disabled');
     });
   });

@@ -15,7 +15,6 @@ import {
   Zap,
   PenLine,
   CheckCircle,
-  SpellCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -61,10 +60,6 @@ interface AIMenuDropdownProps {
   // Chapter analysis
   onAnalyze?: () => void;
   analysisLoading?: boolean;
-
-  // Chapter correction (local grammar engine — free, no provider needed)
-  onCorrect?: () => void;
-  correctionLoading?: boolean;
 }
 
 export function AIMenuDropdown({
@@ -85,8 +80,6 @@ export function AIMenuDropdown({
   onOpenCommandPalette,
   onAnalyze,
   analysisLoading = false,
-  onCorrect,
-  correctionLoading = false,
 }: AIMenuDropdownProps) {
   const [open, setOpen] = useState(false);
 
@@ -135,11 +128,6 @@ export function AIMenuDropdown({
   const handleAnalyzeClick = () => {
     setOpen(false);
     onAnalyze?.();
-  };
-
-  const handleCorrectClick = () => {
-    setOpen(false);
-    onCorrect?.();
   };
 
   // Determine if the menu is in a loading state
@@ -204,28 +192,6 @@ export function AIMenuDropdown({
                 </DropdownMenuItem>
               );
             })}
-          </>
-        )}
-
-        {/* Correction Section — a local engine: free, deterministic, no provider */}
-        {onCorrect && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider">
-              Correction
-            </DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={handleCorrectClick}
-              disabled={correctionLoading}
-              className="gap-2"
-            >
-              {correctionLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <SpellCheck className="h-4 w-4" />
-              )}
-              <span>Corriger le chapitre</span>
-            </DropdownMenuItem>
           </>
         )}
 

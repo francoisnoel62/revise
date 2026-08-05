@@ -754,4 +754,89 @@ describe('FormattingToolbar', () => {
       expect(aiButton).toBeDisabled();
     });
   });
+
+  describe('Chapter correction', () => {
+    const correctionProps = {
+      onRewrite: vi.fn(),
+      onProviderChange: vi.fn(),
+      onHistoryClick: vi.fn(),
+      onAutocompleteChange: vi.fn(),
+    };
+
+    it('gives the local corrector its own button, outside the AI menu', () => {
+      const editor = createMockEditor();
+      render(
+        <FormattingToolbar editor={editor} {...correctionProps} onCorrect={vi.fn()} />
+      );
+
+      const button = screen.getByRole('button', { name: 'Corriger le chapitre' });
+      expect(button).toBeInTheDocument();
+      expect(button.closest('[role="menu"]')).toBeNull();
+    });
+
+    it('calls onCorrect when the button is clicked', () => {
+      const editor = createMockEditor();
+      const onCorrect = vi.fn();
+      render(
+        <FormattingToolbar editor={editor} {...correctionProps} onCorrect={onCorrect} />
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Corriger le chapitre' }));
+
+      expect(onCorrect).toHaveBeenCalledTimes(1);
+    });
+
+    it('stays enabled with no AI provider — the engine is local', () => {
+      const editor = createMockEditor();
+      render(
+        <FormattingToolbar
+          editor={editor}
+          {...correctionProps}
+          showAIFeatures={false}
+          onCorrect={vi.fn()}
+        />
+      );
+
+      expect(screen.getByRole('button', { name: 'Corriger le chapitre' })).toBeEnabled();
+    });
+
+    it('disables the button while a correction is running', () => {
+      const editor = createMockEditor();
+      render(
+        <FormattingToolbar
+          editor={editor}
+          {...correctionProps}
+          onCorrect={vi.fn()}
+          correctionLoading
+        />
+      );
+
+      expect(screen.getByRole('button', { name: 'Corriger le chapitre' })).toBeDisabled();
+    });
+
+    it('shows no correction button when the editor offers no correction', () => {
+      const editor = createMockEditor();
+      render(<FormattingToolbar editor={editor} {...correctionProps} />);
+
+      expect(
+        screen.queryByRole('button', { name: 'Corriger le chapitre' })
+      ).not.toBeInTheDocument();
+    });
+
+    it('renders the correction button in the print-ready profile too', () => {
+      const editor = createMockEditor();
+      render(
+        <FormattingToolbar
+          editor={editor}
+          {...correctionProps}
+          onCorrect={vi.fn()}
+          isPrintReady
+        />
+      );
+
+      expect(
+        screen.getByRole('button', { name: 'Corriger le chapitre' })
+      ).toBeInTheDocument();
+    });
+  });
 });
