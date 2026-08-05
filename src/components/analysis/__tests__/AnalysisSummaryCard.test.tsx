@@ -13,9 +13,6 @@ describe('AnalysisSummaryCard', () => {
     appliedIssues: 5,
     ignoredIssues: 3,
     byCategory: {
-      spelling: 0,
-      grammar: 6,
-      punctuation: 4,
       repetition: 4,
       style: 3,
     } as Record<AnalysisCategory, number>,
@@ -54,10 +51,10 @@ describe('AnalysisSummaryCard', () => {
   it('renders category breakdown', () => {
     render(<AnalysisSummaryCard stats={defaultStats} />);
 
-    expect(screen.getByText(/grammaire/i)).toBeInTheDocument();
-    expect(screen.getByText(/ponctuation/i)).toBeInTheDocument();
     expect(screen.getByText(/répétitions/i)).toBeInTheDocument();
     expect(screen.getByText(/style/i)).toBeInTheDocument();
+    expect(screen.queryByText(/grammaire/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/ponctuation/i)).not.toBeInTheDocument();
   });
 
   it('renders loading skeleton when isLoading is true', () => {
@@ -117,9 +114,6 @@ describe('AnalysisSummaryCard', () => {
       appliedIssues: 0,
       ignoredIssues: 0,
       byCategory: {
-        spelling: 0,
-        grammar: 0,
-        punctuation: 0,
         repetition: 0,
         style: 0,
       } as Record<AnalysisCategory, number>,

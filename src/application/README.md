@@ -1122,27 +1122,22 @@ Analysis strategies implement the Strategy pattern for different analysis types:
 
 ---
 
-#### `GrammarAnalysisStrategy`
-**Purpose**: Detect grammar issues via AI
-
-**Features**:
-- Identifies subject-verb agreement errors
-- Detects tense inconsistencies
-- Suggests corrections with context
-
-**Tests**: 15+ tests covering grammar detection
+#### ~~`GrammarAnalysisStrategy`~~, ~~`PunctuationAnalysisStrategy`~~
+**Removed 2026-08-05**: both mechanical checks now run offline through the Grammalecte
+`GrammarChecker` (« Corriger le chapitre »). The AI analysis keeps only what needs a
+reader's judgement — repetitions and style.
 
 ---
 
-#### `PunctuationAnalysisStrategy`
-**Purpose**: Detect punctuation errors via AI
+#### `createAnalysisStrategies`
+**Purpose**: Build the strategy for each category the author selected
 
 **Features**:
-- Missing/extra punctuation detection
-- Typography issues (curly quotes, em dashes)
-- French-specific rules (non-breaking spaces)
+- One place binding `AnalysisCategory` → strategy
+- Throws naming the category when no strategy is wired, so the author is never offered an
+  analysis the application cannot run
 
-**Tests**: 15+ tests covering punctuation detection
+**Tests**: 3 tests covering full coverage, partial selection, and the unwired category
 
 ---
 
@@ -2402,7 +2397,7 @@ All use cases tested with mocked dependencies following Clean Architecture princ
   - SaveChapterAnalysisHistoryUseCase: 5 tests
   - ListChapterAnalysisHistoryUseCase: 5 tests
   - text-matching.ts: 19 tests
-  - Analysis Strategies: 80+ tests (SpellingAnalysisStrategy, GrammarAnalysisStrategy, PunctuationAnalysisStrategy, StyleAnalysisStrategy, RepetitionAnalysisStrategy)
+  - Analysis Strategies: 40+ tests (StyleAnalysisStrategy, RepetitionAnalysisStrategy, createAnalysisStrategies)
 - **Character Use Cases**: 33+ tests ⭐ NEW (Phase 6)
   - CreateCharacterUseCase: 5 tests
   - LoadCharacterUseCase: 4 tests

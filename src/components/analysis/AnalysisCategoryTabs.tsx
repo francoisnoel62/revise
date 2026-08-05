@@ -4,8 +4,12 @@
 'use client';
 
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Languages, Type, Repeat, Palette, ListChecks, SpellCheck } from 'lucide-react';
-import { AnalysisCategory } from '@/domain/value-objects/AnalysisCategory';
+import { Languages, Repeat, Palette, ListChecks } from 'lucide-react';
+import {
+  ANALYSIS_CATEGORIES,
+  ANALYSIS_CATEGORY_LABELS,
+  AnalysisCategory,
+} from '@/domain/value-objects/AnalysisCategory';
 
 type CategoryKey = AnalysisCategory | 'all';
 
@@ -19,21 +23,11 @@ interface AnalysisCategoryTabsProps {
 
 const categoryConfig: Record<CategoryKey, { label: string; icon: typeof Languages }> = {
   all: { label: 'Tous', icon: ListChecks },
-  spelling: { label: 'Orthographe', icon: SpellCheck },
-  grammar: { label: 'Grammaire', icon: Languages },
-  punctuation: { label: 'Ponctuation', icon: Type },
-  repetition: { label: 'Répétitions', icon: Repeat },
-  style: { label: 'Style', icon: Palette },
+  repetition: { label: ANALYSIS_CATEGORY_LABELS.repetition, icon: Repeat },
+  style: { label: ANALYSIS_CATEGORY_LABELS.style, icon: Palette },
 };
 
-const categoryOrder: CategoryKey[] = [
-  'all',
-  'spelling',
-  'grammar',
-  'punctuation',
-  'repetition',
-  'style',
-];
+const categoryOrder: CategoryKey[] = ['all', ...ANALYSIS_CATEGORIES];
 
 export function AnalysisCategoryTabs({
   selectedCategory,

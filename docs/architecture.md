@@ -31,7 +31,7 @@ Pure business logic with no framework dependencies.
 - `WritingQuota` - Recurring writing quota with daily/weekly period, target word rate, and progress tracking against `WordCountSnapshot`
 - `AutocompleteEvent` - Full lifecycle of one autocomplete suggestion (triggered → displayed → accepted/rejected/expired); carries provider, model, latency, outcome, and session identifiers for telemetry (Phase 10.0)
 - `CanonFact` - Established fact about an entity/character with **temporal validity**: `validFromChapter`/`validToChapter` chapter range (not a boolean); `withValidToChapter()` closes a fact superseded by a later one. Classified into 5 numbered narrative categories — objectif, état de connaissance, croyance, croyance sur autrui, dynamique relationnelle (see [ADR 0003](../docs/adr/0003-cinq-categories-faits-canon.md)) — rather than a `character`/`location`/`relation`/`event` typology. Tracks source (`derived` | `author`) (Phase 10.0; model corrected 2026-07-29)
-- `ChapterAnalysis` - Complete chapter analysis result with issues, repetitions, statistics (Phase 7); covers grammar/punctuation/style/repetition only — spelling was removed from this AI-based path 2026-06-25 (see `SpellChecker` below)
+- `ChapterAnalysis` - Complete chapter analysis result with issues, repetitions, statistics (Phase 7); covers repetition/style only — spelling was removed from this AI-based path 2026-06-25 (see `SpellChecker` below), grammar and punctuation on 2026-08-05 (see `GrammarChecker` below). The AI is asked what only it can judge; the mechanical checks belong to the local engines.
 - `CharacterConversation` - Persisted conversation between the author and a character persona; owns an ordered list of `ChatMessage` value objects (Phase 9.0)
 - `TextDocument` - Legacy single document (Phase 1)
 - `PasswordResetToken` - Single-use, expiring (1h) password-reset token (2026-01-31)
@@ -234,10 +234,10 @@ Use cases orchestrating domain logic.
 
 **Analysis Strategies** (Phase 7):
 - ~~`SpellingAnalysisStrategy`~~ - **Removed 2026-06-25**; spelling detection now goes through the offline `SpellChecker` (nspell) instead of an AI strategy — see Infrastructure/Lexical below
-- `GrammarAnalysisStrategy` - Grammar issue detection via AI
-- `PunctuationAnalysisStrategy` - Punctuation error detection via AI
+- ~~`GrammarAnalysisStrategy`~~, ~~`PunctuationAnalysisStrategy`~~ - **Removed 2026-08-05**; both go through the offline Grammalecte `GrammarChecker` — see Infrastructure/Lexical below
 - `StyleAnalysisStrategy` - Style improvement suggestions via AI
 - `RepetitionAnalysisStrategy` - Repeated word/phrase detection
+- `createAnalysisStrategies` - Binds each `AnalysisCategory` to its strategy; throws on a category with none, so the author is never offered an analysis that cannot run
 
 **Blog Use Cases** (Phase 4.0, 4.1+):
 - `CreateBlogArticleUseCase`, `UpdateBlogArticleUseCase`, `DeleteBlogArticleUseCase`, `ListBlogArticlesUseCase`

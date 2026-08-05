@@ -295,7 +295,7 @@ export function AIMenuDropdown({
             ) : (
               <CheckCircle className="h-4 w-4" />
             )}
-            <span>Vérifier le chapitre</span>
+            <span>Analyser le style</span>
           </DropdownMenuItem>
         )}
 

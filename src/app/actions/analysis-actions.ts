@@ -1,5 +1,5 @@
 // ABOUTME: Server Actions for chapter analysis/verification feature.
-// ABOUTME: Provides AI-powered grammar, punctuation, style, and repetition analysis.
+// ABOUTME: Provides AI-powered style and repetition analysis.
 
 'use server';
 
@@ -15,16 +15,12 @@ import {
 import { AnalyzeChapterUseCase } from '@/application/use-cases/AnalyzeChapterUseCase';
 import { ApplyCorrectionUseCase, CorrectionIssue } from '@/application/use-cases/ApplyCorrectionUseCase';
 import { ApplyBatchCorrectionsUseCase, BatchCorrectionIssue } from '@/application/use-cases/ApplyBatchCorrectionsUseCase';
-import { GrammarAnalysisStrategy } from '@/application/strategies/GrammarAnalysisStrategy';
-import { PunctuationAnalysisStrategy } from '@/application/strategies/PunctuationAnalysisStrategy';
-import { StyleAnalysisStrategy } from '@/application/strategies/StyleAnalysisStrategy';
-import { RepetitionAnalysisStrategy } from '@/application/strategies/RepetitionAnalysisStrategy';
+import { createAnalysisStrategies } from '@/application/strategies/createAnalysisStrategies';
 import { createAnalysisLLMClient } from '@/infrastructure/ai/AnalysisLLMClient';
-import { AnalysisCategory } from '@/domain/value-objects/AnalysisCategory';
+import { ANALYSIS_CATEGORIES, AnalysisCategory } from '@/domain/value-objects/AnalysisCategory';
 import { StyleRigor } from '@/domain/value-objects/StyleRigor';
 import type { AnalysisIssue as DomainAnalysisIssue } from '@/domain/value-objects/AnalysisIssue';
 import type { RepetitionCluster } from '@/domain/value-objects/RepetitionCluster';
-import type { AnalysisStrategy } from '@/application/strategies/AnalysisStrategy';
 
 // DTOs for server actions
 export interface AnalysisIssueDTO {
@@ -153,24 +149,7 @@ export async function analyzeChapter(
       provider.getModel()
     );
 
-    // Create strategies based on requested categories
-    const strategiesMap = new Map<AnalysisCategory, AnalysisStrategy>();
-    for (const category of categories) {
-      switch (category) {
-        case 'grammar':
-          strategiesMap.set(category, new GrammarAnalysisStrategy(analysisClient));
-          break;
-        case 'punctuation':
-          strategiesMap.set(category, new PunctuationAnalysisStrategy(analysisClient));
-          break;
-        case 'style':
-          strategiesMap.set(category, new StyleAnalysisStrategy(analysisClient));
-          break;
-        case 'repetition':
-          strategiesMap.set(category, new RepetitionAnalysisStrategy(analysisClient));
-          break;
-      }
-    }
+    const strategiesMap = createAnalysisStrategies(analysisClient, categories);
 
     const useCase = new AnalyzeChapterUseCase(
       projectRepo,
@@ -192,13 +171,9 @@ export async function analyzeChapter(
     const repetitions = analysis.getRepetitions();
 
     // Compute stats
-    const byCategory: Record<AnalysisCategory, number> = {
-      spelling: 0,
-      grammar: 0,
-      punctuation: 0,
-      repetition: 0,
-      style: 0,
-    };
+    const byCategory = Object.fromEntries(
+      ANALYSIS_CATEGORIES.map((category) => [category, 0])
+    ) as Record<AnalysisCategory, number>;
     const bySeverity: Record<string, number> = {
       error: 0,
       warning: 0,

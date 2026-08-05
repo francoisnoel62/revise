@@ -49,6 +49,9 @@ vi.mock('@google/genai', () => {
   };
 });
 
+const styleOptions = (language: 'fr' | 'en') =>
+  ({ language, rigor: 'moderate', activeRules: [] }) as const;
+
 describe('AnalysisLLMClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -104,7 +107,7 @@ describe('AnalysisLLMClient', () => {
         choices: [{ message: { content: null } }],
       });
 
-      await expect(client.analyzeGrammar('test', { language: 'en' })).rejects.toThrow(
+      await expect(client.analyzeStyle('test', styleOptions('en'))).rejects.toThrow(
         'No response from LLM'
       );
     });
@@ -114,7 +117,7 @@ describe('AnalysisLLMClient', () => {
         choices: [{ message: { content: 'not json' } }],
       });
 
-      await expect(client.analyzeGrammar('test', { language: 'en' })).rejects.toThrow(
+      await expect(client.analyzeStyle('test', styleOptions('en'))).rejects.toThrow(
         'Failed to parse LLM response'
       );
     });
@@ -124,7 +127,7 @@ describe('AnalysisLLMClient', () => {
         choices: [{ message: { content: '{"issues": []}' } }],
       });
 
-      await client.analyzeGrammar('Bonjour', { language: 'fr' });
+      await client.analyzeStyle('Bonjour', styleOptions('fr'));
 
       expect(mockOpenAICreate).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -145,7 +148,7 @@ describe('AnalysisLLMClient', () => {
       client = new AnthropicAnalysisLLMClient('test-key', 'claude-sonnet-4-5-20250929');
     });
 
-    it('should call Anthropic API for grammar analysis', async () => {
+    it('should call Anthropic API for style analysis', async () => {
       const mockResponse = {
         issues: [
           {
@@ -163,7 +166,7 @@ describe('AnalysisLLMClient', () => {
         content: [{ type: 'text', text: JSON.stringify(mockResponse) }],
       });
 
-      const result = await client.analyzeGrammar('She go to school', { language: 'en' });
+      const result = await client.analyzeStyle('She go to school', styleOptions('en'));
 
       expect(result.issues).toHaveLength(1);
       expect(result.issues[0].suggestion).toBe('She goes');
@@ -185,7 +188,7 @@ describe('AnalysisLLMClient', () => {
         content: [{ type: 'text', text: '```json\n' + JSON.stringify(mockResponse) + '\n```' }],
       });
 
-      const result = await client.analyzeGrammar('test', { language: 'en' });
+      const result = await client.analyzeStyle('test', styleOptions('en'));
       expect(result.issues).toHaveLength(0);
     });
 
@@ -199,7 +202,7 @@ describe('AnalysisLLMClient', () => {
         content: [{ type: 'text', text: '```json\n' + JSON.stringify(mockResponse) }],
       });
 
-      const result = await client.analyzeGrammar('test', { language: 'en' });
+      const result = await client.analyzeStyle('test', styleOptions('en'));
       expect(result.issues).toHaveLength(0);
     });
 
@@ -210,7 +213,7 @@ describe('AnalysisLLMClient', () => {
         content: [{ type: 'text', text: 'Here is the analysis:\n' + JSON.stringify(mockResponse) }],
       });
 
-      const result = await client.analyzeGrammar('test', { language: 'en' });
+      const result = await client.analyzeStyle('test', styleOptions('en'));
       expect(result.issues).toHaveLength(0);
     });
 
@@ -219,7 +222,7 @@ describe('AnalysisLLMClient', () => {
         content: [{ type: 'image', text: null }],
       });
 
-      await expect(client.analyzeGrammar('test', { language: 'en' })).rejects.toThrow(
+      await expect(client.analyzeStyle('test', styleOptions('en'))).rejects.toThrow(
         'Unexpected response type from Anthropic'
       );
     });
@@ -253,7 +256,7 @@ describe('AnalysisLLMClient', () => {
         content: [{ type: 'text', text: '{"issues": []}' }],
       });
 
-      await client.analyzeGrammar('Hello', { language: 'en' });
+      await client.analyzeStyle('Hello', styleOptions('en'));
 
       expect(mockAnthropicCreate).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -274,7 +277,7 @@ describe('AnalysisLLMClient', () => {
       client = new GoogleAnalysisLLMClient('test-key', 'gemini-3-flash-preview');
     });
 
-    it('should call Google API for punctuation analysis', async () => {
+    it('should call Google API for style analysis', async () => {
       const mockResponse = {
         issues: [
           {
@@ -292,9 +295,7 @@ describe('AnalysisLLMClient', () => {
         text: JSON.stringify(mockResponse),
       });
 
-      const result = await client.analyzePunctuation('Hello world how are you', {
-        language: 'en',
-      });
+      const result = await client.analyzeStyle('Hello world how are you', styleOptions('en'));
 
       expect(result.issues).toHaveLength(1);
       expect(result.issues[0].suggestion).toBe('Hello, world');
@@ -316,7 +317,7 @@ describe('AnalysisLLMClient', () => {
         text: '```json\n' + JSON.stringify(mockResponse) + '\n```',
       });
 
-      const result = await client.analyzePunctuation('test', { language: 'en' });
+      const result = await client.analyzeStyle('test', styleOptions('en'));
       expect(result.issues).toHaveLength(0);
     });
 
@@ -325,7 +326,7 @@ describe('AnalysisLLMClient', () => {
         text: null,
       });
 
-      await expect(client.analyzePunctuation('test', { language: 'en' })).rejects.toThrow(
+      await expect(client.analyzeStyle('test', styleOptions('en'))).rejects.toThrow(
         'Empty response from Google AI'
       );
     });

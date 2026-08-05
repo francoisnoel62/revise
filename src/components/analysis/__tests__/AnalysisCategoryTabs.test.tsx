@@ -11,10 +11,7 @@ describe('AnalysisCategoryTabs', () => {
   const mockOnChange = vi.fn();
   const defaultCounts: Record<AnalysisCategory | 'all', number> = {
     all: 10,
-    spelling: 0,
-    grammar: 4,
-    punctuation: 2,
-    repetition: 2,
+    repetition: 4,
     style: 2,
   };
 
@@ -32,10 +29,9 @@ describe('AnalysisCategoryTabs', () => {
     );
 
     expect(screen.getByRole('tab', { name: /tous/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /grammaire/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /ponctuation/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /répétitions/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /style/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('tab')).toHaveLength(3);
   });
 
   it('shows counts on each tab', () => {
@@ -54,14 +50,14 @@ describe('AnalysisCategoryTabs', () => {
   it('marks the selected tab as active', () => {
     render(
       <AnalysisCategoryTabs
-        selectedCategory="grammar"
+        selectedCategory="repetition"
         counts={defaultCounts}
         onChange={mockOnChange}
       />
     );
 
-    const grammarTab = screen.getByRole('tab', { name: /grammaire/i });
-    expect(grammarTab).toHaveAttribute('data-state', 'active');
+    const repetitionTab = screen.getByRole('tab', { name: /répétitions/i });
+    expect(repetitionTab).toHaveAttribute('data-state', 'active');
   });
 
   it('calls onChange when a tab is clicked', async () => {
@@ -74,16 +70,15 @@ describe('AnalysisCategoryTabs', () => {
       />
     );
 
-    const grammarTab = screen.getByRole('tab', { name: /grammaire/i });
-    await user.click(grammarTab);
+    const repetitionTab = screen.getByRole('tab', { name: /répétitions/i });
+    await user.click(repetitionTab);
 
-    expect(mockOnChange).toHaveBeenCalledWith('grammar');
+    expect(mockOnChange).toHaveBeenCalledWith('repetition');
   });
 
   it('hides tabs with zero count when hideEmpty is true', () => {
     const countsWithZero = {
       ...defaultCounts,
-      punctuation: 0,
       repetition: 0,
     };
 
@@ -96,8 +91,8 @@ describe('AnalysisCategoryTabs', () => {
       />
     );
 
-    expect(screen.queryByRole('tab', { name: /ponctuation/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /répétitions/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /style/i })).toBeInTheDocument();
   });
 
   it('renders icons for each category', () => {
@@ -109,9 +104,9 @@ describe('AnalysisCategoryTabs', () => {
       />
     );
 
-    // Should have at least one SVG icon per visible tab (6 tabs: all, spelling, grammar, punctuation, repetition, style)
+    // One SVG icon per visible tab: all, repetition, style.
     const svgElements = container.querySelectorAll('svg');
-    expect(svgElements.length).toBeGreaterThanOrEqual(6);
+    expect(svgElements.length).toBeGreaterThanOrEqual(3);
   });
 
   it('disables tabs when disabled prop is true', () => {
@@ -124,7 +119,6 @@ describe('AnalysisCategoryTabs', () => {
       />
     );
 
-    const grammarTab = screen.getByRole('tab', { name: /grammaire/i });
-    expect(grammarTab).toBeDisabled();
+    expect(screen.getByRole('tab', { name: /style/i })).toBeDisabled();
   });
 });

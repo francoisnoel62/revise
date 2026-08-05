@@ -1,4 +1,4 @@
-// ABOUTME: Use case for analyzing a chapter for spelling, grammar, and style issues
+// ABOUTME: Use case for analyzing a chapter for repetitions and style issues
 // ABOUTME: Orchestrates multiple analysis strategies and returns results in-memory (no persistence)
 
 import { ChapterAnalysis, ChapterAnalysisData } from '../../domain/entities/ChapterAnalysis';

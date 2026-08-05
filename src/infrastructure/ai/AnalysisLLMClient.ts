@@ -5,35 +5,20 @@ import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import { GoogleGenAI } from '@google/genai';
 import {
-  GrammarLLMClient,
-  GrammarAnalysisResponse,
-  GRAMMAR_ANALYSIS_PROMPT,
-} from '@/application/strategies/GrammarAnalysisStrategy';
-import {
-  PunctuationLLMClient,
-  PunctuationAnalysisResponse,
-  PUNCTUATION_ANALYSIS_PROMPT,
-} from '@/application/strategies/PunctuationAnalysisStrategy';
-import {
-  StyleLLMClient,
   StyleAnalysisResponse,
   STYLE_ANALYSIS_PROMPT,
 } from '@/application/strategies/StyleAnalysisStrategy';
 import {
-  RepetitionLLMClient,
   RepetitionAnalysisResponse,
   REPETITION_ANALYSIS_PROMPT,
 } from '@/application/strategies/RepetitionAnalysisStrategy';
+import type { AnalysisLLMPort } from '@/application/strategies/createAnalysisStrategies';
 import { StyleRigor } from '@/domain/value-objects/StyleRigor';
 
 /**
  * Combined interface for all analysis LLM operations.
  */
-export interface AnalysisLLMClient
-  extends GrammarLLMClient,
-    PunctuationLLMClient,
-    StyleLLMClient,
-    RepetitionLLMClient {}
+export type AnalysisLLMClient = AnalysisLLMPort;
 
 /**
  * OpenAI implementation of the AnalysisLLMClient.
@@ -45,28 +30,6 @@ export class OpenAIAnalysisLLMClient implements AnalysisLLMClient {
   constructor(apiKey: string, model: string = 'gpt-4o') {
     this.client = new OpenAI({ apiKey });
     this.model = model;
-  }
-
-  async analyzeGrammar(
-    content: string,
-    options: { language: 'fr' | 'en' }
-  ): Promise<GrammarAnalysisResponse> {
-    const prompt = GRAMMAR_ANALYSIS_PROMPT
-      .replace('{language}', options.language === 'fr' ? 'French' : 'English')
-      .replace('{content}', content);
-
-    return this.callLLM<GrammarAnalysisResponse>(prompt);
-  }
-
-  async analyzePunctuation(
-    content: string,
-    options: { language: 'fr' | 'en' }
-  ): Promise<PunctuationAnalysisResponse> {
-    const prompt = PUNCTUATION_ANALYSIS_PROMPT
-      .replace('{language}', options.language === 'fr' ? 'French' : 'English')
-      .replace('{content}', content);
-
-    return this.callLLM<PunctuationAnalysisResponse>(prompt);
   }
 
   async analyzeStyle(
@@ -166,28 +129,6 @@ export class AnthropicAnalysisLLMClient implements AnalysisLLMClient {
     this.model = model;
   }
 
-  async analyzeGrammar(
-    content: string,
-    options: { language: 'fr' | 'en' }
-  ): Promise<GrammarAnalysisResponse> {
-    const prompt = GRAMMAR_ANALYSIS_PROMPT
-      .replace('{language}', options.language === 'fr' ? 'French' : 'English')
-      .replace('{content}', content);
-
-    return this.callLLM<GrammarAnalysisResponse>(prompt);
-  }
-
-  async analyzePunctuation(
-    content: string,
-    options: { language: 'fr' | 'en' }
-  ): Promise<PunctuationAnalysisResponse> {
-    const prompt = PUNCTUATION_ANALYSIS_PROMPT
-      .replace('{language}', options.language === 'fr' ? 'French' : 'English')
-      .replace('{content}', content);
-
-    return this.callLLM<PunctuationAnalysisResponse>(prompt);
-  }
-
   async analyzeStyle(
     content: string,
     options: { language: 'fr' | 'en'; rigor: StyleRigor; activeRules: string[] }
@@ -277,28 +218,6 @@ export class GoogleAnalysisLLMClient implements AnalysisLLMClient {
   constructor(apiKey: string, model: string = 'gemini-3-flash-preview') {
     this.client = new GoogleGenAI({ apiKey });
     this.modelName = model;
-  }
-
-  async analyzeGrammar(
-    content: string,
-    options: { language: 'fr' | 'en' }
-  ): Promise<GrammarAnalysisResponse> {
-    const prompt = GRAMMAR_ANALYSIS_PROMPT
-      .replace('{language}', options.language === 'fr' ? 'French' : 'English')
-      .replace('{content}', content);
-
-    return this.callLLM<GrammarAnalysisResponse>(prompt);
-  }
-
-  async analyzePunctuation(
-    content: string,
-    options: { language: 'fr' | 'en' }
-  ): Promise<PunctuationAnalysisResponse> {
-    const prompt = PUNCTUATION_ANALYSIS_PROMPT
-      .replace('{language}', options.language === 'fr' ? 'French' : 'English')
-      .replace('{content}', content);
-
-    return this.callLLM<PunctuationAnalysisResponse>(prompt);
   }
 
   async analyzeStyle(
