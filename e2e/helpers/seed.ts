@@ -53,6 +53,13 @@ export const TEST_GRAMMAR_CHAPTER_ID = 'e2e-grammar-chapter-001';
 export const TEST_SPELLCHECK_PROJECT_ID = 'e2e-spellcheck-project-001';
 export const TEST_SPELLCHECK_CHAPTER_ID = 'e2e-spellcheck-chapter-001';
 
+// Personal-dictionary E2E fixtures — an invented proper noun the author has listed
+// but not yet described, and a sentence whose agreement only makes sense once it is.
+export const TEST_DICTIONARY_PROJECT_ID = 'e2e-dictionary-project-001';
+export const TEST_DICTIONARY_CHAPTER_ID = 'e2e-dictionary-chapter-001';
+export const TEST_DICTIONARY_SETTINGS_ID = '6475a8f3c1234567890abce3';
+export const TEST_DICTIONARY_WORD = 'Vhardun';
+
 // Canon E2E fixtures — stale canon (for notification bell tests)
 export const TEST_CANON_STALE_PROJECT_ID = 'e2e-canon-stale-project-001';
 export const TEST_CANON_STALE_CHAPTER_ID = 'e2e-canon-stale-chapter-001';
@@ -315,6 +322,91 @@ export async function seedGrammarProject(): Promise<void> {
     await db.collection('projects').replaceOne(
       { _id: TEST_GRAMMAR_PROJECT_ID } as object,
       buildGrammarProject(past, now),
+      { upsert: true }
+    );
+  } finally {
+    await client.close();
+  }
+}
+
+// ── Personal-dictionary project documents ─────────────────────────────────────
+
+// The chapter says "Vhardun est parti." — correct until the author declares Vhardun
+// feminine, at which point the corrector should ask for "partie". The second
+// paragraph carries an ordinary agreement error, so a test can tell "the corrector
+// found nothing to say about Vhardun" from "the corrector has not answered yet".
+function buildDictionaryProject(past: Date, now: Date): Record<string, unknown> {
+  return {
+    _id: TEST_DICTIONARY_PROJECT_ID,
+    ownerId: TEST_USER_ID,
+    title: 'Projet Test Dictionnaire',
+    chapters: [{
+      id: TEST_DICTIONARY_CHAPTER_ID,
+      title: 'Chapitre Dictionnaire',
+      content: JSON.stringify({
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: `${TEST_DICTIONARY_WORD} est parti.` }],
+          },
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: 'Les chien de la voisine dorment.' }],
+          },
+        ],
+      }),
+      order: 0,
+      metadata: { wordCount: 9, characterCount: 50, lastEdited: past },
+    }],
+    activeChapterId: TEST_DICTIONARY_CHAPTER_ID,
+    providerId: null,
+    createdAt: past,
+    updatedAt: now,
+    isPublished: false,
+    shareToken: null,
+    publishedAt: null,
+    publishedChapterIds: null,
+  };
+}
+
+// The word is listed as a bare string — the shape a project written before words
+// could be described still has on disk.
+function buildDictionarySettings(past: Date, now: Date): Record<string, unknown> {
+  return {
+    _id: new ObjectId(TEST_DICTIONARY_SETTINGS_ID),
+    projectId: TEST_DICTIONARY_PROJECT_ID,
+    ownerId: TEST_USER_ID,
+    title: 'Projet Test Dictionnaire',
+    summary: '',
+    genre: 'Fantasy',
+    synopsis: '',
+    contributors: [],
+    relatedWorks: [],
+    customDictionary: [TEST_DICTIONARY_WORD],
+    ignoredWords: [],
+    createdAt: past,
+    updatedAt: now,
+  };
+}
+
+// Re-seed the dictionary project and its settings. Declaring a word rewrites the
+// settings document, so each test must start from the undeclared state.
+export async function seedDictionaryProject(): Promise<void> {
+  const client = new MongoClient(MONGODB_URI);
+  await client.connect();
+  try {
+    const db = client.db(MONGODB_DB_NAME);
+    const past = new Date('2025-01-01T10:00:00Z');
+    const now = new Date();
+    await db.collection('projects').replaceOne(
+      { _id: TEST_DICTIONARY_PROJECT_ID } as object,
+      buildDictionaryProject(past, now),
+      { upsert: true }
+    );
+    await db.collection('project_settings').replaceOne(
+      { _id: new ObjectId(TEST_DICTIONARY_SETTINGS_ID) },
+      buildDictionarySettings(past, now),
       { upsert: true }
     );
   } finally {
@@ -734,6 +826,18 @@ export async function seedAll(): Promise<void> {
   await db.collection('projects').replaceOne(
     { _id: TEST_GRAMMAR_PROJECT_ID } as object,
     buildGrammarProject(past, now),
+    { upsert: true }
+  );
+
+  // 2c-quater. Personal-dictionary project — an invented word listed but not described.
+  await db.collection('projects').replaceOne(
+    { _id: TEST_DICTIONARY_PROJECT_ID } as object,
+    buildDictionaryProject(past, now),
+    { upsert: true }
+  );
+  await db.collection('project_settings').replaceOne(
+    { _id: new ObjectId(TEST_DICTIONARY_SETTINGS_ID) },
+    buildDictionarySettings(past, now),
     { upsert: true }
   );
 

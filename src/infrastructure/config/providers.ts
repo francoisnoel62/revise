@@ -29,6 +29,7 @@ import { DocumentParser } from '@/domain/interfaces/DocumentParser';
 import { DocumentExporter } from '@/domain/interfaces/DocumentExporter';
 import { ContentConverter } from '@/domain/interfaces/ContentConverter';
 import { GrammarChecker } from '@/domain/interfaces/GrammarChecker';
+import { GrammarDictionaryCompiler } from '@/domain/interfaces/GrammarDictionaryCompiler';
 import { AuthJsProvider } from '@/infrastructure/auth/AuthJsProvider';
 import { MongoDBProjectRepository } from '@/infrastructure/persistence/MongoDBProjectRepository';
 import { MongoDBUserRepository } from '@/infrastructure/persistence/MongoDBUserRepository';
@@ -84,6 +85,7 @@ import { MongoDBBookPreviewCacheRepository } from '@/infrastructure/persistence/
 import { BookPreviewCacheComputer } from '@/application/services/BookPreviewCacheComputer';
 import { WholeBookHtmlAssembler } from '@/application/services/WholeBookHtmlAssembler';
 import { TipTapContentService } from '@/infrastructure/document/utils/TipTapContentService';
+import { GrammalecteDictionaryCompiler } from '@/infrastructure/grammar/GrammalecteDictionaryCompiler';
 import { GrammalecteGrammarChecker } from '@/infrastructure/grammar/GrammalecteGrammarChecker';
 import { Provider } from '@/domain/entities/Provider';
 import { config } from './env';
@@ -590,4 +592,14 @@ export function getGrammarChecker(): GrammarChecker {
     grammarCheckerInstance = new GrammalecteGrammarChecker();
   }
   return grammarCheckerInstance;
+}
+
+/** Get the builder turning a project's declared vocabulary into an engine dictionary. */
+let dictionaryCompilerInstance: GrammarDictionaryCompiler | null = null;
+
+export function getGrammarDictionaryCompiler(): GrammarDictionaryCompiler {
+  if (!dictionaryCompilerInstance) {
+    dictionaryCompilerInstance = new GrammalecteDictionaryCompiler();
+  }
+  return dictionaryCompilerInstance;
 }

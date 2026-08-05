@@ -30,7 +30,8 @@ export interface ProjectSettingsUpdates {
   relatedWorks?: RelatedWork[];
   autocompletePreferences?: Partial<AutocompletePreferences>;
   canonExtractionPreferences?: Partial<CanonExtractionPreferences>;
-  customDictionary?: string[];
+  // The project vocabulary is written by UpdatePersonalDictionaryUseCase, which
+  // recompiles the engine dictionary with it; a generic update would leave the two apart.
   ignoredWords?: string[];
   grammarRuleProfile?: GrammarRuleProfile;
   publicationProfileId?: PublicationProfileId;
@@ -125,10 +126,6 @@ export class UpdateProjectSettingsUseCase {
 
     if ('canonExtractionPreferences' in updates) {
       updated = updated.updateCanonExtractionPreferences(updates.canonExtractionPreferences!);
-    }
-
-    if ('customDictionary' in updates) {
-      updated = updated.updateCustomDictionary(updates.customDictionary!);
     }
 
     if ('ignoredWords' in updates) {

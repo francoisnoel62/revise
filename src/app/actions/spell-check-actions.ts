@@ -6,6 +6,8 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { SpellChecker } from '@/domain/interfaces/SpellChecker';
+import { UpdatePersonalDictionaryUseCase } from '@/application/use-cases/UpdatePersonalDictionaryUseCase';
+import { getGrammarDictionaryCompiler } from '@/infrastructure/config/providers';
 import { getAuthenticatedUserId, getProjectSettingsRepo } from './utils';
 
 let spellCheckerInstance: SpellChecker | null = null;
@@ -67,13 +69,14 @@ export async function checkSpellingAction(
   return misspelled;
 }
 
+/** Every written form of the project's vocabulary — declared plurals included. */
 export async function getCustomDictionaryAction(projectId: string): Promise<string[]> {
   const authResult = await getAuthenticatedUserId();
   if ('error' in authResult) return [];
 
   const repo = await getProjectSettingsRepo();
   const settings = await repo.findByProjectId(authResult.userId, projectId);
-  return settings?.getCustomDictionary() ?? [];
+  return settings?.getCustomDictionaryWords() ?? [];
 }
 
 export async function addWordToCustomDictionaryAction(
@@ -104,8 +107,12 @@ export async function removeWordFromCustomDictionaryAction(
   const existing = await repo.findByProjectId(authResult.userId, projectId);
   if (!existing) return;
 
-  const newList = existing.getCustomDictionary().filter((w) => w !== word);
-  await repo.update(authResult.userId, existing.updateCustomDictionary(newList));
+  const useCase = new UpdatePersonalDictionaryUseCase(repo, getGrammarDictionaryCompiler());
+  await useCase.execute({
+    ownerId: authResult.userId,
+    projectId,
+    entries: existing.getCustomDictionary().filter((entry) => entry.word !== word),
+  });
 }
 
 export async function getIgnoredWordsAction(projectId: string): Promise<string[]> {

@@ -118,7 +118,9 @@ Pure business logic with no framework dependencies.
 - `PaginatedResult` - Pagination result interface for blog articles (Phase 4.1+)
 - `IdGenerator` - UUID generation abstraction (Phase 3.5)
 - `LLMProviderFactory` - Factory for creating LLM providers (Phase 3.5)
-- `SpellChecker` - Offline dictionary-based spell-check contract (`correct`/`suggest`); **replaces** the AI-based `SpellingAnalysisStrategy` for spelling specifically (2026-06-23 – 06-25), consuming zero AI tokens. Grammar/punctuation/style/repetition remain AI-based (`AnalysisLLMClient`)
+- `SpellChecker` - Offline dictionary-based spell-check contract (`correct`/`suggest`); **replaces** the AI-based `SpellingAnalysisStrategy` for spelling specifically (2026-06-23 – 06-25), consuming zero AI tokens
+- `GrammarChecker` - Synchronous paragraph-level grammar contract (`checkParagraph(paragraph, { ruleProfile, personalDictionary })`); offline, zero AI tokens. **Replaces** the AI-based grammar and punctuation strategies (2026-08-05). Only style and repetitions remain AI-based (`AnalysisLLMClient`)
+- `GrammarDictionaryCompiler` - Turns a project's declared vocabulary into an engine dictionary; returns `null` when nothing is declared (2026-08-05)
 - `PasswordResetTokenRepository` - Create (invalidates prior tokens), find valid token, mark used, invalidate all for user, delete expired (2026-01-31)
 - `SnapshotRepository` - Sequential numbering, paginated history, presentation-only metadata edits, tombstoning, activity log (2026-07-25 – 07-29)
 - `AutomaticSnapshotRepository` - Server-side scheduling clock: `configure`, `recordSavedChange`, `heartbeat`, `claimDueSnapshot`/`completeSnapshot`/`releaseFailedSnapshot` (distributed-lock-style claim pattern) (2026-07-29)
@@ -231,6 +233,8 @@ Use cases orchestrating domain logic.
 - `AnalyzeChapterUseCase` - Orchestrates analysis strategies (in-memory results, no persistence)
 - `ApplyCorrectionUseCase` - Apply a single correction to chapter content
 - `ApplyBatchCorrectionsUseCase` - Apply multiple corrections in batch
+- `CheckChapterGrammarUseCase` - Runs the offline grammar engine block by block and maps each error to an absolute ProseMirror range; installs the project's compiled vocabulary, never compiles it (2026-08-05)
+- `UpdatePersonalDictionaryUseCase` - The only write path for a project's vocabulary: compiles the engine dictionary here so the list and the automaton are saved together (2026-08-05)
 
 **Analysis Strategies** (Phase 7):
 - ~~`SpellingAnalysisStrategy`~~ - **Removed 2026-06-25**; spelling detection now goes through the offline `SpellChecker` (nspell) instead of an AI strategy — see Infrastructure/Lexical below
@@ -336,6 +340,8 @@ External service implementations.
 - `JeuxDeMotsThesaurus` - Fetches synonyms from the JeuxDeMots French thesaurus API
 - `FrenchMorphology` - Implements `Morphology`; French lemmatisation via the lexique index
 - `NspellSpellChecker` - Implements `SpellChecker`; offline dictionary-based spell-check via **nspell + fr-FR dictionary**, zero AI tokens (2026-06-23 – 06-25)
+- `GrammalecteGrammarChecker` - Implements `GrammarChecker` over the pinned private `@francoisnoel62/grammalecte` build. The engine is a process-wide singleton whose spell checker caches every word's morphology, so the adapter swaps dictionary and clears that cache in one synchronous block — an `await` there would let another project's request slip its own vocabulary in (2026-08-05)
+- `GrammalecteDictionaryCompiler` - Implements `GrammarDictionaryCompiler` via Graphspell's DAWG builder. That builder ships as a browser-worker script with no module exports, so its source is evaluated with `require`/`helpers`/`console` bound (2026-08-05)
 
 **Pricing**:
 - `OpenRouterPricingClient` - Implements `PricingClient`; fetches model pricing from the OpenRouter public API; normalises provider/prefix keys
@@ -461,6 +467,7 @@ React components and UI.
 - `pricing-admin-actions` - Trigger pricing sync and prune (→ SyncModelPricingUseCase, PruneObsoletePricingUseCase)
 - `analysis-actions` - Chapter analysis operations (→ Analysis Use Cases, Phase 7)
 - `spell-check-actions` - Offline spell-check via `SpellChecker`/nspell (2026-06-23)
+- `personal-dictionary-actions` - Read and write a project's declared vocabulary (→ UpdatePersonalDictionaryUseCase, 2026-08-05)
 - `password-actions` - Request/reset/change password (→ Password Reset Use Cases, 2026-01-31)
 - `snapshot-actions` - Snapshot creation, listing/metadata, deletion, restore (→ Snapshot Use Cases, 2026-07-25 – 07-29)
 - `book-preview-actions` - Lazily generates/caches the whole-book export PDF, returns navigation metrics (2026-06-30 – 07-05)

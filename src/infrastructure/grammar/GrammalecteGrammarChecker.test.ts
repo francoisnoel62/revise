@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_FICTION_GRAMMAR_RULE_PROFILE } from '@/domain/value-objects/GrammarRuleProfile';
 import { getGrammarChecker } from '@/infrastructure/config/providers';
+import { GrammalecteDictionaryCompiler } from './GrammalecteDictionaryCompiler';
 import { GrammalecteGrammarChecker } from './GrammalecteGrammarChecker';
 
 describe('GrammalecteGrammarChecker', () => {
@@ -43,6 +44,40 @@ describe('GrammalecteGrammarChecker', () => {
   it('is composed once for the server process', () => {
     expect(getGrammarChecker()).toBeInstanceOf(GrammalecteGrammarChecker);
     expect(getGrammarChecker()).toBe(getGrammarChecker());
+  });
+
+  it('installs the dictionary and parses without ever suspending in between', () => {
+    const source = readFileSync(
+      resolve(process.cwd(), 'src/infrastructure/grammar/GrammalecteGrammarChecker.ts'),
+      'utf8'
+    );
+    const checkParagraph = source.slice(source.indexOf('checkParagraph('));
+
+    // An await here would let another project's request install its own
+    // dictionary into the shared engine before this paragraph is parsed.
+    expect(checkParagraph).not.toMatch(/\bawait\b/);
+    expect(checkParagraph).not.toMatch(/\basync\b/);
+  });
+
+  it('keeps one project vocabulary out of another project paragraph', () => {
+    const dictionary = new GrammalecteDictionaryCompiler().compile([
+      { word: 'Vhardun', nature: 'proper-noun', gender: 'feminine' },
+    ]);
+
+    // A project that declared Vhardun feminine gets the disagreement flagged...
+    expect(
+      checker.checkParagraph('Vhardun est parti.', {
+        ruleProfile: DEFAULT_FICTION_GRAMMAR_RULE_PROFILE,
+        personalDictionary: dictionary ?? undefined,
+      })
+    ).not.toEqual([]);
+
+    // ...but the next project, which never heard of the word, must not.
+    expect(
+      checker.checkParagraph('Vhardun est parti.', {
+        ruleProfile: DEFAULT_FICTION_GRAMMAR_RULE_PROFILE,
+      })
+    ).toEqual([]);
   });
 
   it('reports no false positives in the clean fiction corpus', () => {

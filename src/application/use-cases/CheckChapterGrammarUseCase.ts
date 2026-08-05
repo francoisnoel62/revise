@@ -3,7 +3,10 @@
 
 import type { ProjectRepository } from '../../domain/interfaces/ProjectRepository';
 import type { ProjectSettingsRepository } from '../../domain/interfaces/ProjectSettingsRepository';
-import type { GrammarChecker } from '../../domain/interfaces/GrammarChecker';
+import type {
+  GrammarChecker,
+  GrammarPersonalDictionary,
+} from '../../domain/interfaces/GrammarChecker';
 import type { ContentNode } from '../../domain/value-objects/ContentNode';
 import {
   DEFAULT_FICTION_GRAMMAR_RULE_PROFILE,
@@ -55,48 +58,54 @@ export class CheckChapterGrammarUseCase {
       throw new Error('Chapter not found');
     }
 
-    const ruleProfile = await this.loadRuleProfile(input.ownerId, input.projectId);
+    const settings = await this.projectSettingsRepository.findByProjectId(
+      input.ownerId,
+      input.projectId
+    );
+    const ruleProfile =
+      settings?.getGrammarRuleProfile() ?? DEFAULT_FICTION_GRAMMAR_RULE_PROFILE;
+    // The project's own vocabulary was turned into an automaton when the author
+    // declared it; the check only installs it.
+    const personalDictionary = settings?.getGrammarDictionary() ?? undefined;
     const blocks = collectDocumentTextBlocks(parseChapterContent(chapter.getContent()));
 
-    const issues = blocks.flatMap((block) => this.checkBlock(block, ruleProfile));
+    const issues = blocks.flatMap((block) =>
+      this.checkBlock(block, ruleProfile, personalDictionary)
+    );
     issues.sort((a, b) => a.from - b.from);
 
     return { issues };
   }
 
-  private async loadRuleProfile(
-    ownerId: string,
-    projectId: string
-  ): Promise<GrammarRuleProfile> {
-    const settings = await this.projectSettingsRepository.findByProjectId(
-      ownerId,
-      projectId
-    );
-    return settings?.getGrammarRuleProfile() ?? DEFAULT_FICTION_GRAMMAR_RULE_PROFILE;
-  }
-
   private checkBlock(
     block: DocumentTextBlock,
-    ruleProfile: GrammarRuleProfile
+    ruleProfile: GrammarRuleProfile,
+    personalDictionary: GrammarPersonalDictionary | undefined
   ): TextIssue[] {
-    return this.grammarChecker.checkParagraph(block.text, { ruleProfile }).map((error) => {
-      const from = mapBlockFragmentOffset(
-        block.fragments,
-        block.textStart,
-        error.range.start
-      );
-      const to = mapBlockFragmentOffset(block.fragments, block.textStart, error.range.end);
+    return this.grammarChecker
+      .checkParagraph(block.text, { ruleProfile, personalDictionary })
+      .map((error) => {
+        const from = mapBlockFragmentOffset(
+          block.fragments,
+          block.textStart,
+          error.range.start
+        );
+        const to = mapBlockFragmentOffset(
+          block.fragments,
+          block.textStart,
+          error.range.end
+        );
 
-      return {
-        nature: 'grammar' as const,
-        from,
-        to,
-        text: block.text.slice(error.range.start, error.range.end),
-        message: error.message,
-        suggestions: [...error.suggestions],
-        ruleFamily: error.ruleFamily.value,
-      };
-    });
+        return {
+          nature: 'grammar' as const,
+          from,
+          to,
+          text: block.text.slice(error.range.start, error.range.end),
+          message: error.message,
+          suggestions: [...error.suggestions],
+          ruleFamily: error.ruleFamily.value,
+        };
+      });
   }
 }
 

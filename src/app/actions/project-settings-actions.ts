@@ -20,6 +20,7 @@ import type { LevelStylesByProfile } from '@/domain/entities/ProjectSettings';
 import type { TocPreferences } from '@/domain/value-objects/TocPreferences';
 import type { AutomaticSnapshotInterval } from '@/domain/value-objects/AutomaticSnapshotInterval';
 import type { GrammarRuleProfile } from '@/domain/value-objects/GrammarRuleProfile';
+import type { PersonalDictionaryEntry } from '@/domain/value-objects/PersonalDictionaryEntry';
 
 export interface SerializedProjectSettings {
   id: string;
@@ -40,7 +41,7 @@ export interface SerializedProjectSettings {
   updatedAt: string;
   autocompletePreferences: AutocompletePreferences;
   canonExtractionPreferences: CanonExtractionPreferences;
-  customDictionary: string[];
+  customDictionary: PersonalDictionaryEntry[];
   ignoredWords: string[];
   grammarRuleProfile: GrammarRuleProfile;
   publicationProfileId: PublicationProfileId;

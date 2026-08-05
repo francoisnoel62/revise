@@ -470,12 +470,42 @@ describe('ProjectSettings', () => {
       expect(settings.getCustomDictionary()).toEqual([]);
     });
 
-    it('reconstructs with provided customDictionary', () => {
+    it('reads words stored as bare strings as entries declaring nothing', () => {
       const settings = ProjectSettings.reconstruct({
         ...validProps,
         customDictionary: ['Arrakis', 'spicce'],
       });
-      expect(settings.getCustomDictionary()).toEqual(['Arrakis', 'spicce']);
+      expect(settings.getCustomDictionary()).toEqual([
+        { word: 'Arrakis' },
+        { word: 'spicce' },
+      ]);
+    });
+
+    it('keeps a declared word beside a bare one, with no rewrite of either', () => {
+      const settings = ProjectSettings.reconstruct({
+        ...validProps,
+        customDictionary: [
+          'Arrakis',
+          { word: 'krogan', nature: 'noun', gender: 'masculine', pluralForm: 'krogans' },
+        ],
+      });
+
+      expect(settings.getCustomDictionary()).toEqual([
+        { word: 'Arrakis' },
+        { word: 'krogan', nature: 'noun', gender: 'masculine', pluralForm: 'krogans' },
+      ]);
+    });
+
+    it('lists every written form, so the spell checker accepts the plural too', () => {
+      const settings = ProjectSettings.reconstruct({
+        ...validProps,
+        customDictionary: [
+          'Arrakis',
+          { word: 'krogan', nature: 'noun', pluralForm: 'krogans' },
+        ],
+      });
+
+      expect(settings.getCustomDictionaryWords()).toEqual(['Arrakis', 'krogan', 'krogans']);
     });
 
     it('getCustomDictionary returns a copy (mutation-safe)', () => {
@@ -483,8 +513,8 @@ describe('ProjectSettings', () => {
         ...validProps,
         customDictionary: ['Arrakis'],
       });
-      settings.getCustomDictionary().push('mutated');
-      expect(settings.getCustomDictionary()).toEqual(['Arrakis']);
+      settings.getCustomDictionary().push({ word: 'mutated' });
+      expect(settings.getCustomDictionary()).toEqual([{ word: 'Arrakis' }]);
     });
 
     it('addWordToCustomDictionary returns a new instance with the word appended', () => {
@@ -492,7 +522,7 @@ describe('ProjectSettings', () => {
       const updated = settings.addWordToCustomDictionary('Arrakis');
 
       expect(updated).not.toBe(settings);
-      expect(updated.getCustomDictionary()).toEqual(['Arrakis']);
+      expect(updated.getCustomDictionary()).toEqual([{ word: 'Arrakis' }]);
       expect(settings.getCustomDictionary()).toEqual([]); // original unchanged
     });
 
@@ -516,7 +546,10 @@ describe('ProjectSettings', () => {
         ...validProps,
         customDictionary: ['Arrakis', 'spicce'],
       });
-      expect(settings.toProperties().customDictionary).toEqual(['Arrakis', 'spicce']);
+      expect(settings.toProperties().customDictionary).toEqual([
+        { word: 'Arrakis' },
+        { word: 'spicce' },
+      ]);
     });
 
     it('updateCustomDictionary replaces the full list and returns a new instance', () => {
@@ -524,9 +557,54 @@ describe('ProjectSettings', () => {
         ...validProps,
         customDictionary: ['old'],
       });
-      const updated = settings.updateCustomDictionary(['Arrakis', 'spicce']);
-      expect(updated.getCustomDictionary()).toEqual(['Arrakis', 'spicce']);
-      expect(settings.getCustomDictionary()).toEqual(['old']); // original unchanged
+      const updated = settings.updateCustomDictionary(
+        [{ word: 'Arrakis' }, { word: 'spicce' }],
+        null
+      );
+      expect(updated.getCustomDictionary()).toEqual([
+        { word: 'Arrakis' },
+        { word: 'spicce' },
+      ]);
+      expect(settings.getCustomDictionary()).toEqual([{ word: 'old' }]); // original unchanged
+    });
+  });
+
+  describe('grammar dictionary', () => {
+    it('has no compiled dictionary until one is written', () => {
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'Title');
+      expect(settings.getGrammarDictionary()).toBeNull();
+    });
+
+    it('stores the compiled dictionary alongside the list it was built from', () => {
+      const compiled = { sLangCode: 'fr', nEntry: 2 };
+      const settings = ProjectSettings.create(
+        'id-1',
+        'proj-1',
+        'owner-1',
+        'Title'
+      ).updateCustomDictionary([{ word: 'krogan', nature: 'noun' }], compiled);
+
+      expect(settings.getGrammarDictionary()).toEqual(compiled);
+    });
+
+    it('drops the compiled dictionary when the list no longer declares anything', () => {
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'Title')
+        .updateCustomDictionary([{ word: 'krogan', nature: 'noun' }], { nEntry: 1 })
+        .updateCustomDictionary([{ word: 'krogan' }], null);
+
+      expect(settings.getGrammarDictionary()).toBeNull();
+    });
+
+    it('leaves the compiled dictionary alone when a word declaring nothing is added', () => {
+      // A word added from the spell-check palette carries no nature, so it adds no
+      // flexion — the automaton stays valid without being rebuilt.
+      const compiled = { nEntry: 1 };
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'Title')
+        .updateCustomDictionary([{ word: 'krogan', nature: 'noun' }], compiled)
+        .addWordToCustomDictionary('Arrakis');
+
+      expect(settings.getGrammarDictionary()).toEqual(compiled);
+      expect(settings.getCustomDictionaryWords()).toEqual(['krogan', 'Arrakis']);
     });
   });
 });

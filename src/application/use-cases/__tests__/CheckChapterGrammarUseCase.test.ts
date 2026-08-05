@@ -1,6 +1,8 @@
 // ABOUTME: Integration tests for chapter grammar checking against the real French engine.
 // ABOUTME: Verifies absolute ProseMirror ranges, the project rule profile, and owner isolation.
 
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { Node as ProseMirrorNode, Schema } from 'prosemirror-model';
 import { Chapter } from '@/domain/entities/Chapter';
@@ -9,6 +11,8 @@ import { ProjectSettings } from '@/domain/entities/ProjectSettings';
 import type { ProjectRepository } from '@/domain/interfaces/ProjectRepository';
 import type { ProjectSettingsRepository } from '@/domain/interfaces/ProjectSettingsRepository';
 import { DEFAULT_FICTION_GRAMMAR_RULE_PROFILE } from '@/domain/value-objects/GrammarRuleProfile';
+import type { PersonalDictionaryEntry } from '@/domain/value-objects/PersonalDictionaryEntry';
+import { GrammalecteDictionaryCompiler } from '@/infrastructure/grammar/GrammalecteDictionaryCompiler';
 import { GrammalecteGrammarChecker } from '@/infrastructure/grammar/GrammalecteGrammarChecker';
 import { CheckChapterGrammarUseCase } from '../CheckChapterGrammarUseCase';
 
@@ -223,6 +227,74 @@ describe('CheckChapterGrammarUseCase', () => {
         chapterId: 'missing',
       })
     ).rejects.toThrow('Chapter not found');
+  });
+
+  describe("the project's own vocabulary", () => {
+    const INVENTED_CONTENT = {
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'Vhardun est parti.' }] },
+      ],
+    };
+
+    function buildInventedUseCase(entries: readonly PersonalDictionaryEntry[]) {
+      const compiler = new GrammalecteDictionaryCompiler();
+      const settings = ProjectSettings.create(
+        'settings-1',
+        PROJECT_ID,
+        OWNER_ID,
+        'Roman'
+      ).updateCustomDictionary([...entries], compiler.compile(entries));
+
+      return buildUseCase({
+        settings,
+        project: buildProject([
+          new Chapter(CHAPTER_ID, 'Vhardun', JSON.stringify(INVENTED_CONTENT), 0),
+        ]),
+      }).useCase;
+    }
+
+    it('flags an agreement mistake on an invented proper noun', async () => {
+      const useCase = buildInventedUseCase([
+        { word: 'Vhardun', nature: 'proper-noun', gender: 'feminine' },
+      ]);
+
+      const { issues } = await useCase.execute({
+        ownerId: OWNER_ID,
+        projectId: PROJECT_ID,
+        chapterId: CHAPTER_ID,
+      });
+
+      expect(issues).toHaveLength(1);
+      expect(issues[0]).toMatchObject({
+        nature: 'grammar',
+        ruleFamily: 'ppas',
+        text: 'parti',
+        suggestions: ['partie'],
+      });
+    });
+
+    it('says nothing about a word the author listed without describing it', async () => {
+      const useCase = buildInventedUseCase([{ word: 'Vhardun' }]);
+
+      const { issues } = await useCase.execute({
+        ownerId: OWNER_ID,
+        projectId: PROJECT_ID,
+        chapterId: CHAPTER_ID,
+      });
+
+      expect(issues).toEqual([]);
+    });
+
+    it('installs the automaton built on write instead of building its own', () => {
+      const source = readFileSync(
+        resolve(process.cwd(), 'src/application/use-cases/CheckChapterGrammarUseCase.ts'),
+        'utf8'
+      );
+
+      expect(source).toMatch(/getGrammarDictionary\(\)/);
+      expect(source).not.toMatch(/Compiler|compile\(/);
+    });
   });
 
   it('returns no issue for a chapter whose content is not a document', async () => {

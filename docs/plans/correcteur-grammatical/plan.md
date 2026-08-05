@@ -30,3 +30,17 @@ Le corpus déterministe est volontairement séparé :
 - `src/infrastructure/grammar/fixtures/fiction-errors.txt` contient 15 extraits avec une faute grammaticale injectée ; il fixe le plancher de rappel du profil initial.
 
 Les tests de l’adaptateur exécutent le moteur réel, sans mock, et gardent les deux seuils distincts pour que la baisse des faux positifs ne masque pas une perte de détection.
+
+## Le vocabulaire propre au roman
+
+Un mot inventé peut être listé sans être décrit — c’est la forme qu’avaient toutes les entrées avant cette étape, et elle reste valide : le correcteur orthographique l’accepte, le correcteur grammatical n’en dit rien. Déclarer sa nature (nom propre, nom commun, adjectif), son genre et sa forme au pluriel donne au moteur de quoi juger les accords autour de lui. `PersonalDictionaryEntry` traduit une déclaration en flexions Grammalecte : `:M1`/`:N`/`:A` pour la nature, `m|f|e` pour le genre, `:i` quand aucun pluriel n’est déclaré, sinon un couple `:s`/`:p`. Sans nature, aucune flexion — d’où le silence du moteur.
+
+L’automate est construit à l’écriture par `UpdatePersonalDictionaryUseCase`, seul chemin d’écriture du vocabulaire, et rangé dans `ProjectSettings` à côté de la liste dont il est issu : les deux ne peuvent pas décrire des mots différents. La vérification d’un chapitre se contente de l’installer. Ajouter un mot depuis la palette d’orthographe ne déclare rien, donc ne produit aucune flexion, donc laisse l’automate valide sans reconstruction.
+
+Aucune migration : une entrée en chaîne simple est relue comme une entrée sans déclaration, et un document sans dictionnaire reste lisible. Les tests du sérialiseur couvrent les trois formes (chaînes seules, mélange, document vide).
+
+Le moteur mémorise la morphologie de chaque mot rencontré pour la durée du processus, dictionnaire personnel compris — `activateStorage()` est appelé par `gc_engine`. Désactiver le dictionnaire ne vide pas ce cache : le vocabulaire d’un projet ressortait donc dans le paragraphe d’un autre. L’adaptateur vide désormais le cache au moment où le dictionnaire installé change, dans le même bloc synchrone que l’installation.
+
+## L’analyse IA recentrée
+
+Orthographe, grammaire et ponctuation sont vérifiées hors ligne. Les demander en plus à un modèle de langue revenait à refaire, plus lentement et moins sûrement, un travail déjà fait — et l’orthographe était pire encore : proposée à l’auteur sans stratégie derrière, elle ne renvoyait rien. `AnalysisCategory` ne contient plus que les répétitions et le style, `createAnalysisStrategies` refuse toute catégorie sans stratégie, et l’entrée de menu « Analyser le style » se distingue de « Corriger le chapitre ». Une analyse n’étant jamais persistée, ce resserrement ne demande aucune migration ; un test échoue si un sérialiseur ou un dépôt se met à référencer l’entité.

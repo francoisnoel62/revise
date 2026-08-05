@@ -13,6 +13,8 @@ import type { LevelStylesByProfile } from '@/domain/entities/ProjectSettings';
 import type { TocDepth, TocStyle } from '@/domain/value-objects/TocPreferences';
 import type { AutomaticSnapshotInterval } from '@/domain/value-objects/AutomaticSnapshotInterval';
 import type { GrammarRuleProfile } from '@/domain/value-objects/GrammarRuleProfile';
+import type { PersonalDictionaryEntry } from '@/domain/value-objects/PersonalDictionaryEntry';
+import type { GrammarPersonalDictionary } from '@/domain/interfaces/GrammarChecker';
 
 export interface ContributorDocument {
   name: string;
@@ -49,7 +51,9 @@ export interface ProjectSettingsDocument {
   autocompletePartialAcceptance?: boolean;
   autocompleteSmartPrefetch?: boolean;
   canonExtractionMode?: CanonExtractionMode;
-  customDictionary?: string[];
+  /** Bare strings are words stored before the author could describe them. */
+  customDictionary?: (string | PersonalDictionaryEntry)[];
+  grammarDictionary?: GrammarPersonalDictionary | null;
   ignoredWords?: string[];
   grammarRuleProfile?: GrammarRuleProfile;
   publicationProfileId?: PublicationProfileId;
@@ -97,6 +101,7 @@ export function serializeProjectSettings(
     autocompleteSmartPrefetch: props.autocompleteSmartPrefetch,
     canonExtractionMode: props.canonExtractionMode,
     customDictionary: props.customDictionary ?? [],
+    grammarDictionary: props.grammarDictionary ?? null,
     ignoredWords: props.ignoredWords ?? [],
     grammarRuleProfile: props.grammarRuleProfile,
     publicationProfileId: props.publicationProfileId,
@@ -146,6 +151,7 @@ export function deserializeProjectSettings(doc: ProjectSettingsDocument): Projec
     autocompleteSmartPrefetch: doc.autocompleteSmartPrefetch,
     canonExtractionMode: doc.canonExtractionMode,
     customDictionary: doc.customDictionary ?? [],
+    grammarDictionary: doc.grammarDictionary ?? null,
     ignoredWords: doc.ignoredWords ?? [],
     grammarRuleProfile: doc.grammarRuleProfile,
     publicationProfileId: doc.publicationProfileId,
