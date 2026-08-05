@@ -14,11 +14,6 @@ export const ANALYSIS_CATEGORY_LABELS: Record<AnalysisCategory, string> = {
   style: 'Style',
 };
 
-export const ANALYSIS_CATEGORY_ICONS: Record<AnalysisCategory, string> = {
-  repetition: 'copy',
-  style: 'pen-tool',
-};
-
 export const ANALYSIS_CATEGORY_ORDER: Record<AnalysisCategory, number> = {
   repetition: 0,
   style: 1,

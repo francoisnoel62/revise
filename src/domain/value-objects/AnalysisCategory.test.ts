@@ -6,7 +6,6 @@ import {
   ANALYSIS_CATEGORIES,
   isValidAnalysisCategory,
   ANALYSIS_CATEGORY_LABELS,
-  ANALYSIS_CATEGORY_ICONS,
   ANALYSIS_CATEGORY_ORDER,
 } from './AnalysisCategory';
 
@@ -46,15 +45,6 @@ describe('AnalysisCategory', () => {
       for (const category of ANALYSIS_CATEGORIES) {
         expect(ANALYSIS_CATEGORY_LABELS[category]).toBeDefined();
         expect(typeof ANALYSIS_CATEGORY_LABELS[category]).toBe('string');
-      }
-    });
-  });
-
-  describe('ANALYSIS_CATEGORY_ICONS', () => {
-    it('should have an icon identifier for each category', () => {
-      for (const category of ANALYSIS_CATEGORIES) {
-        expect(ANALYSIS_CATEGORY_ICONS[category]).toBeDefined();
-        expect(typeof ANALYSIS_CATEGORY_ICONS[category]).toBe('string');
       }
     });
   });
