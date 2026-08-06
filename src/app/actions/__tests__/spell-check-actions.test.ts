@@ -11,9 +11,10 @@ import { checkSpellingAction } from '../spell-check-actions';
 
 describe('checkSpellingAction', () => {
   beforeAll(async () => {
-    // Warm up the singleton — dictionary-fr reads from disk the first time (~5s)
+    // Warm up the singleton. Reading the .aff/.dic costs ~10ms; parsing them into
+    // an nspell instance costs ~12s, and more when the suite saturates the CPU.
     await checkSpellingAction(['init']);
-  }, 15_000);
+  }, 60_000);
   it('returns an empty array when given no words', async () => {
     const result = await checkSpellingAction([]);
     expect(result).toEqual([]);

@@ -16,7 +16,18 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     include: ['**/*.test.{ts,tsx}'],
-    exclude: ['node_modules', '**/*.integration.test.{ts,tsx}'],
+    // Benchmarks are excluded here and run alone via vitest.performance.config.ts:
+    // their assertions are wall-clock, so they need a quiet machine to mean anything.
+    exclude: [
+      'node_modules',
+      '**/*.integration.test.{ts,tsx}',
+      'tests/performance/**',
+    ],
+    // The suite runs hundreds of jsdom files in parallel, and some first tests
+    // pay for a lazily loaded engine (the French grammar dictionary alone takes
+    // ~18s to import). The 5s default expires on setup, not on the assertions.
+    testTimeout: 30000,
+    hookTimeout: 30000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
