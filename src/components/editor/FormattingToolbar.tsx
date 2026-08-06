@@ -8,12 +8,12 @@ import { Editor } from '@tiptap/react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import {
   Bold,
@@ -33,6 +33,7 @@ import {
   ListOrdered,
   SpellCheck,
   Loader2,
+  Pilcrow,
 } from 'lucide-react';
 
 export type EditorProfile = 'print-ready' | 'passerelle';
@@ -352,45 +353,56 @@ export function FormattingToolbar({
   // The corrector runs locally: free, deterministic, and available to an author
   // who configured no AI provider. It gets its own button rather than a place
   // under a menu labelled "IA", which would say the opposite.
+  // Split control: the correction runs on the left, its options open on the right.
+  // Both halves carry the AI menu's button design so the two read as siblings.
   const correctionButton = onCorrect && (
     <div className="flex items-center">
       <Button
-        variant="ghost"
+        variant="outline"
         size="sm"
         onClick={onCorrect}
         disabled={correctionLoading}
         title="Corriger le chapitre"
         aria-label="Corriger le chapitre"
-        className="h-8 md:h-9 gap-1.5 px-2"
+        className={`gap-1.5 px-2 md:px-3 ${
+          onPunctuationChange ? 'rounded-r-none border-r-0' : ''
+        }`}
       >
         {correctionLoading ? (
-          <Loader2 className="h-3.5 w-3.5 md:h-4 md:w-4 animate-spin" />
+          <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
-          <SpellCheck className="h-3.5 w-3.5 md:h-4 md:w-4" />
+          <SpellCheck className="h-4 w-4" />
         )}
-        <span className="hidden lg:inline text-xs">Corriger</span>
+        <span className="hidden sm:inline">Corriger</span>
       </Button>
 
       {onPunctuationChange && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               title="Options de correction"
               aria-label="Options de correction"
-              className="h-8 md:h-9 w-5 px-0 text-xs opacity-60"
+              className="rounded-l-none px-1.5"
             >
-              ▾
+              <span className="text-xs opacity-60">▾</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuCheckboxItem
-              checked={punctuationChecked}
-              onCheckedChange={onPunctuationChange}
+            <DropdownMenuItem
+              onSelect={(e) => e.preventDefault()}
+              className="gap-2"
             >
-              Ponctuation
-            </DropdownMenuCheckboxItem>
+              <Pilcrow className="h-4 w-4" />
+              <span className="flex-1">Ponctuation</span>
+              <Switch
+                aria-label="Ponctuation"
+                checked={punctuationChecked}
+                onCheckedChange={onPunctuationChange}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </DropdownMenuItem>
             <p className="px-2 pb-1.5 pt-0.5 text-xs text-muted-foreground">
               Espaces, virgules et fins de phrase. Les accords et les conjugaisons
               restent vérifiés.

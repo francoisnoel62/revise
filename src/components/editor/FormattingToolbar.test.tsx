@@ -839,7 +839,7 @@ describe('FormattingToolbar', () => {
         screen.getByRole('button', { name: 'Options de correction' })
       );
 
-      expect(screen.getByRole('menuitemcheckbox', { name: /ponctuation/i })).toBeChecked();
+      expect(screen.getByRole('switch', { name: 'Ponctuation' })).toBeChecked();
     });
 
     it('reports the punctuation switch as off when the project turned it off', async () => {
@@ -858,7 +858,7 @@ describe('FormattingToolbar', () => {
         screen.getByRole('button', { name: 'Options de correction' })
       );
 
-      expect(screen.getByRole('menuitemcheckbox', { name: /ponctuation/i })).not.toBeChecked();
+      expect(screen.getByRole('switch', { name: 'Ponctuation' })).not.toBeChecked();
     });
 
     it('asks to switch punctuation off when the author unchecks it', async () => {
@@ -876,9 +876,28 @@ describe('FormattingToolbar', () => {
 
       const user = userEvent.setup();
       await user.click(screen.getByRole('button', { name: 'Options de correction' }));
-      await user.click(screen.getByRole('menuitemcheckbox', { name: /ponctuation/i }));
+      await user.click(screen.getByRole('switch', { name: 'Ponctuation' }));
 
       expect(onPunctuationChange).toHaveBeenCalledWith(false);
+    });
+
+    it('keeps the menu open so the author can see what changed', async () => {
+      const editor = createMockEditor();
+      render(
+        <FormattingToolbar
+          editor={editor}
+          {...correctionProps}
+          onCorrect={vi.fn()}
+          punctuationChecked
+          onPunctuationChange={vi.fn()}
+        />
+      );
+
+      const user = userEvent.setup();
+      await user.click(screen.getByRole('button', { name: 'Options de correction' }));
+      await user.click(screen.getByRole('switch', { name: 'Ponctuation' }));
+
+      expect(screen.getByRole('switch', { name: 'Ponctuation' })).toBeInTheDocument();
     });
 
     it('shows no options button when the project offers no punctuation switch', () => {

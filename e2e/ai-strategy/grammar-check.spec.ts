@@ -187,9 +187,7 @@ test.describe('Grammar correction in the editor', () => {
 
     await page.getByRole('button', { name: 'Options de correction' }).click();
 
-    await expect(
-      page.getByRole('menuitemcheckbox', { name: /ponctuation/i })
-    ).toBeVisible();
+    await expect(page.getByRole('switch', { name: 'Ponctuation' })).toBeVisible();
   });
 
   test('the local corrector is not filed under the AI menu', async ({ page }) => {
