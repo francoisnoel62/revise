@@ -172,6 +172,31 @@ describe('useSpellCheck', () => {
     expect(typeof dispatched[0].to).toBe('number');
   });
 
+  // The author keeps writing while the round trip is in flight. Positions located in the
+  // document as it was before the await are applied to the document as it is after, so a
+  // correction replaces the wrong range — one character adrift is enough to swallow the
+  // space in front of the word.
+  it('locates issues in the document as it stands when the result arrives', async () => {
+    const nodes = [{ text: 'bois maisson', pos: 1 }];
+    const editor = createMockEditor('bois maisson', nodes);
+
+    mockCheckSpelling.mockImplementation(async () => {
+      // "Cher " typed at the start shifts everything after it by five characters.
+      nodes[0] = { text: 'Cher bois maisson', pos: 1 };
+      editor.getText.mockReturnValue('Cher bois maisson');
+      return [{ word: 'maisson', suggestions: ['maison'] }];
+    });
+
+    renderHook(() => useSpellCheck(editor as unknown as Editor));
+    await flushDebounce();
+
+    const dispatched = dispatchedSpelling(editor._setMetaCalls.at(-1));
+    expect(dispatched).toHaveLength(1);
+    // 'maisson' sits at index 10 of the text that is actually on screen — position 11.
+    expect(dispatched[0].from).toBe(11);
+    expect(dispatched[0].to).toBe(18);
+  });
+
   it('dispatches an empty list and skips the server action when the document has no letter-words', async () => {
     // Text is non-empty (avoids the lastText dedup short-circuit) but contains only
     // punctuation — the word regex /[\p{L}\p{M}]{2,}/gu produces no matches.

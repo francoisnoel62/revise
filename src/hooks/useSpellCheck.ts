@@ -86,8 +86,7 @@ export function useSpellCheck(
     if (currentText === lastTextRef.current) return;
     lastTextRef.current = currentText;
 
-    const wordsWithPositions = extractWordsFromDoc(ed);
-    const uniqueWords = [...new Set(wordsWithPositions.map((w) => w.word))];
+    const uniqueWords = [...new Set(extractWordsFromDoc(ed).map((w) => w.word))];
 
     if (uniqueWords.length === 0) {
       if (!ed.isDestroyed) {
@@ -100,6 +99,13 @@ export function useSpellCheck(
     const accepted = [...customDictionaryRef.current, ...ignoredWordsRef.current];
     const misspelled = await checkSpellingAction(uniqueWords, accepted);
     if (ed.isDestroyed) return;
+
+    // Locate the words again rather than reusing what was found before the round trip:
+    // the author goes on writing while it is in flight, and a range located in the
+    // document as it was would have the correction replace the wrong text — a single
+    // character adrift is enough to swallow the space before the word. Everything from
+    // here to the dispatch is synchronous, so nothing can move in between.
+    const wordsWithPositions = extractWordsFromDoc(ed);
 
     const misspelledMap = new Map(
       misspelled.map((m) => [m.word.toLowerCase(), m.suggestions])
