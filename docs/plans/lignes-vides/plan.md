@@ -39,11 +39,32 @@ Le contenu généré CSS n'entre pas dans la sélection : aucune pollution du co
 
 ### 3. Les exceptions
 
-- **Après un titre de chapitre / sous-titre** : comportement actuel conservé — les lignes
-  vides sont supprimées. Elles volent le `break-after: avoid` de Paged.js et laissent le
-  titre orphelin en bas de page.
-- **En fin de document** : supprimées. Sinon elles gonflent la pagination et peuvent
-  pousser une page blanche en fin de chapitre.
+**Autour d'un titre de chapitre / sous-titre** : supprimées des deux côtés. Ces rôles gèrent
+eux-mêmes leur espace vertical ; une ligne vide collée à eux fait doublon. Chaque côté a
+néanmoins sa propre justification :
+
+- *Après* (comportement existant) : la ligne vide vole le `break-after: avoid` de Paged.js,
+  qui colle le titre à son voisin DOM immédiat et non au contenu visible suivant. Le titre
+  peut alors rester orphelin en bas de page.
+- *Avant* : la typographie de niveau applique déjà un `spaceBefore` (24 pt pour un
+  sous-titre, 48 pt pour un titre de chapitre, qui ouvre en plus une page). Or l'éditeur
+  n'affiche aucun style de niveau — aucune règle `data-semantic-role` dans `globals.css`,
+  aucun `LevelStyleSet` injecté dans `TextEditor`. La ligne vide est donc l'auteur compensant
+  un espace qu'il ne voit pas, pas une demande d'espace supplémentaire. Conservée, elle
+  donnerait 24 pt avant certains sous-titres et 36 pt avant d'autres : un espacement de
+  section irrégulier d'un chapitre à l'autre.
+
+Une série entière de lignes vides est supprimée d'un bloc, pas seulement la plus proche.
+
+**En fin de document** : supprimées. Sinon elles gonflent la pagination et peuvent pousser
+une page superflue en fin de chapitre.
+
+### Cause racine à traiter séparément
+
+Le point « avant un titre » soigne un symptôme : l'éditeur n'affiche pas la typographie de
+niveau (tailles, graisses, espaces avant/après). Tant que c'est le cas, l'auteur continuera
+de compenser à la main des espaces déjà appliqués à l'export. C'est le vrai sujet de
+l'ADR 0005, hors périmètre de ce plan.
 
 ### 4. Invalider le cache d'aperçu
 
