@@ -89,6 +89,41 @@ Une résolution qui *supprime* l'intention d'un des deux côtés est une erreur,
 **1.3 — Reprendre les cinq portes et comparer à 0.2**
 Tout nouveau rouge est un dommage de merge et se corrige avant d'aller plus loin.
 
+### Résultat (12 août 2026)
+
+**4 conflits** sur les 13 fichiers qui se chevauchaient ; Git a fusionné le reste seul.
+Résolus en gardant l'intention des deux côtés — détail dans le message du commit de merge.
+
+Deux pièges rencontrés, l'un et l'autre invisibles sans la référence de phase 0 :
+
+1. **Git a conservé les deux copies d'un même ajout.** Les deux côtés avaient mocké
+   `getSnapshotRepo` ; la fusion automatique a produit mock, déclaration et initialisation
+   en double. Une `let` dupliquée ne compile pas. Un merge « sans conflit » n'est pas un
+   merge correct.
+2. **`snapshot-restore` cassé alors qu'il passait sur les deux parents.** La fixture semait
+   des paragraphes sans les attributs que l'éditeur écrit (`textAlign`, `semanticRole`).
+   L'éditeur les normalisait au montage — une vraie modification, dont l'autosave déplaçait
+   `project.updatedAt` et faisait rejeter la restauration par son propre garde de
+   concurrence. Corrigé à la racine : la fixture sème la forme que l'éditeur produit.
+   Mesuré par sondes successives (l'autosave part ~4 s après le chargement ; le contenu
+   écrit diffère ; laisser l'autosave se déposer suffisait à faire passer le test).
+
+| Porte | Après merge |
+|---|---|
+| `lint` | ✅ 0 |
+| unitaires | ✅ 3 523 |
+| intégration | ✅ 72 |
+| `build` | ✅ 0 |
+| E2E | ⚠️ 98–99 verts, 1 aléa **préexistant** |
+
+L'aléa restant est `autocomplete.spec.ts:318` (~20 %, isolé comme en suite). Ni `main` ni
+la branche n'ont touché ce test ni le code d'autocomplétion : ce n'est pas un dommage du
+merge. Le fichier documente déjà une instabilité voisine par un `test.fixme`.
+
+**Limite assumée de la méthode** : la référence de phase 0 tenait en une seule exécution,
+donc elle ne pouvait pas révéler une instabilité à 20 %. Elle prouve ce qu'elle prouve —
+elle a bien permis d'attribuer la casse de `snapshot-restore` au merge, pas davantage.
+
 ## Phase 2 — Atterrir
 
 **2.1 — Ouvrir une Pull Request vers `main`**
