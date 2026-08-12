@@ -95,7 +95,10 @@ export class PagedJsRenderer implements PagedRenderer {
             if(id&&!Object.prototype.hasOwnProperty.call(targets,id))targets[id]=i;
           }
         }
-        if(firstBody===-1)return;
+        // Only the whole-book assembler wraps chapters in section.chapter[id], and it is also
+        // the only path that emits liminaires. Without that marker (the editor's live preview
+        // of a single chapter) there is no front matter, so the body starts at the first page.
+        if(firstBody===-1)firstBody=0;
         function footer(page){return page.querySelector('.pagedjs_margin-bottom-center');}
         function writeFooter(slot,text){
           var content=slot.querySelector('.pagedjs_margin-content');

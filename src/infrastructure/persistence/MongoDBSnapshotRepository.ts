@@ -10,10 +10,23 @@ const COLLECTION_NAME = 'snapshots';
 const COUNTERS_COLLECTION_NAME = 'snapshotCounters';
 const ACTIVITY_COLLECTION_NAME = 'snapshotActivity';
 
+const DUPLICATE_KEY_ERROR_CODE = 11000;
+
+/** How many times a counter allocation may lose the insert race before giving up. */
+const SEQUENCE_ALLOCATION_RETRIES = 5;
+
 interface SnapshotCounterDocument {
   _id: string; // projectId
   ownerId: string;
   seq: number;
+}
+
+function isDuplicateKeyError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { code?: unknown }).code === DUPLICATE_KEY_ERROR_CODE
+  );
 }
 
 export class MongoDBSnapshotRepository implements SnapshotRepository {
@@ -43,14 +56,23 @@ export class MongoDBSnapshotRepository implements SnapshotRepository {
   }
 
   async getNextSequenceNumber(ownerId: string, projectId: string): Promise<number> {
-    const doc = await this.countersCollection().findOneAndUpdate(
-      { _id: projectId, ownerId },
-      { $inc: { seq: 1 } },
-      { upsert: true, returnDocument: 'after' }
-    );
+    // Concurrent first-ever allocations for the same project all miss the filter and race to
+    // insert the counter; every loser gets a duplicate-key error on _id. Retrying resolves it:
+    // the counter now exists, so the next attempt matches and increments instead of inserting.
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const doc = await this.countersCollection().findOneAndUpdate(
+          { _id: projectId, ownerId },
+          { $inc: { seq: 1 } },
+          { upsert: true, returnDocument: 'after' }
+        );
 
-    // returnDocument: 'after' with upsert always yields a document.
-    return doc!.seq;
+        // returnDocument: 'after' with upsert always yields a document.
+        return doc!.seq;
+      } catch (error) {
+        if (!isDuplicateKeyError(error) || attempt >= SEQUENCE_ALLOCATION_RETRIES) throw error;
+      }
+    }
   }
 
   async save(ownerId: string, snapshot: Snapshot): Promise<void> {

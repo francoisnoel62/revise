@@ -37,6 +37,10 @@ async function openHistory(page: Page) {
 }
 
 test.describe('snapshot restore — restaurer une version sans perdre l’état courant', () => {
+  // Every test here resets and then mutates the same project fixture, so they must not
+  // overlap: run in parallel, one test's reset wipes the snapshots another is asserting on.
+  test.describe.configure({ mode: 'serial' });
+
   test.beforeEach(async () => {
     await resetRestoreFixture();
   });

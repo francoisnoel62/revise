@@ -16,6 +16,7 @@ vi.mock('./utils', () => ({
   getMetadataRepo: vi.fn(),
   getProjectSettingsRepo: vi.fn(),
   getWritingGoalRepo: vi.fn(),
+  getSnapshotRepo: vi.fn(),
   withErrorHandling: vi.fn(async (fn) => {
     try {
       const data = await fn();
@@ -26,7 +27,7 @@ vi.mock('./utils', () => ({
   }),
 }));
 
-import { getAuthenticatedUserId, getRepository, getProviderRepo, getMetadataRepo, getProjectSettingsRepo, getWritingGoalRepo } from './utils';
+import { getAuthenticatedUserId, getRepository, getProviderRepo, getMetadataRepo, getProjectSettingsRepo, getWritingGoalRepo, getSnapshotRepo } from './utils';
 import { InMemoryProjectRepository } from '@/infrastructure/persistence/InMemoryProjectRepository';
 import { Project } from '@/domain/entities/Project';
 import { Provider } from '@/domain/entities/Provider';
@@ -46,6 +47,9 @@ describe('project-actions', () => {
   };
   let mockWritingGoalRepository: {
     findActiveByProjectId: ReturnType<typeof vi.fn>;
+  };
+  let mockSnapshotRepository: {
+    deleteByProjectId: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -89,6 +93,12 @@ describe('project-actions', () => {
       findActiveByProjectId: vi.fn().mockResolvedValue(null),
     };
     vi.mocked(getWritingGoalRepo).mockResolvedValue(mockWritingGoalRepository as never);
+
+    // Mock snapshot repository
+    mockSnapshotRepository = {
+      deleteByProjectId: vi.fn().mockResolvedValue(undefined),
+    };
+    vi.mocked(getSnapshotRepo).mockResolvedValue(mockSnapshotRepository as never);
   });
 
   describe('createProjectAction', () => {
@@ -174,6 +184,13 @@ describe('project-actions', () => {
 
       const loaded = await mockRepository.loadProject('user-123', project.getId());
       expect(loaded).toBeNull();
+
+      // Deleting a project is the final lifecycle boundary: the restorable snapshots must go
+      // with it, scoped to the owner so one tenant's delete can never reach another's.
+      expect(mockSnapshotRepository.deleteByProjectId).toHaveBeenCalledWith(
+        'user-123',
+        project.getId(),
+      );
     });
   });
 });

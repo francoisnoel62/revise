@@ -496,33 +496,38 @@ export async function resetRestoreFixture(): Promise<void> {
     await db.collection('snapshots').deleteMany({ ownerId: TEST_USER_ID, projectId: TEST_RESTORE_PROJECT_ID });
     await db.collection('snapshotCounters').deleteMany({ _id: TEST_RESTORE_PROJECT_ID } as object);
 
-    await db.collection<SnapshotDocument>('snapshots').insertOne({
-      _id: TEST_RESTORE_SNAPSHOT_ID,
-      projectId: TEST_RESTORE_PROJECT_ID,
-      ownerId: TEST_USER_ID,
-      authorId: TEST_USER_ID,
-      number: 1,
-      type: 'manual',
-      title: 'Version 1',
-      comment: null,
-      projectTitle: 'Roman Test Restauration',
-      chapters: [{
-        id: TEST_RESTORE_CHAPTER_ID,
-        title: TEST_RESTORE_ORIGINAL_TITLE,
-        content: originalContent,
-        order: 0,
-      }],
-      editorialMetadata: {
-        title: 'Roman Test Restauration',
-        summary: '',
-        genre: TEST_RESTORE_ORIGINAL_GENRE,
-        synopsis: '',
-        contributors: [],
-        relatedWorks: [],
+    // replaceOne+upsert rather than insertOne: this is a reset, so re-seeding must converge on
+    // the same document instead of failing on the _id left by a previous (or concurrent) reset.
+    await db.collection<SnapshotDocument>('snapshots').replaceOne(
+      { _id: TEST_RESTORE_SNAPSHOT_ID },
+      {
+        projectId: TEST_RESTORE_PROJECT_ID,
+        ownerId: TEST_USER_ID,
+        authorId: TEST_USER_ID,
+        number: 1,
+        type: 'manual',
+        title: 'Version 1',
+        comment: null,
+        projectTitle: 'Roman Test Restauration',
+        chapters: [{
+          id: TEST_RESTORE_CHAPTER_ID,
+          title: TEST_RESTORE_ORIGINAL_TITLE,
+          content: originalContent,
+          order: 0,
+        }],
+        editorialMetadata: {
+          title: 'Roman Test Restauration',
+          summary: '',
+          genre: TEST_RESTORE_ORIGINAL_GENRE,
+          synopsis: '',
+          contributors: [],
+          relatedWorks: [],
+        },
+        sourceSnapshotNumber: null,
+        createdAt: snapshotCreatedAt,
       },
-      sourceSnapshotNumber: null,
-      createdAt: snapshotCreatedAt,
-    });
+      { upsert: true }
+    );
     await db.collection('snapshotCounters').replaceOne(
       { _id: TEST_RESTORE_PROJECT_ID } as object,
       { _id: TEST_RESTORE_PROJECT_ID, ownerId: TEST_USER_ID, seq: 1 },
