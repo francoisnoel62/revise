@@ -22,6 +22,8 @@ export interface BookPreviewContentHashInput {
   readonly tocStyle?: TocStyle;
   /** Endnotes section heading; changing it changes what's printed, so it enters the hash. */
   readonly endnotesTitle?: string;
+  /** Whether blank lines occupy a line; flipping it repaginates the book, so it enters the hash. */
+  readonly honorBlankLines?: boolean;
   /** Explicit test/release override; production uses BOOK_PREVIEW_RENDERER_REVISION by default. */
   readonly rendererRevision?: string;
 }
@@ -60,6 +62,7 @@ export function computeBookPreviewContentHash(input: BookPreviewContentHashInput
     tocDepth: input.tocDepth ?? null,
     tocStyle: input.tocStyle ?? null,
     endnotesTitle: input.endnotesTitle ?? null,
+    honorBlankLines: input.honorBlankLines ?? false,
     rendererRevision: input.rendererRevision ?? BOOK_PREVIEW_RENDERER_REVISION,
   };
 

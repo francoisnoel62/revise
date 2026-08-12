@@ -83,7 +83,41 @@ Mesure en navigateur réel (Chromium, profil KDP 6×9, rôle `corps`) : la ligne
 16,86 px, exactement la hauteur d'une ligne de texte du même rôle. La hauteur suit donc bien
 la typographie du niveau, sans valeur codée en dur.
 
-## Question ouverte — impact sur les projets existants
+## Réglage par projet — protection des manuscrits existants
+
+Décision : la fonctionnalité est réservée aux nouveaux projets, les existants gardent leur
+mise en page. `ProjectSettings.honorBlankLines` porte le choix explicite de l'auteur ;
+en son absence, `honorsBlankLines` (`domain/value-objects/BlankLinePolicy.ts`) tranche
+d'après la **date de création du projet**, comparée à `BLANK_LINES_HONORED_FROM`.
+
+Pourquoi la date de création et non un tag en base : le document de réglages d'un projet est
+créé paresseusement, la première fois que l'auteur ouvre la page Réglages
+(`cockpit/settings/page.tsx:55`). Un manuscrit antérieur à la fonctionnalité peut donc n'avoir
+aucune ligne à taguer — et se ferait estampiller « nouveau » le jour où son auteur ouvrirait
+cette page. La date de création, elle, existe pour 100 % des projets et ne demande aucune
+migration.
+
+Le choix explicite de l'auteur l'emporte toujours, dans les deux sens : un ancien projet peut
+adopter la nouveauté, un nouveau peut y renoncer.
+
+Le réglage entre dans `computeBookPreviewContentHash` : le basculer repagine le livre alors
+qu'aucun octet du manuscrit ne change, donc sans cela l'auteur continuerait de voir le PDF
+en cache d'avant bascule.
+
+**À faire avant le déploiement** : caler `BLANK_LINES_HONORED_FROM` sur la date réelle de mise
+en production. Reculée, elle repaginerait des livres publiés avant l'existence de la
+fonctionnalité.
+
+### Vérification de la garantie
+
+Mesure en navigateur réel, profil KDP 6×9, rôle `corps` :
+
+| Projet | `honorsBlankLines` | Ligne vide | Ligne de texte |
+|---|---|---|---|
+| Créé avant la bascule | `false` | **0 px** | 16,86 px |
+| Créé après la bascule | `true` | **16,86 px** | 16,86 px |
+
+## Historique — la question qui a mené à ce réglage
 
 Le changement est rétroactif : au déploiement, tout manuscrit contenant des lignes vides voit
 sa pagination changer. Le texte de l'auteur n'est jamais modifié, seule sa mise en page l'est,

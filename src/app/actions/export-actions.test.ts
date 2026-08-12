@@ -56,6 +56,7 @@ describe('export-actions', () => {
       findByProjectId: vi.fn().mockResolvedValue({
         getCoverImageUrl: () => undefined,
         getPublicationProfileId: () => 'passerelle',
+        getHonorBlankLines: () => undefined,
       }),
     };
     vi.mocked(getProjectSettingsRepo).mockResolvedValue(mockSettingsRepository as never);
@@ -166,6 +167,7 @@ describe('export-actions', () => {
       mockSettingsRepository.findByProjectId.mockResolvedValue({
         getCoverImageUrl: () => undefined,
         getPublicationProfileId: () => 'kdp-6x9',
+        getHonorBlankLines: () => undefined,
       });
 
       const chapter = new Chapter('ch-1', 'Chapter 1', '{"type":"doc","content":[]}', 0);
@@ -195,6 +197,7 @@ describe('export-actions', () => {
       mockSettingsRepository.findByProjectId.mockResolvedValue({
         getCoverImageUrl: () => undefined,
         getPublicationProfileId: () => 'a5',
+        getHonorBlankLines: () => undefined,
         getLevelStyleSet: () => levelStyles,
         getEndnotesTitle: () => 'Notes',
       });
@@ -230,6 +233,7 @@ describe('export-actions', () => {
       mockSettingsRepository.findByProjectId.mockResolvedValue({
         getCoverImageUrl: () => undefined,
         getPublicationProfileId: () => 'passerelle',
+        getHonorBlankLines: () => undefined,
       });
 
       const chapter = new Chapter('ch-1', 'Chapter 1', '{"type":"doc","content":[]}', 0);

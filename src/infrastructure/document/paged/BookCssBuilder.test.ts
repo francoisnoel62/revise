@@ -532,14 +532,41 @@ describe('BookCssBuilder', () => {
   // content restores a real line box, inheriting the paragraph's own font-size and
   // line-height — so the gap matches one line of the surrounding level, whatever its typography.
   describe('blank lines', () => {
-    const css = new BookCssBuilder().build(PublicationProfile.kdpSixByNine(), 'http://localhost:3000');
+    const honoring = new BookCssBuilder().build(
+      PublicationProfile.kdpSixByNine(),
+      'http://localhost:3000',
+      undefined,
+      undefined,
+      true,
+    );
 
     it('gives a blank-line paragraph the height of one line', () => {
-      expect(css).toMatch(/p\[data-blank-line\]::before\s*\{[^}]*content:/);
+      expect(honoring).toMatch(/p\[data-blank-line\]::before\s*\{[^}]*content:/);
     });
 
     it('uses a zero-width character so nothing prints and no space enters the text', () => {
-      expect(css).toMatch(/p\[data-blank-line\]::before\s*\{[^}]*content:\s*"\\200B"/);
+      expect(honoring).toMatch(/p\[data-blank-line\]::before\s*\{[^}]*content:\s*"\\200B"/);
+    });
+
+    // Projects predating the feature must paginate exactly as they always have, so the rule is
+    // absent rather than neutralised: an empty <p> then collapses to nothing, as before.
+    it('emits no blank-line rule for a project that does not honor blank lines', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000',
+        undefined,
+        undefined,
+        false,
+      );
+      expect(css).not.toContain('data-blank-line');
+    });
+
+    it('leaves blank lines collapsed when no choice is passed at all', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000',
+      );
+      expect(css).not.toContain('data-blank-line');
     });
   });
 });

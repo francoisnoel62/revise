@@ -25,6 +25,7 @@ export interface BookPreviewComputeInput {
   readonly contentHash: string;
   readonly assetBaseUrl: string;
   readonly levelStyles?: LevelStyleSetProperties;
+  readonly honorBlankLines?: boolean;
   readonly tocDepth?: TocDepth;
   readonly tocStyle?: TocStyle;
   /** Custom heading for the compiled endnotes section; defaults to « Notes ». */
@@ -70,6 +71,7 @@ export class BookPreviewCacheComputer {
       toc: tocEntries.length > 0 ? [...tocEntries] : undefined,
       tocStyle: input.tocStyle,
       levelStyles: input.levelStyles,
+      honorBlankLines: input.honorBlankLines,
       endnotes,
     });
 

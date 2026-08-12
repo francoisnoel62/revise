@@ -56,6 +56,7 @@ export class PagedJsRenderer implements PagedRenderer {
       assets,
       request.startPageNumber,
       request.levelStyles,
+      request.honorBlankLines,
     );
     const bodyStartPageNumber = request.startPageNumber && request.startPageNumber > 0
       ? Math.floor(request.startPageNumber)

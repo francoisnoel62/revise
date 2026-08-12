@@ -45,6 +45,8 @@ interface PublicationPreviewProps {
   /** Called with the total page count whenever the iframe finishes rendering. */
   readonly onPageCountChange?: (count: number) => void;
   readonly levelStyles?: LevelStyleSetProperties;
+  /** Whether the author's blank lines occupy a line; resolved per project by honorsBlankLines. */
+  readonly honorBlankLines?: boolean;
   /** Editor scroll position (word-anchor segment + local ratio) driving the preview's scroll. */
   readonly scrollPosition?: ScrollPosition;
 }
@@ -56,6 +58,7 @@ export function PublicationPreview({
   startPageNumber,
   onPageCountChange,
   levelStyles,
+  honorBlankLines,
   scrollPosition,
 }: PublicationPreviewProps) {
   const [renderedContent, setRenderedContent] = useState(content);
@@ -115,8 +118,9 @@ export function PublicationPreview({
         typeof window === 'undefined' ? 'http://localhost:3000' : window.location.origin,
       startPageNumber,
       levelStyles,
+      honorBlankLines,
     });
-  }, [levelStyles, overrides, profileId, renderedContent, startPageNumber]);
+  }, [honorBlankLines, levelStyles, overrides, profileId, renderedContent, startPageNumber]);
 
   const label = profileId === 'passerelle' ? 'Passerelle' : 'KDP 6×9';
 

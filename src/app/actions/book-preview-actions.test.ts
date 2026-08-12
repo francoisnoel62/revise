@@ -139,6 +139,7 @@ describe('getBookPreviewDataAction', () => {
     vi.mocked(getProjectSettingsRepo).mockResolvedValue({
       findByProjectId: vi.fn().mockResolvedValue({
         getPublicationProfileId: () => profileId,
+        getHonorBlankLines: () => undefined,
         getTitle: () => 'Mon Roman',
         getSubtitle: () => undefined,
         getIsbn: () => undefined,

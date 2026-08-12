@@ -3,7 +3,8 @@
 
 'use server';
 
-import { getProjectSettingsRepo, getAutomaticSnapshotRepo, getIdGenerator, getBlobStorageInstance, getAuthenticatedUserId } from './utils';
+import { getProjectSettingsRepo, getAutomaticSnapshotRepo, getIdGenerator, getBlobStorageInstance, getAuthenticatedUserId, getRepository } from './utils';
+import { honorsBlankLines } from '@/domain/value-objects/BlankLinePolicy';
 import { CreateProjectSettingsUseCase } from '@/application/use-cases/CreateProjectSettingsUseCase';
 import { LoadProjectSettingsUseCase } from '@/application/use-cases/LoadProjectSettingsUseCase';
 import { UpdateProjectSettingsUseCase, ProjectSettingsUpdates } from '@/application/use-cases/UpdateProjectSettingsUseCase';
@@ -113,7 +114,10 @@ export async function createProjectSettingsAction(
 
 export async function loadProjectSettingsAction(
   projectId: string
-): Promise<{ success: true; settings: SerializedProjectSettings | null } | { success: false; error: string }> {
+): Promise<
+  | { success: true; settings: SerializedProjectSettings | null; honorBlankLines: boolean }
+  | { success: false; error: string }
+> {
   try {
     const authResult = await getAuthenticatedUserId();
     if ('error' in authResult) {
@@ -127,9 +131,19 @@ export async function loadProjectSettingsAction(
       projectId,
     });
 
+    // Resolved here rather than inside the serialized settings: a project has no settings
+    // document until its author first opens the settings page, yet the answer must hold from
+    // the very first render. The project's own creation date is what decides.
+    const project = await (await getRepository()).loadProject(authResult.userId, projectId);
+    const honorBlankLines = honorsBlankLines(
+      settings?.getHonorBlankLines(),
+      project?.getCreatedAt(),
+    );
+
     return {
       success: true,
       settings: settings ? serializeProjectSettings(settings) : null,
+      honorBlankLines,
     };
   } catch (error) {
     console.error('Error loading project settings:', error);

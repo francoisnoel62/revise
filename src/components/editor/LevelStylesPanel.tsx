@@ -31,6 +31,9 @@ interface LevelStylesPanelProps {
   readonly profileId: PdfPublicationProfileId;
   readonly styles: LevelStyleSetProperties;
   readonly onChange: (styles: LevelStyleSetProperties) => void;
+  /** Project-wide, unlike the styles above, which apply to the selected role only. */
+  readonly honorBlankLines: boolean;
+  readonly onHonorBlankLinesChange: (honorBlankLines: boolean) => void;
   readonly isSaving?: boolean;
 }
 
@@ -38,6 +41,8 @@ export function LevelStylesPanel({
   profileId,
   styles,
   onChange,
+  honorBlankLines,
+  onHonorBlankLinesChange,
   isSaving = false,
 }: LevelStylesPanelProps) {
   const [role, setRole] = useState<LevelStyleRole>('titre-de-chapitre');
@@ -182,6 +187,22 @@ export function LevelStylesPanel({
               checked={style.italic}
               onCheckedChange={(checked) => update({ italic: checked })}
             />
+          </div>
+
+          <div className="space-y-1.5 border-t pt-4">
+            <div className="flex items-center justify-between rounded-md border px-3 py-2">
+              <Label htmlFor="honor-blank-lines">Lignes vides visibles</Label>
+              <Switch
+                id="honor-blank-lines"
+                checked={honorBlankLines}
+                onCheckedChange={onHonorBlankLinesChange}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              S&apos;applique au projet entier, pas au niveau sélectionné. Une ligne vide que vous
+              tapez occupe alors une ligne sur la page. Les lignes vides collées à un titre restent
+              supprimées : ces titres gèrent déjà leur espacement.
+            </p>
           </div>
         </div>
       </PopoverContent>

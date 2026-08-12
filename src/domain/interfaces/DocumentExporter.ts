@@ -68,6 +68,8 @@ export interface ExportOptions {
   publicationProfile?: PublicationProfile;
   /** Per-role typography for the selected PDF profile. Ignored by DOCX. */
   levelStyles?: LevelStyleSetProperties;
+  /** Whether the author's blank lines occupy a line; resolved per project by honorsBlankLines. */
+  honorBlankLines?: boolean;
   /** Heading for the compiled endnotes section (paged PDF). Defaults to « Notes ». */
   endnotesTitle?: string;
 }

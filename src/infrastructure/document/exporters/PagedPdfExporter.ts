@@ -66,6 +66,7 @@ export class PagedPdfExporter implements DocumentExporter {
       options?.levelStyles,
       options?.backMatter,
       options?.endnotesTitle,
+      options?.honorBlankLines,
     );
   }
 
@@ -77,7 +78,7 @@ export class PagedPdfExporter implements DocumentExporter {
     return this.renderToPdf([{
       title: chapter.getTitle(),
       content: JSON.parse(chapter.getContent()) as JSONContent,
-    }], options?.publicationProfile, undefined, options?.levelStyles, undefined, options?.endnotesTitle);
+    }], options?.publicationProfile, undefined, options?.levelStyles, undefined, options?.endnotesTitle, options?.honorBlankLines);
   }
 
   async exportChapters(chapters: Chapter[], filename: string, options?: ExportOptions): Promise<Buffer> {
@@ -94,7 +95,7 @@ export class PagedPdfExporter implements DocumentExporter {
       content: JSON.parse(ch.getContent()) as JSONContent,
     }));
 
-    return this.renderToPdf(chapterData, options?.publicationProfile, undefined, options?.levelStyles, undefined, options?.endnotesTitle);
+    return this.renderToPdf(chapterData, options?.publicationProfile, undefined, options?.levelStyles, undefined, options?.endnotesTitle, options?.honorBlankLines);
   }
 
   private async renderToPdf(
@@ -104,6 +105,7 @@ export class PagedPdfExporter implements DocumentExporter {
     levelStyles?: ExportOptions['levelStyles'],
     backMatter?: BackMatterData,
     endnotesTitle?: string,
+    honorBlankLines?: boolean,
   ): Promise<Buffer> {
     const bodyParts: string[] = [];
     const tocEntries: TocEntry[] = [];
@@ -153,6 +155,7 @@ export class PagedPdfExporter implements DocumentExporter {
       backMatter,
       toc,
       levelStyles,
+      honorBlankLines,
       endnotes,
     });
 

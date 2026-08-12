@@ -38,6 +38,7 @@ export interface ProjectSettingsUpdates {
   };
   tocPreferences?: Partial<TocPreferences>;
   endnotesTitle?: string;
+  honorBlankLines?: boolean;
   automaticSnapshotIntervalMinutes?: AutomaticSnapshotInterval | null;
   snapshotTimeZone?: string;
 }
@@ -146,6 +147,10 @@ export class UpdateProjectSettingsUseCase {
 
     if ('tocPreferences' in updates) {
       updated = updated.updateTocPreferences(updates.tocPreferences!);
+    }
+
+    if ('honorBlankLines' in updates) {
+      updated = updated.updateHonorBlankLines(updates.honorBlankLines!);
     }
 
     if ('endnotesTitle' in updates) {
