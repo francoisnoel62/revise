@@ -28,7 +28,19 @@ export class TipTapToBookHtml implements TipTapToHtmlConverter {
     this.endnoteAnchorPrefix = options?.endnoteAnchorPrefix ?? null;
     this.endnoteIndex = 0;
 
-    return this.renderChildren(content);
+    return this.renderChildren({
+      ...content,
+      content: this.dropTrailingBlankParagraphs(content.content ?? []),
+    });
+  }
+
+  // Blank lines the author left at the very end are an artefact of writing, not spacing they
+  // asked for: kept, they inflate the chapter's height and can push an extra page into the book.
+  // Interior blank lines are intentional and are preserved (see renderNode).
+  private dropTrailingBlankParagraphs(nodes: readonly JSONContent[]): JSONContent[] {
+    let end = nodes.length;
+    while (end > 0 && this.isBlankParagraph(nodes[end - 1])) end -= 1;
+    return nodes.slice(0, end);
   }
 
   private renderChildren(node: JSONContent): string {
@@ -64,8 +76,13 @@ export class TipTapToBookHtml implements TipTapToHtmlConverter {
     switch (node.type) {
       case 'text':
         return this.renderText(node);
-      case 'paragraph':
-        return `<p${this.renderBlockAttributes(node)}>${children}</p>`;
+      case 'paragraph': {
+        // An empty <p> generates no line box and collapses to zero height, so a blank line the
+        // author typed would vanish from the page. The marker lets BookCssBuilder give it the
+        // height of one line — a CSS p:empty selector would miss paragraphs holding only spaces.
+        const blankLine = this.isBlankParagraph(node) ? ' data-blank-line' : '';
+        return `<p${this.renderBlockAttributes(node)}${blankLine}>${children}</p>`;
+      }
       case 'heading': {
         const level = Math.min(6, Math.max(1, Number(node.attrs?.level) || 1));
         return `<h${level}${this.renderBlockAttributes(node)}>${children}</h${level}>`;

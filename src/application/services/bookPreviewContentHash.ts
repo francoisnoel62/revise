@@ -8,7 +8,7 @@ import type { TocDepth, TocStyle } from '@/domain/value-objects/TocPreferences';
 
 // Bump when the paged renderer changes visible output. This keeps previously cached PDFs from
 // surviving a deployment that fixes layout or folio logic but leaves manuscript data untouched.
-export const BOOK_PREVIEW_RENDERER_REVISION = '2026-07-31-paged-physical-folios-v1';
+export const BOOK_PREVIEW_RENDERER_REVISION = '2026-08-12-visible-blank-lines-v1';
 
 export interface BookPreviewContentHashInput {
   /** Chapters in reading order; ordering is part of the fingerprint. */

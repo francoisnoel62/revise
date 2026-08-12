@@ -526,4 +526,20 @@ describe('BookCssBuilder', () => {
       expect(css).toMatch(/\.toc a\s*\{[^}]*align-items:\s*baseline/);
     });
   });
+
+  // A blank line the author typed reaches the renderer as <p data-blank-line></p>. With no
+  // content it generates no line box, so p { margin: 0 } collapses it to nothing. Generated
+  // content restores a real line box, inheriting the paragraph's own font-size and
+  // line-height — so the gap matches one line of the surrounding level, whatever its typography.
+  describe('blank lines', () => {
+    const css = new BookCssBuilder().build(PublicationProfile.kdpSixByNine(), 'http://localhost:3000');
+
+    it('gives a blank-line paragraph the height of one line', () => {
+      expect(css).toMatch(/p\[data-blank-line\]::before\s*\{[^}]*content:/);
+    });
+
+    it('uses a zero-width character so nothing prints and no space enters the text', () => {
+      expect(css).toMatch(/p\[data-blank-line\]::before\s*\{[^}]*content:\s*"\\200B"/);
+    });
+  });
 });

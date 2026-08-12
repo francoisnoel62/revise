@@ -91,6 +91,11 @@ export class BookCssBuilder {
       ${startPageNumber && startPageNumber > 1 ? `body { counter-reset: page ${startPageNumber - 1}; }` : ''}
       main.book { widows: 2; orphans: 2; counter-reset: endnote 0; }
       p { margin: 0; text-align: justify; text-indent: ${value.firstLineIndentCentimeters}cm; }
+      /* A blank line the author typed (see TipTapToBookHtml) holds no content, so it generates
+         no line box and margin: 0 collapses it to nothing. A zero-width space restores a real
+         line box that inherits this paragraph's font-size and line-height, so the gap equals one
+         line of its own level. Generated content stays out of the selection: copy-paste is clean. */
+      p[data-blank-line]::before { content: "\\200B"; }
       [data-semantic-role="titre-de-chapitre"] + [data-semantic-role="corps"],
       [data-semantic-role="sous-titre"] + [data-semantic-role="corps"] { text-indent: 0; }
       [data-semantic-role="titre-de-chapitre"] + [data-semantic-role="corps"][data-indent="true"],
