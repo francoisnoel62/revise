@@ -8,6 +8,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { encryptApiKey } from '../../src/infrastructure/encryption/crypto';
 import type { SnapshotDocument } from '../../src/infrastructure/persistence/snapshot-serializer';
+import { HIROSHIMA_BLOCKS, HIROSHIMA_TITLE } from './hiroshima-corpus';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
@@ -50,6 +51,10 @@ export const TEST_AUTOCOMPLETE_SETTINGS_ID = '6475a8f3c1234567890abcdf';
 export const TEST_GRAMMAR_PROJECT_ID = 'e2e-grammar-project-001';
 export const TEST_GRAMMAR_CHAPTER_ID = 'e2e-grammar-chapter-001';
 export const TEST_GRAMMAR_SETTINGS_ID = '6475a8f3c1234567890abce4';
+
+export const TEST_HIROSHIMA_PROJECT_ID = 'e2e-hiroshima-project-001';
+export const TEST_HIROSHIMA_CHAPTER_ID = 'e2e-hiroshima-chapter-001';
+export const TEST_HIROSHIMA_SETTINGS_ID = '6475a8f3c1234567890abce5';
 
 export const TEST_SPELLCHECK_PROJECT_ID = 'e2e-spellcheck-project-001';
 export const TEST_SPELLCHECK_CHAPTER_ID = 'e2e-spellcheck-chapter-001';
@@ -344,6 +349,86 @@ function buildGrammarSettings(past: Date, now: Date): Record<string, unknown> {
 // Re-seed only the grammar project. The editor autosaves applied corrections back
 // to this chapter, so each test must start from the same faulty text — and from
 // settings holding no declined remark.
+/**
+ * A full page of real, deliberately faulty prose — the corpus the short grammar fixture
+ * cannot stand in for. Paragraphs carry the attrs the editor writes, so mounting the
+ * editor is not itself an edit (see resetRestoreFixture for what that costs otherwise).
+ */
+export async function seedHiroshimaProject(): Promise<void> {
+  const client = new MongoClient(MONGODB_URI);
+  await client.connect();
+  try {
+    const db = client.db(MONGODB_DB_NAME);
+    const past = new Date('2025-01-01T10:00:00Z');
+    const now = new Date();
+
+    const content = JSON.stringify({
+      type: 'doc',
+      content: HIROSHIMA_BLOCKS.map((block) =>
+        block.type === 'heading'
+          ? {
+              type: 'heading',
+              attrs: { level: 2, textAlign: 'justify', semanticRole: 'sous-titre' },
+              content: [{ type: 'text', text: block.text }],
+            }
+          : {
+              type: 'paragraph',
+              attrs: { textAlign: 'justify', semanticRole: 'corps' },
+              content: [{ type: 'text', text: block.text }],
+            },
+      ),
+    });
+
+    await db.collection('projects').replaceOne(
+      { _id: TEST_HIROSHIMA_PROJECT_ID } as object,
+      {
+        _id: TEST_HIROSHIMA_PROJECT_ID,
+        ownerId: TEST_USER_ID,
+        title: 'Projet Test Texte Réel',
+        chapters: [{
+          id: TEST_HIROSHIMA_CHAPTER_ID,
+          title: HIROSHIMA_TITLE,
+          content,
+          order: 0,
+          metadata: { wordCount: 900, characterCount: 5600, lastEdited: past },
+        }],
+        activeChapterId: TEST_HIROSHIMA_CHAPTER_ID,
+        // No AI provider: the corrector is local, and must work without one.
+        providerId: null,
+        createdAt: past,
+        updatedAt: now,
+        isPublished: false,
+        shareToken: null,
+        publishedAt: null,
+        publishedChapterIds: null,
+      },
+      { upsert: true }
+    );
+
+    await db.collection('project_settings').replaceOne(
+      { _id: new ObjectId(TEST_HIROSHIMA_SETTINGS_ID) },
+      {
+        _id: new ObjectId(TEST_HIROSHIMA_SETTINGS_ID),
+        projectId: TEST_HIROSHIMA_PROJECT_ID,
+        ownerId: TEST_USER_ID,
+        title: 'Projet Test Texte Réel',
+        summary: '',
+        genre: '',
+        synopsis: '',
+        contributors: [],
+        relatedWorks: [],
+        ignoredGrammarIssues: [],
+        ignoredWords: [],
+        createdAt: past,
+        updatedAt: now,
+      },
+      { upsert: true }
+    );
+  } finally {
+    await client.close();
+  }
+}
+
 export async function seedGrammarProject(): Promise<void> {
   const client = new MongoClient(MONGODB_URI);
   await client.connect();
