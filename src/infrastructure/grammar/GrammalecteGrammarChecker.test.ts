@@ -14,10 +14,13 @@ import { GrammalecteGrammarChecker } from './GrammalecteGrammarChecker';
 
 describe('GrammalecteGrammarChecker', () => {
   const checker = new GrammalecteGrammarChecker();
+  // Git stores the corpora with LF, but a checkout under core.autocrlf writes them with CRLF.
+  // Splitting on a hard-coded '\n' then yields one giant paragraph instead of fifteen, which
+  // silently guts both corpus thresholds below — so accept either line ending.
   const checkFixture = (fixtureName: string) =>
     readFileSync(resolve(process.cwd(), 'src/infrastructure/grammar/fixtures', fixtureName), 'utf8')
       .trim()
-      .split('\n\n---\n\n');
+      .split(/\r?\n\r?\n---\r?\n\r?\n/);
 
   it('maps an agreement error from the real French engine', () => {
     const errors = checker.checkParagraph('Les chien de la voisine sont partis.', {
