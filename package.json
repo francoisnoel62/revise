@@ -2,6 +2,7 @@
   "name": "revise",
   "version": "0.1.0",
   "private": true,
+  "license": "UNLICENSED",
   "scripts": {
     "dev": "next dev",
     "dev:worktree": "powershell -ExecutionPolicy Bypass -File scripts/worktree.ps1 dev",
@@ -17,6 +18,7 @@
     "test:unit": "vitest run --exclude \"**/*.integration.test.ts\"",
     "test:integration": "vitest --config vitest.integration.config.ts --run",
     "test:integration:db": "vitest run --config vitest.integration.config.ts src/app/actions/__tests__/ai-usage-tracking.integration.test.ts src/application/services/__tests__/AIContextBuilder.integration.test.ts src/infrastructure/document/document-pipeline.integration.test.ts src/infrastructure/persistence/MongoDBExchangeRepository.integration.test.ts src/infrastructure/persistence/MongoDBSnapshotRepository.integration.test.ts",
+    "test:perf": "vitest run --config vitest.performance.config.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "pricing:seed": "tsx scripts/seed-pricing.ts",
@@ -36,6 +38,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@fontsource/eb-garamond": "^5.2.7",
+    "@francoisnoel62/grammalecte": "2.3.0-revise.0",
     "@google/genai": "^1.37.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",

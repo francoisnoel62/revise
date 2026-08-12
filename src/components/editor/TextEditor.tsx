@@ -18,9 +18,11 @@ import { IndentHeading } from './extensions/IndentHeading';
 import { EndnoteRef, type EndnoteContent } from './extensions/EndnoteRef';
 import { Autocomplete, AutocompleteStorage } from './extensions/Autocomplete';
 import { AutocompleteDot, AutocompleteDotState } from './AutocompleteDot';
-import { SpellCheckExtension } from './SpellCheckExtension';
-import { SpellCheckPalette } from './SpellCheckPalette';
+import { TextIssueExtension } from './TextIssueExtension';
+import { documentMatchesContent } from './documentMatchesContent';
+import { TextIssuePalette } from './TextIssuePalette';
 import { useSpellCheck } from '@/hooks/useSpellCheck';
+import { useGrammarIssueDecline } from '@/hooks/useGrammarIssueDecline';
 
 import { useEffect, useCallback, useState, useRef } from 'react';
 import { useAutosave } from '@/hooks/useAutosave';
@@ -189,7 +191,7 @@ export function TextEditor({
       EmDashExtension,
       Placeholder.configure({ placeholder }),
       CharacterCount,
-      SpellCheckExtension,
+      TextIssueExtension,
       Autocomplete.configure({
         enabled: autocompleteEnabled,
         onComplete: handleAutocomplete,
@@ -275,7 +277,7 @@ export function TextEditor({
   // replaced from outside the editor (e.g. a snapshot restore) — project.updatedAt
   // moves on both a chapter switch and an external replacement, but NOT on the
   // editor's own keystroke-driven updateActiveContent calls, so this can't fight
-  // normal typing: the JSON diff below is a no-op whenever activeContent already
+  // normal typing: the comparison below is a no-op whenever activeContent already
   // matches what the editor itself just produced.
   useEffect(() => {
     if (!editor) return;
@@ -302,8 +304,7 @@ export function TextEditor({
       publicationProfileId,
       presentationOverrides
     ).content;
-    const currentJson = JSON.stringify(editor.getJSON());
-    if (JSON.stringify(displayedContent) !== currentJson) {
+    if (!documentMatchesContent(editor.schema, editor.state.doc, displayedContent)) {
       editor.commands.setContent(displayedContent, {
         emitUpdate: false, // Don't trigger update event during switch
       });
@@ -355,6 +356,7 @@ export function TextEditor({
   }, []);
 
   const { ignoreWord, addToDictionary } = useSpellCheck(editor, projectId ?? project?.id);
+  const declineGrammarIssue = useGrammarIssueDecline(editor, projectId ?? project?.id);
 
   const { ambiguities, dismissAmbiguities } = useSemanticMigration(
     editor,
@@ -372,10 +374,13 @@ export function TextEditor({
           Le dernier snapshot automatique n’a pas pu être créé. Une nouvelle tentative aura lieu plus tard.
         </p>
       )}
-      <SpellCheckPalette
+      <TextIssuePalette
         editor={editor}
         onIgnoreWord={ignoreWord}
         onAddToDictionary={projectId ?? project?.id ? addToDictionary : undefined}
+        onIgnoreGrammarIssue={
+          projectId ?? project?.id ? declineGrammarIssue : undefined
+        }
       />
       {/* Spoken counterpart of the (aria-hidden) dot: tells screen-reader users a
           suggestion is waiting and how to act on it. */}

@@ -15,8 +15,8 @@ vi.mock('./utils', () => ({
   getProviderRepo: vi.fn(),
   getMetadataRepo: vi.fn(),
   getProjectSettingsRepo: vi.fn(),
-  getWritingGoalRepo: vi.fn(),
   getSnapshotRepo: vi.fn(),
+  getWritingGoalRepo: vi.fn(),
   withErrorHandling: vi.fn(async (fn) => {
     try {
       const data = await fn();
@@ -27,7 +27,7 @@ vi.mock('./utils', () => ({
   }),
 }));
 
-import { getAuthenticatedUserId, getRepository, getProviderRepo, getMetadataRepo, getProjectSettingsRepo, getWritingGoalRepo, getSnapshotRepo } from './utils';
+import { getAuthenticatedUserId, getRepository, getProviderRepo, getMetadataRepo, getProjectSettingsRepo, getSnapshotRepo, getWritingGoalRepo } from './utils';
 import { InMemoryProjectRepository } from '@/infrastructure/persistence/InMemoryProjectRepository';
 import { Project } from '@/domain/entities/Project';
 import { Provider } from '@/domain/entities/Provider';
@@ -45,11 +45,11 @@ describe('project-actions', () => {
     deleteByProjectId: ReturnType<typeof vi.fn>;
     findByProjectId: ReturnType<typeof vi.fn>;
   };
-  let mockWritingGoalRepository: {
-    findActiveByProjectId: ReturnType<typeof vi.fn>;
-  };
   let mockSnapshotRepository: {
     deleteByProjectId: ReturnType<typeof vi.fn>;
+  };
+  let mockWritingGoalRepository: {
+    findActiveByProjectId: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -88,17 +88,16 @@ describe('project-actions', () => {
     };
     vi.mocked(getProjectSettingsRepo).mockResolvedValue(mockProjectSettingsRepository as never);
 
+    mockSnapshotRepository = {
+      deleteByProjectId: vi.fn().mockResolvedValue(undefined),
+    };
+    vi.mocked(getSnapshotRepo).mockResolvedValue(mockSnapshotRepository as never);
+
     // Mock writing goal repository
     mockWritingGoalRepository = {
       findActiveByProjectId: vi.fn().mockResolvedValue(null),
     };
     vi.mocked(getWritingGoalRepo).mockResolvedValue(mockWritingGoalRepository as never);
-
-    // Mock snapshot repository
-    mockSnapshotRepository = {
-      deleteByProjectId: vi.fn().mockResolvedValue(undefined),
-    };
-    vi.mocked(getSnapshotRepo).mockResolvedValue(mockSnapshotRepository as never);
   });
 
   describe('createProjectAction', () => {

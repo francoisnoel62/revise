@@ -144,7 +144,7 @@ describe('AIMenuDropdown', () => {
   });
 
   describe('Chapter Analysis', () => {
-    it('renders "Vérifier le chapitre" menu item when onAnalyze is provided', async () => {
+    it('renders "Analyser le style" menu item when onAnalyze is provided', async () => {
       const user = await import('@testing-library/user-event');
       const onAnalyze = vi.fn();
       render(<AIMenuDropdown {...defaultProps} onAnalyze={onAnalyze} />);
@@ -153,10 +153,10 @@ describe('AIMenuDropdown', () => {
       const menuButton = screen.getByRole('button');
       await user.default.setup().click(menuButton);
 
-      expect(screen.getByText('Vérifier le chapitre')).toBeInTheDocument();
+      expect(screen.getByText('Analyser le style')).toBeInTheDocument();
     });
 
-    it('calls onAnalyze when "Vérifier le chapitre" is clicked', async () => {
+    it('calls onAnalyze when "Analyser le style" is clicked', async () => {
       const user = await import('@testing-library/user-event');
       const onAnalyze = vi.fn();
       render(<AIMenuDropdown {...defaultProps} onAnalyze={onAnalyze} />);
@@ -166,13 +166,13 @@ describe('AIMenuDropdown', () => {
       await user.default.setup().click(menuButton);
 
       // Click the analyze option
-      const analyzeItem = screen.getByText('Vérifier le chapitre');
+      const analyzeItem = screen.getByText('Analyser le style');
       await user.default.setup().click(analyzeItem);
 
       expect(onAnalyze).toHaveBeenCalledTimes(1);
     });
 
-    it('disables "Vérifier le chapitre" when analysisLoading is true', async () => {
+    it('disables "Analyser le style" when analysisLoading is true', async () => {
       const user = await import('@testing-library/user-event');
       const onAnalyze = vi.fn();
       render(<AIMenuDropdown {...defaultProps} onAnalyze={onAnalyze} analysisLoading={true} />);
@@ -181,7 +181,7 @@ describe('AIMenuDropdown', () => {
       const menuButton = screen.getByRole('button');
       await user.default.setup().click(menuButton);
 
-      const analyzeItem = screen.getByText('Vérifier le chapitre').closest('[role="menuitem"]');
+      const analyzeItem = screen.getByText('Analyser le style').closest('[role="menuitem"]');
       expect(analyzeItem).toHaveAttribute('data-disabled');
     });
 
@@ -191,6 +191,33 @@ describe('AIMenuDropdown', () => {
 
       const button = screen.getByRole('button');
       expect(button).toBeDisabled();
+    });
+  });
+
+  describe('what belongs under "IA"', () => {
+    it('offers only what needs an AI provider', async () => {
+      const user = await import('@testing-library/user-event');
+      render(<AIMenuDropdown {...defaultProps} onAnalyze={vi.fn()} />);
+
+      await user.default.setup().click(screen.getByRole('button'));
+
+      // The local corrector has its own toolbar button; under "IA" it would be
+      // labelled by what it is not.
+      expect(screen.queryByText('Corriger le chapitre')).not.toBeInTheDocument();
+      expect(screen.getByText('Analyser le style')).toBeInTheDocument();
+    });
+
+    it('needs a configured provider for the style analysis', async () => {
+      const user = await import('@testing-library/user-event');
+      render(
+        <AIMenuDropdown {...defaultProps} selectedProviderId={null} onAnalyze={vi.fn()} />
+      );
+
+      await user.default.setup().click(screen.getByRole('button'));
+
+      expect(
+        screen.getByText('Analyser le style').closest('[role="menuitem"]')
+      ).toHaveAttribute('data-disabled');
     });
   });
 });

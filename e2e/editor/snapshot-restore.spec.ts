@@ -37,9 +37,12 @@ async function openHistory(page: Page) {
 }
 
 test.describe('snapshot restore — restaurer une version sans perdre l’état courant', () => {
-  // Every test here resets and then mutates the same project fixture, so they must not
-  // overlap: run in parallel, one test's reset wipes the snapshots another is asserting on.
-  test.describe.configure({ mode: 'serial' });
+  // Both tests drive the same seeded project, and the second one edits it from a
+  // concurrent session on purpose. Under the config's fullyParallel they interleave, so
+  // that edit — or the sibling's beforeEach re-seed — bumps the project's updatedAt
+  // behind the first test, which then hits the very conflict the second test exists to
+  // prove. Sequential within this file; siblings elsewhere still run in parallel.
+  test.describe.configure({ mode: 'default' });
 
   test.beforeEach(async () => {
     await resetRestoreFixture();

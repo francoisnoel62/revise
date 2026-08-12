@@ -30,6 +30,17 @@ import {
   isAutomaticSnapshotInterval,
   type AutomaticSnapshotInterval,
 } from '../value-objects/AutomaticSnapshotInterval';
+import {
+  copyGrammarRuleProfile,
+  DEFAULT_FICTION_GRAMMAR_RULE_PROFILE,
+  type GrammarRuleProfile,
+} from '../value-objects/GrammarRuleProfile';
+import {
+  toPersonalDictionaryEntry,
+  type PersonalDictionaryEntry,
+} from '../value-objects/PersonalDictionaryEntry';
+import type { GrammarPersonalDictionary } from '../interfaces/GrammarChecker';
+import type { IgnoredGrammarIssue } from '../value-objects/IgnoredGrammarIssue';
 
 export type PdfPublicationProfileId = Exclude<PublicationProfileId, 'passerelle'>;
 export type LevelStylesByProfile = Partial<
@@ -61,8 +72,14 @@ export interface ProjectSettingsProperties {
   autocompletePartialAcceptance?: boolean;
   autocompleteSmartPrefetch?: boolean;
   canonExtractionMode?: CanonExtractionMode;
-  customDictionary?: string[];
+  /** A bare string is a word the author added without describing it. */
+  customDictionary?: (string | PersonalDictionaryEntry)[];
+  /** Automaton compiled from `customDictionary`, so no analysis ever has to build it. */
+  grammarDictionary?: GrammarPersonalDictionary | null;
+  /** Grammar remarks the author has declined, by rule family and flagged text. */
+  ignoredGrammarIssues?: IgnoredGrammarIssue[];
   ignoredWords?: string[];
+  grammarRuleProfile?: GrammarRuleProfile;
   publicationProfileId?: PublicationProfileId;
   levelStylesByProfile?: LevelStylesByProfile;
   tocDepth?: TocDepth;
@@ -102,8 +119,11 @@ export class ProjectSettings {
   private autocompletePartialAcceptance?: boolean;
   private autocompleteSmartPrefetch?: boolean;
   private canonExtractionMode?: CanonExtractionMode;
-  private customDictionary: string[];
+  private customDictionary: PersonalDictionaryEntry[];
+  private grammarDictionary: GrammarPersonalDictionary | null;
+  private ignoredGrammarIssues: IgnoredGrammarIssue[];
   private ignoredWords: string[];
+  private grammarRuleProfile: Record<string, boolean>;
   private publicationProfileId: PublicationProfileId;
   private levelStylesByProfile: LevelStylesByProfile;
   private tocDepth?: TocDepth;
@@ -140,8 +160,15 @@ export class ProjectSettings {
     this.autocompletePartialAcceptance = props.autocompletePartialAcceptance;
     this.autocompleteSmartPrefetch = props.autocompleteSmartPrefetch;
     this.canonExtractionMode = props.canonExtractionMode;
-    this.customDictionary = [...(props.customDictionary ?? [])];
+    this.customDictionary = (props.customDictionary ?? []).map(toPersonalDictionaryEntry);
+    this.grammarDictionary = props.grammarDictionary ?? null;
+    this.ignoredGrammarIssues = (props.ignoredGrammarIssues ?? []).map((issue) => ({
+      ...issue,
+    }));
     this.ignoredWords = [...(props.ignoredWords ?? [])];
+    this.grammarRuleProfile = copyGrammarRuleProfile(
+      props.grammarRuleProfile ?? DEFAULT_FICTION_GRAMMAR_RULE_PROFILE,
+    );
     this.publicationProfileId = props.publicationProfileId ?? 'kdp-6x9';
     this.levelStylesByProfile = Object.fromEntries(
       Object.entries(props.levelStylesByProfile ?? {}).map(([profileId, styles]) => [
@@ -537,31 +564,93 @@ export class ProjectSettings {
     });
   }
 
-  getCustomDictionary(): string[] {
-    return [...this.customDictionary];
+  getCustomDictionary(): PersonalDictionaryEntry[] {
+    return this.customDictionary.map((entry) => ({ ...entry }));
   }
 
+  /** Every form the author writes — singular and declared plural alike. */
+  getCustomDictionaryWords(): string[] {
+    return this.customDictionary.flatMap((entry) =>
+      entry.pluralForm ? [entry.word, entry.pluralForm] : [entry.word]
+    );
+  }
+
+  /**
+   * Appends a word the author has not described.
+   *
+   * An entry with no nature produces no flexion, so the compiled grammar
+   * dictionary still matches the list and is carried over untouched.
+   */
   addWordToCustomDictionary(word: string): ProjectSettings {
     const trimmed = word.trim();
     if (!trimmed) throw new Error('Word cannot be empty');
-    if (this.customDictionary.includes(trimmed)) return this;
+    if (this.customDictionary.some((entry) => entry.word === trimmed)) return this;
     return new ProjectSettings({
       ...this.toProperties(),
-      customDictionary: [...this.customDictionary, trimmed],
+      customDictionary: [...this.customDictionary, { word: trimmed }],
       updatedAt: new Date(),
     });
   }
 
-  updateCustomDictionary(words: string[]): ProjectSettings {
+  /**
+   * Replaces the vocabulary and the automaton compiled from it in one move, so
+   * the two can never describe different words.
+   */
+  updateCustomDictionary(
+    entries: (string | PersonalDictionaryEntry)[],
+    grammarDictionary: GrammarPersonalDictionary | null
+  ): ProjectSettings {
     return new ProjectSettings({
       ...this.toProperties(),
-      customDictionary: [...words],
+      customDictionary: entries,
+      grammarDictionary,
+      updatedAt: new Date(),
+    });
+  }
+
+  /** The automaton the grammar engine installs; null when nothing is declared. */
+  getGrammarDictionary(): GrammarPersonalDictionary | null {
+    return this.grammarDictionary;
+  }
+
+  getIgnoredGrammarIssues(): IgnoredGrammarIssue[] {
+    return this.ignoredGrammarIssues.map((issue) => ({ ...issue }));
+  }
+
+  /** Records that the author has waved a remark away for good, in this project. */
+  addIgnoredGrammarIssue(issue: IgnoredGrammarIssue): ProjectSettings {
+    const text = issue.text.trim();
+    if (!text) throw new Error('An ignored grammar issue cannot have empty text');
+
+    const alreadyDeclined = this.ignoredGrammarIssues.some(
+      (declined) => declined.ruleFamily === issue.ruleFamily && declined.text === text
+    );
+    if (alreadyDeclined) return this;
+
+    return new ProjectSettings({
+      ...this.toProperties(),
+      ignoredGrammarIssues: [
+        ...this.ignoredGrammarIssues,
+        { ruleFamily: issue.ruleFamily, text },
+      ],
       updatedAt: new Date(),
     });
   }
 
   getIgnoredWords(): string[] {
     return [...this.ignoredWords];
+  }
+
+  getGrammarRuleProfile(): Record<string, boolean> {
+    return copyGrammarRuleProfile(this.grammarRuleProfile);
+  }
+
+  updateGrammarRuleProfile(profile: GrammarRuleProfile): ProjectSettings {
+    return new ProjectSettings({
+      ...this.toProperties(),
+      grammarRuleProfile: copyGrammarRuleProfile(profile),
+      updatedAt: new Date(),
+    });
   }
 
   addIgnoredWord(word: string): ProjectSettings {
@@ -626,8 +715,11 @@ export class ProjectSettings {
       autocompletePartialAcceptance: this.autocompletePartialAcceptance,
       autocompleteSmartPrefetch: this.autocompleteSmartPrefetch,
       canonExtractionMode: this.canonExtractionMode,
-      customDictionary: [...this.customDictionary],
+      customDictionary: this.getCustomDictionary(),
+      grammarDictionary: this.grammarDictionary,
+      ignoredGrammarIssues: this.getIgnoredGrammarIssues(),
       ignoredWords: [...this.ignoredWords],
+      grammarRuleProfile: this.getGrammarRuleProfile(),
       publicationProfileId: this.publicationProfileId,
       levelStylesByProfile: this.getLevelStylesByProfile(),
       tocDepth: this.tocDepth,

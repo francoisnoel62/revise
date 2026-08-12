@@ -984,43 +984,12 @@ trigger a duplicate snapshot.
 
 ---
 
-#### `MongoDBAnalysisRepository` ⭐ NEW (Phase 7)
-**Implements**: `AnalysisRepository` interface
-**Technology**: MongoDB Atlas with official Node.js driver
-
-**Purpose**: Chapter analysis results, history, and exclusions storage
-
-**ChapterAnalysis Methods**:
-- `saveAnalysis(ownerId, analysis)` - Creates analysis document
-- `findAnalysisByChapterId(ownerId, chapterId)` - Loads latest analysis
-- `findAnalysisByContentHash(ownerId, chapterId, hash)` - Cache lookup
-- `updateAnalysis(ownerId, analysis)` - Updates analysis
-- `deleteAnalysis(ownerId, analysisId)` - Deletes analysis
-
-**AnalysisHistory Methods**:
-- `saveHistory(ownerId, history)` - Creates history entry
-- `findHistoryByChapterId(ownerId, chapterId)` - Lists history
-- `findHistoryById(ownerId, historyId)` - Loads history entry
-
-**Ignored Issues Methods**:
-- `saveIgnoredIssue(ownerId, issue)` - Saves ignored issue
-- `findIgnoredIssues(ownerId, chapterId)` - Lists ignored issues
-- `deleteIgnoredIssue(ownerId, issueId)` - Deletes ignored issue
-
-**Repetition Exclusions Methods**:
-- `saveRepetitionExclusion(ownerId, exclusion)` - Saves exclusion
-- `findRepetitionExclusions(ownerId, projectId)` - Lists exclusions
-- `deleteRepetitionExclusion(ownerId, exclusionId)` - Deletes exclusion
-
-**Multi-Tenant Security**:
-- All queries filter by `ownerId`
-- Enforced at database query level
-
-**Indexing**:
-- Indexes on (ownerId, chapterId, contentHash) for efficient cache lookup
-- Indexes on (ownerId, chapterId) for history queries
-
-**Tests**: 25+ tests covering all CRUD operations and multi-tenant isolation
+#### No analysis repository
+A chapter analysis is never stored: `AnalyzeChapterUseCase` returns the entity in memory and
+the editor panel holds it until it is closed. There is no `AnalysisRepository` interface, no
+Mongo implementation, and no collection — so the set of analysis categories can change without
+a data migration. `ChapterAnalysis.persistence.test.ts` fails if a serializer or repository
+starts referencing the entity.
 
 ---
 
@@ -1207,10 +1176,9 @@ in `persistence/`):
   fields as opaque encrypted blobs (encryption/decryption is `FieldEncryption`'s job, applied by
   the repository around the serializer, not inside it).
 - **`character-conversation-serializer`** - message array preserved in order.
-- **`chapter-analysis-serializer`** ⭐ NEW (Phase 7) - `serializeChapterAnalysis`/
-  `deserializeChapterAnalysis`; handles nested `AnalysisIssue`/`RepetitionCluster` arrays.
-- **`analysis-history-serializer`** ⭐ NEW (Phase 7) - `serializeAnalysisHistory`/
-  `deserializeAnalysisHistory`.
+- No chapter-analysis serializer: an analysis lives in memory for the length of one panel
+  session and is never stored, so changing the analysis categories carries no migration.
+  `ChapterAnalysis.persistence.test.ts` fails if that ever stops being true.
 - **`canon-fact-serializer`** - `serializeCanonFact`/`deserializeCanonFact`.
 - **`autocomplete-event-serializer`** - `serializeAutocompleteEvent`/`deserializeAutocompleteEvent`.
 - **`serialization/blog-article-serializer`** - `serializeBlogArticle`/`deserializeBlogArticle`.

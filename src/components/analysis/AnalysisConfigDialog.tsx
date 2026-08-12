@@ -1,10 +1,10 @@
 // ABOUTME: Configuration dialog for chapter analysis options
-// ABOUTME: Allows selecting categories to analyze and style rigor level
+// ABOUTME: Allows selecting the wired analysis categories and the style rigor level
 
 'use client';
 
 import { useState } from 'react';
-import { Loader2, Languages, Type, Repeat, Palette, SpellCheck } from 'lucide-react';
+import { Loader2, Languages, Repeat, Palette } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -23,7 +23,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { AnalysisCategory } from '@/domain/value-objects/AnalysisCategory';
+import {
+  ANALYSIS_CATEGORIES,
+  ANALYSIS_CATEGORY_LABELS,
+  AnalysisCategory,
+} from '@/domain/value-objects/AnalysisCategory';
 import { StyleRigor } from '@/domain/value-objects/StyleRigor';
 
 export interface AnalysisConfig {
@@ -42,28 +46,13 @@ const categoryConfig: Record<
   AnalysisCategory,
   { label: string; icon: typeof Languages; description: string }
 > = {
-  spelling: {
-    label: 'Orthographe',
-    icon: SpellCheck,
-    description: 'Fautes détectées hors connexion (fr-FR)',
-  },
-  grammar: {
-    label: 'Grammaire',
-    icon: Languages,
-    description: 'Accords, conjugaisons, syntaxe',
-  },
-  punctuation: {
-    label: 'Ponctuation',
-    icon: Type,
-    description: 'Virgules, points, guillemets',
-  },
   repetition: {
-    label: 'Répétitions',
+    label: ANALYSIS_CATEGORY_LABELS.repetition,
     icon: Repeat,
     description: 'Mots et expressions répétés',
   },
   style: {
-    label: 'Style',
+    label: ANALYSIS_CATEGORY_LABELS.style,
     icon: Palette,
     description: 'Voix passive, phrases longues, clichés',
   },
@@ -87,13 +76,7 @@ const rigorOptions: { value: StyleRigor; label: string; description: string }[] 
   },
 ];
 
-const allCategories: AnalysisCategory[] = [
-  'spelling',
-  'grammar',
-  'punctuation',
-  'repetition',
-  'style',
-];
+const allCategories: readonly AnalysisCategory[] = ANALYSIS_CATEGORIES;
 
 export function AnalysisConfigDialog({
   open,
@@ -129,16 +112,16 @@ export function AnalysisConfigDialog({
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Vérification du chapitre</DialogTitle>
+          <DialogTitle>Analyse du style</DialogTitle>
           <DialogDescription>
-            Sélectionnez les types de vérification à effectuer.
+            Sélectionnez les types d&apos;analyse à effectuer.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
           {/* Category checkboxes */}
           <div className="space-y-3">
-            <Label className="text-sm font-medium">Catégories à vérifier</Label>
+            <Label className="text-sm font-medium">Catégories à analyser</Label>
             <div className="space-y-3">
               {allCategories.map((category) => {
                 const config = categoryConfig[category];

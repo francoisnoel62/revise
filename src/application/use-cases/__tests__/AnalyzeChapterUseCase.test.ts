@@ -63,7 +63,7 @@ describe('AnalyzeChapterUseCase', () => {
     ownerId: 'user-1',
     projectId: 'project-1',
     chapterId: 'chapter-1',
-    categories: ['grammar', 'punctuation'],
+    categories: ['repetition', 'style'],
     styleRigor: 'moderate',
   };
 
@@ -74,9 +74,7 @@ describe('AnalyzeChapterUseCase', () => {
     mockIdGenerator = createMockIdGenerator();
 
     mockStrategies = new Map([
-      ['grammar', createMockStrategy('grammar', [createMockIssue('grammar', 'issue-1'), createMockIssue('grammar', 'issue-2')])],
-      ['punctuation', createMockStrategy('punctuation', [])],
-      ['repetition', createMockStrategy('repetition', [])],
+      ['repetition', createMockStrategy('repetition', [createMockIssue('repetition', 'issue-1'), createMockIssue('repetition', 'issue-2')])],
       ['style', createMockStrategy('style', [])],
     ]);
 
@@ -143,12 +141,12 @@ describe('AnalyzeChapterUseCase', () => {
 
   describe('strategy execution', () => {
     it('should only execute strategies for selected categories', async () => {
-      const input = { ...defaultInput, categories: ['grammar'] as AnalysisCategory[] };
+      const input = { ...defaultInput, categories: ['repetition'] as AnalysisCategory[] };
 
       await useCase.execute(input);
 
-      expect(mockStrategies.get('grammar')?.analyze).toHaveBeenCalled();
-      expect(mockStrategies.get('punctuation')?.analyze).not.toHaveBeenCalled();
+      expect(mockStrategies.get('repetition')?.analyze).toHaveBeenCalled();
+      expect(mockStrategies.get('style')?.analyze).not.toHaveBeenCalled();
     });
 
     it('should collect issues from all selected strategies', async () => {
@@ -160,7 +158,7 @@ describe('AnalyzeChapterUseCase', () => {
     it('should pass language detection to strategies', async () => {
       await useCase.execute(defaultInput);
 
-      expect(mockStrategies.get('grammar')?.analyze).toHaveBeenCalledWith(
+      expect(mockStrategies.get('repetition')?.analyze).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
           language: expect.stringMatching(/^(fr|en)$/),
@@ -208,7 +206,7 @@ describe('AnalyzeChapterUseCase', () => {
       expect(result.analysis.getChapterId()).toBe('chapter-1');
       expect(result.analysis.getProjectId()).toBe('project-1');
       expect(result.analysis.getOwnerId()).toBe('user-1');
-      expect(result.analysis.getCategories()).toEqual(['grammar', 'punctuation']);
+      expect(result.analysis.getCategories()).toEqual(['repetition', 'style']);
       expect(result.analysis.getStyleRigor()).toBe('moderate');
     });
 

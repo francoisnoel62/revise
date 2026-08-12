@@ -1,30 +1,38 @@
-// ABOUTME: Inline palette for spell check corrections — shown on click of a red-underlined word
-// ABOUTME: Three actions: apply suggestion, ignore in project (persistent), add to dictionary (persistent)
+// ABOUTME: Inline palette for a located writing issue — opens on click of an underlined range.
+// ABOUTME: Names the issue category in words, then offers suggestions and dictionary actions.
 
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Editor } from '@tiptap/core';
-import { spellCheckPluginKey, type SpellError } from './SpellCheckExtension';
+import { textIssueCategory, type TextIssue } from '@/domain/value-objects/TextIssue';
+import { textIssuePluginKey } from './TextIssueExtension';
 
-interface SpellCheckPaletteProps {
+interface TextIssuePaletteProps {
   editor: Editor | null;
   onIgnoreWord?: (word: string) => void;
   onAddToDictionary?: (word: string) => Promise<void>;
+  /** Declines a grammar remark: the rule keeps working, this wording stops being raised. */
+  onIgnoreGrammarIssue?: (issue: TextIssue) => Promise<void>;
 }
 
 interface PaletteState {
   visible: boolean;
   position: { top: number; left: number };
-  error: SpellError | null;
+  issue: TextIssue | null;
   confirmation: 'none' | 'ignored' | 'added';
 }
 
-export function SpellCheckPalette({ editor, onIgnoreWord, onAddToDictionary }: SpellCheckPaletteProps) {
+export function TextIssuePalette({
+  editor,
+  onIgnoreWord,
+  onAddToDictionary,
+  onIgnoreGrammarIssue,
+}: TextIssuePaletteProps) {
   const [state, setState] = useState<PaletteState>({
     visible: false,
     position: { top: 0, left: 0 },
-    error: null,
+    issue: null,
     confirmation: 'none',
   });
 
@@ -45,14 +53,13 @@ export function SpellCheckPalette({ editor, onIgnoreWord, onAddToDictionary }: S
     };
   }, []);
 
-  const findErrorAt = useCallback(
-    (pos: number): SpellError | null => {
+  const findIssueAt = useCallback(
+    (pos: number): TextIssue | null => {
       if (!editor) return null;
-      const pluginState = spellCheckPluginKey.getState(editor.state);
+      const pluginState = textIssuePluginKey.getState(editor.state);
       if (!pluginState) return null;
-      return (
-        pluginState.errors.find((e) => pos >= e.from && pos <= e.to) ?? null
-      );
+      // A single arbitrated list, so the first match is the only candidate.
+      return pluginState.issues.find((issue) => pos >= issue.from && pos <= issue.to) ?? null;
     },
     [editor]
   );
@@ -73,8 +80,8 @@ export function SpellCheckPalette({ editor, onIgnoreWord, onAddToDictionary }: S
         return;
       }
 
-      const error = findErrorAt(hit.pos);
-      if (!error) {
+      const issue = findIssueAt(hit.pos);
+      if (!issue) {
         setState((s) => ({ ...s, visible: false }));
         return;
       }
@@ -82,11 +89,11 @@ export function SpellCheckPalette({ editor, onIgnoreWord, onAddToDictionary }: S
       setState({
         visible: true,
         position: { top: e.clientY + 8, left: e.clientX },
-        error,
+        issue,
         confirmation: 'none',
       });
     },
-    [editor, findErrorAt]
+    [editor, findIssueAt]
   );
 
   const handleClickOutside = useCallback((e: MouseEvent) => {
@@ -108,33 +115,39 @@ export function SpellCheckPalette({ editor, onIgnoreWord, onAddToDictionary }: S
 
   const applyCorrection = useCallback(
     (suggestion: string) => {
-      if (!editor || !state.error) return;
-      const { from, to } = state.error;
+      if (!editor || !state.issue) return;
+      const { from, to } = state.issue;
       editor.chain().focus().deleteRange({ from, to }).insertContentAt(from, suggestion).run();
       setState((s) => ({ ...s, visible: false }));
     },
-    [editor, state.error]
+    [editor, state.issue]
   );
 
-  const handleIgnore = useCallback(() => {
-    if (!state.error) return;
-    onIgnoreWord?.(state.error.word);
+  const handleIgnore = useCallback(async () => {
+    if (!state.issue) return;
+    // A misspelling is waved away by word; a grammar remark by rule and wording,
+    // so the same word stays checked everywhere else.
+    if (state.issue.nature === 'grammar') {
+      await onIgnoreGrammarIssue?.(state.issue);
+    } else {
+      onIgnoreWord?.(state.issue.text);
+    }
     showConfirmation('ignored');
-  }, [state.error, onIgnoreWord, showConfirmation]);
+  }, [state.issue, onIgnoreWord, onIgnoreGrammarIssue, showConfirmation]);
 
   const handleAddToDictionary = useCallback(async () => {
-    if (!state.error || !onAddToDictionary) return;
-    await onAddToDictionary(state.error.word);
+    if (!state.issue || !onAddToDictionary) return;
+    await onAddToDictionary(state.issue.text);
     showConfirmation('added');
-  }, [state.error, onAddToDictionary, showConfirmation]);
+  }, [state.issue, onAddToDictionary, showConfirmation]);
 
   const handleClose = useCallback(() => {
     setState((s) => ({ ...s, visible: false, confirmation: 'none' }));
   }, []);
 
-  if (!state.visible || !state.error) return null;
+  if (!state.visible || !state.issue) return null;
 
-  const { error, position, confirmation } = state;
+  const { issue, position, confirmation } = state;
 
   // Inline confirmation — auto-dismisses after 1.2s
   if (confirmation !== 'none') {
@@ -152,6 +165,11 @@ export function SpellCheckPalette({ editor, onIgnoreWord, onAddToDictionary }: S
     );
   }
 
+  const isMisspelling = issue.nature === 'spelling';
+  const canIgnore = isMisspelling ? Boolean(onIgnoreWord) : Boolean(onIgnoreGrammarIssue);
+  // The dictionary only makes sense for a single unknown word.
+  const canAddToDictionary = isMisspelling && onAddToDictionary;
+
   return (
     <div
       ref={paletteRef}
@@ -159,21 +177,36 @@ export function SpellCheckPalette({ editor, onIgnoreWord, onAddToDictionary }: S
       className="fixed z-50 min-w-40 max-w-64 rounded-lg border bg-popover text-popover-foreground shadow-md p-2 text-sm"
     >
       <p className="text-xs text-muted-foreground mb-1.5 px-1">
-        <span className="line-through text-destructive">{error.word}</span>
+        <span
+          className={`mr-1.5 rounded px-1 py-0.5 text-[10px] font-medium uppercase tracking-wide ${
+            isMisspelling
+              ? 'bg-destructive/10 text-destructive'
+              : 'bg-green-600/10 text-green-700'
+          }`}
+        >
+          {textIssueCategory(issue)}
+        </span>
+        <span className={isMisspelling ? 'line-through text-destructive' : 'line-through'}>
+          {issue.text}
+        </span>
         {' — Corrections :'}
       </p>
 
-      {error.suggestions.length === 0 ? (
+      {issue.message && (
+        <p className="text-xs text-muted-foreground mb-1.5 px-1">{issue.message}</p>
+      )}
+
+      {issue.suggestions.length === 0 ? (
         <p className="text-xs text-muted-foreground px-1">Aucune suggestion</p>
       ) : (
         <ul className="space-y-0.5">
-          {error.suggestions.map((s) => (
-            <li key={s}>
+          {issue.suggestions.map((suggestion) => (
+            <li key={suggestion}>
               <button
-                onClick={() => applyCorrection(s)}
+                onClick={() => applyCorrection(suggestion)}
                 className="w-full text-left rounded px-2 py-1 hover:bg-accent hover:text-accent-foreground transition-colors"
               >
-                {s}
+                {suggestion}
               </button>
             </li>
           ))}
@@ -181,7 +214,7 @@ export function SpellCheckPalette({ editor, onIgnoreWord, onAddToDictionary }: S
       )}
 
       <div className="border-t mt-2 pt-1.5 space-y-0.5">
-        {onIgnoreWord && (
+        {canIgnore && (
           <button
             onClick={handleIgnore}
             className="w-full text-left rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
@@ -189,7 +222,7 @@ export function SpellCheckPalette({ editor, onIgnoreWord, onAddToDictionary }: S
             Ignorer dans ce projet
           </button>
         )}
-        {onAddToDictionary && (
+        {canAddToDictionary && (
           <button
             onClick={handleAddToDictionary}
             className="w-full text-left rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"

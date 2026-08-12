@@ -1,5 +1,5 @@
 // ABOUTME: Tests for SpellCheckSettingsCard component
-// ABOUTME: Verifies display and management of custom dictionary and ignored words
+// ABOUTME: Verifies the project vocabulary, its declarations, and the ignored words list
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
@@ -12,12 +12,17 @@ vi.mock('@/app/actions/spell-check-actions', () => ({
   clearIgnoredWordsAction: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('@/app/actions/personal-dictionary-actions', () => ({
+  savePersonalDictionaryAction: vi.fn().mockResolvedValue([]),
+}));
+
 import {
   removeWordFromCustomDictionaryAction,
   addWordToCustomDictionaryAction,
   removeIgnoredWordAction,
   clearIgnoredWordsAction,
 } from '@/app/actions/spell-check-actions';
+import { savePersonalDictionaryAction } from '@/app/actions/personal-dictionary-actions';
 
 describe('SpellCheckSettingsCard', () => {
   const projectId = 'proj-1';
@@ -30,7 +35,7 @@ describe('SpellCheckSettingsCard', () => {
     render(
       <SpellCheckSettingsCard
         projectId={projectId}
-        initialCustomDictionary={['Arrakis', 'Khaleesi']}
+        initialCustomDictionary={[{ word: 'Arrakis' }, { word: 'Khaleesi' }]}
         initialIgnoredWords={[]}
       />
     );
@@ -56,7 +61,7 @@ describe('SpellCheckSettingsCard', () => {
     render(
       <SpellCheckSettingsCard
         projectId={projectId}
-        initialCustomDictionary={['Arrakis']}
+        initialCustomDictionary={[{ word: 'Arrakis' }]}
         initialIgnoredWords={['gonna', 'ouais']}
       />
     );
@@ -68,7 +73,7 @@ describe('SpellCheckSettingsCard', () => {
     render(
       <SpellCheckSettingsCard
         projectId={projectId}
-        initialCustomDictionary={['Arrakis', 'Khaleesi']}
+        initialCustomDictionary={[{ word: 'Arrakis' }, { word: 'Khaleesi' }]}
         initialIgnoredWords={[]}
       />
     );
@@ -143,5 +148,123 @@ describe('SpellCheckSettingsCard', () => {
     );
     expect(screen.getByText(/aucun terme/i)).toBeInTheDocument();
     expect(screen.getByText(/aucun mot ignoré/i)).toBeInTheDocument();
+  });
+
+  describe('declaring a word', () => {
+    it('offers a nature, a gender and a plural for each word', () => {
+      render(
+        <SpellCheckSettingsCard
+          projectId={projectId}
+          initialCustomDictionary={[{ word: 'Vhardun' }]}
+          initialIgnoredWords={[]}
+        />
+      );
+
+      expect(screen.getByLabelText('Nature de Vhardun')).toBeInTheDocument();
+      expect(screen.getByLabelText('Genre de Vhardun')).toBeInTheDocument();
+      expect(screen.getByLabelText('Pluriel de Vhardun')).toBeInTheDocument();
+    });
+
+    it('shows what the author already declared', () => {
+      render(
+        <SpellCheckSettingsCard
+          projectId={projectId}
+          initialCustomDictionary={[
+            { word: 'krogan', nature: 'noun', gender: 'masculine', pluralForm: 'krogans' },
+          ]}
+          initialIgnoredWords={[]}
+        />
+      );
+
+      expect(screen.getByLabelText('Nature de krogan')).toHaveValue('noun');
+      expect(screen.getByLabelText('Genre de krogan')).toHaveValue('masculine');
+      expect(screen.getByLabelText('Pluriel de krogan')).toHaveValue('krogans');
+    });
+
+    it('saves the whole vocabulary when a nature is chosen', async () => {
+      render(
+        <SpellCheckSettingsCard
+          projectId={projectId}
+          initialCustomDictionary={[{ word: 'Vhardun' }, { word: 'Arrakis' }]}
+          initialIgnoredWords={[]}
+        />
+      );
+
+      fireEvent.change(screen.getByLabelText('Nature de Vhardun'), {
+        target: { value: 'proper-noun' },
+      });
+
+      await waitFor(() => {
+        expect(savePersonalDictionaryAction).toHaveBeenCalledWith(projectId, [
+          { word: 'Vhardun', nature: 'proper-noun' },
+          { word: 'Arrakis' },
+        ]);
+      });
+    });
+
+    it('saves the gender the author picked', async () => {
+      render(
+        <SpellCheckSettingsCard
+          projectId={projectId}
+          initialCustomDictionary={[{ word: 'Vhardun', nature: 'proper-noun' }]}
+          initialIgnoredWords={[]}
+        />
+      );
+
+      fireEvent.change(screen.getByLabelText('Genre de Vhardun'), {
+        target: { value: 'feminine' },
+      });
+
+      await waitFor(() => {
+        expect(savePersonalDictionaryAction).toHaveBeenCalledWith(projectId, [
+          { word: 'Vhardun', nature: 'proper-noun', gender: 'feminine' },
+        ]);
+      });
+    });
+
+    it('reads a plural that repeats the singular as no plural at all', async () => {
+      render(
+        <SpellCheckSettingsCard
+          projectId={projectId}
+          initialCustomDictionary={[{ word: 'krogan', nature: 'noun' }]}
+          initialIgnoredWords={[]}
+        />
+      );
+
+      const plural = screen.getByLabelText('Pluriel de krogan');
+      fireEvent.change(plural, { target: { value: 'krogan' } });
+      fireEvent.blur(plural);
+
+      await waitFor(() => {
+        expect(savePersonalDictionaryAction).toHaveBeenCalledWith(projectId, [
+          { word: 'krogan', nature: 'noun' },
+        ]);
+      });
+      // What was saved is what the author is left looking at.
+      expect(plural).toHaveValue('');
+    });
+
+    it('saves the plural form once the author leaves the field', async () => {
+      render(
+        <SpellCheckSettingsCard
+          projectId={projectId}
+          initialCustomDictionary={[{ word: 'krogan', nature: 'noun' }]}
+          initialIgnoredWords={[]}
+        />
+      );
+
+      const plural = screen.getByLabelText('Pluriel de krogan');
+      fireEvent.change(plural, { target: { value: 'krogans' } });
+      expect(savePersonalDictionaryAction).not.toHaveBeenCalled();
+
+      fireEvent.blur(plural);
+
+      await waitFor(() => {
+        expect(savePersonalDictionaryAction).toHaveBeenCalledWith(projectId, [
+          { word: 'krogan', nature: 'noun', pluralForm: 'krogans' },
+        ]);
+      });
+      expect(plural).toHaveValue('krogans');
+    });
   });
 });

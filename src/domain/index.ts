@@ -34,6 +34,21 @@ export {
 
 // Value Objects
 export { TextSelection } from './value-objects/TextSelection';
+export {
+  GrammarError,
+  GrammarErrorRange,
+  GrammarRuleFamily,
+  type GrammarErrorProperties,
+} from './value-objects/GrammarError';
+export {
+  DEFAULT_FICTION_GRAMMAR_RULE_PROFILE,
+  type GrammarRuleProfile,
+} from './value-objects/GrammarRuleProfile';
+export {
+  textIssueCategory,
+  type TextIssue,
+  type TextIssueNature,
+} from './value-objects/TextIssue';
 export { RewriteProposal } from './value-objects/RewriteProposal';
 export {
   type MetadataTypeDefinition,
@@ -118,6 +133,11 @@ export {
 
 // Interfaces
 export type { LLMProvider, ConnectionTestResult } from './interfaces/LLMProvider';
+export type {
+  GrammarChecker,
+  GrammarCheckOptions,
+  GrammarPersonalDictionary,
+} from './interfaces/GrammarChecker';
 export type { LLMProviderFactory } from './interfaces/LLMProviderFactory';
 export type { PromptRepository } from './interfaces/PromptRepository';
 export type { DocumentParser } from './interfaces/DocumentParser';

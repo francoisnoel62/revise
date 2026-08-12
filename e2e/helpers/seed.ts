@@ -8,6 +8,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { encryptApiKey } from '../../src/infrastructure/encryption/crypto';
 import type { SnapshotDocument } from '../../src/infrastructure/persistence/snapshot-serializer';
+import { HIROSHIMA_BLOCKS, HIROSHIMA_TITLE } from './hiroshima-corpus';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
@@ -45,8 +46,25 @@ export const TEST_RESEARCH_DOC_ID = '6475a8f3c1234567890abcde';
 export const TEST_AUTOCOMPLETE_SETTINGS_ID = '6475a8f3c1234567890abcdf';
 
 // Spell-check E2E fixtures
+// Grammar-check E2E fixtures — a chapter title and a paragraph, each with one
+// deterministic agreement error the fiction rule profile catches.
+export const TEST_GRAMMAR_PROJECT_ID = 'e2e-grammar-project-001';
+export const TEST_GRAMMAR_CHAPTER_ID = 'e2e-grammar-chapter-001';
+export const TEST_GRAMMAR_SETTINGS_ID = '6475a8f3c1234567890abce4';
+
+export const TEST_HIROSHIMA_PROJECT_ID = 'e2e-hiroshima-project-001';
+export const TEST_HIROSHIMA_CHAPTER_ID = 'e2e-hiroshima-chapter-001';
+export const TEST_HIROSHIMA_SETTINGS_ID = '6475a8f3c1234567890abce5';
+
 export const TEST_SPELLCHECK_PROJECT_ID = 'e2e-spellcheck-project-001';
 export const TEST_SPELLCHECK_CHAPTER_ID = 'e2e-spellcheck-chapter-001';
+
+// Personal-dictionary E2E fixtures — an invented proper noun the author has listed
+// but not yet described, and a sentence whose agreement only makes sense once it is.
+export const TEST_DICTIONARY_PROJECT_ID = 'e2e-dictionary-project-001';
+export const TEST_DICTIONARY_CHAPTER_ID = 'e2e-dictionary-chapter-001';
+export const TEST_DICTIONARY_SETTINGS_ID = '6475a8f3c1234567890abce3';
+export const TEST_DICTIONARY_WORD = 'Vhardun';
 
 // Canon E2E fixtures — stale canon (for notification bell tests)
 export const TEST_CANON_STALE_PROJECT_ID = 'e2e-canon-stale-project-001';
@@ -264,6 +282,260 @@ function buildSpellCheckProject(past: Date, now: Date): Record<string, unknown> 
   };
 }
 
+// ── Grammar-check project document ────────────────────────────────────────────
+
+// A heading and a paragraph, each carrying one agreement error, plus a clean
+// paragraph. No AI provider: the corrector runs locally.
+function buildGrammarProject(past: Date, now: Date): Record<string, unknown> {
+  return {
+    _id: TEST_GRAMMAR_PROJECT_ID,
+    ownerId: TEST_USER_ID,
+    title: 'Projet Test Grammaire',
+    chapters: [{
+      id: TEST_GRAMMAR_CHAPTER_ID,
+      title: 'Chapitre Grammaire',
+      content: JSON.stringify({
+        type: 'doc',
+        content: [
+          {
+            type: 'heading',
+            attrs: { level: 1 },
+            content: [{ type: 'text', text: 'Les maison closes' }],
+          },
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: 'Les chien de la voisine sont partis.' }],
+          },
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: 'La vieille bibliothèque sentait le bois.' }],
+          },
+        ],
+      }),
+      order: 0,
+      metadata: { wordCount: 17, characterCount: 94, lastEdited: past },
+    }],
+    activeChapterId: TEST_GRAMMAR_CHAPTER_ID,
+    providerId: null,
+    createdAt: past,
+    updatedAt: now,
+    isPublished: false,
+    shareToken: null,
+    publishedAt: null,
+    publishedChapterIds: null,
+  };
+}
+
+// Settings with nothing declined and punctuation left at the fiction default, so a
+// test that declines a remark or flips the option starts from a known state.
+function buildGrammarSettings(past: Date, now: Date): Record<string, unknown> {
+  return {
+    _id: new ObjectId(TEST_GRAMMAR_SETTINGS_ID),
+    projectId: TEST_GRAMMAR_PROJECT_ID,
+    ownerId: TEST_USER_ID,
+    title: 'Projet Test Grammaire',
+    summary: '',
+    genre: '',
+    synopsis: '',
+    contributors: [],
+    relatedWorks: [],
+    ignoredGrammarIssues: [],
+    ignoredWords: [],
+    createdAt: past,
+    updatedAt: now,
+  };
+}
+
+// Re-seed only the grammar project. The editor autosaves applied corrections back
+// to this chapter, so each test must start from the same faulty text — and from
+// settings holding no declined remark.
+/**
+ * A full page of real, deliberately faulty prose — the corpus the short grammar fixture
+ * cannot stand in for. Paragraphs carry the attrs the editor writes, so mounting the
+ * editor is not itself an edit (see resetRestoreFixture for what that costs otherwise).
+ */
+export async function seedHiroshimaProject(): Promise<void> {
+  const client = new MongoClient(MONGODB_URI);
+  await client.connect();
+  try {
+    const db = client.db(MONGODB_DB_NAME);
+    const past = new Date('2025-01-01T10:00:00Z');
+    const now = new Date();
+
+    const content = JSON.stringify({
+      type: 'doc',
+      content: HIROSHIMA_BLOCKS.map((block) =>
+        block.type === 'heading'
+          ? {
+              type: 'heading',
+              attrs: { level: 2, textAlign: 'justify', semanticRole: 'sous-titre' },
+              content: [{ type: 'text', text: block.text }],
+            }
+          : {
+              type: 'paragraph',
+              attrs: { textAlign: 'justify', semanticRole: 'corps' },
+              content: [{ type: 'text', text: block.text }],
+            },
+      ),
+    });
+
+    await db.collection('projects').replaceOne(
+      { _id: TEST_HIROSHIMA_PROJECT_ID } as object,
+      {
+        _id: TEST_HIROSHIMA_PROJECT_ID,
+        ownerId: TEST_USER_ID,
+        title: 'Projet Test Texte Réel',
+        chapters: [{
+          id: TEST_HIROSHIMA_CHAPTER_ID,
+          title: HIROSHIMA_TITLE,
+          content,
+          order: 0,
+          metadata: { wordCount: 900, characterCount: 5600, lastEdited: past },
+        }],
+        activeChapterId: TEST_HIROSHIMA_CHAPTER_ID,
+        // No AI provider: the corrector is local, and must work without one.
+        providerId: null,
+        createdAt: past,
+        updatedAt: now,
+        isPublished: false,
+        shareToken: null,
+        publishedAt: null,
+        publishedChapterIds: null,
+      },
+      { upsert: true }
+    );
+
+    await db.collection('project_settings').replaceOne(
+      { _id: new ObjectId(TEST_HIROSHIMA_SETTINGS_ID) },
+      {
+        _id: new ObjectId(TEST_HIROSHIMA_SETTINGS_ID),
+        projectId: TEST_HIROSHIMA_PROJECT_ID,
+        ownerId: TEST_USER_ID,
+        title: 'Projet Test Texte Réel',
+        summary: '',
+        genre: '',
+        synopsis: '',
+        contributors: [],
+        relatedWorks: [],
+        ignoredGrammarIssues: [],
+        ignoredWords: [],
+        createdAt: past,
+        updatedAt: now,
+      },
+      { upsert: true }
+    );
+  } finally {
+    await client.close();
+  }
+}
+
+export async function seedGrammarProject(): Promise<void> {
+  const client = new MongoClient(MONGODB_URI);
+  await client.connect();
+  try {
+    const db = client.db(MONGODB_DB_NAME);
+    const past = new Date('2025-01-01T10:00:00Z');
+    const now = new Date();
+    await db.collection('projects').replaceOne(
+      { _id: TEST_GRAMMAR_PROJECT_ID } as object,
+      buildGrammarProject(past, now),
+      { upsert: true }
+    );
+    await db.collection('project_settings').replaceOne(
+      { _id: new ObjectId(TEST_GRAMMAR_SETTINGS_ID) },
+      buildGrammarSettings(past, now),
+      { upsert: true }
+    );
+  } finally {
+    await client.close();
+  }
+}
+
+// ── Personal-dictionary project documents ─────────────────────────────────────
+
+// The chapter says "Vhardun est parti." — correct until the author declares Vhardun
+// feminine, at which point the corrector should ask for "partie". The second
+// paragraph carries an ordinary agreement error, so a test can tell "the corrector
+// found nothing to say about Vhardun" from "the corrector has not answered yet".
+function buildDictionaryProject(past: Date, now: Date): Record<string, unknown> {
+  return {
+    _id: TEST_DICTIONARY_PROJECT_ID,
+    ownerId: TEST_USER_ID,
+    title: 'Projet Test Dictionnaire',
+    chapters: [{
+      id: TEST_DICTIONARY_CHAPTER_ID,
+      title: 'Chapitre Dictionnaire',
+      content: JSON.stringify({
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: `${TEST_DICTIONARY_WORD} est parti.` }],
+          },
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: 'Les chien de la voisine dorment.' }],
+          },
+        ],
+      }),
+      order: 0,
+      metadata: { wordCount: 9, characterCount: 50, lastEdited: past },
+    }],
+    activeChapterId: TEST_DICTIONARY_CHAPTER_ID,
+    providerId: null,
+    createdAt: past,
+    updatedAt: now,
+    isPublished: false,
+    shareToken: null,
+    publishedAt: null,
+    publishedChapterIds: null,
+  };
+}
+
+// The word is listed as a bare string — the shape a project written before words
+// could be described still has on disk.
+function buildDictionarySettings(past: Date, now: Date): Record<string, unknown> {
+  return {
+    _id: new ObjectId(TEST_DICTIONARY_SETTINGS_ID),
+    projectId: TEST_DICTIONARY_PROJECT_ID,
+    ownerId: TEST_USER_ID,
+    title: 'Projet Test Dictionnaire',
+    summary: '',
+    genre: 'Fantasy',
+    synopsis: '',
+    contributors: [],
+    relatedWorks: [],
+    customDictionary: [TEST_DICTIONARY_WORD],
+    ignoredWords: [],
+    createdAt: past,
+    updatedAt: now,
+  };
+}
+
+// Re-seed the dictionary project and its settings. Declaring a word rewrites the
+// settings document, so each test must start from the undeclared state.
+export async function seedDictionaryProject(): Promise<void> {
+  const client = new MongoClient(MONGODB_URI);
+  await client.connect();
+  try {
+    const db = client.db(MONGODB_DB_NAME);
+    const past = new Date('2025-01-01T10:00:00Z');
+    const now = new Date();
+    await db.collection('projects').replaceOne(
+      { _id: TEST_DICTIONARY_PROJECT_ID } as object,
+      buildDictionaryProject(past, now),
+      { upsert: true }
+    );
+    await db.collection('project_settings').replaceOne(
+      { _id: new ObjectId(TEST_DICTIONARY_SETTINGS_ID) },
+      buildDictionarySettings(past, now),
+      { upsert: true }
+    );
+  } finally {
+    await client.close();
+  }
+}
+
 // Re-seed only the spell-check project to its clean state. Used in a beforeEach so
 // each spell-check test starts from the same chapter content regardless of what
 // previous tests typed and autosaved.
@@ -438,16 +710,24 @@ export async function resetRestoreFixture(): Promise<void> {
     const snapshotCreatedAt = new Date('2025-06-01T10:00:00Z');
     const now = new Date();
 
+    // Paragraphs carry the attrs the editor itself writes. A paragraph seeded without them
+    // is normalised the moment the editor mounts, which counts as a real edit: the autosave
+    // that follows moves project.updatedAt, and the restore below — which guards against
+    // concurrent modification by comparing that very timestamp — is refused. Production
+    // content always comes from the editor, so it is already in this shape.
+    const paragraph = (text: string) => ({
+      type: 'paragraph',
+      attrs: { textAlign: 'justify', semanticRole: 'corps' },
+      content: [{ type: 'text', text }],
+    });
+
     const originalContent = JSON.stringify({
       type: 'doc',
-      content: [
-        { type: 'paragraph', content: [{ type: 'text', text: TEST_RESTORE_ORIGINAL_TEXT }] },
-        { type: 'horizontalRule' },
-      ],
+      content: [paragraph(TEST_RESTORE_ORIGINAL_TEXT), { type: 'horizontalRule' }],
     });
     const divergedContent = JSON.stringify({
       type: 'doc',
-      content: [{ type: 'paragraph', content: [{ type: 'text', text: TEST_RESTORE_DIVERGED_TEXT }] }],
+      content: [paragraph(TEST_RESTORE_DIVERGED_TEXT)],
     });
 
     await db.collection('projects').replaceOne(
@@ -683,6 +963,30 @@ export async function seedAll(): Promise<void> {
   await db.collection('projects').replaceOne(
     { _id: TEST_SPELLCHECK_PROJECT_ID } as object,
     buildSpellCheckProject(past, now),
+    { upsert: true }
+  );
+
+  // 2c-ter. Grammar project — faulty French text, no AI provider needed.
+  await db.collection('projects').replaceOne(
+    { _id: TEST_GRAMMAR_PROJECT_ID } as object,
+    buildGrammarProject(past, now),
+    { upsert: true }
+  );
+  await db.collection('project_settings').replaceOne(
+    { _id: new ObjectId(TEST_GRAMMAR_SETTINGS_ID) },
+    buildGrammarSettings(past, now),
+    { upsert: true }
+  );
+
+  // 2c-quater. Personal-dictionary project — an invented word listed but not described.
+  await db.collection('projects').replaceOne(
+    { _id: TEST_DICTIONARY_PROJECT_ID } as object,
+    buildDictionaryProject(past, now),
+    { upsert: true }
+  );
+  await db.collection('project_settings').replaceOne(
+    { _id: new ObjectId(TEST_DICTIONARY_SETTINGS_ID) },
+    buildDictionarySettings(past, now),
     { upsert: true }
   );
 

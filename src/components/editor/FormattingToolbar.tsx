@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import {
   Bold,
@@ -30,6 +31,9 @@ import {
   Search,
   Superscript,
   ListOrdered,
+  SpellCheck,
+  Loader2,
+  Pilcrow,
 } from 'lucide-react';
 
 export type EditorProfile = 'print-ready' | 'passerelle';
@@ -227,6 +231,11 @@ interface FormattingToolbarProps {
   onOpenEndnotes?: () => void;
   onAnalyze?: () => void;
   analysisLoading?: boolean;
+  onCorrect?: () => void;
+  correctionLoading?: boolean;
+  /** Whether the corrector reports on punctuation in this project. */
+  punctuationChecked?: boolean;
+  onPunctuationChange?: (checked: boolean) => void;
 }
 
 export function FormattingToolbar({
@@ -253,6 +262,10 @@ export function FormattingToolbar({
   onOpenEndnotes,
   onAnalyze,
   analysisLoading = false,
+  onCorrect,
+  correctionLoading = false,
+  punctuationChecked = true,
+  onPunctuationChange,
 }: FormattingToolbarProps) {
   if (!editor) return null;
 
@@ -337,8 +350,72 @@ export function FormattingToolbar({
     </Button>
   );
 
-  const aiMenu = showAIFeatures && onRewrite && onProviderChange && onHistoryClick && onAutocompleteChange && (
-    <div className="flex items-center ml-auto mt-1 md:mt-0">
+  // The corrector runs locally: free, deterministic, and available to an author
+  // who configured no AI provider. It gets its own button rather than a place
+  // under a menu labelled "IA", which would say the opposite.
+  // Split control: the correction runs on the left, its options open on the right.
+  // Both halves carry the AI menu's button design so the two read as siblings.
+  const correctionButton = onCorrect && (
+    <div className="flex items-center">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onCorrect}
+        disabled={correctionLoading}
+        title="Corriger le chapitre"
+        aria-label="Corriger le chapitre"
+        className={`gap-1.5 px-2 md:px-3 ${
+          onPunctuationChange ? 'rounded-r-none border-r-0' : ''
+        }`}
+      >
+        {correctionLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <SpellCheck className="h-4 w-4" />
+        )}
+        <span className="hidden sm:inline">Corriger</span>
+      </Button>
+
+      {onPunctuationChange && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              title="Options de correction"
+              aria-label="Options de correction"
+              className="rounded-l-none px-1.5"
+            >
+              <span className="text-xs opacity-60">▾</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem
+              onSelect={(e) => e.preventDefault()}
+              className="gap-2"
+            >
+              <Pilcrow className="h-4 w-4" />
+              <span className="flex-1">Ponctuation</span>
+              <Switch
+                aria-label="Ponctuation"
+                checked={punctuationChecked}
+                onCheckedChange={onPunctuationChange}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </DropdownMenuItem>
+            <p className="px-2 pb-1.5 pt-0.5 text-xs text-muted-foreground">
+              Espaces, virgules et fins de phrase. Les accords et les conjugaisons
+              restent vérifiés.
+            </p>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </div>
+  );
+
+  const aiMenu = (showAIFeatures || onCorrect) && onRewrite && onProviderChange && onHistoryClick && onAutocompleteChange && (
+    <div className="flex items-center ml-auto mt-1 md:mt-0 gap-0.5 md:gap-1">
+      {correctionButton}
       <AIMenuDropdown
         hasSelection={hasSelection}
         onRewrite={onRewrite}

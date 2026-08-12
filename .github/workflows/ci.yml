@@ -8,6 +8,13 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+  packages: read
+
+env:
+  NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
   quality:
     name: Quality (lint + typecheck)
@@ -40,6 +47,10 @@ jobs:
       - run: npm ci
 
       - run: npm run test:unit
+
+      # Runs after the suite rather than inside it: the benchmarks time real work,
+      # and sharing the machine with the parallel unit run distorts what they measure.
+      - run: npm run test:perf
 
   integration:
     name: Integration tests (MongoDB)

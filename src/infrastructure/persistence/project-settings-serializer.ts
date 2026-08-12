@@ -12,6 +12,10 @@ import type { PublicationProfileId } from '@/domain/value-objects/PublicationPro
 import type { LevelStylesByProfile } from '@/domain/entities/ProjectSettings';
 import type { TocDepth, TocStyle } from '@/domain/value-objects/TocPreferences';
 import type { AutomaticSnapshotInterval } from '@/domain/value-objects/AutomaticSnapshotInterval';
+import type { GrammarRuleProfile } from '@/domain/value-objects/GrammarRuleProfile';
+import type { PersonalDictionaryEntry } from '@/domain/value-objects/PersonalDictionaryEntry';
+import type { GrammarPersonalDictionary } from '@/domain/interfaces/GrammarChecker';
+import type { IgnoredGrammarIssue } from '@/domain/value-objects/IgnoredGrammarIssue';
 
 export interface ContributorDocument {
   name: string;
@@ -48,8 +52,12 @@ export interface ProjectSettingsDocument {
   autocompletePartialAcceptance?: boolean;
   autocompleteSmartPrefetch?: boolean;
   canonExtractionMode?: CanonExtractionMode;
-  customDictionary?: string[];
+  /** Bare strings are words stored before the author could describe them. */
+  customDictionary?: (string | PersonalDictionaryEntry)[];
+  grammarDictionary?: GrammarPersonalDictionary | null;
+  ignoredGrammarIssues?: IgnoredGrammarIssue[];
   ignoredWords?: string[];
+  grammarRuleProfile?: GrammarRuleProfile;
   publicationProfileId?: PublicationProfileId;
   levelStylesByProfile?: LevelStylesByProfile;
   tocDepth?: TocDepth;
@@ -96,7 +104,10 @@ export function serializeProjectSettings(
     autocompleteSmartPrefetch: props.autocompleteSmartPrefetch,
     canonExtractionMode: props.canonExtractionMode,
     customDictionary: props.customDictionary ?? [],
+    grammarDictionary: props.grammarDictionary ?? null,
+    ignoredGrammarIssues: props.ignoredGrammarIssues ?? [],
     ignoredWords: props.ignoredWords ?? [],
+    grammarRuleProfile: props.grammarRuleProfile,
     publicationProfileId: props.publicationProfileId,
     levelStylesByProfile: props.levelStylesByProfile,
     tocDepth: props.tocDepth,
@@ -145,7 +156,10 @@ export function deserializeProjectSettings(doc: ProjectSettingsDocument): Projec
     autocompleteSmartPrefetch: doc.autocompleteSmartPrefetch,
     canonExtractionMode: doc.canonExtractionMode,
     customDictionary: doc.customDictionary ?? [],
+    grammarDictionary: doc.grammarDictionary ?? null,
+    ignoredGrammarIssues: doc.ignoredGrammarIssues ?? [],
     ignoredWords: doc.ignoredWords ?? [],
+    grammarRuleProfile: doc.grammarRuleProfile,
     publicationProfileId: doc.publicationProfileId,
     levelStylesByProfile: doc.levelStylesByProfile,
     tocDepth: doc.tocDepth,

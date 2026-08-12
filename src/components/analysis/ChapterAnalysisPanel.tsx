@@ -51,9 +51,6 @@ export function ChapterAnalysisPanel({
   const categoryCounts = useMemo(() => {
     const counts: Record<CategoryFilter, number> = {
       all: issues.length,
-      spelling: 0,
-      grammar: 0,
-      punctuation: 0,
       repetition: 0,
       style: 0,
     };

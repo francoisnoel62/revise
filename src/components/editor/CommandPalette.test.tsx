@@ -155,6 +155,32 @@ describe('CommandPalette', () => {
     expect(container).toBeDefined();
   });
 
+  it('shows "Corriger le chapitre" and runs it when onCorrect is provided', async () => {
+    const onCorrect = vi.fn();
+    render(<CommandPalette {...defaultProps} open={true} onCorrect={onCorrect} />);
+
+    const entry = screen.getByText('Corriger le chapitre');
+    expect(entry).toBeInTheDocument();
+
+    fireEvent.click(entry);
+    await waitFor(() => expect(onCorrect).toHaveBeenCalledTimes(1));
+  });
+
+  it('offers "Corriger le chapitre" without a configured AI provider', () => {
+    render(
+      <CommandPalette
+        {...defaultProps}
+        open={true}
+        selectedProviderId={null}
+        onCorrect={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.getByText('Corriger le chapitre').closest('[data-disabled]')
+    ).toHaveAttribute('data-disabled', 'false');
+  });
+
   it('shows the endnote command and runs it when onInsertEndnote is provided', async () => {
     const onInsertEndnote = vi.fn();
     render(

@@ -15,7 +15,7 @@ describe('ChapterAnalysis', () => {
   }> = {}): AnalysisIssue => {
     return createAnalysisIssue({
       id: overrides.id || 'issue-1',
-      category: overrides.category || 'grammar',
+      category: overrides.category || 'repetition',
       severity: overrides.severity || 'error',
       originalText: 'test',
       suggestion: 'fixed',
@@ -43,7 +43,7 @@ describe('ChapterAnalysis', () => {
         chapterId: 'chapter-1',
         projectId: 'project-1',
         ownerId: 'user-1',
-        categories: ['grammar', 'grammar'],
+        categories: ['repetition', 'style'],
         styleRigor: 'moderate',
         issues: [],
         repetitions: [],
@@ -54,7 +54,7 @@ describe('ChapterAnalysis', () => {
       expect(analysis.getChapterId()).toBe('chapter-1');
       expect(analysis.getProjectId()).toBe('project-1');
       expect(analysis.getOwnerId()).toBe('user-1');
-      expect(analysis.getCategories()).toEqual(['grammar', 'grammar']);
+      expect(analysis.getCategories()).toEqual(['repetition', 'style']);
       expect(analysis.getStyleRigor()).toBe('moderate');
       expect(analysis.getContentHash()).toBe('abc123');
     });
@@ -66,7 +66,7 @@ describe('ChapterAnalysis', () => {
           chapterId: 'chapter-1',
           projectId: 'project-1',
           ownerId: 'user-1',
-          categories: ['grammar'],
+          categories: ['repetition'],
           styleRigor: 'moderate',
           issues: [],
           repetitions: [],
@@ -82,7 +82,7 @@ describe('ChapterAnalysis', () => {
           chapterId: '',
           projectId: 'project-1',
           ownerId: 'user-1',
-          categories: ['grammar'],
+          categories: ['repetition'],
           styleRigor: 'moderate',
           issues: [],
           repetitions: [],
@@ -114,7 +114,7 @@ describe('ChapterAnalysis', () => {
         chapterId: 'chapter-1',
         projectId: 'project-1',
         ownerId: 'user-1',
-        categories: ['grammar'],
+        categories: ['repetition'],
         styleRigor: 'moderate',
         issues: [],
         repetitions: [],
@@ -134,7 +134,7 @@ describe('ChapterAnalysis', () => {
         chapterId: 'chapter-1',
         projectId: 'project-1',
         ownerId: 'user-1',
-        categories: ['grammar'],
+        categories: ['repetition'],
         styleRigor: 'moderate',
         issues: [],
         repetitions: [],
@@ -155,7 +155,7 @@ describe('ChapterAnalysis', () => {
         chapterId: 'chapter-1',
         projectId: 'project-1',
         ownerId: 'user-1',
-        categories: ['grammar'],
+        categories: ['repetition'],
         styleRigor: 'moderate',
         issues: [issue],
         repetitions: [],
@@ -175,7 +175,7 @@ describe('ChapterAnalysis', () => {
         chapterId: 'chapter-1',
         projectId: 'project-1',
         ownerId: 'user-1',
-        categories: ['grammar'],
+        categories: ['repetition'],
         styleRigor: 'moderate',
         issues: [issue],
         repetitions: [],
@@ -193,7 +193,7 @@ describe('ChapterAnalysis', () => {
         chapterId: 'chapter-1',
         projectId: 'project-1',
         ownerId: 'user-1',
-        categories: ['grammar'],
+        categories: ['repetition'],
         styleRigor: 'moderate',
         issues: [],
         repetitions: [],
@@ -206,24 +206,24 @@ describe('ChapterAnalysis', () => {
 
   describe('filtering', () => {
     it('should filter issues by category', () => {
-      const spellingIssue = createTestIssue({ id: 'issue-1', category: 'grammar' });
-      const grammarIssue = createTestIssue({ id: 'issue-2', category: 'style' });
+      const repetitionIssue = createTestIssue({ id: 'issue-1', category: 'repetition' });
+      const styleIssue = createTestIssue({ id: 'issue-2', category: 'style' });
 
       const analysis = new ChapterAnalysis({
         id: 'analysis-1',
         chapterId: 'chapter-1',
         projectId: 'project-1',
         ownerId: 'user-1',
-        categories: ['grammar', 'grammar'],
+        categories: ['repetition', 'style'],
         styleRigor: 'moderate',
-        issues: [spellingIssue, grammarIssue],
+        issues: [repetitionIssue, styleIssue],
         repetitions: [],
         contentHash: 'abc123',
       });
 
-      const grammarOnly = analysis.getIssuesByCategory('grammar');
-      expect(grammarOnly).toHaveLength(1);
-      expect(grammarOnly[0].category).toBe('grammar');
+      const repetitionOnly = analysis.getIssuesByCategory('repetition');
+      expect(repetitionOnly).toHaveLength(1);
+      expect(repetitionOnly[0].category).toBe('repetition');
     });
 
     it('should filter issues by severity', () => {
@@ -235,7 +235,7 @@ describe('ChapterAnalysis', () => {
         chapterId: 'chapter-1',
         projectId: 'project-1',
         ownerId: 'user-1',
-        categories: ['grammar'],
+        categories: ['repetition'],
         styleRigor: 'moderate',
         issues: [errorIssue, warningIssue],
         repetitions: [],
@@ -256,7 +256,7 @@ describe('ChapterAnalysis', () => {
         chapterId: 'chapter-1',
         projectId: 'project-1',
         ownerId: 'user-1',
-        categories: ['grammar'],
+        categories: ['repetition'],
         styleRigor: 'moderate',
         issues: [pendingIssue, appliedIssue],
         repetitions: [],
@@ -279,7 +279,7 @@ describe('ChapterAnalysis', () => {
         chapterId: 'chapter-1',
         projectId: 'project-1',
         ownerId: 'user-1',
-        categories: ['grammar'],
+        categories: ['repetition'],
         styleRigor: 'moderate',
         issues: [issue1, issue2],
         repetitions: [],
@@ -290,8 +290,8 @@ describe('ChapterAnalysis', () => {
     });
 
     it('should compute stats by category', () => {
-      const grammar1 = createTestIssue({ id: 'issue-1', category: 'grammar' });
-      const grammar2 = createTestIssue({ id: 'issue-2', category: 'grammar' });
+      const repetition1 = createTestIssue({ id: 'issue-1', category: 'repetition' });
+      const repetition2 = createTestIssue({ id: 'issue-2', category: 'repetition' });
       const style1 = createTestIssue({ id: 'issue-3', category: 'style' });
 
       const analysis = new ChapterAnalysis({
@@ -299,15 +299,15 @@ describe('ChapterAnalysis', () => {
         chapterId: 'chapter-1',
         projectId: 'project-1',
         ownerId: 'user-1',
-        categories: ['grammar', 'grammar'],
+        categories: ['repetition', 'style'],
         styleRigor: 'moderate',
-        issues: [grammar1, grammar2, style1],
+        issues: [repetition1, repetition2, style1],
         repetitions: [],
         contentHash: 'abc123',
       });
 
       const stats = analysis.getStatsByCategory();
-      expect(stats.grammar).toBe(2);
+      expect(stats.repetition).toBe(2);
       expect(stats.style).toBe(1);
     });
 
@@ -321,7 +321,7 @@ describe('ChapterAnalysis', () => {
         chapterId: 'chapter-1',
         projectId: 'project-1',
         ownerId: 'user-1',
-        categories: ['grammar'],
+        categories: ['repetition'],
         styleRigor: 'moderate',
         issues: [error1, warning1, warning2],
         repetitions: [],
@@ -344,7 +344,7 @@ describe('ChapterAnalysis', () => {
         chapterId: 'chapter-1',
         projectId: 'project-1',
         ownerId: 'user-1',
-        categories: ['grammar'],
+        categories: ['repetition'],
         styleRigor: 'moderate',
         issues: [pending, applied, ignored],
         repetitions: [],
@@ -410,7 +410,7 @@ describe('ChapterAnalysis', () => {
         chapterId: 'chapter-1',
         projectId: 'project-1',
         ownerId: 'user-1',
-        categories: ['grammar'],
+        categories: ['repetition'],
         styleRigor: 'moderate',
         issues: [],
         repetitions: [],
@@ -426,7 +426,7 @@ describe('ChapterAnalysis', () => {
     const createIssueAtPosition = (id: string, start: number, end: number): AnalysisIssue => {
       return createAnalysisIssue({
         id,
-        category: 'grammar',
+        category: 'repetition',
         severity: 'error',
         originalText: 'x'.repeat(end - start),
         suggestion: 'fixed',
@@ -446,7 +446,7 @@ describe('ChapterAnalysis', () => {
         chapterId: 'chapter-1',
         projectId: 'project-1',
         ownerId: 'user-1',
-        categories: ['grammar'],
+        categories: ['repetition'],
         styleRigor: 'moderate',
         issues: [issue1, issue2, issue3],
         repetitions: [],
@@ -475,7 +475,7 @@ describe('ChapterAnalysis', () => {
         chapterId: 'chapter-1',
         projectId: 'project-1',
         ownerId: 'user-1',
-        categories: ['grammar'],
+        categories: ['repetition'],
         styleRigor: 'moderate',
         issues: [issue1, issue2],
         repetitions: [],
@@ -498,7 +498,7 @@ describe('ChapterAnalysis', () => {
         chapterId: 'chapter-1',
         projectId: 'project-1',
         ownerId: 'user-1',
-        categories: ['grammar'],
+        categories: ['repetition'],
         styleRigor: 'moderate',
         issues: [issue1, issue2],
         repetitions: [],
@@ -521,7 +521,7 @@ describe('ChapterAnalysis', () => {
         chapterId: 'chapter-1',
         projectId: 'project-1',
         ownerId: 'user-1',
-        categories: ['grammar'],
+        categories: ['repetition'],
         styleRigor: 'moderate',
         issues: [issue],
         repetitions: [],

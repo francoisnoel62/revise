@@ -44,11 +44,14 @@ test.describe('snapshots automatiques', () => {
     await page.locator('button[title="Historique des versions"]:visible').click();
     const dialog = page.getByRole('dialog').filter({ hasText: 'Historique des versions' });
 
-    await expect(dialog.getByText('Snapshot automatique')).toBeVisible({ timeout: 20_000 });
-    await expect(
-      dialog.locator('[data-testid^="snapshot-row-"]').getByText('Automatique', { exact: true }),
-    ).toBeVisible();
-    await expect(dialog.getByText('v1', { exact: true })).toBeVisible();
+    // Assertions are scoped to the listed version rather than the whole dialog: the
+    // "Type de version" filter above the list offers an "Automatique" option carrying
+    // the same label as the row's type badge.
+    const row = dialog.locator('[data-testid^="snapshot-row-"]');
+
+    await expect(row.getByText('Snapshot automatique')).toBeVisible({ timeout: 20_000 });
+    await expect(row.getByText('Automatique', { exact: true })).toBeVisible();
+    await expect(row.getByText('v1', { exact: true })).toBeVisible();
   });
 
   test('keeps the caret position through autosave in a 500-word manuscript', async ({ page }) => {

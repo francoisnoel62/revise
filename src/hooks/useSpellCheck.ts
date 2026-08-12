@@ -3,7 +3,8 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import type { Editor } from '@tiptap/react';
-import { spellCheckPluginKey, type SpellError } from '@/components/editor/SpellCheckExtension';
+import { textIssuePluginKey } from '@/components/editor/TextIssueExtension';
+import type { TextIssue } from '@/domain/value-objects/TextIssue';
 import {
   checkSpellingAction,
   getCustomDictionaryAction,
@@ -34,6 +35,16 @@ function extractWordsFromDoc(
   });
 
   return result;
+}
+
+/** Drops the underlines of a word the author just accepted, without re-running a check. */
+function clearSpellingIssuesFor(editor: Editor | null, word: string): void {
+  if (!editor || editor.isDestroyed) return;
+  const pluginState = textIssuePluginKey.getState(editor.state);
+  if (!pluginState) return;
+
+  const spelling = pluginState.spelling.filter((issue) => issue.text !== word);
+  editor.view.dispatch(editor.state.tr.setMeta(textIssuePluginKey, { spelling }));
 }
 
 function debounce<T extends (...args: Parameters<T>) => void>(fn: T, ms: number) {
@@ -75,12 +86,11 @@ export function useSpellCheck(
     if (currentText === lastTextRef.current) return;
     lastTextRef.current = currentText;
 
-    const wordsWithPositions = extractWordsFromDoc(ed);
-    const uniqueWords = [...new Set(wordsWithPositions.map((w) => w.word))];
+    const uniqueWords = [...new Set(extractWordsFromDoc(ed).map((w) => w.word))];
 
     if (uniqueWords.length === 0) {
       if (!ed.isDestroyed) {
-        ed.view.dispatch(ed.state.tr.setMeta(spellCheckPluginKey, { errors: [] }));
+        ed.view.dispatch(ed.state.tr.setMeta(textIssuePluginKey, { spelling: [] }));
       }
       return;
     }
@@ -89,6 +99,13 @@ export function useSpellCheck(
     const accepted = [...customDictionaryRef.current, ...ignoredWordsRef.current];
     const misspelled = await checkSpellingAction(uniqueWords, accepted);
     if (ed.isDestroyed) return;
+
+    // Locate the words again rather than reusing what was found before the round trip:
+    // the author goes on writing while it is in flight, and a range located in the
+    // document as it was would have the correction replace the wrong text — a single
+    // character adrift is enough to swallow the space before the word. Everything from
+    // here to the dispatch is synchronous, so nothing can move in between.
+    const wordsWithPositions = extractWordsFromDoc(ed);
 
     const misspelledMap = new Map(
       misspelled.map((m) => [m.word.toLowerCase(), m.suggestions])
@@ -100,16 +117,20 @@ export function useSpellCheck(
       ...ignoredWordsRef.current,
     ]);
 
-    const errors: SpellError[] = wordsWithPositions
+    const spelling: TextIssue[] = wordsWithPositions
       .filter((w) => misspelledMap.has(w.word.toLowerCase()))
       .filter((w) => !locallyAccepted.has(w.word))
       .map((w) => ({
-        ...w,
+        nature: 'spelling',
+        from: w.from,
+        to: w.to,
+        text: w.word,
+        message: '',
         suggestions: misspelledMap.get(w.word.toLowerCase()) ?? [],
       }));
 
     if (!ed.isDestroyed) {
-      ed.view.dispatch(ed.state.tr.setMeta(spellCheckPluginKey, { errors }));
+      ed.view.dispatch(ed.state.tr.setMeta(textIssuePluginKey, { spelling }));
     }
   }, []);
 
@@ -124,13 +145,7 @@ export function useSpellCheck(
         addIgnoredWordAction(projectId, word);
       }
       // Remove the decoration immediately
-      if (!editor || editor.isDestroyed) return;
-      const pluginState = spellCheckPluginKey.getState(editor.state);
-      if (!pluginState) return;
-      const filteredErrors = pluginState.errors.filter((e) => e.word !== word);
-      editor.view.dispatch(
-        editor.state.tr.setMeta(spellCheckPluginKey, { errors: filteredErrors })
-      );
+      clearSpellingIssuesFor(editor, word);
     },
     [editor, projectId]
   );
@@ -140,13 +155,7 @@ export function useSpellCheck(
       if (!projectId) return;
       await addWordToCustomDictionaryAction(projectId, word);
       customDictionaryRef.current = [...customDictionaryRef.current, word];
-      if (!editor || editor.isDestroyed) return;
-      const pluginState = spellCheckPluginKey.getState(editor.state);
-      if (!pluginState) return;
-      const filteredErrors = pluginState.errors.filter((e) => e.word !== word);
-      editor.view.dispatch(
-        editor.state.tr.setMeta(spellCheckPluginKey, { errors: filteredErrors })
-      );
+      clearSpellingIssuesFor(editor, word);
       lastTextRef.current = '';
     },
     [editor, projectId]

@@ -754,4 +754,177 @@ describe('FormattingToolbar', () => {
       expect(aiButton).toBeDisabled();
     });
   });
+
+  describe('Chapter correction', () => {
+    const correctionProps = {
+      onRewrite: vi.fn(),
+      onProviderChange: vi.fn(),
+      onHistoryClick: vi.fn(),
+      onAutocompleteChange: vi.fn(),
+    };
+
+    it('gives the local corrector its own button, outside the AI menu', () => {
+      const editor = createMockEditor();
+      render(
+        <FormattingToolbar editor={editor} {...correctionProps} onCorrect={vi.fn()} />
+      );
+
+      const button = screen.getByRole('button', { name: 'Corriger le chapitre' });
+      expect(button).toBeInTheDocument();
+      expect(button.closest('[role="menu"]')).toBeNull();
+    });
+
+    it('calls onCorrect when the button is clicked', () => {
+      const editor = createMockEditor();
+      const onCorrect = vi.fn();
+      render(
+        <FormattingToolbar editor={editor} {...correctionProps} onCorrect={onCorrect} />
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Corriger le chapitre' }));
+
+      expect(onCorrect).toHaveBeenCalledTimes(1);
+    });
+
+    it('stays enabled with no AI provider — the engine is local', () => {
+      const editor = createMockEditor();
+      render(
+        <FormattingToolbar
+          editor={editor}
+          {...correctionProps}
+          showAIFeatures={false}
+          onCorrect={vi.fn()}
+        />
+      );
+
+      expect(screen.getByRole('button', { name: 'Corriger le chapitre' })).toBeEnabled();
+    });
+
+    it('disables the button while a correction is running', () => {
+      const editor = createMockEditor();
+      render(
+        <FormattingToolbar
+          editor={editor}
+          {...correctionProps}
+          onCorrect={vi.fn()}
+          correctionLoading
+        />
+      );
+
+      expect(screen.getByRole('button', { name: 'Corriger le chapitre' })).toBeDisabled();
+    });
+
+    it('shows no correction button when the editor offers no correction', () => {
+      const editor = createMockEditor();
+      render(<FormattingToolbar editor={editor} {...correctionProps} />);
+
+      expect(
+        screen.queryByRole('button', { name: 'Corriger le chapitre' })
+      ).not.toBeInTheDocument();
+    });
+
+    it('offers the punctuation switch beside the correction button', async () => {
+      const editor = createMockEditor();
+      render(
+        <FormattingToolbar
+          editor={editor}
+          {...correctionProps}
+          onCorrect={vi.fn()}
+          punctuationChecked
+          onPunctuationChange={vi.fn()}
+        />
+      );
+
+      await userEvent.setup().click(
+        screen.getByRole('button', { name: 'Options de correction' })
+      );
+
+      expect(screen.getByRole('switch', { name: 'Ponctuation' })).toBeChecked();
+    });
+
+    it('reports the punctuation switch as off when the project turned it off', async () => {
+      const editor = createMockEditor();
+      render(
+        <FormattingToolbar
+          editor={editor}
+          {...correctionProps}
+          onCorrect={vi.fn()}
+          punctuationChecked={false}
+          onPunctuationChange={vi.fn()}
+        />
+      );
+
+      await userEvent.setup().click(
+        screen.getByRole('button', { name: 'Options de correction' })
+      );
+
+      expect(screen.getByRole('switch', { name: 'Ponctuation' })).not.toBeChecked();
+    });
+
+    it('asks to switch punctuation off when the author unchecks it', async () => {
+      const editor = createMockEditor();
+      const onPunctuationChange = vi.fn();
+      render(
+        <FormattingToolbar
+          editor={editor}
+          {...correctionProps}
+          onCorrect={vi.fn()}
+          punctuationChecked
+          onPunctuationChange={onPunctuationChange}
+        />
+      );
+
+      const user = userEvent.setup();
+      await user.click(screen.getByRole('button', { name: 'Options de correction' }));
+      await user.click(screen.getByRole('switch', { name: 'Ponctuation' }));
+
+      expect(onPunctuationChange).toHaveBeenCalledWith(false);
+    });
+
+    it('keeps the menu open so the author can see what changed', async () => {
+      const editor = createMockEditor();
+      render(
+        <FormattingToolbar
+          editor={editor}
+          {...correctionProps}
+          onCorrect={vi.fn()}
+          punctuationChecked
+          onPunctuationChange={vi.fn()}
+        />
+      );
+
+      const user = userEvent.setup();
+      await user.click(screen.getByRole('button', { name: 'Options de correction' }));
+      await user.click(screen.getByRole('switch', { name: 'Ponctuation' }));
+
+      expect(screen.getByRole('switch', { name: 'Ponctuation' })).toBeInTheDocument();
+    });
+
+    it('shows no options button when the project offers no punctuation switch', () => {
+      const editor = createMockEditor();
+      render(
+        <FormattingToolbar editor={editor} {...correctionProps} onCorrect={vi.fn()} />
+      );
+
+      expect(
+        screen.queryByRole('button', { name: 'Options de correction' })
+      ).not.toBeInTheDocument();
+    });
+
+    it('renders the correction button in the print-ready profile too', () => {
+      const editor = createMockEditor();
+      render(
+        <FormattingToolbar
+          editor={editor}
+          {...correctionProps}
+          onCorrect={vi.fn()}
+          isPrintReady
+        />
+      );
+
+      expect(
+        screen.getByRole('button', { name: 'Corriger le chapitre' })
+      ).toBeInTheDocument();
+    });
+  });
 });

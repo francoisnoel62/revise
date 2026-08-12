@@ -4,7 +4,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useSpellCheck } from './useSpellCheck';
-import { spellCheckPluginKey } from '@/components/editor/SpellCheckExtension';
+import {
+  textIssuePluginKey,
+  type TextIssueState,
+} from '@/components/editor/TextIssueExtension';
+import type { TextIssue } from '@/domain/value-objects/TextIssue';
 import type { Editor } from '@tiptap/react';
 
 // Mock the server action — spell-check-actions has its own unit tests
@@ -80,6 +84,32 @@ function createMockEditor(text: string, textNodes: TextNode[] = [], isDestroyed 
   return editor;
 }
 
+// ---------------------------------------------------------------------------
+// Plugin-state helpers
+// ---------------------------------------------------------------------------
+
+function misspelling(
+  text: string,
+  from: number,
+  to: number,
+  suggestions: string[]
+): TextIssue {
+  return { nature: 'spelling', from, to, text, message: '', suggestions };
+}
+
+function pluginStateWith(spelling: TextIssue[]): TextIssueState {
+  return {
+    spelling,
+    grammar: [],
+    issues: spelling,
+    decorations: {} as import('@tiptap/pm/view').DecorationSet,
+  };
+}
+
+function dispatchedSpelling(call: { meta: unknown } | undefined): TextIssue[] {
+  return (call?.meta as { spelling: TextIssue[] }).spelling;
+}
+
 // Advance past the 900ms debounce and flush all async work.
 // vi.runAllTimersAsync() fires timers then yields to the event loop for promise chains.
 async function flushDebounce() {
@@ -121,7 +151,7 @@ describe('useSpellCheck', () => {
     expect(calledWith.filter((w) => w === 'bonjour')).toHaveLength(1);
   });
 
-  it('dispatches spell errors with correct word and positions when misspelled words are found', async () => {
+  it('dispatches spelling issues with correct word and positions when misspelled words are found', async () => {
     mockCheckSpelling.mockResolvedValue([{ word: 'maisson', suggestions: ['maison'] }]);
 
     // "maisson" starts at pos 1 (ProseMirror positions are 1-indexed inside the doc)
@@ -132,19 +162,42 @@ describe('useSpellCheck', () => {
 
     expect(editor.state.tr.setMeta).toHaveBeenCalled();
 
-    const [pluginKey, payload] = editor._setMetaCalls[0].key === spellCheckPluginKey
-      ? [editor._setMetaCalls[0].key, editor._setMetaCalls[0].meta as { errors: Array<{ word: string; from: number; to: number; suggestions: string[] }> }]
-      : (() => { throw new Error('setMeta not called with spellCheckPluginKey'); })();
-
-    expect(pluginKey).toBe(spellCheckPluginKey);
-    expect(payload.errors).toHaveLength(1);
-    expect(payload.errors[0].word).toBe('maisson');
-    expect(payload.errors[0].suggestions).toEqual(['maison']);
-    expect(typeof payload.errors[0].from).toBe('number');
-    expect(typeof payload.errors[0].to).toBe('number');
+    expect(editor._setMetaCalls[0].key).toBe(textIssuePluginKey);
+    const dispatched = dispatchedSpelling(editor._setMetaCalls[0]);
+    expect(dispatched).toHaveLength(1);
+    expect(dispatched[0].nature).toBe('spelling');
+    expect(dispatched[0].text).toBe('maisson');
+    expect(dispatched[0].suggestions).toEqual(['maison']);
+    expect(typeof dispatched[0].from).toBe('number');
+    expect(typeof dispatched[0].to).toBe('number');
   });
 
-  it('dispatches empty errors and skips the server action when the document has no letter-words', async () => {
+  // The author keeps writing while the round trip is in flight. Positions located in the
+  // document as it was before the await are applied to the document as it is after, so a
+  // correction replaces the wrong range — one character adrift is enough to swallow the
+  // space in front of the word.
+  it('locates issues in the document as it stands when the result arrives', async () => {
+    const nodes = [{ text: 'bois maisson', pos: 1 }];
+    const editor = createMockEditor('bois maisson', nodes);
+
+    mockCheckSpelling.mockImplementation(async () => {
+      // "Cher " typed at the start shifts everything after it by five characters.
+      nodes[0] = { text: 'Cher bois maisson', pos: 1 };
+      editor.getText.mockReturnValue('Cher bois maisson');
+      return [{ word: 'maisson', suggestions: ['maison'] }];
+    });
+
+    renderHook(() => useSpellCheck(editor as unknown as Editor));
+    await flushDebounce();
+
+    const dispatched = dispatchedSpelling(editor._setMetaCalls.at(-1));
+    expect(dispatched).toHaveLength(1);
+    // 'maisson' sits at index 10 of the text that is actually on screen — position 11.
+    expect(dispatched[0].from).toBe(11);
+    expect(dispatched[0].to).toBe(18);
+  });
+
+  it('dispatches an empty list and skips the server action when the document has no letter-words', async () => {
     // Text is non-empty (avoids the lastText dedup short-circuit) but contains only
     // punctuation — the word regex /[\p{L}\p{M}]{2,}/gu produces no matches.
     const editor = createMockEditor('...', [{ text: '...', pos: 1 }]);
@@ -155,8 +208,7 @@ describe('useSpellCheck', () => {
     expect(mockCheckSpelling).not.toHaveBeenCalled();
     expect(editor.state.tr.setMeta).toHaveBeenCalled();
 
-    const payload = editor._setMetaCalls[0].meta as { errors: unknown[] };
-    expect(payload.errors).toEqual([]);
+    expect(dispatchedSpelling(editor._setMetaCalls[0])).toEqual([]);
   });
 
   it('does not call checkSpellingAction again when the text has not changed', async () => {
@@ -220,12 +272,11 @@ describe('useSpellCheck', () => {
 
     const editor = createMockEditor('maisson', [{ text: 'maisson', pos: 1 }]);
 
-    // Override getState so ignoreWord can read current plugin errors
-    const mockErrors = [{ word: 'maisson', from: 1, to: 8, suggestions: ['maison'] }];
-    vi.spyOn(spellCheckPluginKey, 'getState').mockReturnValue({
-      decorations: {} as import('@tiptap/pm/view').DecorationSet,
-      errors: mockErrors,
-    });
+    // Override getState so ignoreWord can read the current plugin issues
+    const mockIssues = [misspelling('maisson', 1, 8, ['maison'])];
+    vi.spyOn(textIssuePluginKey, 'getState').mockReturnValue(
+      pluginStateWith(mockIssues)
+    );
 
     const { result } = renderHook(() => useSpellCheck(editor as unknown as Editor));
     await flushDebounce();
@@ -239,10 +290,8 @@ describe('useSpellCheck', () => {
     // No additional server call
     expect(mockCheckSpelling.mock.calls.length).toBe(callsBefore);
 
-    // dispatch must have been called with errors=[] (the ignored word filtered out)
-    const lastDispatch = editor._setMetaCalls.at(-1);
-    const errors = (lastDispatch?.meta as { errors: unknown[] }).errors;
-    expect(errors).toEqual([]);
+    // dispatch must have been called with an empty list (the ignored word filtered out)
+    expect(dispatchedSpelling(editor._setMetaCalls.at(-1))).toEqual([]);
   });
 
   it('ignored word stays removed on subsequent editor updates', async () => {
@@ -252,10 +301,9 @@ describe('useSpellCheck', () => {
 
     const editor = createMockEditor('maisson', [{ text: 'maisson', pos: 1 }]);
 
-    vi.spyOn(spellCheckPluginKey, 'getState').mockReturnValue({
-      decorations: {} as import('@tiptap/pm/view').DecorationSet,
-      errors: [{ word: 'maisson', from: 1, to: 8, suggestions: ['maison'] }],
-    });
+    vi.spyOn(textIssuePluginKey, 'getState').mockReturnValue(
+      pluginStateWith([misspelling('maisson', 1, 8, ['maison'])])
+    );
 
     const { result } = renderHook(() => useSpellCheck(editor as unknown as Editor));
     await flushDebounce();
@@ -267,10 +315,9 @@ describe('useSpellCheck', () => {
     act(() => { editor._triggerUpdate(); });
     await flushDebounce();
 
-    // The last dispatch must not include 'maisson' in errors
-    const allDispatches = editor._setMetaCalls;
-    const lastErrors = (allDispatches.at(-1)?.meta as { errors: Array<{ word: string }> }).errors;
-    expect(lastErrors.map((e) => e.word)).not.toContain('maisson');
+    // The last dispatch must not include 'maisson'
+    const lastIssues = dispatchedSpelling(editor._setMetaCalls.at(-1));
+    expect(lastIssues.map((issue) => issue.text)).not.toContain('maisson');
   });
 
   it('returns an addToDictionary function', () => {
@@ -315,10 +362,9 @@ describe('useSpellCheck', () => {
 
     const editor = createMockEditor('maisson', [{ text: 'maisson', pos: 1 }]);
 
-    vi.spyOn(spellCheckPluginKey, 'getState').mockReturnValue({
-      decorations: {} as import('@tiptap/pm/view').DecorationSet,
-      errors: [{ word: 'maisson', from: 1, to: 8, suggestions: ['maison'] }],
-    });
+    vi.spyOn(textIssuePluginKey, 'getState').mockReturnValue(
+      pluginStateWith([misspelling('maisson', 1, 8, ['maison'])])
+    );
 
     const { result } = renderHook(() => useSpellCheck(editor as unknown as Editor, 'proj-1'));
     await flushDebounce();
@@ -334,10 +380,9 @@ describe('useSpellCheck', () => {
     mockCheckSpelling.mockResolvedValue([{ word: 'maisson', suggestions: ['maison'] }]);
 
     const editor = createMockEditor('maisson', [{ text: 'maisson', pos: 1 }]);
-    vi.spyOn(spellCheckPluginKey, 'getState').mockReturnValue({
-      decorations: {} as import('@tiptap/pm/view').DecorationSet,
-      errors: [{ word: 'maisson', from: 1, to: 8, suggestions: ['maison'] }],
-    });
+    vi.spyOn(textIssuePluginKey, 'getState').mockReturnValue(
+      pluginStateWith([misspelling('maisson', 1, 8, ['maison'])])
+    );
 
     const { result } = renderHook(() => useSpellCheck(editor as unknown as Editor));
     await flushDebounce();
@@ -355,10 +400,9 @@ describe('useSpellCheck', () => {
 
     const editor = createMockEditor('spicce', [{ text: 'spicce', pos: 1 }]);
 
-    vi.spyOn(spellCheckPluginKey, 'getState').mockReturnValue({
-      decorations: {} as import('@tiptap/pm/view').DecorationSet,
-      errors: [{ word: 'spicce', from: 1, to: 7, suggestions: [] }],
-    });
+    vi.spyOn(textIssuePluginKey, 'getState').mockReturnValue(
+      pluginStateWith([misspelling('spicce', 1, 7, [])])
+    );
 
     const { result } = renderHook(() => useSpellCheck(editor as unknown as Editor, 'proj-1'));
     await flushDebounce();
@@ -370,8 +414,7 @@ describe('useSpellCheck', () => {
     expect(mockAddWordToCustomDictionary).toHaveBeenCalledWith('proj-1', 'spicce');
 
     // Decoration for 'spicce' should be removed immediately
-    const lastDispatch = editor._setMetaCalls.at(-1);
-    const errors = (lastDispatch?.meta as { errors: Array<{ word: string }> }).errors;
-    expect(errors.map((e) => e.word)).not.toContain('spicce');
+    const lastIssues = dispatchedSpelling(editor._setMetaCalls.at(-1));
+    expect(lastIssues.map((issue) => issue.text)).not.toContain('spicce');
   });
 });

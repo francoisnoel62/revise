@@ -167,6 +167,16 @@
   cursor: pointer;
 }
 
+/* Grammar error underline. The line style, not only the colour, tells it apart
+   from a misspelling — red and green side by side are the pair some readers
+   cannot distinguish. */
+.tiptap .grammar-error {
+  text-decoration: underline dotted #16a34a;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
 /* First-line indent for paragraphs and headings */
 .tiptap p[data-indent="true"],
 .tiptap h1[data-indent="true"],

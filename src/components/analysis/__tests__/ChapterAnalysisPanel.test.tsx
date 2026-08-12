@@ -24,7 +24,7 @@ describe('ChapterAnalysisPanel', () => {
   const mockIssues: AnalysisIssueData[] = [
     {
       id: 'issue-1',
-      category: 'grammar',
+      category: 'repetition',
       severity: 'error',
       originalText: 'teh',
       suggestedText: 'the',
@@ -34,7 +34,7 @@ describe('ChapterAnalysisPanel', () => {
     },
     {
       id: 'issue-2',
-      category: 'grammar',
+      category: 'repetition',
       severity: 'warning',
       originalText: 'he go',
       suggestedText: 'he goes',
@@ -60,9 +60,7 @@ describe('ChapterAnalysisPanel', () => {
     appliedIssues: 1,
     ignoredIssues: 0,
     byCategory: {
-      grammar: 2,
-      punctuation: 0,
-      repetition: 0,
+      repetition: 2,
       style: 1,
     },
   };
@@ -118,7 +116,7 @@ describe('ChapterAnalysisPanel', () => {
     render(<ChapterAnalysisPanel {...defaultProps} />);
 
     expect(screen.getByRole('tab', { name: /tous/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /grammaire/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /répétitions/i })).toBeInTheDocument();
   });
 
   it('filters issues when category tab is clicked', async () => {
@@ -185,8 +183,6 @@ describe('ChapterAnalysisPanel', () => {
       appliedIssues: 0,
       ignoredIssues: 0,
       byCategory: {
-        grammar: 0,
-        punctuation: 0,
         repetition: 0,
         style: 0,
       },

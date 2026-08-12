@@ -14,6 +14,7 @@ import type { LevelStyleSetProperties } from '@/domain/value-objects/LevelStyleS
 import type { TocPreferences } from '@/domain/value-objects/TocPreferences';
 import type { AutomaticSnapshotInterval } from '@/domain/value-objects/AutomaticSnapshotInterval';
 import type { AutomaticSnapshotRepository } from '@/domain/interfaces/AutomaticSnapshotRepository';
+import type { GrammarRuleProfile } from '@/domain/value-objects/GrammarRuleProfile';
 
 export interface ProjectSettingsUpdates {
   title?: string;
@@ -29,8 +30,11 @@ export interface ProjectSettingsUpdates {
   relatedWorks?: RelatedWork[];
   autocompletePreferences?: Partial<AutocompletePreferences>;
   canonExtractionPreferences?: Partial<CanonExtractionPreferences>;
-  customDictionary?: string[];
+  // Declaring a word changes the compiled engine dictionary, so that write goes
+  // through UpdatePersonalDictionaryUseCase, which rebuilds it. A generic update
+  // here would replace the list and leave the automaton describing other words.
   ignoredWords?: string[];
+  grammarRuleProfile?: GrammarRuleProfile;
   publicationProfileId?: PublicationProfileId;
   levelStyles?: {
     profileId: PublicationProfileId;
@@ -126,12 +130,12 @@ export class UpdateProjectSettingsUseCase {
       updated = updated.updateCanonExtractionPreferences(updates.canonExtractionPreferences!);
     }
 
-    if ('customDictionary' in updates) {
-      updated = updated.updateCustomDictionary(updates.customDictionary!);
-    }
-
     if ('ignoredWords' in updates) {
       updated = updated.updateIgnoredWords(updates.ignoredWords!);
+    }
+
+    if ('grammarRuleProfile' in updates) {
+      updated = updated.updateGrammarRuleProfile(updates.grammarRuleProfile!);
     }
 
     if ('publicationProfileId' in updates) {

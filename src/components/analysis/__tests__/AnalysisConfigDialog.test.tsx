@@ -4,6 +4,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import {
+  ANALYSIS_CATEGORIES,
+  ANALYSIS_CATEGORY_LABELS,
+} from '@/domain/value-objects/AnalysisCategory';
 import { AnalysisConfigDialog } from '../AnalysisConfigDialog';
 
 describe('AnalysisConfigDialog', () => {
@@ -24,16 +28,26 @@ describe('AnalysisConfigDialog', () => {
   it('renders dialog title', () => {
     render(<AnalysisConfigDialog {...defaultProps} />);
 
-    expect(screen.getByText(/vérification du chapitre/i)).toBeInTheDocument();
+    expect(screen.getByText(/analyse du style/i)).toBeInTheDocument();
   });
 
-  it('renders all category checkboxes', () => {
+  it('offers one checkbox per wired category, and nothing else', () => {
     render(<AnalysisConfigDialog {...defaultProps} />);
 
-    expect(screen.getByRole('checkbox', { name: /grammaire/i })).toBeInTheDocument();
-    expect(screen.getByRole('checkbox', { name: /ponctuation/i })).toBeInTheDocument();
-    expect(screen.getByRole('checkbox', { name: /répétitions/i })).toBeInTheDocument();
-    expect(screen.getByRole('checkbox', { name: /style/i })).toBeInTheDocument();
+    for (const category of ANALYSIS_CATEGORIES) {
+      expect(
+        screen.getByRole('checkbox', { name: ANALYSIS_CATEGORY_LABELS[category] })
+      ).toBeInTheDocument();
+    }
+    expect(screen.getAllByRole('checkbox')).toHaveLength(ANALYSIS_CATEGORIES.length);
+  });
+
+  it('no longer offers what the local grammar corrector handles', () => {
+    render(<AnalysisConfigDialog {...defaultProps} />);
+
+    expect(screen.queryByRole('checkbox', { name: /orthographe/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: /grammaire/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: /ponctuation/i })).not.toBeInTheDocument();
   });
 
   it('renders style rigor selector', () => {
@@ -71,11 +85,9 @@ describe('AnalysisConfigDialog', () => {
     render(<AnalysisConfigDialog {...defaultProps} />);
 
     // Uncheck all checkboxes one by one
-    await user.click(screen.getByRole('checkbox', { name: /orthographe/i }));
-    await user.click(screen.getByRole('checkbox', { name: /grammaire/i }));
-    await user.click(screen.getByRole('checkbox', { name: /ponctuation/i }));
-    await user.click(screen.getByRole('checkbox', { name: /répétitions/i }));
-    await user.click(screen.getByRole('checkbox', { name: /style/i }));
+    for (const checkbox of screen.getAllByRole('checkbox')) {
+      await user.click(checkbox);
+    }
 
     const startButton = screen.getByRole('button', { name: /lancer/i });
     expect(startButton).toBeDisabled();
@@ -106,7 +118,7 @@ describe('AnalysisConfigDialog', () => {
   it('does not render when open is false', () => {
     render(<AnalysisConfigDialog {...defaultProps} open={false} />);
 
-    expect(screen.queryByText(/vérification du chapitre/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/analyse du style/i)).not.toBeInTheDocument();
   });
 
   it('renders loading state when isLoading is true', () => {

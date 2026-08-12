@@ -40,6 +40,7 @@ import {
   getDocumentExporter as getExporterFromConfig,
   getBookPreviewCacheRepository as getBookPreviewCacheRepositoryFromConfig,
   getBookPreviewCacheComputer as getBookPreviewCacheComputerFromConfig,
+  getGrammarChecker as getGrammarCheckerFromConfig,
   type ExportFormat,
 } from '@/infrastructure/config/providers';
 import { LLMProviderFactoryImpl } from '@/infrastructure/ai/LLMProviderFactoryImpl';
@@ -79,6 +80,7 @@ import { DocumentParser } from '@/domain/interfaces/DocumentParser';
 import { FolderParser } from '@/domain/interfaces/FolderParser';
 import { DocumentExporter } from '@/domain/interfaces/DocumentExporter';
 import { EmailService } from '@/domain/interfaces/EmailService';
+import { GrammarChecker } from '@/domain/interfaces/GrammarChecker';
 import { ResendEmailService } from '@/infrastructure/email/ResendEmailService';
 import { config } from '@/infrastructure/config/env';
 
@@ -433,6 +435,11 @@ export async function getBookPreviewCacheRepo() {
  */
 export async function getBookPreviewCacheComputer() {
   return getBookPreviewCacheComputerFromConfig();
+}
+
+/** Resolve the grammar checker through the server-action composition root. */
+export async function getGrammarChecker(): Promise<GrammarChecker> {
+  return getGrammarCheckerFromConfig();
 }
 
 /**

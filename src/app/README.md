@@ -697,8 +697,10 @@ tokens spent**
 ---
 
 **`SpellCheckSettingsCard`** (`components/cockpit/SpellCheckSettingsCard.tsx`)
-**Purpose**: Manage the project's custom dictionary and ignored-words list, on the
-cockpit Settings page
+**Purpose**: Manage the project's own vocabulary and its ignored-words list, on the
+cockpit Settings page. Each word can be given a nature, a gender and a plural form
+(`personal-dictionary-actions`); without them the grammar corrector stays silent
+about it, which is what a word listed and never described has always meant
 
 ---
 

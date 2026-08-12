@@ -97,6 +97,27 @@ describe('ProjectSettings', () => {
   });
 
   describe('update methods', () => {
+    it('stores an editable grammar rule profile for fiction without mutating the original', () => {
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'My Title');
+
+      expect(settings.getGrammarRuleProfile()).toMatchObject({
+        gn: true,
+        conj: true,
+        conf: true,
+        poncfin: true,
+        typo: false,
+        chim: false,
+      });
+
+      const updated = settings.updateGrammarRuleProfile({
+        ...settings.getGrammarRuleProfile(),
+        conf: false,
+      });
+
+      expect(updated.getGrammarRuleProfile().conf).toBe(false);
+      expect(settings.getGrammarRuleProfile().conf).toBe(true);
+    });
+
     it('persists the active publication profile with a KDP default', () => {
       const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'My Title');
 
@@ -303,6 +324,7 @@ describe('ProjectSettings', () => {
         customDictionary: [],
         ignoredWords: [],
         publicationProfileId: 'kdp-6x9',
+        grammarRuleProfile: expect.objectContaining({ gn: true }),
       });
     });
 
@@ -470,12 +492,42 @@ describe('ProjectSettings', () => {
       expect(settings.getCustomDictionary()).toEqual([]);
     });
 
-    it('reconstructs with provided customDictionary', () => {
+    it('reads words stored as bare strings as entries declaring nothing', () => {
       const settings = ProjectSettings.reconstruct({
         ...validProps,
         customDictionary: ['Arrakis', 'spicce'],
       });
-      expect(settings.getCustomDictionary()).toEqual(['Arrakis', 'spicce']);
+      expect(settings.getCustomDictionary()).toEqual([
+        { word: 'Arrakis' },
+        { word: 'spicce' },
+      ]);
+    });
+
+    it('keeps a declared word beside a bare one, with no rewrite of either', () => {
+      const settings = ProjectSettings.reconstruct({
+        ...validProps,
+        customDictionary: [
+          'Arrakis',
+          { word: 'krogan', nature: 'noun', gender: 'masculine', pluralForm: 'krogans' },
+        ],
+      });
+
+      expect(settings.getCustomDictionary()).toEqual([
+        { word: 'Arrakis' },
+        { word: 'krogan', nature: 'noun', gender: 'masculine', pluralForm: 'krogans' },
+      ]);
+    });
+
+    it('lists every written form, so the spell checker accepts the plural too', () => {
+      const settings = ProjectSettings.reconstruct({
+        ...validProps,
+        customDictionary: [
+          'Arrakis',
+          { word: 'krogan', nature: 'noun', pluralForm: 'krogans' },
+        ],
+      });
+
+      expect(settings.getCustomDictionaryWords()).toEqual(['Arrakis', 'krogan', 'krogans']);
     });
 
     it('getCustomDictionary returns a copy (mutation-safe)', () => {
@@ -483,8 +535,8 @@ describe('ProjectSettings', () => {
         ...validProps,
         customDictionary: ['Arrakis'],
       });
-      settings.getCustomDictionary().push('mutated');
-      expect(settings.getCustomDictionary()).toEqual(['Arrakis']);
+      settings.getCustomDictionary().push({ word: 'mutated' });
+      expect(settings.getCustomDictionary()).toEqual([{ word: 'Arrakis' }]);
     });
 
     it('addWordToCustomDictionary returns a new instance with the word appended', () => {
@@ -492,7 +544,7 @@ describe('ProjectSettings', () => {
       const updated = settings.addWordToCustomDictionary('Arrakis');
 
       expect(updated).not.toBe(settings);
-      expect(updated.getCustomDictionary()).toEqual(['Arrakis']);
+      expect(updated.getCustomDictionary()).toEqual([{ word: 'Arrakis' }]);
       expect(settings.getCustomDictionary()).toEqual([]); // original unchanged
     });
 
@@ -516,7 +568,10 @@ describe('ProjectSettings', () => {
         ...validProps,
         customDictionary: ['Arrakis', 'spicce'],
       });
-      expect(settings.toProperties().customDictionary).toEqual(['Arrakis', 'spicce']);
+      expect(settings.toProperties().customDictionary).toEqual([
+        { word: 'Arrakis' },
+        { word: 'spicce' },
+      ]);
     });
 
     it('updateCustomDictionary replaces the full list and returns a new instance', () => {
@@ -524,9 +579,116 @@ describe('ProjectSettings', () => {
         ...validProps,
         customDictionary: ['old'],
       });
-      const updated = settings.updateCustomDictionary(['Arrakis', 'spicce']);
-      expect(updated.getCustomDictionary()).toEqual(['Arrakis', 'spicce']);
-      expect(settings.getCustomDictionary()).toEqual(['old']); // original unchanged
+      const updated = settings.updateCustomDictionary(
+        [{ word: 'Arrakis' }, { word: 'spicce' }],
+        null
+      );
+      expect(updated.getCustomDictionary()).toEqual([
+        { word: 'Arrakis' },
+        { word: 'spicce' },
+      ]);
+      expect(settings.getCustomDictionary()).toEqual([{ word: 'old' }]); // original unchanged
+    });
+  });
+
+  describe('declined grammar remarks', () => {
+    it('declines nothing to start with', () => {
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'Title');
+      expect(settings.getIgnoredGrammarIssues()).toEqual([]);
+    });
+
+    it('remembers a declined remark by rule and text', () => {
+      const settings = ProjectSettings.create(
+        'id-1',
+        'proj-1',
+        'owner-1',
+        'Title'
+      ).addIgnoredGrammarIssue({ ruleFamily: 'gn', text: 'chien' });
+
+      expect(settings.getIgnoredGrammarIssues()).toEqual([
+        { ruleFamily: 'gn', text: 'chien' },
+      ]);
+    });
+
+    it('returns the same instance when the remark is already declined', () => {
+      const settings = ProjectSettings.create(
+        'id-1',
+        'proj-1',
+        'owner-1',
+        'Title'
+      ).addIgnoredGrammarIssue({ ruleFamily: 'gn', text: 'chien' });
+
+      expect(settings.addIgnoredGrammarIssue({ ruleFamily: 'gn', text: 'chien' })).toBe(
+        settings
+      );
+    });
+
+    it('keeps the same text declined under a different rule apart', () => {
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'Title')
+        .addIgnoredGrammarIssue({ ruleFamily: 'gn', text: 'chien' })
+        .addIgnoredGrammarIssue({ ruleFamily: 'conj', text: 'chien' });
+
+      expect(settings.getIgnoredGrammarIssues()).toHaveLength(2);
+    });
+
+    it('refuses a remark with no text to recognise it by', () => {
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'Title');
+
+      expect(() =>
+        settings.addIgnoredGrammarIssue({ ruleFamily: 'gn', text: '  ' })
+      ).toThrow(/empty/i);
+    });
+
+    it('getIgnoredGrammarIssues returns a copy', () => {
+      const settings = ProjectSettings.create(
+        'id-1',
+        'proj-1',
+        'owner-1',
+        'Title'
+      ).addIgnoredGrammarIssue({ ruleFamily: 'gn', text: 'chien' });
+
+      settings.getIgnoredGrammarIssues().push({ ruleFamily: 'x', text: 'y' });
+
+      expect(settings.getIgnoredGrammarIssues()).toHaveLength(1);
+    });
+  });
+
+  describe('grammar dictionary', () => {
+    it('has no compiled dictionary until one is written', () => {
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'Title');
+      expect(settings.getGrammarDictionary()).toBeNull();
+    });
+
+    it('stores the compiled dictionary alongside the list it was built from', () => {
+      const compiled = { sLangCode: 'fr', nEntry: 2 };
+      const settings = ProjectSettings.create(
+        'id-1',
+        'proj-1',
+        'owner-1',
+        'Title'
+      ).updateCustomDictionary([{ word: 'krogan', nature: 'noun' }], compiled);
+
+      expect(settings.getGrammarDictionary()).toEqual(compiled);
+    });
+
+    it('drops the compiled dictionary when the list no longer declares anything', () => {
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'Title')
+        .updateCustomDictionary([{ word: 'krogan', nature: 'noun' }], { nEntry: 1 })
+        .updateCustomDictionary([{ word: 'krogan' }], null);
+
+      expect(settings.getGrammarDictionary()).toBeNull();
+    });
+
+    it('leaves the compiled dictionary alone when a word declaring nothing is added', () => {
+      // A word added from the spell-check palette carries no nature, so it adds no
+      // flexion — the automaton stays valid without being rebuilt.
+      const compiled = { nEntry: 1 };
+      const settings = ProjectSettings.create('id-1', 'proj-1', 'owner-1', 'Title')
+        .updateCustomDictionary([{ word: 'krogan', nature: 'noun' }], compiled)
+        .addWordToCustomDictionary('Arrakis');
+
+      expect(settings.getGrammarDictionary()).toEqual(compiled);
+      expect(settings.getCustomDictionaryWords()).toEqual(['krogan', 'Arrakis']);
     });
   });
 });

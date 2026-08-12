@@ -3,19 +3,14 @@
 
 'use client';
 
-import {
-  Languages,
-  Type,
-  Repeat,
-  Palette,
-  CheckCircle2,
-  AlertTriangle,
-  SpellCheck,
-} from 'lucide-react';
+import { Languages, Repeat, Palette, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AnalysisCategory } from '@/domain/value-objects/AnalysisCategory';
+import {
+  ANALYSIS_CATEGORY_LABELS,
+  AnalysisCategory,
+} from '@/domain/value-objects/AnalysisCategory';
 
 export interface AnalysisSummaryStats {
   totalIssues: number;
@@ -36,11 +31,8 @@ const categoryConfig: Record<
   AnalysisCategory,
   { label: string; icon: typeof Languages }
 > = {
-  spelling: { label: 'Orthographe', icon: SpellCheck },
-  grammar: { label: 'Grammaire', icon: Languages },
-  punctuation: { label: 'Ponctuation', icon: Type },
-  repetition: { label: 'Répétitions', icon: Repeat },
-  style: { label: 'Style', icon: Palette },
+  repetition: { label: ANALYSIS_CATEGORY_LABELS.repetition, icon: Repeat },
+  style: { label: ANALYSIS_CATEGORY_LABELS.style, icon: Palette },
 };
 
 export function AnalysisSummaryCard({

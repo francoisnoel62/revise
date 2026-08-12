@@ -221,6 +221,22 @@ describe('project-settings-serializer', () => {
       expect(restored.getPublicationProfileId()).toBe('passerelle');
     });
 
+    it('preserves the project grammar rule profile', () => {
+      const original = ProjectSettings.reconstruct(validProps).updateGrammarRuleProfile({
+        gn: true,
+        conf: false,
+        poncfin: true,
+      });
+
+      const restored = deserializeProjectSettings(serializeProjectSettings(original));
+
+      expect(restored.getGrammarRuleProfile()).toEqual({
+        gn: true,
+        conf: false,
+        poncfin: true,
+      });
+    });
+
     it('preserves data through serialize then deserialize', () => {
       const original = ProjectSettings.reconstruct(validProps);
       const doc = serializeProjectSettings(original);

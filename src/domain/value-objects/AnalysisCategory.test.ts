@@ -6,33 +6,24 @@ import {
   ANALYSIS_CATEGORIES,
   isValidAnalysisCategory,
   ANALYSIS_CATEGORY_LABELS,
-  ANALYSIS_CATEGORY_ICONS,
   ANALYSIS_CATEGORY_ORDER,
 } from './AnalysisCategory';
 
 describe('AnalysisCategory', () => {
   describe('ANALYSIS_CATEGORIES', () => {
-    it('should contain all five analysis categories', () => {
-      expect(ANALYSIS_CATEGORIES).toContain('spelling');
-      expect(ANALYSIS_CATEGORIES).toContain('grammar');
-      expect(ANALYSIS_CATEGORIES).toContain('punctuation');
-      expect(ANALYSIS_CATEGORIES).toContain('repetition');
-      expect(ANALYSIS_CATEGORIES).toContain('style');
-      expect(ANALYSIS_CATEGORIES).toHaveLength(5);
+    it('should only contain what asks the AI to understand the text', () => {
+      expect([...ANALYSIS_CATEGORIES]).toEqual(['repetition', 'style']);
     });
 
-    it('should be readonly', () => {
-      // TypeScript ensures this at compile time
-      // This test documents the intent
-      expect(Object.isFrozen(ANALYSIS_CATEGORIES)).toBe(false); // as const doesn't freeze
-      expect(ANALYSIS_CATEGORIES.length).toBe(5);
+    it('should leave the mechanical categories to the local grammar engine', () => {
+      expect(isValidAnalysisCategory('spelling')).toBe(false);
+      expect(isValidAnalysisCategory('grammar')).toBe(false);
+      expect(isValidAnalysisCategory('punctuation')).toBe(false);
     });
   });
 
   describe('isValidAnalysisCategory', () => {
     it('should return true for valid categories', () => {
-      expect(isValidAnalysisCategory('grammar')).toBe(true);
-      expect(isValidAnalysisCategory('punctuation')).toBe(true);
       expect(isValidAnalysisCategory('repetition')).toBe(true);
       expect(isValidAnalysisCategory('style')).toBe(true);
     });
@@ -46,9 +37,6 @@ describe('AnalysisCategory', () => {
 
   describe('ANALYSIS_CATEGORY_LABELS', () => {
     it('should have French labels for all categories', () => {
-      expect(ANALYSIS_CATEGORY_LABELS.spelling).toBe('Orthographe');
-      expect(ANALYSIS_CATEGORY_LABELS.grammar).toBe('Grammaire');
-      expect(ANALYSIS_CATEGORY_LABELS.punctuation).toBe('Ponctuation');
       expect(ANALYSIS_CATEGORY_LABELS.repetition).toBe('Répétitions');
       expect(ANALYSIS_CATEGORY_LABELS.style).toBe('Style');
     });
@@ -61,22 +49,10 @@ describe('AnalysisCategory', () => {
     });
   });
 
-  describe('ANALYSIS_CATEGORY_ICONS', () => {
-    it('should have an icon identifier for each category', () => {
-      for (const category of ANALYSIS_CATEGORIES) {
-        expect(ANALYSIS_CATEGORY_ICONS[category]).toBeDefined();
-        expect(typeof ANALYSIS_CATEGORY_ICONS[category]).toBe('string');
-      }
-    });
-  });
-
   describe('ANALYSIS_CATEGORY_ORDER', () => {
     it('should define display order for all categories', () => {
-      expect(ANALYSIS_CATEGORY_ORDER.spelling).toBe(0);
-      expect(ANALYSIS_CATEGORY_ORDER.grammar).toBe(1);
-      expect(ANALYSIS_CATEGORY_ORDER.punctuation).toBe(2);
-      expect(ANALYSIS_CATEGORY_ORDER.repetition).toBe(3);
-      expect(ANALYSIS_CATEGORY_ORDER.style).toBe(4);
+      expect(ANALYSIS_CATEGORY_ORDER.repetition).toBe(0);
+      expect(ANALYSIS_CATEGORY_ORDER.style).toBe(1);
     });
 
     it('should have unique order values', () => {
