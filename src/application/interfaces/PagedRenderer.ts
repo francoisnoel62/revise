@@ -55,6 +55,11 @@ export interface PagedRenderRequest {
   readonly sourceId?: string;
   /** Typography overrides for the rendered PDF profile. */
   readonly levelStyles?: LevelStyleSetProperties;
+  /**
+   * Whether the author's blank lines occupy a line on the page. Resolved per project by
+   * honorsBlankLines (see BlankLinePolicy); defaults to false so a book never reflows by omission.
+   */
+  readonly honorBlankLines?: boolean;
 }
 
 export interface PagedRenderer {

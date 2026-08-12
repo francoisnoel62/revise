@@ -261,6 +261,28 @@ describe('ProjectSettings', () => {
       expect(settings.getEndnotesTitle()).toBe('Notes');
     });
 
+    // Absent means "the author never chose": BlankLinePolicy then falls back to the project's
+    // creation date. Absence must therefore stay distinguishable from an explicit false.
+    it('getHonorBlankLines is undefined until the author chooses', () => {
+      const settings = ProjectSettings.reconstruct(validProps);
+      expect(settings.getHonorBlankLines()).toBeUndefined();
+    });
+
+    it('updateHonorBlankLines records an explicit choice', () => {
+      const settings = ProjectSettings.reconstruct(validProps);
+
+      expect(settings.updateHonorBlankLines(true).getHonorBlankLines()).toBe(true);
+      expect(settings.updateHonorBlankLines(false).getHonorBlankLines()).toBe(false);
+      expect(settings.getHonorBlankLines()).toBeUndefined();
+    });
+
+    it('updateHonorBlankLines survives a round trip through toProperties', () => {
+      const settings = ProjectSettings.reconstruct(validProps).updateHonorBlankLines(false);
+      const rebuilt = ProjectSettings.reconstruct(settings.toProperties());
+
+      expect(rebuilt.getHonorBlankLines()).toBe(false);
+    });
+
     it('updateEndnotesTitle with an empty value falls back to the default', () => {
       const settings = ProjectSettings.reconstruct(validProps).updateEndnotesTitle('Autre');
       const cleared = settings.updateEndnotesTitle('   ');

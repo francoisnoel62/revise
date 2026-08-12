@@ -6,6 +6,10 @@ import { hashText } from '@/application/utils/text-hash';
 import type { LevelStyleSetProperties } from '@/domain/value-objects/LevelStyleSet';
 import type { TocDepth, TocStyle } from '@/domain/value-objects/TocPreferences';
 
+// Bump when the paged renderer changes visible output. This keeps previously cached PDFs from
+// surviving a deployment that fixes layout or folio logic but leaves manuscript data untouched.
+export const BOOK_PREVIEW_RENDERER_REVISION = '2026-08-12-visible-blank-lines-v1';
+
 export interface BookPreviewContentHashInput {
   /** Chapters in reading order; ordering is part of the fingerprint. */
   readonly chapters: ReadonlyArray<{ readonly id: string; readonly content: string }>;
@@ -18,6 +22,10 @@ export interface BookPreviewContentHashInput {
   readonly tocStyle?: TocStyle;
   /** Endnotes section heading; changing it changes what's printed, so it enters the hash. */
   readonly endnotesTitle?: string;
+  /** Whether blank lines occupy a line; flipping it repaginates the book, so it enters the hash. */
+  readonly honorBlankLines?: boolean;
+  /** Explicit test/release override; production uses BOOK_PREVIEW_RENDERER_REVISION by default. */
+  readonly rendererRevision?: string;
 }
 
 function normalizeAnnexes(annexes: readonly AnnexEntry[] | undefined) {
@@ -54,6 +62,8 @@ export function computeBookPreviewContentHash(input: BookPreviewContentHashInput
     tocDepth: input.tocDepth ?? null,
     tocStyle: input.tocStyle ?? null,
     endnotesTitle: input.endnotesTitle ?? null,
+    honorBlankLines: input.honorBlankLines ?? false,
+    rendererRevision: input.rendererRevision ?? BOOK_PREVIEW_RENDERER_REVISION,
   };
 
   return hashText(JSON.stringify(normalized));

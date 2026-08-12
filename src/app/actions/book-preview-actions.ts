@@ -6,6 +6,7 @@
 import type { JSONContent } from '@tiptap/core';
 import type { BackMatterData, FrontMatterData } from '@/domain/interfaces/DocumentExporter';
 import type { BookPreviewCacheEntry } from '@/domain/entities/BookPreviewCacheEntry';
+import { honorsBlankLines } from '@/domain/value-objects/BlankLinePolicy';
 import { PublicationProfile, type PublicationProfileId } from '@/domain/value-objects/PublicationProfile';
 import { DEFAULT_TOC_PREFERENCES } from '@/domain/value-objects/TocPreferences';
 import { computeBookPreviewContentHash } from '@/application/services/bookPreviewContentHash';
@@ -104,6 +105,10 @@ export async function getBookPreviewDataAction(
     const levelStyles = settings?.getLevelStyleSet(profileId)?.values;
     const tocPreferences = settings?.getTocPreferences() ?? DEFAULT_TOC_PREFERENCES;
     const endnotesTitle = settings?.getEndnotesTitle();
+    const honorBlankLines = honorsBlankLines(
+      settings?.getHonorBlankLines(),
+      project.getCreatedAt(),
+    );
 
     const orderedChapters = project
       .getChapters()
@@ -118,6 +123,7 @@ export async function getBookPreviewDataAction(
       tocDepth: tocPreferences.depth,
       tocStyle: tocPreferences.style,
       endnotesTitle,
+      honorBlankLines,
     });
 
     const cacheRepo = await getBookPreviewCacheRepo();
@@ -142,6 +148,7 @@ export async function getBookPreviewDataAction(
         tocDepth: tocPreferences.depth,
         tocStyle: tocPreferences.style,
         endnotesTitle,
+        honorBlankLines,
         assetBaseUrl,
       });
       await cacheRepo.save(computed, pdf);

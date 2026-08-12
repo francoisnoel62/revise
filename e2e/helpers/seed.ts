@@ -74,6 +74,16 @@ export const TEST_BOOK_PREVIEW_PROJECT_ID = 'e2e-book-preview-project-001';
 export const TEST_BOOK_PREVIEW_CHAPTER_1_ID = 'e2e-book-preview-chapter-001';
 export const TEST_BOOK_PREVIEW_CHAPTER_2_ID = 'e2e-book-preview-chapter-002';
 
+// Book-preview E2E fixture: five liminaires followed by two deliberately short chapters.
+// The second chapter needs a physical blank verso before its recto opening. It guards KDP
+// Roman liminaire folios and body-page counting after blank versos.
+export const TEST_BOOK_PREVIEW_PAGINATION_PROJECT_ID = 'e2e-book-preview-pagination-001';
+export const TEST_BOOK_PREVIEW_PAGINATION_CHAPTER_1_ID = 'e2e-book-preview-pagination-chapter-001';
+export const TEST_BOOK_PREVIEW_PAGINATION_CHAPTER_2_ID = 'e2e-book-preview-pagination-chapter-002';
+export const TEST_BOOK_PREVIEW_PAGINATION_SETTINGS_ID = '6475a8f3c1234567890abce8';
+export const TEST_BOOK_PREVIEW_PAGINATION_DEDICATION_ID = 'e2e-book-preview-pagination-dedication';
+export const TEST_BOOK_PREVIEW_PAGINATION_EPIGRAPH_ID = 'e2e-book-preview-pagination-epigraph';
+
 // Book-preview E2E fixtures — a chapter whose title heading carries the editor's default
 // inline textAlign ('justify'). Guards the regression where that inline style out-specified
 // the profile's centering and rendered chapter titles left-aligned in the whole-book PDF.
@@ -538,7 +548,16 @@ export async function resetSnapshotFixture(): Promise<void> {
   }
 }
 
-export async function resetAutomaticSnapshotFixture(): Promise<void> {
+export async function resetAutomaticSnapshotFixture(
+  chapterContent = JSON.stringify({
+    type: 'doc',
+    content: [{
+      type: 'paragraph',
+      attrs: { semanticRole: 'corps' },
+      content: [{ type: 'text', text: 'Un changement déjà sauvegardé.' }],
+    }],
+  }),
+): Promise<void> {
   const client = new MongoClient(MONGODB_URI);
   await client.connect();
   try {
@@ -554,7 +573,7 @@ export async function resetAutomaticSnapshotFixture(): Promise<void> {
         chapters: [{
           id: TEST_AUTOMATIC_SNAPSHOT_CHAPTER_ID,
           title: 'Chapitre 1',
-          content: JSON.stringify({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Un changement déjà sauvegardé.' }] }] }),
+          content: chapterContent,
           order: 0,
           metadata: { wordCount: 4, characterCount: 31, lastEdited: past },
         }],
@@ -606,16 +625,24 @@ export async function resetRestoreFixture(): Promise<void> {
     const snapshotCreatedAt = new Date('2025-06-01T10:00:00Z');
     const now = new Date();
 
+    // Paragraphs carry the attrs the editor itself writes. A paragraph seeded without them
+    // is normalised the moment the editor mounts, which counts as a real edit: the autosave
+    // that follows moves project.updatedAt, and the restore below — which guards against
+    // concurrent modification by comparing that very timestamp — is refused. Production
+    // content always comes from the editor, so it is already in this shape.
+    const paragraph = (text: string) => ({
+      type: 'paragraph',
+      attrs: { textAlign: 'justify', semanticRole: 'corps' },
+      content: [{ type: 'text', text }],
+    });
+
     const originalContent = JSON.stringify({
       type: 'doc',
-      content: [
-        { type: 'paragraph', content: [{ type: 'text', text: TEST_RESTORE_ORIGINAL_TEXT }] },
-        { type: 'horizontalRule' },
-      ],
+      content: [paragraph(TEST_RESTORE_ORIGINAL_TEXT), { type: 'horizontalRule' }],
     });
     const divergedContent = JSON.stringify({
       type: 'doc',
-      content: [{ type: 'paragraph', content: [{ type: 'text', text: TEST_RESTORE_DIVERGED_TEXT }] }],
+      content: [paragraph(TEST_RESTORE_DIVERGED_TEXT)],
     });
 
     await db.collection('projects').replaceOne(
@@ -664,33 +691,38 @@ export async function resetRestoreFixture(): Promise<void> {
     await db.collection('snapshots').deleteMany({ ownerId: TEST_USER_ID, projectId: TEST_RESTORE_PROJECT_ID });
     await db.collection('snapshotCounters').deleteMany({ _id: TEST_RESTORE_PROJECT_ID } as object);
 
-    await db.collection<SnapshotDocument>('snapshots').insertOne({
-      _id: TEST_RESTORE_SNAPSHOT_ID,
-      projectId: TEST_RESTORE_PROJECT_ID,
-      ownerId: TEST_USER_ID,
-      authorId: TEST_USER_ID,
-      number: 1,
-      type: 'manual',
-      title: 'Version 1',
-      comment: null,
-      projectTitle: 'Roman Test Restauration',
-      chapters: [{
-        id: TEST_RESTORE_CHAPTER_ID,
-        title: TEST_RESTORE_ORIGINAL_TITLE,
-        content: originalContent,
-        order: 0,
-      }],
-      editorialMetadata: {
-        title: 'Roman Test Restauration',
-        summary: '',
-        genre: TEST_RESTORE_ORIGINAL_GENRE,
-        synopsis: '',
-        contributors: [],
-        relatedWorks: [],
+    // replaceOne+upsert rather than insertOne: this is a reset, so re-seeding must converge on
+    // the same document instead of failing on the _id left by a previous (or concurrent) reset.
+    await db.collection<SnapshotDocument>('snapshots').replaceOne(
+      { _id: TEST_RESTORE_SNAPSHOT_ID },
+      {
+        projectId: TEST_RESTORE_PROJECT_ID,
+        ownerId: TEST_USER_ID,
+        authorId: TEST_USER_ID,
+        number: 1,
+        type: 'manual',
+        title: 'Version 1',
+        comment: null,
+        projectTitle: 'Roman Test Restauration',
+        chapters: [{
+          id: TEST_RESTORE_CHAPTER_ID,
+          title: TEST_RESTORE_ORIGINAL_TITLE,
+          content: originalContent,
+          order: 0,
+        }],
+        editorialMetadata: {
+          title: 'Roman Test Restauration',
+          summary: '',
+          genre: TEST_RESTORE_ORIGINAL_GENRE,
+          synopsis: '',
+          contributors: [],
+          relatedWorks: [],
+        },
+        sourceSnapshotNumber: null,
+        createdAt: snapshotCreatedAt,
       },
-      sourceSnapshotNumber: null,
-      createdAt: snapshotCreatedAt,
-    });
+      { upsert: true }
+    );
     await db.collection('snapshotCounters').replaceOne(
       { _id: TEST_RESTORE_PROJECT_ID } as object,
       { _id: TEST_RESTORE_PROJECT_ID, ownerId: TEST_USER_ID, seq: 1 },
@@ -1178,6 +1210,114 @@ export async function seedAll(): Promise<void> {
       shareToken: null,
       publishedAt: null,
       publishedChapterIds: null,
+    },
+    { upsert: true }
+  );
+
+  // 5b-ter. KDP pagination-regression project: five front-matter sections followed by
+  //         two one-page chapters. Chapter 2 must open two physical pages after chapter 1:
+  //         chapter 1, an unnumbered blank verso, then chapter 2. That blank must still
+  //         advance the Arabic folio from 1 to 3.
+  const paginationChapter1Content = JSON.stringify({
+    type: 'doc',
+    content: [
+      { type: 'heading', attrs: { level: 1, semanticRole: 'titre-de-chapitre' }, content: [{ type: 'text', text: 'Premier chapitre bref' }] },
+      { type: 'paragraph', content: [{ type: 'text', text: 'Une seule page suffit à ce premier chapitre de contrôle.' }] },
+    ],
+  });
+  const paginationChapter2Content = JSON.stringify({
+    type: 'doc',
+    content: [
+      { type: 'heading', attrs: { level: 1, semanticRole: 'titre-de-chapitre' }, content: [{ type: 'text', text: 'Second chapitre bref' }] },
+      { type: 'paragraph', content: [{ type: 'text', text: 'Ce chapitre doit commencer sur le recto suivant.' }] },
+    ],
+  });
+  await db.collection('projects').replaceOne(
+    { _id: TEST_BOOK_PREVIEW_PAGINATION_PROJECT_ID } as object,
+    {
+      _id: TEST_BOOK_PREVIEW_PAGINATION_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      title: 'Roman Test Pagination KDP',
+      chapters: [
+        {
+          id: TEST_BOOK_PREVIEW_PAGINATION_CHAPTER_1_ID,
+          title: 'Premier chapitre bref',
+          content: paginationChapter1Content,
+          order: 0,
+          metadata: { wordCount: 11, characterCount: 65, lastEdited: past },
+        },
+        {
+          id: TEST_BOOK_PREVIEW_PAGINATION_CHAPTER_2_ID,
+          title: 'Second chapitre bref',
+          content: paginationChapter2Content,
+          order: 1,
+          metadata: { wordCount: 9, characterCount: 53, lastEdited: past },
+        },
+      ],
+      activeChapterId: TEST_BOOK_PREVIEW_PAGINATION_CHAPTER_1_ID,
+      providerId: null,
+      createdAt: past,
+      updatedAt: now,
+      isPublished: false,
+      shareToken: null,
+      publishedAt: null,
+      publishedChapterIds: null,
+    },
+    { upsert: true }
+  );
+  await db.collection('project_settings').replaceOne(
+    { _id: new ObjectId(TEST_BOOK_PREVIEW_PAGINATION_SETTINGS_ID) },
+    {
+      _id: new ObjectId(TEST_BOOK_PREVIEW_PAGINATION_SETTINGS_ID),
+      projectId: TEST_BOOK_PREVIEW_PAGINATION_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      title: 'Roman Test Pagination KDP',
+      summary: '',
+      genre: '',
+      synopsis: '',
+      contributors: [{ name: 'Autrice E2E', role: 'author' }],
+      relatedWorks: [],
+      createdAt: past,
+      updatedAt: now,
+      publicationProfileId: 'kdp-6x9',
+    },
+    { upsert: true }
+  );
+  await db.collection('project_metadata').replaceOne(
+    { _id: TEST_BOOK_PREVIEW_PAGINATION_DEDICATION_ID } as object,
+    {
+      _id: TEST_BOOK_PREVIEW_PAGINATION_DEDICATION_ID,
+      projectId: TEST_BOOK_PREVIEW_PAGINATION_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      typeKey: 'dedication',
+      title: 'Dédicace',
+      content: JSON.stringify({
+        type: 'doc',
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: 'À celles et ceux qui relisent.' }] }],
+      }),
+      structuredData: null,
+      properties: { wordCount: 6, characterCount: 31, lastEdited: past, generatedAt: null, isGenerated: false, contentHash: null },
+      createdAt: past,
+      updatedAt: now,
+    },
+    { upsert: true }
+  );
+  await db.collection('project_metadata').replaceOne(
+    { _id: TEST_BOOK_PREVIEW_PAGINATION_EPIGRAPH_ID } as object,
+    {
+      _id: TEST_BOOK_PREVIEW_PAGINATION_EPIGRAPH_ID,
+      projectId: TEST_BOOK_PREVIEW_PAGINATION_PROJECT_ID,
+      ownerId: TEST_USER_ID,
+      typeKey: 'epigraph',
+      title: 'Épigraphe',
+      content: JSON.stringify({
+        type: 'doc',
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Un livre commence toujours avant sa première page.' }] }],
+      }),
+      structuredData: null,
+      properties: { wordCount: 9, characterCount: 51, lastEdited: past, generatedAt: null, isGenerated: false, contentHash: null },
+      createdAt: past,
+      updatedAt: now,
     },
     { upsert: true }
   );

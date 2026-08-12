@@ -11,6 +11,16 @@ const profile = PublicationProfile.kdpSixByNine();
 const assetBaseUrl = 'http://localhost:3000';
 
 describe('PagedJsRenderer', () => {
+  it('embeds a supplied Paged.js bundle so server-side rendering never fetches it', () => {
+    const inlinePagedJs = 'window.PagedPolyfill={preview:()=>Promise.resolve({total:1})};';
+    const serverRenderer = new PagedJsRenderer({ pagedJsSource: inlinePagedJs });
+
+    const html = serverRenderer.render({ bodyHtml: '<p>Texte</p>', profile, assetBaseUrl });
+
+    expect(html).toContain(`<script>${inlinePagedJs}</script>`);
+    expect(html).not.toContain(`src='${assetBaseUrl}/vendor/paged.polyfill.min.js'`);
+  });
+
   describe('basic render', () => {
     it('returns a complete HTML document', () => {
       const html = renderer.render({ bodyHtml: '<p>Texte</p>', profile, assetBaseUrl });
@@ -125,25 +135,39 @@ describe('PagedJsRenderer', () => {
   });
 
   describe('liminal page numbering (whole book)', () => {
-    it('suppresses the Arabic page increment on liminal pages so the first body page reads 1', () => {
+    it('resolves folios after Paged.js has materialized physical page boxes', () => {
       const html = renderer.render({
         bodyHtml: '<section class="chapter"><p>Corps.</p></section>',
         profile,
         assetBaseUrl,
         frontMatter: { title: 'Mon Roman' },
       });
-      const liminalBlock = html.slice(html.indexOf('@page liminal-page'));
-      expect(liminalBlock).toContain('counter-increment: page 0');
+      expect(html).toContain('resolveBookFolios');
+      expect(html).toContain('pagedjs_blank_page');
+      expect(html).toContain('section.chapter[id]');
     });
 
-    it('numbers liminaires with an upper-roman folio counter', () => {
+    it('writes Roman liminal folios and Arabic body folios into the Paged.js margin slot', () => {
       const html = renderer.render({
         bodyHtml: '<section class="chapter"><p>Corps.</p></section>',
         profile,
         assetBaseUrl,
         frontMatter: { title: 'Mon Roman' },
       });
-      expect(html).toContain('content: counter(folio, upper-roman)');
+      expect(html).toContain('function roman(value)');
+      expect(html).toContain('pagedjs_margin-bottom-center');
+      expect(html).toContain("slot.classList.toggle('hasContent',Boolean(text))");
+    });
+
+    it('uses the requested start page number as the first Arabic folio', () => {
+      const html = renderer.render({
+        bodyHtml: '<section class="chapter"><p>Corps.</p></section>',
+        profile,
+        assetBaseUrl,
+        startPageNumber: 42,
+      });
+      expect(html).toContain('resolveBookFolios(bodyStart)');
+      expect(html).toContain('})(42);');
     });
   });
 
@@ -194,21 +218,20 @@ describe('PagedJsRenderer', () => {
   });
 
   describe('visible page numbers', () => {
-    it('prints an Arabic page number on body pages, distinct from the liminal roman-numeral rule', () => {
+    it('reserves the CSS margin box and fills it with renderer-resolved folios', () => {
       const html = renderer.render({ bodyHtml: '<p>Texte</p>', profile, assetBaseUrl });
-      // Everything up to the liminal @page rule is the main @page block: it must
-      // already declare a visible counter(page), not just the roman-numeral one
-      // scoped to liminal pages.
       const mainPageBlock = html.slice(html.indexOf('@page {'), html.indexOf('@page liminal-page'));
       expect(mainPageBlock).toContain('@bottom-center');
-      expect(mainPageBlock).toContain('content: counter(page)');
+      expect(mainPageBlock).toContain('content: none');
+      expect(html).toContain('writeFooter(margin,String(bodyStart+pageIndex-firstBody))');
     });
 
-    it('keeps the visible page number alongside the counter-reset offset', () => {
+    it('keeps the visible page number alongside the start-page offset', () => {
       const html = renderer.render({ bodyHtml: '<p>Texte</p>', profile, assetBaseUrl, startPageNumber: 42 });
       expect(html).toContain('counter-reset: page 41');
       const mainPageBlock = html.slice(html.indexOf('@page {'), html.indexOf('@page liminal-page'));
-      expect(mainPageBlock).toContain('content: counter(page)');
+      expect(mainPageBlock).toContain('content: none');
+      expect(html).toContain('})(42);');
     });
   });
 

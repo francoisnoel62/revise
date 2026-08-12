@@ -5,6 +5,7 @@ import { test, expect } from '@playwright/test';
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import {
   TEST_BOOK_PREVIEW_PROJECT_ID,
+  TEST_BOOK_PREVIEW_PAGINATION_PROJECT_ID,
   TEST_BOOK_PREVIEW_PASSERELLE_PROJECT_ID,
   TEST_BOOK_PREVIEW_LARGE_PROJECT_ID,
   TEST_BOOK_PREVIEW_TOC_PROJECT_ID,
@@ -15,6 +16,7 @@ import {
 } from '../helpers/seed';
 
 const BOOK_PREVIEW_URL = `/book-preview?project=${TEST_BOOK_PREVIEW_PROJECT_ID}`;
+const PAGINATION_BOOK_PREVIEW_URL = `/book-preview?project=${TEST_BOOK_PREVIEW_PAGINATION_PROJECT_ID}`;
 const ALIGN_BOOK_PREVIEW_URL = `/book-preview?project=${TEST_BOOK_PREVIEW_ALIGN_PROJECT_ID}`;
 const TOC_BOOK_PREVIEW_URL = `/book-preview?project=${TEST_BOOK_PREVIEW_TOC_PROJECT_ID}`;
 const TOC_SETTINGS_URL = `/project/${TEST_BOOK_PREVIEW_TOC_PROJECT_ID}/cockpit/settings`;
@@ -96,6 +98,28 @@ async function footerOf(pdf: Uint8Array, pageNumber: number): Promise<string> {
   return bottom.str.trim();
 }
 
+// Read several PDF footers through one pdfjs document. Re-opening a shared Uint8Array can cause
+// pdfjs to detach its buffer, so this helper deliberately owns a single document instance.
+async function footersOf(pdf: Uint8Array, pageNumbers: readonly number[]): Promise<string[]> {
+  const doc = await getDocument({ data: pdf }).promise;
+  const footers: string[] = [];
+  for (const pageNumber of pageNumbers) {
+    const page = await doc.getPage(pageNumber);
+    const items = (await page.getTextContent()).items.filter((i: { str?: string }) => i.str && i.str.trim());
+    if (items.length === 0) {
+      footers.push('');
+      continue;
+    }
+    const bottom = items.reduce(
+      (min: { transform: number[]; str: string }, i: { transform: number[]; str: string }) =>
+        i.transform[5] < min.transform[5] ? i : min,
+      items[0] as { transform: number[]; str: string }
+    );
+    footers.push(bottom.str.trim());
+  }
+  return footers;
+}
+
 test.describe('whole-book preview', () => {
   test('renders the export PDF in the viewer and reports a page count', async ({ page }) => {
     await page.goto(BOOK_PREVIEW_URL);
@@ -136,6 +160,51 @@ test.describe('whole-book preview', () => {
     const pdf = new Uint8Array(await response.body());
 
     expect(await footerOf(pdf, firstBodyPage)).toBe('1');
+  });
+
+  test('keeps Roman liminaires and counts a blank body verso before the next recto chapter', async ({ page }) => {
+    await clearBookPreviewCache(TEST_BOOK_PREVIEW_PAGINATION_PROJECT_ID);
+    await page.goto(PAGINATION_BOOK_PREVIEW_URL);
+
+    const status = page.getByTestId('book-preview-status');
+    await expect(status).toContainText('pages', { timeout: 60_000 });
+
+    const chapterPages = await page.getByTestId('chapter-navigation').locator('[data-chapter-id]').evaluateAll(
+      (chapters) => chapters.map((chapter) => Number(chapter.getAttribute('data-page-number'))),
+    );
+    expect(chapterPages).toHaveLength(2);
+    const [firstChapterPage, secondChapterPage] = chapterPages;
+
+    // Every body chapter opens on a physical recto. The first chapter is Arabic 1; the second
+    // comes after its blank verso, which is visually blank but physically counted.
+    expect(firstChapterPage % 2).toBe(1);
+    expect(secondChapterPage).toBe(firstChapterPage + 2);
+
+    const src = await page.getByTestId('book-preview-pdf').getAttribute('src');
+    const response = await page.request.get((src ?? '').split('#')[0]);
+    expect(response.ok()).toBeTruthy();
+    const pdf = new Uint8Array(await response.body());
+    const footerPages = Array.from({ length: secondChapterPage }, (_, index) => index + 1);
+    const footers = await footersOf(pdf, footerPages);
+
+    const liminaireFooters = footers.slice(0, firstChapterPage - 1);
+
+    // The numbered liminaires must form a rising Roman sequence I, II, III… Asserting only that
+    // "I" appears would still pass if every liminaire printed I, or if the sequence skipped a
+    // number. Pages that carry no folio (half-title, blank versos) sit outside the sequence —
+    // and on those, footerOf falls back to the page's lowest text run (on the half-title, the
+    // book title), so filter down to folio-shaped runs rather than to non-empty ones.
+    const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+    const romanFolios = liminaireFooters.filter((footer) => /^[IVX]+$/.test(footer));
+    expect(romanFolios.length).toBeGreaterThan(0);
+    expect(romanFolios).toEqual(ROMAN.slice(0, romanFolios.length));
+
+    // Arabic numbering belongs to the body alone: no liminaire may print one (this also covers
+    // the old "counter starts at 0" regression).
+    expect(liminaireFooters.filter((footer) => /^\d+$/.test(footer))).toEqual([]);
+    expect(footers[firstChapterPage - 1]).toBe('1');
+    expect(footers[firstChapterPage]).toBe('');
+    expect(footers[secondChapterPage - 1]).toBe('3');
   });
 
   test('offers only the kdp-6x9 and a5 profiles in the preview selector', async ({ page }) => {

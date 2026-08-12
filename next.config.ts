@@ -9,9 +9,13 @@ const nextConfig: NextConfig = {
   // so force them in explicitly. Scoped to the routes that actually launch Chromium — the
   // ~67MB bin/ folder would otherwise bloat every unrelated function's deployment bundle.
   outputFileTracingIncludes: {
-    '/book-preview': ['./node_modules/@sparticuz/chromium/**/*'],
+    '/book-preview': [
+      './node_modules/@sparticuz/chromium/**/*',
+      './public/vendor/paged.polyfill.min.js',
+    ],
     '/editor': [
       './node_modules/@sparticuz/chromium/**/*',
+      './public/vendor/paged.polyfill.min.js',
       // Grammalecte loads generated rules and dictionaries with runtime fs lookups.
       './node_modules/@francoisnoel62/grammalecte/_build/nodejs/fr/core/**/*',
       // The adjacent spell checker uses the same lazy dictionary loading pattern.
@@ -28,7 +32,10 @@ const nextConfig: NextConfig = {
       './node_modules/@francoisnoel62/grammalecte/_build/nodejs/fr/core/grammalecte/graphspell/str_transform.js',
       './node_modules/@francoisnoel62/grammalecte/_build/nodejs/fr/core/grammalecte/graphspell/char_player.js',
     ],
-    '/api/paged-spike/export': ['./node_modules/@sparticuz/chromium/**/*'],
+    '/api/paged-spike/export': [
+      './node_modules/@sparticuz/chromium/**/*',
+      './public/vendor/paged.polyfill.min.js',
+    ],
   },
   images: {
     remotePatterns: [

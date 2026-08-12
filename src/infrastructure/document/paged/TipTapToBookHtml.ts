@@ -6,12 +6,18 @@ import type { ConvertOptions, TipTapToHtmlConverter } from '@/application/interf
 import { endnoteCallId, endnoteNoteId } from '@/application/rendering/endnoteCompilation';
 import { applyFrenchSpacing } from './frenchSpacing';
 
-// Paged.js's break-after: avoid glues a heading to whatever element comes right after it
-// in the DOM — not to the next visible content. A blank line an author leaves after a
-// heading (pressing Enter for spacing) becomes an empty paragraph that steals that glue,
-// leaving the heading free to strand alone at the bottom of a page. These are the roles
-// BookCssBuilder marks break-after: avoid; blank paragraphs right after them are dropped.
-const HEADING_ROLES_GLUED_TO_NEXT = new Set(['titre-de-chapitre', 'sous-titre']);
+// These headings own the vertical space around them, so blank paragraphs touching them —
+// before or after — are dropped. Each side has its own reason:
+//
+// After: Paged.js's break-after: avoid glues a heading to whatever element comes right after
+// it in the DOM, not to the next visible content. A blank paragraph steals that glue, leaving
+// the heading free to strand alone at the bottom of a page.
+//
+// Before: the level typography already gives these roles a spaceBefore (24pt for a sous-titre,
+// 48pt for a titre-de-chapitre, which also opens a page). The editor renders none of it, so a
+// blank line here is the author compensating for spacing they cannot see rather than asking
+// for more. Kept, it would leave section spacing uneven across the book.
+const HEADING_ROLES_WITH_MANAGED_SPACING = new Set(['titre-de-chapitre', 'sous-titre']);
 
 export class TipTapToBookHtml implements TipTapToHtmlConverter {
   // Prefix + running index used to number and anchor endnote calls in export mode. Reset per
@@ -28,27 +34,56 @@ export class TipTapToBookHtml implements TipTapToHtmlConverter {
     this.endnoteAnchorPrefix = options?.endnoteAnchorPrefix ?? null;
     this.endnoteIndex = 0;
 
-    return this.renderChildren(content);
+    return this.renderChildren({
+      ...content,
+      content: this.dropTrailingBlankParagraphs(content.content ?? []),
+    });
+  }
+
+  // Blank lines the author left at the very end are an artefact of writing, not spacing they
+  // asked for: kept, they inflate the chapter's height and can push an extra page into the book.
+  // Interior blank lines are intentional and are preserved (see renderNode).
+  private dropTrailingBlankParagraphs(nodes: readonly JSONContent[]): JSONContent[] {
+    let end = nodes.length;
+    while (end > 0 && this.isBlankParagraph(nodes[end - 1])) end -= 1;
+    return nodes.slice(0, end);
   }
 
   private renderChildren(node: JSONContent): string {
-    return this.dropBlankLinesAfterGluedHeadings(node.content ?? [])
+    return this.dropBlankLinesAroundManagedHeadings(node.content ?? [])
       .map((child) => this.renderNode(child))
       .join('');
   }
 
-  // Drops every blank paragraph immediately following a titre-de-chapitre/sous-titre, so
-  // the heading's next DOM sibling is always its real body content, not an empty line.
-  private dropBlankLinesAfterGluedHeadings(nodes: readonly JSONContent[]): JSONContent[] {
+  // Drops every blank paragraph touching a titre-de-chapitre/sous-titre, so such a heading's
+  // DOM neighbours are always real content. Runs of blank paragraphs are dropped whole.
+  private dropBlankLinesAroundManagedHeadings(nodes: readonly JSONContent[]): JSONContent[] {
     const kept: JSONContent[] = [];
-    let precededByGluedHeading = false;
-    for (const node of nodes) {
-      if (precededByGluedHeading && this.isBlankParagraph(node)) continue;
+    let precededByManagedHeading = false;
+
+    for (let index = 0; index < nodes.length; index += 1) {
+      const node = nodes[index];
+
+      if (this.isBlankParagraph(node)) {
+        if (precededByManagedHeading) continue;
+        // Look past the rest of the run: the whole run goes if a managed heading follows it.
+        let next = index + 1;
+        while (next < nodes.length && this.isBlankParagraph(nodes[next])) next += 1;
+        if (next < nodes.length && this.hasManagedSpacing(nodes[next])) continue;
+      }
+
       kept.push(node);
-      precededByGluedHeading =
-        node.type === 'heading' && HEADING_ROLES_GLUED_TO_NEXT.has(String(node.attrs?.semanticRole));
+      precededByManagedHeading = this.hasManagedSpacing(node);
     }
+
     return kept;
+  }
+
+  private hasManagedSpacing(node: JSONContent): boolean {
+    return (
+      node.type === 'heading' &&
+      HEADING_ROLES_WITH_MANAGED_SPACING.has(String(node.attrs?.semanticRole))
+    );
   }
 
   private isBlankParagraph(node: JSONContent): boolean {
@@ -64,8 +99,13 @@ export class TipTapToBookHtml implements TipTapToHtmlConverter {
     switch (node.type) {
       case 'text':
         return this.renderText(node);
-      case 'paragraph':
-        return `<p${this.renderBlockAttributes(node)}>${children}</p>`;
+      case 'paragraph': {
+        // An empty <p> generates no line box and collapses to zero height, so a blank line the
+        // author typed would vanish from the page. The marker lets BookCssBuilder give it the
+        // height of one line — a CSS p:empty selector would miss paragraphs holding only spaces.
+        const blankLine = this.isBlankParagraph(node) ? ' data-blank-line' : '';
+        return `<p${this.renderBlockAttributes(node)}${blankLine}>${children}</p>`;
+      }
       case 'heading': {
         const level = Math.min(6, Math.max(1, Number(node.attrs?.level) || 1));
         return `<h${level}${this.renderBlockAttributes(node)}>${children}</h${level}>`;

@@ -63,6 +63,7 @@ export interface ProjectSettingsDocument {
   tocDepth?: TocDepth;
   tocStyle?: TocStyle;
   endnotesTitle?: string;
+  honorBlankLines?: boolean;
   automaticSnapshotIntervalMinutes?: AutomaticSnapshotInterval | null;
   snapshotTimeZone?: string;
 }
@@ -112,6 +113,7 @@ export function serializeProjectSettings(
     tocDepth: props.tocDepth,
     tocStyle: props.tocStyle,
     endnotesTitle: props.endnotesTitle,
+    honorBlankLines: props.honorBlankLines,
     automaticSnapshotIntervalMinutes: props.automaticSnapshotIntervalMinutes,
     snapshotTimeZone: props.snapshotTimeZone,
   };
@@ -163,6 +165,7 @@ export function deserializeProjectSettings(doc: ProjectSettingsDocument): Projec
     tocDepth: doc.tocDepth,
     tocStyle: doc.tocStyle,
     endnotesTitle: doc.endnotesTitle,
+    honorBlankLines: doc.honorBlankLines,
     automaticSnapshotIntervalMinutes: doc.automaticSnapshotIntervalMinutes,
     snapshotTimeZone: doc.snapshotTimeZone,
   };

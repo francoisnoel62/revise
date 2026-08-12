@@ -30,6 +30,7 @@ export class BookCssBuilder {
     assetBaseUrl: string,
     startPageNumber?: number,
     levelStyles?: LevelStyleSetProperties,
+    honorBlankLines?: boolean,
   ): string {
     const value = profile.values;
     const assets = assetBaseUrl.replace(/\/$/, '');
@@ -60,6 +61,14 @@ export class BookCssBuilder {
       semanticRoleRule(role, styleValues[role]),
     ).join('');
 
+    // A blank line the author typed (see TipTapToBookHtml) holds no content, so it generates no
+    // line box and margin: 0 collapses it to nothing. A zero-width space restores a real line
+    // box that inherits this paragraph's font-size and line-height, so the gap equals one line
+    // of its own level. Generated content stays out of the selection: copy-paste is clean.
+    // Omitted entirely for projects that do not honor blank lines, so their pagination is
+    // bit-for-bit what it was before the feature existed.
+    const blankLineRule = honorBlankLines ? 'p[data-blank-line]::before { content: "\\200B"; }' : '';
+
     return `
       ${embeddedFontFaces}
       @page {
@@ -67,7 +76,7 @@ export class BookCssBuilder {
         margin-top: ${value.marginTopCentimeters}cm;
         margin-bottom: ${value.marginBottomCentimeters}cm;
         @bottom-center {
-          content: counter(page);
+          content: none;
           font-size: 9pt;
           color: #555;
         }
@@ -89,8 +98,9 @@ export class BookCssBuilder {
         text-rendering: geometricPrecision;
       }
       ${startPageNumber && startPageNumber > 1 ? `body { counter-reset: page ${startPageNumber - 1}; }` : ''}
-      main.book { widows: 2; orphans: 2; counter-reset: folio 1 endnote 0; }
+      main.book { widows: 2; orphans: 2; counter-reset: endnote 0; }
       p { margin: 0; text-align: justify; text-indent: ${value.firstLineIndentCentimeters}cm; }
+      ${blankLineRule}
       [data-semantic-role="titre-de-chapitre"] + [data-semantic-role="corps"],
       [data-semantic-role="sous-titre"] + [data-semantic-role="corps"] { text-indent: 0; }
       [data-semantic-role="titre-de-chapitre"] + [data-semantic-role="corps"][data-indent="true"],
@@ -160,21 +170,12 @@ export class BookCssBuilder {
       #endnote-bubble[data-visible="true"] { display: block; }
       #endnote-bubble a { color: #93c5fd; }
 
-      /* Liminal pages (front matter): uppercase roman numerals, each on its own page.
-         The body's Arabic numbering must restart at 1, but Paged.js honours neither a
-         mid-document reset of the page counter (non-persistent) nor a custom counter
-         driven from an @page rule. The reliable levers, established empirically:
-           - suppressing 'page' increment on liminal pages keeps the first body page at 1;
-           - a content-driven 'folio' counter numbers the liminaires in roman.
-         A margin box reads a custom counter as of the END of the PREVIOUS page, so the
-         very first page can never see a seed — the half-title therefore carries no printed
-         number (book convention anyway) while still advancing folio for the pages after it.
-         Every liminaire opens on a recto (right-hand) page per publishing convention:
-         break-before: right makes Paged.js insert a blank verso before it when the preceding
-         page ends on a recto. */
+      /* Liminal pages (front matter): each opens on a recto (right-hand) page. The actual
+         Roman and Arabic folios are resolved after Paged.js has created physical pages (see
+         PagedJsRenderer): Paged.js cannot scope the built-in page counter to front-matter blank
+         versos, which made it omit body blank versos from Arabic numbering. */
       .liminal {
         page: liminal-page;
-        counter-increment: folio 1;
         break-before: right;
         display: flex;
         flex-direction: column;
@@ -198,25 +199,14 @@ export class BookCssBuilder {
       .epigraph-text { margin: 0; font-style: italic; }
       .epigraph-attribution { font-style: normal; margin-top: 6pt; }
       @page half-title-page {
-        counter-increment: page 0;
         @bottom-center { content: none; }
       }
       @page liminal-page {
-        counter-increment: page 0;
-        @bottom-center {
-          content: counter(folio, upper-roman);
-          font-size: 9pt;
-          color: #555;
-        }
+        @bottom-center { content: none; }
       }
-      /* Blank pages exist only because liminaires and chapters force a recto
-         (break-before: right); Paged.js inserts a blank verso to reach it. Such a
-         blank falls to the default @page — which would both print an Arabic folio and
-         advance the page counter. Neither is wanted: a blank carries no printed number,
-         and counting the liminaire-region blanks would push the first body page past 1.
-         Suppress both so the body still opens on Arabic 1 and no stray folio prints. */
+      /* Blank versos never carry a visible folio. Their physical position is nevertheless
+         retained by the renderer when it calculates the following Arabic page number. */
       @page :blank {
-        counter-increment: page 0;
         @bottom-center { content: none; }
       }
 
@@ -264,18 +254,16 @@ export class BookCssBuilder {
       /* Chapter sections start on odd (right-hand) pages. Later chapters force their own recto
          (.chapter { break-before: right }); the FIRST body page is forced at the .body-matter
          wrapper instead, and the first chapter waives its own break. This forces the body onto a
-         recto exactly once (no double blank against the TOC that precedes it) AND is what keeps
-         the first body page at Arabic 1: a recto forced at the wrapper makes Paged.js flag the
-         inserted verso as a real blank page, so @page :blank drops it from the folio and count —
-         whereas a recto forced at the first chapter leaves that verso unflagged, and it counts.
+         recto exactly once (no double blank against the TOC that precedes it). The renderer then
+         derives the first Arabic folio and subsequent physical offsets from the generated pages.
          The bare main.book > .chapter:first-child waiver still covers the no-front-matter case. */
       .body-matter { break-before: right; }
       .chapter { break-before: right; }
       main.book > .chapter:first-child { break-before: auto; }
       .body-matter > .chapter:first-child { break-before: auto; }
 
-      /* TOC: links with auto page numbers (target-counter), classique adds a dotted fill.
-         The TOC is .liminal (for roman folio numbering + page assignment) but, unlike the
+      /* TOC: the renderer assigns each link's physical Arabic page number after pagination;
+         classique adds a dotted fill. The TOC is .liminal (for Roman folio numbering) but, unlike the
          single centered front-matter pages, it is a multi-page flowing list. Override the
          inherited vertical centering: start content at the top of every page and drop the
          full-height min-height, so the last (short) page's entries don't float in the middle.
@@ -319,13 +307,11 @@ export class BookCssBuilder {
          absorbs the rest of the line so the page number stays right-aligned. */
       .toc-title { flex: 0 1 auto; overflow-wrap: break-word; }
       .toc-leader { flex: 1 1 auto; }
-      /* Paged.js resolves target-counter() per-link, late in pagination, and only reflows
-         the matched <a> in isolation (no shared re-layout across TOC rows). A shrink-to-fit
-         number box therefore settles at a different width per row (1 vs 2 vs 3 digits). A
-         fixed min-width with right alignment keeps the box's size constant regardless of
-         when or to what value it resolves, so rows line up. */
+      /* Resolved after pagination from the physical Paged.js page boxes (rather than its
+         global page counter), so a blank body verso is included in the following number.
+         A fixed min-width with right alignment keeps the box's size constant for 1–3 digits. */
       .toc a::after {
-        content: target-counter(attr(href url), page);
+        content: attr(data-resolved-page);
         white-space: nowrap;
         padding-left: 4pt;
         min-width: 1.8em;
@@ -334,8 +320,8 @@ export class BookCssBuilder {
       }
 
       /* Classique: dotted leader between title and page number. The CSS GCPM leader mechanism
-         has no runtime handler in Paged.js (only target-counter does), so it silently drops both
-         the dots and the number. Reproduced instead with a real .toc-leader element: a dotted
+         has no runtime handler in Paged.js, so it silently drops the decorative fill. Reproduced
+         instead with a real .toc-leader element: a dotted
          bottom border on a flex:1 box fills exactly the free space on a single line — a fixed
          string of dots (the old approach) overflowed onto extra lines when the title was short.
          translateY lifts the border off the baseline so the dots sit level with the x-height. */

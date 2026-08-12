@@ -13,6 +13,7 @@ import { TextSelection } from '@/domain/value-objects/TextSelection';
 import { OpenAIProvider } from '@/infrastructure/ai/OpenAIProvider';
 import { RewriteTextUseCase } from '@/application/use-cases/RewriteTextUseCase';
 import { ExportProjectUseCase, ExportMode } from '@/application/use-cases/ExportProjectUseCase';
+import { honorsBlankLines } from '@/domain/value-objects/BlankLinePolicy';
 import { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
 import { getPromptRepository } from '@/infrastructure/config/providers';
 import {
@@ -208,6 +209,10 @@ export async function exportProjectPdf(
     const publicationProfile = PublicationProfile.fromId(profileId);
     const levelStyles = settings?.getLevelStyleSet(profileId)?.values;
     const endnotesTitle = settings?.getEndnotesTitle();
+    const honorBlankLines = honorsBlankLines(
+      settings?.getHonorBlankLines(),
+      project.getCreatedAt(),
+    );
 
     const exporter = await getDocumentExporter('pdf');
     const useCase = new ExportProjectUseCase(exporter);
@@ -219,6 +224,7 @@ export async function exportProjectPdf(
       publicationProfile,
       levelStyles,
       endnotesTitle,
+      honorBlankLines,
     });
 
     return {

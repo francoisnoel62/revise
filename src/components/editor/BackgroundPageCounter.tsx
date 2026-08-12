@@ -26,6 +26,8 @@ interface BackgroundPageCounterProps {
   /** Called once the hidden iframe reports the page count. */
   readonly onPageCount: (chapterId: string, count: number) => void;
   readonly levelStyles?: LevelStyleSetProperties;
+  /** Whether the author's blank lines occupy a line; resolved per project by honorsBlankLines. */
+  readonly honorBlankLines?: boolean;
 }
 
 /**
@@ -39,6 +41,7 @@ export function BackgroundPageCounter({
   profileId,
   onPageCount,
   levelStyles,
+  honorBlankLines,
 }: BackgroundPageCounterProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const currentChapterIdRef = useRef<string | null>(chapterId);
@@ -73,11 +76,12 @@ export function BackgroundPageCounter({
         assetBaseUrl: typeof window === 'undefined' ? 'http://localhost:3000' : window.location.origin,
         sourceId: chapterId,
         levelStyles,
+        honorBlankLines,
       });
     } catch {
       return null;
     }
-  }, [chapterId, content, levelStyles, profileId]);
+  }, [chapterId, content, honorBlankLines, levelStyles, profileId]);
 
   if (!html) return null;
 

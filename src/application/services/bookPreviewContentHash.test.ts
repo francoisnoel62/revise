@@ -125,6 +125,26 @@ describe('computeBookPreviewContentHash', () => {
     );
   });
 
+  it('changes when the paged renderer revision changes (invalidates PDFs after renderer fixes)', () => {
+    expect(
+      computeBookPreviewContentHash({ ...base, rendererRevision: 'renderer-before-fix' }),
+    ).not.toBe(computeBookPreviewContentHash({ ...base, rendererRevision: 'renderer-after-fix' }));
+  });
+
+  // Turning the setting on repaginates the whole book while every manuscript byte stays the
+  // same. Without it in the hash, the author would keep seeing the cached pre-flip PDF.
+  it('changes when blank lines start occupying a line', () => {
+    expect(computeBookPreviewContentHash({ ...base, honorBlankLines: true })).not.toBe(
+      computeBookPreviewContentHash({ ...base, honorBlankLines: false }),
+    );
+  });
+
+  it('treats an unset blank-line choice as the historical layout', () => {
+    expect(computeBookPreviewContentHash({ ...base, honorBlankLines: undefined })).toBe(
+      computeBookPreviewContentHash({ ...base, honorBlankLines: false }),
+    );
+  });
+
   it('treats an absent optional field differently from an empty string', () => {
     const withoutSubtitle = {
       ...base,

@@ -14,9 +14,9 @@ test.describe('page numbers in the editor preview', () => {
     const firstPage = previewFrame.locator('.pagedjs_page').first();
     await expect(firstPage).toBeVisible({ timeout: 15_000 });
 
-    // Paged.js paints the counter as CSS-generated content (::after) on the margin
-    // box, not as real DOM text — toHaveText() would never see it, so we read the
-    // computed pseudo-element content instead.
+    // The CSS only reserves the bottom-center margin box; the folio pass writes the resolved
+    // number into it as real text once Paged.js has laid out the physical pages. The editor
+    // preview carries no front matter, so the first page is body page 1.
     await expect
       .poll(
         () =>
@@ -24,10 +24,10 @@ test.describe('page numbers in the editor preview', () => {
             const marginContent = el.querySelector(
               '.pagedjs_margin-bottom-center .pagedjs_margin-content'
             );
-            return marginContent ? getComputedStyle(marginContent, '::after').content : null;
+            return marginContent ? marginContent.textContent : null;
           }),
         { timeout: 15_000 }
       )
-      .toBe('counter(page)');
+      .toBe('1');
   });
 });

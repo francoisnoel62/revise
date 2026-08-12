@@ -183,6 +183,13 @@ describe('project-actions', () => {
 
       const loaded = await mockRepository.loadProject('user-123', project.getId());
       expect(loaded).toBeNull();
+
+      // Deleting a project is the final lifecycle boundary: the restorable snapshots must go
+      // with it, scoped to the owner so one tenant's delete can never reach another's.
+      expect(mockSnapshotRepository.deleteByProjectId).toHaveBeenCalledWith(
+        'user-123',
+        project.getId(),
+      );
     });
   });
 });

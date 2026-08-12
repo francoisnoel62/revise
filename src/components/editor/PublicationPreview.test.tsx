@@ -55,10 +55,12 @@ describe('PublicationPreview', () => {
   it('includes a visible page-number rule in srcdoc so the author sees the printed page number', () => {
     render(<PublicationPreview content={content} profileId="kdp-6x9" overrides={[]} />);
 
-    expect(screen.getByTestId('publication-preview')).toHaveAttribute(
-      'srcdoc',
-      expect.stringContaining('content: counter(page)')
-    );
+    const srcdoc = screen.getByTestId('publication-preview').getAttribute('srcdoc') ?? '';
+
+    // The CSS only reserves the footer margin box; the folio itself is written into it after
+    // pagination, once Paged.js has produced the physical page boxes.
+    expect(srcdoc).toContain('@bottom-center');
+    expect(srcdoc).toContain('resolveBookFolios');
   });
 
   it('does not add counter-reset when startPageNumber is 1', () => {

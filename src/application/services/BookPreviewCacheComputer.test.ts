@@ -91,11 +91,12 @@ describe('BookPreviewCacheComputer', () => {
     const html = setContent.mock.calls[0][0] as string;
     expect(html).toContain('Mon Roman'); // front matter title page
     expect(html).toContain('Table des matières'); // TOC (2 chapters)
-    // Liminal pages suppress the Arabic page increment (so the body restarts at 1) and
-    // carry upper-roman folio numbers.
+    // Liminal pages carry upper-roman folios and the body restarts at 1. Both are resolved
+    // from the physical page boxes after pagination, so the CSS only reserves an empty
+    // footer box and the folio pass fills it in.
     const liminalBlock = html.slice(html.indexOf('@page liminal-page'));
-    expect(liminalBlock).toContain('counter-increment: page 0');
-    expect(html).toContain('content: counter(folio, upper-roman)');
+    expect(liminalBlock).toContain('content: none');
+    expect(html).toContain('resolveBookFolios');
   });
 
   it('prints the PDF at the active profile geometry (A5 differs from KDP)', async () => {

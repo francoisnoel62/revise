@@ -148,6 +148,9 @@ function EditorContent() {
     useState<PublicationProfileId>('kdp-6x9');
   const [presentationOverrides, setPresentationOverrides] =
     useState<PresentationOverrideLayer>([]);
+  // Resolved server-side: a project has no settings document until its author opens the
+  // settings page, so the answer comes from the project's creation date until then.
+  const [honorBlankLines, setHonorBlankLines] = useState(false);
   const [levelStylesByProfile, setLevelStylesByProfile] =
     useState<LevelStylesByProfile>({});
   const [isProfileSaving, setIsProfileSaving] = useState(false);
@@ -188,6 +191,9 @@ function EditorContent() {
         setCanonExtractionPrefs(result.settings.canonExtractionPreferences);
         setPublicationProfileId(result.settings.publicationProfileId);
         setLevelStylesByProfile(result.settings.levelStylesByProfile);
+      }
+      if (result.success) {
+        setHonorBlankLines(result.honorBlankLines);
       }
     });
   }, [project?.id]);
@@ -256,6 +262,15 @@ function EditorContent() {
       setPublicationProfileId(previousProfileId);
     }
     setIsProfileSaving(false);
+  };
+
+  // Persisted as an explicit choice, which from then on beats the creation-date default.
+  const handleHonorBlankLinesChange = async (next: boolean) => {
+    if (!project) return;
+    const previous = honorBlankLines;
+    setHonorBlankLines(next);
+    const result = await updateProjectSettingsAction(project.id, { honorBlankLines: next });
+    if (!result.success) setHonorBlankLines(previous);
   };
 
   const handleLevelStylesChange = (
@@ -941,6 +956,8 @@ function EditorContent() {
                 profileId={publicationProfileId}
                 styles={activeLevelStyles}
                 onChange={(styles) => handleLevelStylesChange(publicationProfileId, styles)}
+                honorBlankLines={honorBlankLines}
+                onHonorBlankLinesChange={handleHonorBlankLinesChange}
                 isSaving={isLevelStylesSaving}
               />
             )}
@@ -1041,6 +1058,7 @@ function EditorContent() {
               if (project.activeChapterId) onPageCountChange(project.activeChapterId, count);
             }}
             levelStyles={activeLevelStyles}
+            honorBlankLines={honorBlankLines}
             scrollPosition={scrollPosition}
           />
         }
@@ -1053,6 +1071,7 @@ function EditorContent() {
         profileId={publicationProfileId}
         onPageCount={onPageCountChange}
         levelStyles={activeLevelStyles}
+        honorBlankLines={honorBlankLines}
       />
 
       {/* Loading overlay with author quotes */}

@@ -8,6 +8,10 @@ const EDITOR_URL = `/editor?project=${TEST_SNAPSHOT_PROJECT_ID}`;
 const HISTORY_BUTTON_TITLE = 'Historique des versions';
 
 test.describe('manual snapshots — create and consult', () => {
+  // Every test here resets and then mutates the same project fixture, so they must not
+  // overlap: run in parallel, one test's reset wipes the snapshots another is asserting on.
+  test.describe.configure({ mode: 'serial' });
+
   // Re-seed the chapter content and clear any snapshots/counters left over from a
   // previous run, so the absolute v1/v2 assertions below stay valid across re-runs.
   test.beforeEach(async () => {

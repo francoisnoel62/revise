@@ -132,6 +132,160 @@ describe('TipTapToBookHtml', () => {
     });
   });
 
+  // These headings manage their own vertical space: the level typography gives them a
+  // spaceBefore (24pt for a sous-titre by default), and a titre-de-chapitre additionally opens
+  // a page. A blank line the author added in front is therefore never air they need — the
+  // editor simply does not render that spaceBefore, so they compensated for a gap they could
+  // not see. Kept, it would make section spacing differ between sections that happen to carry
+  // a blank line and sections that do not.
+  describe('convert — blank lines before a heading are dropped too', () => {
+    function glued(role: string, text: string): JSONContent {
+      return { ...heading(1, text), attrs: { level: 1, semanticRole: role } };
+    }
+
+    function blankParagraph(): JSONContent {
+      return { type: 'paragraph' };
+    }
+
+    it('drops a blank paragraph immediately before a titre-de-chapitre', () => {
+      const content = doc(paragraph('Fin.'), blankParagraph(), glued('titre-de-chapitre', 'Chapitre Deux'));
+      const html = converter.convert(content);
+      expect(html).not.toContain('data-blank-line');
+      expect(html).toMatch(/<\/p><h1[^>]*>Chapitre Deux<\/h1>/);
+    });
+
+    it('drops a blank paragraph immediately before a sous-titre', () => {
+      const content = doc(paragraph('Fin de section.'), blankParagraph(), glued('sous-titre', 'Section II'));
+      const html = converter.convert(content);
+      expect(html).not.toContain('data-blank-line');
+      expect(html).toMatch(/<\/p><h1[^>]*>Section II<\/h1>/);
+    });
+
+    it('drops a whole run of blank paragraphs before a heading', () => {
+      const content = doc(
+        paragraph('Fin.'),
+        blankParagraph(),
+        blankParagraph(),
+        blankParagraph(),
+        glued('sous-titre', 'Section II'),
+      );
+      const html = converter.convert(content);
+      expect(html).not.toContain('data-blank-line');
+    });
+
+    it('drops blank lines on both sides of a heading at once', () => {
+      const content = doc(
+        paragraph('Avant.'),
+        blankParagraph(),
+        glued('sous-titre', 'Section II'),
+        blankParagraph(),
+        paragraph('Après.'),
+      );
+      const html = converter.convert(content);
+      expect(html).not.toContain('data-blank-line');
+      expect(html).toMatch(/<\/p><h1[^>]*>Section II<\/h1><p[^>]*>Après\.<\/p>/);
+    });
+
+    it('keeps a blank paragraph before a heading that carries no managed semantic role', () => {
+      const content = doc(paragraph('Avant.'), blankParagraph(), heading(2, 'Simple titre'));
+      const html = converter.convert(content);
+      expect(html).toContain('data-blank-line');
+    });
+
+    it('still keeps a blank line between two ordinary paragraphs', () => {
+      const content = doc(paragraph('Un.'), blankParagraph(), paragraph('Deux.'));
+      const html = converter.convert(content);
+      expect(html).toContain('data-blank-line');
+    });
+  });
+
+  // A blank line the author leaves inside the body is intentional spacing. It must survive to
+  // the page, so the paginated preview shows what the editor shows (ADR 0005). An empty <p>
+  // generates no line box and collapses to zero height, so the converter marks it and
+  // BookCssBuilder gives it a line's height.
+  describe('convert — blank lines inside the body are preserved as visible spacing', () => {
+    function blankParagraph(): JSONContent {
+      return { type: 'paragraph' };
+    }
+
+    it('marks a blank paragraph between two paragraphs with data-blank-line', () => {
+      const content = doc(paragraph('Premier.'), blankParagraph(), paragraph('Deuxième.'));
+      const html = converter.convert(content);
+      expect(html).toMatch(/<p[^>]*data-blank-line[^>]*><\/p>/);
+    });
+
+    it('marks a paragraph the author filled with whitespace only', () => {
+      const content = doc(
+        paragraph('Premier.'),
+        { type: 'paragraph', content: [{ type: 'text', text: '   ' }] },
+        paragraph('Deuxième.'),
+      );
+      const html = converter.convert(content);
+      expect(html).toMatch(/data-blank-line/);
+    });
+
+    it('does not mark a paragraph that carries text', () => {
+      const html = converter.convert(doc(paragraph('Du vrai texte.')));
+      expect(html).not.toContain('data-blank-line');
+    });
+
+    it('preserves every blank line of a run — the author decides how much air the text gets', () => {
+      const content = doc(
+        paragraph('Premier.'),
+        blankParagraph(),
+        blankParagraph(),
+        blankParagraph(),
+        paragraph('Deuxième.'),
+      );
+      const html = converter.convert(content);
+      expect(html.match(/data-blank-line/g)).toHaveLength(3);
+    });
+
+    it('keeps the semantic role of a blank paragraph so it inherits that level line-height', () => {
+      const content = doc(
+        paragraph('Premier.'),
+        { type: 'paragraph', attrs: { semanticRole: 'corps' } },
+        paragraph('Deuxième.'),
+      );
+      const html = converter.convert(content);
+      expect(html).toMatch(/<p[^>]*data-semantic-role="corps"[^>]*data-blank-line[^>]*><\/p>/);
+    });
+  });
+
+  // Trailing blank lines are an artefact of writing, not intentional spacing: they inflate the
+  // chapter's height and can push an otherwise unnecessary page into the book.
+  describe('convert — blank lines at the end of a document are dropped', () => {
+    function blankParagraph(): JSONContent {
+      return { type: 'paragraph' };
+    }
+
+    it('drops a single trailing blank paragraph', () => {
+      const html = converter.convert(doc(paragraph('Fin du chapitre.'), blankParagraph()));
+      expect(html).not.toContain('data-blank-line');
+      expect(html).toMatch(/<p[^>]*>Fin du chapitre\.<\/p>$/);
+    });
+
+    it('drops several trailing blank paragraphs', () => {
+      const html = converter.convert(
+        doc(paragraph('Fin.'), blankParagraph(), blankParagraph(), blankParagraph()),
+      );
+      expect(html).not.toContain('data-blank-line');
+    });
+
+    it('keeps interior blank lines while dropping the trailing ones', () => {
+      const html = converter.convert(
+        doc(paragraph('Un.'), blankParagraph(), paragraph('Deux.'), blankParagraph()),
+      );
+      expect(html.match(/data-blank-line/g)).toHaveLength(1);
+      expect(html).toMatch(/<p[^>]*>Deux\.<\/p>$/);
+    });
+
+    it('returns an empty string for a document made only of blank paragraphs', () => {
+      const html = converter.convert(doc(blankParagraph(), blankParagraph()));
+      expect(html).toBe('');
+    });
+  });
+
   describe('convert — id attribute passthrough (anchors for TOC sub-entries)', () => {
     it('renders the id attribute when node.attrs.id is set', () => {
       const content = doc({

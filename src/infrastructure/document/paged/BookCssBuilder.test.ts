@@ -133,26 +133,23 @@ describe('BookCssBuilder', () => {
   });
 
   describe('liminal page numbering (whole book)', () => {
-    it('suppresses the Arabic page increment on liminal pages so the first body page reads 1', () => {
+    it('leaves visible folios to the renderer after it knows each physical page', () => {
       const css = new BookCssBuilder().build(
         PublicationProfile.kdpSixByNine(),
         'http://localhost:3000',
       );
-      // Zeroing the page increment on liminal pages (rather than a non-persistent
-      // mid-document counter-reset) leaves the first body page at Arabic 1.
-      const liminalBlock = css.slice(css.indexOf('@page liminal-page'));
-      expect(liminalBlock).toContain('counter-increment: page 0');
+      expect(css).not.toContain('counter-increment: page 0');
+      expect(css).not.toContain('content: counter(page)');
+      expect(css).not.toContain('counter(folio, upper-roman)');
     });
 
-    it('numbers liminaires with a seeded upper-roman folio counter', () => {
+    it('keeps the half-title and named liminal margin boxes empty before folios are resolved', () => {
       const css = new BookCssBuilder().build(
         PublicationProfile.kdpSixByNine(),
         'http://localhost:3000',
       );
-      expect(css).toContain('counter-reset: folio 1');
-      expect(css).toContain('counter-increment: folio 1');
       const liminalBlock = css.slice(css.indexOf('@page liminal-page'));
-      expect(liminalBlock).toContain('content: counter(folio, upper-roman)');
+      expect(liminalBlock).toContain('content: none');
     });
 
     it('leaves the half-title (first liminal page) without a printed number', () => {
@@ -165,54 +162,49 @@ describe('BookCssBuilder', () => {
         css.indexOf('@page half-title-page'),
         css.indexOf('@page liminal-page'),
       );
-      expect(halfTitleBlock).toContain('counter-increment: page 0');
       expect(halfTitleBlock).toContain('content: none');
     });
 
-    it('drops both the folio and the page increment on forced blank (verso) pages', () => {
+    it('keeps forced blank (verso) pages visibly unnumbered without changing physical counting', () => {
       const css = new BookCssBuilder().build(
         PublicationProfile.kdpSixByNine(),
         'http://localhost:3000',
       );
-      // Recto-forcing (break-before: right on liminaires and the body) makes Paged.js insert
-      // blank versos. Left to the default @page they would print an Arabic folio and advance the
-      // page counter — the liminaire-region blanks would then push the first body page past 1,
-      // and every blank would show a stray number. @page :blank suppresses both.
       const blankBlock = css.slice(css.indexOf('@page :blank'));
       expect(css).toContain('@page :blank');
-      expect(blankBlock).toContain('counter-increment: page 0');
       expect(blankBlock.slice(0, blankBlock.indexOf('}', blankBlock.indexOf('@bottom-center')) + 1))
         .toContain('content: none');
     });
   });
 
   describe('visible page number on body pages', () => {
-    it('declares an @bottom-center rule printing the Arabic page counter on the main @page rule', () => {
+    it('reserves the bottom-center margin box for the renderer-resolved folio', () => {
       const css = new BookCssBuilder().build(
         PublicationProfile.kdpSixByNine(),
         'http://localhost:3000'
       );
       const mainPageBlock = css.slice(0, css.indexOf('@page liminal-page'));
       expect(mainPageBlock).toContain('@bottom-center');
-      expect(mainPageBlock).toContain('content: counter(page)');
+      expect(mainPageBlock).toContain('content: none');
     });
 
-    it('does not use roman numerals for the main page rule (reserved for liminal pages)', () => {
+    it('does not hard-code either Arabic or Roman counters in the main page rule', () => {
       const css = new BookCssBuilder().build(
         PublicationProfile.kdpSixByNine(),
         'http://localhost:3000'
       );
       const mainPageBlock = css.slice(0, css.indexOf('@page liminal-page'));
       expect(mainPageBlock).not.toContain('-roman');
+      expect(mainPageBlock).not.toContain('counter(page)');
     });
 
-    it('prints the visible page number for every profile, not just KDP 6×9', () => {
+    it('reserves the visible page-number slot for every profile, not just KDP 6×9', () => {
       const css = new BookCssBuilder().build(
         PublicationProfile.passerelle(),
         'http://localhost:3000'
       );
       const mainPageBlock = css.slice(0, css.indexOf('@page liminal-page'));
-      expect(mainPageBlock).toContain('content: counter(page)');
+      expect(mainPageBlock).toContain('content: none');
     });
   });
 
@@ -337,13 +329,13 @@ describe('BookCssBuilder', () => {
   });
 
   describe('liminal (front matter) page rules', () => {
-    it('assigns liminal sections to a named page with roman numerals', () => {
+    it('assigns liminal sections to a named page; the renderer writes their Roman folios', () => {
       const css = new BookCssBuilder().build(
         PublicationProfile.kdpSixByNine(),
         'http://localhost:3000'
       );
       expect(css).toContain('page: liminal-page');
-      expect(css).toContain('upper-roman');
+      expect(css).not.toContain('upper-roman');
     });
 
     it('styles the liminal titles larger than the body, with no first-line indent', () => {
@@ -389,10 +381,8 @@ describe('BookCssBuilder', () => {
     // Opening the body on a recto is done at the .body-matter wrapper, not the first chapter.
     // When front matter exists the wrapper carries break-before: right and the first chapter
     // waives its own break (.body-matter > .chapter:first-child { break-before: auto }), so only
-    // ONE recto is forced. This matters for numbering: a recto forced at the wrapper makes
-    // Paged.js flag the inserted verso as a real blank page, which the shared @page :blank rule
-    // then drops from both the folio and the page count — keeping the first body page at Arabic 1.
-    // A recto forced at the first chapter instead leaves that verso unflagged, so it would count.
+    // ONE recto is forced. The renderer later derives Arabic folios from the resulting physical
+    // page boxes, so this inserted verso remains blank but is still counted before chapter 2.
     it('forces the body onto a recto at the .body-matter wrapper, waiving the first chapter break', () => {
       const css = new BookCssBuilder().build(
         PublicationProfile.kdpSixByNine(),
@@ -416,12 +406,12 @@ describe('BookCssBuilder', () => {
       expect(css).not.toMatch(/[^>]\s\.chapter:first-child\s*\{[^}]*break-before:\s*auto/);
     });
 
-    it('includes toc entry leader dots via CSS', () => {
+    it('includes toc entry leader dots and a renderer-populated page-number slot via CSS', () => {
       const css = new BookCssBuilder().build(
         PublicationProfile.kdpSixByNine(),
         'http://localhost:3000'
       );
-      expect(css).toContain('target-counter');
+      expect(css).toContain('attr(data-resolved-page)');
     });
 
     // Publishing convention: every front-matter page (half-title, title, copyright, dedication,
@@ -440,13 +430,11 @@ describe('BookCssBuilder', () => {
   describe('toc design variants (3 presets, always emitted statically)', () => {
     const css = new BookCssBuilder().build(PublicationProfile.kdpSixByNine(), 'http://localhost:3000');
 
-    // Paged.js has no runtime handler for CSS leader() (only target-counter() is implemented
-    // by its generated-content module), so a `content: leader('.') target-counter(...)` value
-    // is invalid as a whole and silently drops both the dots and the number. The dotted fill
-    // is reproduced instead with a real .toc-leader element carrying a dotted bottom border,
-    // stretched with flex to fill exactly the remaining space — so it never wraps to a new line.
-    it('classique (default): page numbers via target-counter, no leader() anywhere', () => {
-      expect(css).toMatch(/\.toc a::after\s*\{[^}]*target-counter/);
+    // Paged.js has no runtime handler for CSS leader(). The dotted fill is reproduced instead
+    // with a real .toc-leader element carrying a dotted bottom border, while the renderer writes
+    // each physical target page into data-resolved-page after pagination.
+    it('classique (default): page numbers via data-resolved-page, no leader() anywhere', () => {
+      expect(css).toMatch(/\.toc a::after\s*\{[^}]*data-resolved-page/);
       expect(css).not.toContain("leader(");
     });
 
@@ -471,8 +459,7 @@ describe('BookCssBuilder', () => {
 
     it('classique: shows the chapter title verbatim, without generated numbering', () => {
       // Adding a counter-based numeral would double up on titles that already carry their own
-      // number ("Chapitre 1", "I. L'aube"), overriding the author's text. (upper-roman still
-      // appears elsewhere for the liminal folio numbering — that is unrelated.)
+      // number ("Chapitre 1", "I. L'aube"), overriding the author's text.
       expect(css).not.toMatch(/\.toc-chapter[^{]*::before/);
       expect(css).not.toMatch(/\.toc-chapter[^{]*\{[^}]*counter-increment/);
     });
@@ -489,7 +476,7 @@ describe('BookCssBuilder', () => {
     });
 
     it('epure: page numbers without any dotted-fill element', () => {
-      expect(css).toMatch(/\.toc a::after\s*\{[^}]*target-counter/);
+      expect(css).toMatch(/\.toc a::after\s*\{[^}]*data-resolved-page/);
       expect(css).not.toMatch(/\.toc--epure[^{]*\.toc-title::after/);
     });
 
@@ -527,11 +514,9 @@ describe('BookCssBuilder', () => {
   describe('toc page-number column stability (row-to-row vertical alignment)', () => {
     const css = new BookCssBuilder().build(PublicationProfile.kdpSixByNine(), 'http://localhost:3000');
 
-    // Paged.js resolves each target-counter() in isolation, late in pagination, forcing a
-    // reflow of only the matched <a> element. A shrink-to-fit number box therefore settles
-    // at a different width/position per row (1 vs 2 vs 3 digits). Giving the box a fixed
-    // min-width and right alignment up front keeps its size constant regardless of when or
-    // to what value it resolves, so rows line up consistently.
+    // The renderer fills data-resolved-page after pagination. A shrink-to-fit number box would
+    // settle at a different width per row (1 vs 2 vs 3 digits), so a fixed min-width and right
+    // alignment keep all resolved values in a stable column.
     it('gives the page-number box a fixed width and right alignment', () => {
       expect(css).toMatch(/\.toc a::after\s*\{[^}]*min-width:/);
       expect(css).toMatch(/\.toc a::after\s*\{[^}]*text-align:\s*right/);
@@ -539,6 +524,49 @@ describe('BookCssBuilder', () => {
 
     it('aligns title and page number on a shared baseline', () => {
       expect(css).toMatch(/\.toc a\s*\{[^}]*align-items:\s*baseline/);
+    });
+  });
+
+  // A blank line the author typed reaches the renderer as <p data-blank-line></p>. With no
+  // content it generates no line box, so p { margin: 0 } collapses it to nothing. Generated
+  // content restores a real line box, inheriting the paragraph's own font-size and
+  // line-height — so the gap matches one line of the surrounding level, whatever its typography.
+  describe('blank lines', () => {
+    const honoring = new BookCssBuilder().build(
+      PublicationProfile.kdpSixByNine(),
+      'http://localhost:3000',
+      undefined,
+      undefined,
+      true,
+    );
+
+    it('gives a blank-line paragraph the height of one line', () => {
+      expect(honoring).toMatch(/p\[data-blank-line\]::before\s*\{[^}]*content:/);
+    });
+
+    it('uses a zero-width character so nothing prints and no space enters the text', () => {
+      expect(honoring).toMatch(/p\[data-blank-line\]::before\s*\{[^}]*content:\s*"\\200B"/);
+    });
+
+    // Projects predating the feature must paginate exactly as they always have, so the rule is
+    // absent rather than neutralised: an empty <p> then collapses to nothing, as before.
+    it('emits no blank-line rule for a project that does not honor blank lines', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000',
+        undefined,
+        undefined,
+        false,
+      );
+      expect(css).not.toContain('data-blank-line');
+    });
+
+    it('leaves blank lines collapsed when no choice is passed at all', () => {
+      const css = new BookCssBuilder().build(
+        PublicationProfile.kdpSixByNine(),
+        'http://localhost:3000',
+      );
+      expect(css).not.toContain('data-blank-line');
     });
   });
 });

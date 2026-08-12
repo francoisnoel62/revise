@@ -85,6 +85,8 @@ export interface ProjectSettingsProperties {
   tocDepth?: TocDepth;
   tocStyle?: TocStyle;
   endnotesTitle?: string;
+  /** Explicit author choice; absent means BlankLinePolicy decides from the project's age. */
+  honorBlankLines?: boolean;
   automaticSnapshotIntervalMinutes?: AutomaticSnapshotInterval | null;
   snapshotTimeZone?: string;
 }
@@ -127,6 +129,7 @@ export class ProjectSettings {
   private tocDepth?: TocDepth;
   private tocStyle?: TocStyle;
   private endnotesTitle?: string;
+  private honorBlankLines?: boolean;
   private automaticSnapshotIntervalMinutes: AutomaticSnapshotInterval | null;
   private snapshotTimeZone: string;
 
@@ -176,6 +179,7 @@ export class ProjectSettings {
     this.tocDepth = props.tocDepth;
     this.tocStyle = props.tocStyle;
     this.endnotesTitle = props.endnotesTitle?.trim() || undefined;
+    this.honorBlankLines = props.honorBlankLines;
     this.automaticSnapshotIntervalMinutes = props.automaticSnapshotIntervalMinutes ?? null;
     this.snapshotTimeZone = props.snapshotTimeZone ?? 'UTC';
   }
@@ -379,6 +383,23 @@ export class ProjectSettings {
   /** The compiled endnotes section heading; falls back to « Notes » when the author left it blank. */
   getEndnotesTitle(): string {
     return this.endnotesTitle ?? DEFAULT_ENDNOTES_TITLE;
+  }
+
+  /**
+   * The author's explicit choice on blank lines, or undefined when they never made one.
+   * Absence is meaningful: honorsBlankLines then falls back to the project's creation date,
+   * so a manuscript predating the feature keeps the layout its author has always seen.
+   */
+  getHonorBlankLines(): boolean | undefined {
+    return this.honorBlankLines;
+  }
+
+  updateHonorBlankLines(honorBlankLines: boolean): ProjectSettings {
+    return new ProjectSettings({
+      ...this.toProperties(),
+      honorBlankLines,
+      updatedAt: new Date(),
+    });
   }
 
   getAutomaticSnapshotIntervalMinutes(): AutomaticSnapshotInterval | null {
@@ -704,6 +725,7 @@ export class ProjectSettings {
       tocDepth: this.tocDepth,
       tocStyle: this.tocStyle,
       endnotesTitle: this.endnotesTitle,
+      honorBlankLines: this.honorBlankLines,
       automaticSnapshotIntervalMinutes: this.automaticSnapshotIntervalMinutes,
       snapshotTimeZone: this.snapshotTimeZone,
     };
