@@ -4,6 +4,11 @@
 import { ProjectRepository } from '@/domain/interfaces/ProjectRepository';
 import { Project } from '@/domain/entities/Project';
 import { Chapter } from '@/domain/entities/Chapter';
+import { deserializeProject, serializeProject } from './serialization/project-serializer';
+
+function copyProject(project: Project): Project {
+  return deserializeProject(serializeProject(project));
+}
 
 /**
  * In-memory ProjectRepository for testing.
@@ -19,7 +24,7 @@ export class InMemoryProjectRepository implements ProjectRepository {
     if (this.projects.has(project.getId())) {
       throw new Error(`Project with id ${project.getId()} already exists`);
     }
-    this.projects.set(project.getId(), project);
+    this.projects.set(project.getId(), copyProject(project));
     return project;
   }
 
@@ -27,14 +32,14 @@ export class InMemoryProjectRepository implements ProjectRepository {
     const project = this.projects.get(projectId);
     if (!project) return null;
     if (project.getOwnerId() !== userId) return null; // Security: don't reveal existence
-    return project;
+    return copyProject(project);
   }
 
   async listProjects(userId: string): Promise<Project[]> {
     const userProjects: Project[] = [];
     for (const project of this.projects.values()) {
       if (project.getOwnerId() === userId) {
-        userProjects.push(project);
+        userProjects.push(copyProject(project));
       }
     }
     // Sort by updatedAt descending
@@ -51,7 +56,7 @@ export class InMemoryProjectRepository implements ProjectRepository {
     if (existing.getOwnerId() !== userId) {
       throw new Error('Not authorized to update this project');
     }
-    this.projects.set(project.getId(), project);
+    this.projects.set(project.getId(), copyProject(project));
     return project;
   }
 
@@ -65,7 +70,7 @@ export class InMemoryProjectRepository implements ProjectRepository {
     if (existing.getOwnerId() !== userId) return false;
     if (existing.getUpdatedAt().getTime() !== expectedUpdatedAt.getTime()) return false;
 
-    this.projects.set(project.getId(), project);
+    this.projects.set(project.getId(), copyProject(project));
     return true;
   }
 
@@ -85,9 +90,16 @@ export class InMemoryProjectRepository implements ProjectRepository {
     if (!project) {
       throw new Error(`Project with id ${projectId} not found or not owned`);
     }
-    // Chapter is already updated in the Project entity (aggregate pattern)
-    // Just trigger timestamp update
+    const storedChapter = project.getChapter(_chapter.getId());
+    if (!storedChapter) {
+      throw new Error('Project or chapter not found, or not owned');
+    }
+
+    storedChapter.updateTitle(_chapter.getTitle());
+    storedChapter.updateContent(_chapter.getContent());
+    storedChapter.reorder(_chapter.getOrder());
     project.touch();
+    this.projects.set(projectId, copyProject(project));
   }
 
   async deleteAllByOwner(userId: string): Promise<number> {
@@ -106,7 +118,7 @@ export class InMemoryProjectRepository implements ProjectRepository {
     if (!project) return null;
     if (!project.getIsPublished()) return null;
     if (project.getShareToken() !== shareToken) return null;
-    return project;
+    return copyProject(project);
   }
 
   // Test helpers

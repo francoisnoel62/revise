@@ -6,7 +6,7 @@ import { listProvidersAction } from '@/app/actions/provider-actions';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, XCircle, AlertCircle } from 'lucide-react';
-import { PROVIDER_NAMES } from '@/infrastructure/config/ai-models';
+import { PROVIDER_NAMES } from '@/application/providers/ProviderCatalog';
 
 export interface ProviderSelectProps {
   value?: string | null;

@@ -10,6 +10,7 @@ import {
   getBlogArticleRepo,
   getArticleViewRepo,
   getAuthenticatedAdminId,
+  getIdGenerator,
   withErrorHandling,
 } from './utils';
 import { LoadPublishedBlogArticlesUseCase } from '@/application/use-cases/LoadPublishedBlogArticlesUseCase';
@@ -174,7 +175,7 @@ export async function createArticleAction(
 
   const result = await withErrorHandling(async () => {
     const repo = await getBlogArticleRepo();
-    const useCase = new CreateBlogArticleUseCase(repo);
+    const useCase = new CreateBlogArticleUseCase(repo, await getIdGenerator());
     const { article } = await useCase.execute({
       ...input,
       authorId: auth.userId,
@@ -347,7 +348,8 @@ export async function recordArticleViewAction(
     const useCase = new RecordArticleViewUseCase(
       articleViewRepo,
       blogArticleRepo,
-      hashText
+      hashText,
+      await getIdGenerator(),
     );
 
     const result = await useCase.execute({

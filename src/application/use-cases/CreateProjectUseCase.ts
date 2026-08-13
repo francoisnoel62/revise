@@ -4,6 +4,7 @@
 import { Project } from '@/domain/entities/Project';
 import { ProjectRepository } from '@/domain/interfaces/ProjectRepository';
 import { ProviderRepository } from '@/domain/interfaces/ProviderRepository';
+import type { IdGenerator } from '@/domain/interfaces/IdGenerator';
 
 export interface CreateProjectInput {
   ownerId: string;
@@ -24,7 +25,8 @@ export class InvalidProviderError extends Error {
 export class CreateProjectUseCase {
   constructor(
     private projectRepository: ProjectRepository,
-    private providerRepository: ProviderRepository
+    private providerRepository: ProviderRepository,
+    private readonly idGenerator: IdGenerator,
   ) {}
 
   async execute(input: CreateProjectInput): Promise<Project> {
@@ -49,7 +51,8 @@ export class CreateProjectUseCase {
     // 2. Create project
     const project = Project.createEmpty(
       input.ownerId,
-      input.title || 'Nouveau projet'
+      input.title || 'Nouveau projet',
+      { idGenerator: this.idGenerator, now: new Date() },
     );
 
     // 3. Set provider if provided

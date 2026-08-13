@@ -15,6 +15,7 @@ import {
   ActionResult,
   getAuthenticatedUserId,
   getAutomaticSnapshotRepo,
+  getIdGenerator,
   getRepository,
   withErrorHandling,
 } from './utils';
@@ -78,7 +79,7 @@ export async function addChapterAction(
     }
 
     // Delegate to Use Case
-    const useCase = new AddChapterUseCase();
+    const useCase = new AddChapterUseCase(await getIdGenerator());
     useCase.execute(project);
 
     await repository.updateProject(auth.userId, project);

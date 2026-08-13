@@ -4,7 +4,7 @@
 import type {
   LifecyclePayload,
   DeletionPayload,
-} from '@/components/editor/extensions/autocompleteTelemetry';
+} from '@/application/services/AutocompleteTelemetry';
 
 const ENDPOINT = '/api/completion/telemetry';
 

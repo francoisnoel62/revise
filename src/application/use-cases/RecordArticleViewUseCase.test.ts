@@ -12,6 +12,7 @@ describe('RecordArticleViewUseCase', () => {
   let mockBlogArticleRepo: BlogArticleRepository;
   let mockHashFunction: (text: string) => string;
   let useCase: RecordArticleViewUseCase;
+  let mockIdGenerator: { generate: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     mockArticleViewRepo = {
@@ -34,11 +35,13 @@ describe('RecordArticleViewUseCase', () => {
     };
 
     mockHashFunction = vi.fn().mockImplementation((text: string) => `hash_${text}`);
+    mockIdGenerator = { generate: vi.fn().mockReturnValue('article-view-123') };
 
     useCase = new RecordArticleViewUseCase(
       mockArticleViewRepo,
       mockBlogArticleRepo,
-      mockHashFunction
+      mockHashFunction,
+      mockIdGenerator,
     );
   });
 
@@ -58,6 +61,7 @@ describe('RecordArticleViewUseCase', () => {
         `${validInput.articleId}:${validInput.visitorIp}:${validInput.userAgent}`
       );
       expect(mockArticleViewRepo.create).toHaveBeenCalled();
+      expect(mockIdGenerator.generate).toHaveBeenCalledOnce();
       expect(mockBlogArticleRepo.incrementViewCount).toHaveBeenCalledWith(validInput.articleId);
     });
 

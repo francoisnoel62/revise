@@ -13,7 +13,7 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import { FontFamily } from '@tiptap/extension-text-style/font-family';
 import { FontSize } from '@tiptap/extension-text-style/font-size';
 import TextAlign from '@tiptap/extension-text-align';
-import { IndentParagraph } from '@/components/editor/extensions/IndentParagraph';
+import { IndentParagraph } from '@/adapters/tiptap/IndentParagraph';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChevronLeft, ChevronRight, BookOpen, Menu, X } from 'lucide-react';

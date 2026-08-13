@@ -14,6 +14,7 @@ import { UpdateProjectProviderUseCase } from '@/application/use-cases/UpdateProj
 import {
   ActionResult,
   getAuthenticatedUserId,
+  getIdGenerator,
   getRepository,
   getProviderRepo,
   getMetadataRepo,
@@ -130,7 +131,8 @@ export async function createProjectAction(
   return withErrorHandling(async () => {
     const useCase = new CreateProjectUseCase(
       await getRepository(),
-      await getProviderRepo()
+      await getProviderRepo(),
+      await getIdGenerator(),
     );
 
     const project = await useCase.execute({

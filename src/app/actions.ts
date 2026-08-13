@@ -20,6 +20,7 @@ import {
   type ActionResult,
   getAuthenticatedUserId,
   getRepository,
+  getIdGenerator,
   getDocumentParser,
   getFolderParser,
   getDocumentExporter,
@@ -73,8 +74,9 @@ export async function importDocument(
     const buffer = Buffer.from(await file.arrayBuffer());
     const parser = await getDocumentParser();
     const repository = await getRepository();
+    const idGenerator = await getIdGenerator();
 
-    const useCase = new ImportProjectUseCase(parser, repository);
+    const useCase = new ImportProjectUseCase(parser, repository, idGenerator);
     const project = await useCase.execute(auth.userId, buffer, file.name);
 
     return serializeProject(project);
@@ -111,9 +113,10 @@ export async function importFolder(
 
     const parser = await getFolderParser();
     const repository = await getRepository();
+    const idGenerator = await getIdGenerator();
 
     const projectTitle = title?.trim() || 'Nouveau projet';
-    const useCase = new ImportFolderUseCase(parser, repository);
+    const useCase = new ImportFolderUseCase(parser, repository, idGenerator);
     const project = await useCase.execute(auth.userId, folderFiles, projectTitle);
 
     return serializeProject(project);

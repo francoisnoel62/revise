@@ -15,6 +15,7 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "typecheck": "tsc --noEmit --project tsconfig.check.json",
+    "architecture:check": "node scripts/check-architecture.mjs",
     "test:unit": "vitest run --exclude \"**/*.integration.test.ts\"",
     "test:integration": "vitest --config vitest.integration.config.ts --run",
     "test:integration:db": "vitest run --config vitest.integration.config.ts src/app/actions/__tests__/ai-usage-tracking.integration.test.ts src/application/services/__tests__/AIContextBuilder.integration.test.ts src/infrastructure/document/document-pipeline.integration.test.ts src/infrastructure/persistence/MongoDBExchangeRepository.integration.test.ts src/infrastructure/persistence/MongoDBSnapshotRepository.integration.test.ts",

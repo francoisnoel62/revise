@@ -11,6 +11,7 @@ describe('ImportFolderUseCase', () => {
   let mockParser: FolderParser;
   let mockRepository: ProjectRepository;
   let useCase: ImportFolderUseCase;
+  const testIdGenerator = { generate: () => 'folder-project-id' };
 
   const createMockChapter = (id: string, title: string, order: number): Chapter => {
     return new Chapter(id, title, JSON.stringify({ type: 'doc', content: [] }), order);
@@ -34,7 +35,7 @@ describe('ImportFolderUseCase', () => {
       findPublishedByToken: vi.fn(),
     };
 
-    useCase = new ImportFolderUseCase(mockParser, mockRepository);
+    useCase = new ImportFolderUseCase(mockParser, mockRepository, testIdGenerator);
   });
 
   const createFile = (name: string, content: string): FolderFile => ({

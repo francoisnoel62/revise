@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { MoreVertical, Edit, Trash, CheckCircle, XCircle, RefreshCw, Loader2 } from 'lucide-react';
-import { PROVIDER_NAMES } from '@/infrastructure/config/ai-models';
+import { PROVIDER_NAMES } from '@/application/providers/ProviderCatalog';
 
 export interface ProviderCardProps {
   provider: SafeProvider;

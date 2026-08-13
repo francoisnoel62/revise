@@ -12,13 +12,11 @@ import {
   PublicationProfile,
   type PublicationProfileId,
 } from '@/domain/value-objects/PublicationProfile';
-import { PagedJsRenderer } from '@/infrastructure/document/paged/PagedJsRenderer';
-import { TipTapToBookHtml } from '@/infrastructure/document/paged/TipTapToBookHtml';
+import type { PagedRenderer } from '@/application/interfaces/PagedRenderer';
+import type { TipTapToHtmlConverter } from '@/application/interfaces/TipTapToHtmlConverter';
 import { tagWordAnchors } from '@/application/services/wordAnchors';
 import type { LevelStyleSetProperties } from '@/domain/value-objects/LevelStyleSet';
 
-const renderer = new PagedJsRenderer();
-const converter = new TipTapToBookHtml();
 const WORDS_PER_SCROLL_SEGMENT = 1000;
 
 interface PagedRenderedMessage {
@@ -38,6 +36,9 @@ const ZERO_SCROLL_POSITION: ScrollPosition = { segmentIndex: 0, localRatio: 0 };
 
 interface PublicationPreviewProps {
   readonly content: ContentNode;
+  /** Application seams assembled by the editor entry point. */
+  readonly renderer: PagedRenderer;
+  readonly converter: TipTapToHtmlConverter;
   readonly profileId: PublicationProfileId;
   readonly overrides: PresentationOverrideLayer;
   /** First Arabic page number to display (default 1). */
@@ -53,6 +54,8 @@ interface PublicationPreviewProps {
 
 export function PublicationPreview({
   content,
+  renderer,
+  converter,
   profileId,
   overrides,
   startPageNumber,
@@ -120,7 +123,16 @@ export function PublicationPreview({
       levelStyles,
       honorBlankLines,
     });
-  }, [honorBlankLines, levelStyles, overrides, profileId, renderedContent, startPageNumber]);
+  }, [
+    converter,
+    honorBlankLines,
+    levelStyles,
+    overrides,
+    profileId,
+    renderedContent,
+    renderer,
+    startPageNumber,
+  ]);
 
   const label = profileId === 'passerelle' ? 'Passerelle' : 'KDP 6×9';
 

@@ -94,6 +94,7 @@ import type { PresentationOverrideLayer } from '@/domain/value-objects/Presentat
 import type { ContentNode } from '@/domain/value-objects/ContentNode';
 import { useBookPageOffset } from '@/hooks/useBookPageOffset';
 import { useGrammarCheck } from '@/hooks/useGrammarCheck';
+import { createEditorPagedRendering } from './paged-rendering';
 import {
   buildSemanticInsertContent,
   getSemanticRoleFromAttrs,
@@ -103,6 +104,9 @@ interface Proposal {
   content: string;
   styleLabel?: string;
 }
+
+const previewPagedRendering = createEditorPagedRendering();
+const backgroundPagedRendering = createEditorPagedRendering();
 
 function EditorContent() {
   const searchParams = useSearchParams();
@@ -1051,6 +1055,8 @@ function EditorContent() {
         previewSlot={
           <PublicationPreview
             content={JSON.parse(activeContent) as ContentNode}
+            renderer={previewPagedRendering.renderer}
+            converter={previewPagedRendering.converter}
             profileId={publicationProfileId}
             overrides={presentationOverrides}
             startPageNumber={startPageNumber}
@@ -1068,6 +1074,8 @@ function EditorContent() {
       <BackgroundPageCounter
         chapterId={nextChapterIdToRender}
         content={backgroundChapterContent}
+        renderer={backgroundPagedRendering.renderer}
+        converter={backgroundPagedRendering.converter}
         profileId={publicationProfileId}
         onPageCount={onPageCountChange}
         levelStyles={activeLevelStyles}

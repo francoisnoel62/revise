@@ -10,7 +10,7 @@ import {
   type LifecyclePayload,
   type DeletionPayload,
   type PrefetchTelemetryRecord,
-} from './autocompleteTelemetry';
+} from '@/application/services/AutocompleteTelemetry';
 import { nextWord, nextFragment } from './suggestionSegments';
 import {
   type AutocompleteIntent,

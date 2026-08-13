@@ -7,13 +7,17 @@ import { Project } from '@/domain/entities/Project';
 import { Chapter } from '@/domain/entities/Chapter';
 
 describe('AddChapterUseCase', () => {
+  let nextId = 0;
+  const createUseCase = () =>
+    new AddChapterUseCase({ generate: () => `chapter-test-${nextId++}` });
+
   const createMockChapter = (id: string, title: string, order: number): Chapter => {
     const content = JSON.stringify({ type: 'doc', content: [] });
     return new Chapter(id, title, content, order);
   };
 
   it('should add new chapter to empty project', () => {
-    const useCase = new AddChapterUseCase();
+    const useCase = createUseCase();
     const project = Project.create('test-user', 'Test Project', []);
 
     const chapter = useCase.execute(project);
@@ -23,8 +27,17 @@ describe('AddChapterUseCase', () => {
     expect(chapter.getOrder()).toBe(0);
   });
 
+  it('uses the injected ID generator for a new chapter', () => {
+    const useCase = new AddChapterUseCase({ generate: () => 'chapter-deterministe' });
+    const project = Project.create('test-user', 'Test Project', []);
+
+    const chapter = useCase.execute(project);
+
+    expect(chapter.getId()).toBe('chapter-deterministe');
+  });
+
   it('should add new chapter with sequential numbering', () => {
-    const useCase = new AddChapterUseCase();
+    const useCase = createUseCase();
     const existingChapters = [
       createMockChapter('id-1', 'Chapter 1', 0),
       createMockChapter('id-2', 'Chapter 2', 1),
@@ -39,7 +52,7 @@ describe('AddChapterUseCase', () => {
   });
 
   it('should create chapter starting with a titre-de-chapitre H1 (no fallback needed at export)', () => {
-    const useCase = new AddChapterUseCase();
+    const useCase = createUseCase();
     const project = Project.create('test-user', 'Test Project', []);
 
     const chapter = useCase.execute(project);
@@ -54,7 +67,7 @@ describe('AddChapterUseCase', () => {
   });
 
   it('should generate unique chapter IDs', () => {
-    const useCase = new AddChapterUseCase();
+    const useCase = createUseCase();
     const project = Project.create('test-user', 'Test Project', []);
 
     const chapter1 = useCase.execute(project);
@@ -65,7 +78,7 @@ describe('AddChapterUseCase', () => {
   });
 
   it('should add chapter to project', () => {
-    const useCase = new AddChapterUseCase();
+    const useCase = createUseCase();
     const project = Project.createEmpty('test-user', 'Test Project');
 
     const chapter = useCase.execute(project);

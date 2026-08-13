@@ -1,9 +1,9 @@
 // ABOUTME: Use case for importing a DOCX file as a multi-chapter project.
 // ABOUTME: Parses document, splits by H1 headings, and creates Project entity.
 
-import { randomUUID } from 'crypto';
 import { DocumentParser } from '@/domain/interfaces/DocumentParser';
 import { ProjectRepository } from '@/domain/interfaces/ProjectRepository';
+import type { IdGenerator } from '@/domain/interfaces/IdGenerator';
 import { Project } from '@/domain/entities/Project';
 import type { ContentNode } from '@/domain/value-objects/ContentNode';
 import { ensureChapterTitleHeading } from '@/application/migration/ChapterTitleHeadingMigration';
@@ -11,7 +11,8 @@ import { ensureChapterTitleHeading } from '@/application/migration/ChapterTitleH
 export class ImportProjectUseCase {
   constructor(
     private parser: DocumentParser,
-    private repository?: ProjectRepository // Optional for backward compatibility
+    private repository: ProjectRepository | undefined, // Optional for backward compatibility
+    private readonly idGenerator: IdGenerator,
   ) {}
 
   /**
@@ -40,18 +41,14 @@ export class ImportProjectUseCase {
     });
 
     // Create project with ownership if userId provided
-    const project = userId
-      ? Project.create(userId, this.extractProjectTitle(filename), chapters)
-      : new Project(
-          randomUUID(),
-          '', // No owner in legacy mode
-          this.extractProjectTitle(filename),
-          chapters,
-          chapters[0]?.getId() ?? null,
-          null, // providerId
-          new Date(),
-          new Date()
-        );
+    const now = new Date();
+    const project = Project.create(
+      userId ?? '',
+      this.extractProjectTitle(filename),
+      chapters,
+      null,
+      { idGenerator: this.idGenerator, now },
+    );
 
     // Persist if repository provided
     if (this.repository && userId) {

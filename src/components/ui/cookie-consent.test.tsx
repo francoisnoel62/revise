@@ -25,7 +25,7 @@ describe('CookieConsent', () => {
     });
 
     expect(screen.getByText('Nous utilisons des cookies')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /accepter/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /mémoriser ce choix/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /refuser/i })).toBeInTheDocument();
   });
 
@@ -57,7 +57,7 @@ describe('CookieConsent', () => {
       vi.advanceTimersByTime(200);
     });
 
-    const acceptButton = screen.getByRole('button', { name: /accepter/i });
+    const acceptButton = screen.getByRole('button', { name: /mémoriser ce choix/i });
     fireEvent.click(acceptButton);
 
     expect(document.cookie).toContain('cookieConsent=true');
@@ -85,7 +85,7 @@ describe('CookieConsent', () => {
       vi.advanceTimersByTime(200);
     });
 
-    const acceptButton = screen.getByRole('button', { name: /accepter/i });
+    const acceptButton = screen.getByRole('button', { name: /mémoriser ce choix/i });
     fireEvent.click(acceptButton);
 
     // Component should still exist during animation

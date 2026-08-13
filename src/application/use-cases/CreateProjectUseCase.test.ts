@@ -31,6 +31,8 @@ describe('CreateProjectUseCase', () => {
     deleteAllByOwner: vi.fn(),
   });
 
+  const testIdGenerator = { generate: () => 'project-test-id' };
+
   const createValidProvider = (id: string): Provider => {
     return new Provider(
       id,
@@ -60,10 +62,24 @@ describe('CreateProjectUseCase', () => {
   };
 
   describe('project creation without provider (AI is optional)', () => {
+    it('uses the injected ID generator for the project and its first chapter', async () => {
+      const projectRepo = createMockProjectRepository();
+      const providerRepo = createMockProviderRepository();
+      const ids = ['chapter-100', 'project-100'];
+      const useCase = new CreateProjectUseCase(projectRepo, providerRepo, {
+        generate: () => ids.shift()!,
+      });
+
+      const project = await useCase.execute({ ownerId: 'owner-123' });
+
+      expect(project.getId()).toBe('project-100');
+      expect(project.getChapters()[0]?.getId()).toBe('chapter-100');
+    });
+
     it('should create project without any providers configured', async () => {
       const projectRepo = createMockProjectRepository();
       const providerRepo = createMockProviderRepository();
-      const useCase = new CreateProjectUseCase(projectRepo, providerRepo);
+      const useCase = new CreateProjectUseCase(projectRepo, providerRepo, testIdGenerator);
 
       const result = await useCase.execute({
         ownerId: 'owner-123',
@@ -79,7 +95,7 @@ describe('CreateProjectUseCase', () => {
     it('should create project with default title when not provided', async () => {
       const projectRepo = createMockProjectRepository();
       const providerRepo = createMockProviderRepository();
-      const useCase = new CreateProjectUseCase(projectRepo, providerRepo);
+      const useCase = new CreateProjectUseCase(projectRepo, providerRepo, testIdGenerator);
 
       const result = await useCase.execute({
         ownerId: 'owner-123',
@@ -94,7 +110,7 @@ describe('CreateProjectUseCase', () => {
       providerRepo.listProviders = vi.fn().mockResolvedValue([
         createValidProvider('provider-1'),
       ]);
-      const useCase = new CreateProjectUseCase(projectRepo, providerRepo);
+      const useCase = new CreateProjectUseCase(projectRepo, providerRepo, testIdGenerator);
 
       const result = await useCase.execute({
         ownerId: 'owner-123',
@@ -112,7 +128,7 @@ describe('CreateProjectUseCase', () => {
       const validProvider = createValidProvider('provider-123');
       providerRepo.findById = vi.fn().mockResolvedValue(validProvider);
 
-      const useCase = new CreateProjectUseCase(projectRepo, providerRepo);
+      const useCase = new CreateProjectUseCase(projectRepo, providerRepo, testIdGenerator);
 
       const result = await useCase.execute({
         ownerId: 'owner-123',
@@ -128,7 +144,7 @@ describe('CreateProjectUseCase', () => {
       const providerRepo = createMockProviderRepository();
       providerRepo.findById = vi.fn().mockResolvedValue(null);
 
-      const useCase = new CreateProjectUseCase(projectRepo, providerRepo);
+      const useCase = new CreateProjectUseCase(projectRepo, providerRepo, testIdGenerator);
 
       await expect(
         useCase.execute({
@@ -145,7 +161,7 @@ describe('CreateProjectUseCase', () => {
       const invalidProvider = createInvalidProvider('provider-456');
       providerRepo.findById = vi.fn().mockResolvedValue(invalidProvider);
 
-      const useCase = new CreateProjectUseCase(projectRepo, providerRepo);
+      const useCase = new CreateProjectUseCase(projectRepo, providerRepo, testIdGenerator);
 
       await expect(
         useCase.execute({
@@ -161,7 +177,7 @@ describe('CreateProjectUseCase', () => {
     it('should persist project to repository', async () => {
       const projectRepo = createMockProjectRepository();
       const providerRepo = createMockProviderRepository();
-      const useCase = new CreateProjectUseCase(projectRepo, providerRepo);
+      const useCase = new CreateProjectUseCase(projectRepo, providerRepo, testIdGenerator);
 
       const result = await useCase.execute({
         ownerId: 'owner-123',

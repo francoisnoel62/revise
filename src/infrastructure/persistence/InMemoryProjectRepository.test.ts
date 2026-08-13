@@ -1,6 +1,6 @@
 // ABOUTME: Tests for InMemoryProjectRepository multi-tenant behavior.
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { InMemoryProjectRepository } from './InMemoryProjectRepository';
 import { Project } from '@/domain/entities/Project';
 import { Chapter } from '@/domain/entities/Chapter';
@@ -129,6 +129,29 @@ describe('InMemoryProjectRepository', () => {
   });
 
   describe('replaceProjectIfUnchanged', () => {
+    it('keeps the persisted project independent from the caller instance', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
+      try {
+        const project = Project.create('user-1', 'Original', []);
+        await repository.createProject('user-1', project);
+        const loaded = await repository.loadProject('user-1', project.getId());
+        const expectedUpdatedAt = loaded!.getUpdatedAt();
+
+        expect(loaded).not.toBe(project);
+
+        vi.setSystemTime(new Date('2026-01-01T00:00:01.000Z'));
+        loaded!.updateTitle('Updated');
+
+        await expect(
+          repository.replaceProjectIfUnchanged('user-1', loaded!, expectedUpdatedAt),
+        ).resolves.toBe(true);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it('replaces the project when updatedAt matches', async () => {
       const project = Project.create('user-1', 'Original', []);
       await repository.createProject('user-1', project);
@@ -236,6 +259,7 @@ describe('InMemoryProjectRepository', () => {
 
       const loaded = await repository.loadProject('user-1', project.getId());
       expect(loaded?.getUpdatedAt().getTime()).toBeGreaterThan(initialUpdatedAt.getTime());
+      expect(loaded?.getChapter('ch-1')?.getContent()).toContain('new content');
     });
   });
 });

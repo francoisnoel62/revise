@@ -10,18 +10,18 @@ import {
   PublicationProfile,
   type PublicationProfileId,
 } from '@/domain/value-objects/PublicationProfile';
-import { PagedJsRenderer } from '@/infrastructure/document/paged/PagedJsRenderer';
-import { TipTapToBookHtml } from '@/infrastructure/document/paged/TipTapToBookHtml';
+import type { PagedRenderer } from '@/application/interfaces/PagedRenderer';
+import type { TipTapToHtmlConverter } from '@/application/interfaces/TipTapToHtmlConverter';
 import type { LevelStyleSetProperties } from '@/domain/value-objects/LevelStyleSet';
-
-const renderer = new PagedJsRenderer();
-const converter = new TipTapToBookHtml();
 
 interface BackgroundPageCounterProps {
   /** ID of the chapter to render; null = nothing to do. */
   readonly chapterId: string | null;
   /** Raw TipTap JSON string for that chapter. */
   readonly content: string | null;
+  /** Application seams assembled by the editor entry point. */
+  readonly renderer: PagedRenderer;
+  readonly converter: TipTapToHtmlConverter;
   readonly profileId: PublicationProfileId;
   /** Called once the hidden iframe reports the page count. */
   readonly onPageCount: (chapterId: string, count: number) => void;
@@ -38,6 +38,8 @@ interface BackgroundPageCounterProps {
 export function BackgroundPageCounter({
   chapterId,
   content,
+  renderer,
+  converter,
   profileId,
   onPageCount,
   levelStyles,
@@ -81,7 +83,7 @@ export function BackgroundPageCounter({
     } catch {
       return null;
     }
-  }, [chapterId, content, honorBlankLines, levelStyles, profileId]);
+  }, [chapterId, content, converter, honorBlankLines, levelStyles, profileId, renderer]);
 
   if (!html) return null;
 

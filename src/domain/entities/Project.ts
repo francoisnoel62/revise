@@ -1,8 +1,32 @@
 // ABOUTME: Project aggregate root representing a user's writing project.
 // ABOUTME: Contains chapters and manages ownership for multi-tenant persistence.
 
-import { randomUUID } from 'crypto';
+import type { IdGenerator } from '../interfaces/IdGenerator';
 import { Chapter } from './Chapter';
+
+/** Dependencies required when project creation or publication must be deterministic. */
+export interface ProjectLifecycleDependencies {
+  readonly idGenerator: IdGenerator;
+  readonly now: Date;
+}
+
+function resolveLifecycleDependencies(
+  dependencies?: ProjectLifecycleDependencies,
+): ProjectLifecycleDependencies {
+  if (dependencies) return dependencies;
+
+  return {
+    idGenerator: {
+      generate: () => {
+        if (typeof globalThis.crypto?.randomUUID !== 'function') {
+          throw new Error('A secure ID generator is required to create a project');
+        }
+        return globalThis.crypto.randomUUID();
+      },
+    },
+    now: new Date(),
+  };
+}
 
 /**
  * Project aggregate root.
@@ -61,11 +85,12 @@ export class Project {
     ownerId: string,
     title: string = 'Nouveau projet',
     chapters: Chapter[] = [],
-    providerId: string | null = null
+    providerId: string | null = null,
+    dependencies?: ProjectLifecycleDependencies,
   ): Project {
-    const now = new Date();
+    const { idGenerator, now } = resolveLifecycleDependencies(dependencies);
     return new Project(
-      randomUUID(),
+      idGenerator.generate(),
       ownerId,
       title,
       chapters,
@@ -80,14 +105,19 @@ export class Project {
    * Create an empty project for a new user.
    * Includes one default chapter.
    */
-  static createEmpty(ownerId: string, title: string = 'Nouveau projet'): Project {
+  static createEmpty(
+    ownerId: string,
+    title: string = 'Nouveau projet',
+    dependencies?: ProjectLifecycleDependencies,
+  ): Project {
+    const { idGenerator } = resolveLifecycleDependencies(dependencies);
     const defaultChapter = new Chapter(
-      randomUUID(),
+      idGenerator.generate(),
       'Chapitre 1',
       JSON.stringify({ type: 'doc', content: [{ type: 'paragraph' }] }),
       0
     );
-    return Project.create(ownerId, title, [defaultChapter]);
+    return Project.create(ownerId, title, [defaultChapter], null, dependencies);
   }
 
   // === Getters ===
@@ -279,12 +309,13 @@ export class Project {
    * Generates a share token if none exists.
    * @param chapterIds - Optional list of chapter IDs to publish. If not provided, all chapters are published.
    */
-  publish(chapterIds?: string[]): void {
+  publish(chapterIds?: string[], dependencies?: ProjectLifecycleDependencies): void {
+    const { idGenerator, now } = resolveLifecycleDependencies(dependencies);
     if (!this.shareToken) {
-      this.shareToken = randomUUID();
+      this.shareToken = idGenerator.generate();
     }
     this.isPublished = true;
-    this.publishedAt = new Date();
+    this.publishedAt = now;
     this.publishedChapterIds = chapterIds ? [...chapterIds] : null;
     this.touch();
   }
@@ -302,8 +333,8 @@ export class Project {
    * Generate a new share token.
    * Useful when revoking existing shared links.
    */
-  regenerateShareToken(): void {
-    this.shareToken = randomUUID();
+  regenerateShareToken(dependencies?: ProjectLifecycleDependencies): void {
+    this.shareToken = resolveLifecycleDependencies(dependencies).idGenerator.generate();
     this.touch();
   }
 }

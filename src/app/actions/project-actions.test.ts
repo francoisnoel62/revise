@@ -11,6 +11,7 @@ import {
 // Mock the utils module
 vi.mock('./utils', () => ({
   getAuthenticatedUserId: vi.fn(),
+  getIdGenerator: vi.fn(),
   getRepository: vi.fn(),
   getProviderRepo: vi.fn(),
   getMetadataRepo: vi.fn(),
@@ -27,7 +28,7 @@ vi.mock('./utils', () => ({
   }),
 }));
 
-import { getAuthenticatedUserId, getRepository, getProviderRepo, getMetadataRepo, getProjectSettingsRepo, getSnapshotRepo, getWritingGoalRepo } from './utils';
+import { getAuthenticatedUserId, getIdGenerator, getRepository, getProviderRepo, getMetadataRepo, getProjectSettingsRepo, getSnapshotRepo, getWritingGoalRepo } from './utils';
 import { InMemoryProjectRepository } from '@/infrastructure/persistence/InMemoryProjectRepository';
 import { Project } from '@/domain/entities/Project';
 import { Provider } from '@/domain/entities/Provider';
@@ -54,6 +55,7 @@ describe('project-actions', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(getIdGenerator).mockResolvedValue({ generate: () => globalThis.crypto.randomUUID() });
     mockRepository = new InMemoryProjectRepository();
     vi.mocked(getRepository).mockResolvedValue(mockRepository);
 

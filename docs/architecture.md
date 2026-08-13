@@ -9,6 +9,7 @@
 | Domaine | `src/domain/` | Entités, value objects et ports sans dépendance à Next.js ou MongoDB. |
 | Application | `src/application/` | Cas d'usage, services de contexte, rendu de livre et migrations. |
 | Infrastructure | `src/infrastructure/` | MongoDB, Auth.js, fournisseurs IA, exporteurs, chiffrement et moteurs linguistiques. |
+| Adaptateurs techniques partagés | `src/adapters/` | Intégrations concrètes partagées par plusieurs couches externes, sans dépendance vers l'interface. |
 | Interface | `src/app/`, `src/components/`, `src/hooks/` | Pages App Router, Server Actions, routes API, composants React et hooks. |
 
 Les Server Actions sont l'entrée habituelle du produit. Les exceptions HTTP nécessaires sont les routes Auth.js, les flux SSE d'autocomplétion et de chat personnage, l'approbation, le PDF d'aperçu et le cron de tarification.
@@ -30,6 +31,8 @@ MongoDB, fournisseur IA, Paged.js, nspell, Grammalecte, Vercel Blob…
 ## Composition et dépendances
 
 `src/infrastructure/config/providers.ts` est la racine de composition de production. Elle assemble les dépôts MongoDB, les fournisseurs OpenAI/Anthropic/Google configurés par l'utilisateur, les moteurs de correction, les exporteurs et les caches. Les fonctions de `src/app/actions/utils.ts` adaptent cette composition aux Server Actions, ajoutent l'authentification et enveloppent les appels IA suivis dans `TrackedLLMProvider`.
+
+L'éditeur assemble séparément ses adaptateurs de rendu paginé dans `src/app/editor/paged-rendering.ts`. Les composants d'aperçu ne connaissent que les interfaces applicatives `PagedRenderer` et `TipTapToHtmlConverter`. Les extensions TipTap, concrètes mais partagées par l'éditeur et les conversions serveur, vivent dans `src/adapters/tiptap/`.
 
 En production, le stockage applicatif est MongoDB. Les clés API sont chiffrées avant persistance ; l'éventuel journal détaillé des échanges IA est chiffré séparément. Les images de couverture utilisent Vercel Blob. Le remplacement du dépôt de projet par une implémentation en mémoire est réservé aux tests.
 
@@ -130,5 +133,7 @@ Les Server Actions sont regroupées par capacité dans `src/app/actions/`. Elles
 ## Tests et évolution documentaire
 
 Les tests unitaires couvrent le domaine et l'application ; les tests d'intégration et E2E vérifient l'infrastructure et les parcours. Les corpus Grammalecte sont dans `src/infrastructure/grammar/fixtures/`. Les prompts exécutés sont des ressources runtime dans `docs/prompt/`.
+
+`npm run architecture:check` vérifie les dépendances de production : le domaine et l'application restent indépendants des couches externes, l'infrastructure ne remonte pas vers les composants, et les composants, hooks, stores et utilitaires ne sélectionnent pas directement l'infrastructure. `src/app` est la couche de composition autorisée à assembler ces dépendances. Lancer ce contrôle avec les tests, le typage et le lint avant toute livraison.
 
 Lors d'un changement de capacité, mettre à jour dans le même lot le guide utilisateur concerné, ce document, le README de la couche touchée et toute page légale qui décrit un flux de données. Les ADR restent historiques : compléter leur statut plutôt que de réécrire leur décision d'origine.

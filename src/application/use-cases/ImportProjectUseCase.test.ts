@@ -30,10 +30,11 @@ class MockDocumentParser implements DocumentParser {
 describe('ImportProjectUseCase', () => {
   let mockParser: MockDocumentParser;
   let useCase: ImportProjectUseCase;
+  const testIdGenerator = { generate: () => 'imported-project-id' };
 
   beforeEach(() => {
     mockParser = new MockDocumentParser();
-    useCase = new ImportProjectUseCase(mockParser, undefined);
+    useCase = new ImportProjectUseCase(mockParser, undefined, testIdGenerator);
   });
 
   const createMockChapter = (id: string, title: string, order: number): Chapter => {
@@ -137,7 +138,7 @@ describe('ImportProjectUseCase', () => {
         return true;
       },
     };
-    const failingUseCase = new ImportProjectUseCase(failingParser, undefined);
+    const failingUseCase = new ImportProjectUseCase(failingParser, undefined, testIdGenerator);
 
     await expect(async () => {
       await failingUseCase.execute(null, Buffer.from('data'), 'file.docx');

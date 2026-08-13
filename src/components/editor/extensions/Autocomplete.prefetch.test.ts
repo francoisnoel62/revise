@@ -12,7 +12,7 @@ import {
   type AutocompleteOptions,
   type AutocompleteStorage,
 } from './Autocomplete';
-import type { PrefetchTelemetryRecord } from './autocompleteTelemetry';
+import type { PrefetchTelemetryRecord } from '@/application/services/AutocompleteTelemetry';
 import { Editor } from '@tiptap/core';
 import Document from '@tiptap/extension-document';
 import Paragraph from '@tiptap/extension-paragraph';

@@ -22,6 +22,26 @@ describe('Project', () => {
   };
 
   describe('constructor and factories', () => {
+    it('uses caller-supplied IDs and time when creating and publishing a project', () => {
+      const ids = ['project-42', 'share-token-42'];
+      const idGenerator = { generate: () => ids.shift()! };
+      const createdAt = new Date('2026-08-13T10:00:00.000Z');
+      const publishedAt = new Date('2026-08-13T11:00:00.000Z');
+
+      const project = Project.create('author-42', 'Projet déterministe', [], null, {
+        idGenerator,
+        now: createdAt,
+      });
+
+      expect(project.getId()).toBe('project-42');
+      expect(project.getCreatedAt()).toEqual(createdAt);
+
+      project.publish(undefined, { idGenerator, now: publishedAt });
+
+      expect(project.getShareToken()).toBe('share-token-42');
+      expect(project.getPublishedAt()).toEqual(publishedAt);
+    });
+
     it('should create empty project with factory', () => {
       const project = createTestProject('Empty', []);
 

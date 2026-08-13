@@ -6,7 +6,7 @@ import {
   AutocompleteLifecycleTracker,
   buildPrefetchDiscardedPayload,
   type PrefetchTelemetryRecord,
-} from '../autocompleteTelemetry';
+} from '../AutocompleteTelemetry';
 
 function makeClock(times: number[]): () => number {
   let i = 0;

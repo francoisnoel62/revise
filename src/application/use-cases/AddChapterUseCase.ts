@@ -3,8 +3,11 @@
 
 import { Project } from '@/domain/entities/Project';
 import { Chapter } from '@/domain/entities/Chapter';
+import type { IdGenerator } from '@/domain/interfaces/IdGenerator';
 
 export class AddChapterUseCase {
+  constructor(private readonly idGenerator: IdGenerator) {}
+
   execute(project: Project): Chapter {
     const chapterCount = project.getChapterCount();
     const order = chapterCount;
@@ -24,7 +27,7 @@ export class AddChapterUseCase {
     });
 
     const chapter = new Chapter(
-      crypto.randomUUID(), // eslint-disable-line no-undef
+      this.idGenerator.generate(),
       title,
       initialContent,
       order

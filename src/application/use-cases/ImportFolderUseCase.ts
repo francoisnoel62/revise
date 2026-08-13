@@ -3,12 +3,14 @@
 
 import { FolderParser, FolderFile } from '@/domain/interfaces/FolderParser';
 import { ProjectRepository } from '@/domain/interfaces/ProjectRepository';
+import type { IdGenerator } from '@/domain/interfaces/IdGenerator';
 import { Project } from '@/domain/entities/Project';
 
 export class ImportFolderUseCase {
   constructor(
     private parser: FolderParser,
-    private repository: ProjectRepository
+    private repository: ProjectRepository,
+    private readonly idGenerator: IdGenerator,
   ) {}
 
   /**
@@ -34,7 +36,13 @@ export class ImportFolderUseCase {
     }
 
     // Create project with the specified title
-    const project = Project.create(userId, projectTitle, chapters);
+    const project = Project.create(
+      userId,
+      projectTitle,
+      chapters,
+      null,
+      { idGenerator: this.idGenerator, now: new Date() },
+    );
 
     // Persist to database
     await this.repository.createProject(userId, project);

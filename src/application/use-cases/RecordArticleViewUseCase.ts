@@ -1,10 +1,10 @@
 // ABOUTME: Use case for recording a blog article view
 // ABOUTME: Uses visitor fingerprint (IP + User-Agent hash) to prevent duplicate counting
 
-import { randomUUID } from 'node:crypto';
 import { ArticleView } from '../../domain/entities/ArticleView';
 import { ArticleViewRepository } from '../../domain/interfaces/ArticleViewRepository';
 import { BlogArticleRepository } from '../../domain/interfaces/BlogArticleRepository';
+import type { IdGenerator } from '@/domain/interfaces/IdGenerator';
 
 export interface RecordArticleViewInput {
   articleId: string;
@@ -21,7 +21,8 @@ export class RecordArticleViewUseCase {
   constructor(
     private readonly articleViewRepository: ArticleViewRepository,
     private readonly blogArticleRepository: BlogArticleRepository,
-    private readonly hashFunction: (text: string) => string
+    private readonly hashFunction: (text: string) => string,
+    private readonly idGenerator: IdGenerator,
   ) {}
 
   async execute(input: RecordArticleViewInput): Promise<RecordArticleViewResult> {
@@ -51,7 +52,7 @@ export class RecordArticleViewUseCase {
 
     // Record the new view
     const view = ArticleView.create({
-      id: randomUUID(),
+      id: this.idGenerator.generate(),
       articleId: input.articleId,
       visitorHash,
     });

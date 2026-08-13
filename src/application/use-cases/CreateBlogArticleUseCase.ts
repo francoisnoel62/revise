@@ -1,9 +1,9 @@
 // ABOUTME: Use case for creating a new blog article
 // ABOUTME: Admin-only - caller must verify admin status before calling
 
-import { randomUUID } from 'node:crypto';
 import { BlogArticle } from '../../domain/entities/BlogArticle';
 import { BlogArticleRepository } from '../../domain/interfaces/BlogArticleRepository';
+import type { IdGenerator } from '@/domain/interfaces/IdGenerator';
 
 export interface CreateBlogArticleInput {
   authorId: string;
@@ -20,7 +20,10 @@ export interface CreateBlogArticleResult {
 }
 
 export class CreateBlogArticleUseCase {
-  constructor(private readonly blogArticleRepository: BlogArticleRepository) {}
+  constructor(
+    private readonly blogArticleRepository: BlogArticleRepository,
+    private readonly idGenerator: IdGenerator,
+  ) {}
 
   async execute(input: CreateBlogArticleInput): Promise<CreateBlogArticleResult> {
     // Validate required fields
@@ -52,7 +55,7 @@ export class CreateBlogArticleUseCase {
 
     // Create the article entity
     const article = BlogArticle.create({
-      id: randomUUID(),
+      id: this.idGenerator.generate(),
       slug: input.slug,
       title: input.title,
       excerpt: input.excerpt,

@@ -3,6 +3,7 @@
 
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { createEditorPagedRendering } from '@/app/editor/paged-rendering';
 import { BackgroundPageCounter } from './BackgroundPageCounter';
 
 const CHAPTER_ID = 'ch-background';
@@ -11,12 +12,41 @@ const CONTENT = JSON.stringify({
   content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Fond de scène.' }] }],
 });
 
+const pagedRendering = createEditorPagedRendering();
+
 describe('BackgroundPageCounter', () => {
+  it('uses the supplied application adapters to prepare the hidden iframe', () => {
+    const converter = { convert: vi.fn(() => '<p>Compteur converti</p>') };
+    const renderer = { render: vi.fn(() => '<!doctype html><html>Compteur injecté</html>') };
+
+    render(
+      <BackgroundPageCounter
+        chapterId={CHAPTER_ID}
+        content={CONTENT}
+        profileId="kdp-6x9"
+        onPageCount={vi.fn()}
+        converter={converter}
+        renderer={renderer}
+      />
+    );
+
+    expect(converter.convert).toHaveBeenCalled();
+    expect(renderer.render).toHaveBeenCalledWith(
+      expect.objectContaining({ bodyHtml: '<p>Compteur converti</p>', sourceId: CHAPTER_ID })
+    );
+    expect(screen.getByTestId('background-page-counter')).toHaveAttribute(
+      'srcdoc',
+      '<!doctype html><html>Compteur injecté</html>'
+    );
+  });
+
   it('renders nothing when chapterId is null', () => {
     const { container } = render(
       <BackgroundPageCounter
         chapterId={null}
         content={null}
+        renderer={pagedRendering.renderer}
+        converter={pagedRendering.converter}
         profileId="kdp-6x9"
         onPageCount={vi.fn()}
       />
@@ -29,6 +59,8 @@ describe('BackgroundPageCounter', () => {
       <BackgroundPageCounter
         chapterId={CHAPTER_ID}
         content={null}
+        renderer={pagedRendering.renderer}
+        converter={pagedRendering.converter}
         profileId="kdp-6x9"
         onPageCount={vi.fn()}
       />
@@ -41,6 +73,8 @@ describe('BackgroundPageCounter', () => {
       <BackgroundPageCounter
         chapterId={CHAPTER_ID}
         content={CONTENT}
+        renderer={pagedRendering.renderer}
+        converter={pagedRendering.converter}
         profileId="kdp-6x9"
         onPageCount={vi.fn()}
       />
@@ -56,6 +90,8 @@ describe('BackgroundPageCounter', () => {
       <BackgroundPageCounter
         chapterId={CHAPTER_ID}
         content={CONTENT}
+        renderer={pagedRendering.renderer}
+        converter={pagedRendering.converter}
         profileId="kdp-6x9"
         onPageCount={vi.fn()}
       />
@@ -71,6 +107,8 @@ describe('BackgroundPageCounter', () => {
       <BackgroundPageCounter
         chapterId={CHAPTER_ID}
         content={CONTENT}
+        renderer={pagedRendering.renderer}
+        converter={pagedRendering.converter}
         profileId="kdp-6x9"
         onPageCount={onPageCount}
       />
@@ -96,6 +134,8 @@ describe('BackgroundPageCounter', () => {
       <BackgroundPageCounter
         chapterId={CHAPTER_ID}
         content={CONTENT}
+        renderer={pagedRendering.renderer}
+        converter={pagedRendering.converter}
         profileId="kdp-6x9"
         onPageCount={onPageCount}
       />

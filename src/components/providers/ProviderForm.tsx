@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, CheckCircle, XCircle, ExternalLink } from 'lucide-react';
-import { PROVIDER_NAMES, PROVIDER_DOCS } from '@/infrastructure/config/ai-models';
+import { PROVIDER_NAMES, PROVIDER_DOCS } from '@/application/providers/ProviderCatalog';
 
 export interface ProviderFormProps {
   provider?: SafeProvider;

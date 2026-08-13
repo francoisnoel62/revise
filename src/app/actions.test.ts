@@ -8,6 +8,7 @@ import { importDocument } from './actions';
 vi.mock('./actions/utils', () => ({
   getAuthenticatedUserId: vi.fn(),
   getRepository: vi.fn(),
+  getIdGenerator: vi.fn(),
   getDocumentParser: vi.fn(),
   withErrorHandling: vi.fn(async (fn) => {
     try {
@@ -22,6 +23,7 @@ vi.mock('./actions/utils', () => ({
 import {
   getAuthenticatedUserId,
   getRepository,
+  getIdGenerator,
   getDocumentParser,
 } from './actions/utils';
 import { InMemoryProjectRepository } from '@/infrastructure/persistence/InMemoryProjectRepository';
@@ -55,6 +57,7 @@ describe('importDocument', () => {
     vi.clearAllMocks();
     mockRepository = new InMemoryProjectRepository();
     vi.mocked(getRepository).mockResolvedValue(mockRepository);
+    vi.mocked(getIdGenerator).mockResolvedValue({ generate: () => 'project-import-id' });
 
     // Create mock parser
     mockParser = {
@@ -68,7 +71,7 @@ describe('importDocument', () => {
     vi.mocked(getDocumentParser).mockResolvedValue(mockParser as unknown as import('@/domain/interfaces/DocumentParser').DocumentParser);
   });
 
-  it('uses getDocumentParser for dependency injection', async () => {
+  it('uses composition-root dependencies for document import', async () => {
     vi.mocked(getAuthenticatedUserId).mockResolvedValue({ userId: 'user-123' });
 
     const formData = new FormData();
@@ -83,6 +86,7 @@ describe('importDocument', () => {
 
     // Verify getDocumentParser was called (DI pattern)
     expect(getDocumentParser).toHaveBeenCalled();
+    expect(getIdGenerator).toHaveBeenCalled();
   });
 
   it('delegates parsing to the injected parser', async () => {

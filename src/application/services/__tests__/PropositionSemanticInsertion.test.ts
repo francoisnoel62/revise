@@ -5,7 +5,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { Editor } from '@tiptap/core';
 import Document from '@tiptap/extension-document';
 import Text from '@tiptap/extension-text';
-import { IndentParagraph } from '@/components/editor/extensions/IndentParagraph';
+import { IndentParagraph } from '@/adapters/tiptap/IndentParagraph';
 import { buildSemanticInsertContent } from '../PropositionInserter';
 import type { ContentNode } from '@/domain/value-objects/ContentNode';
 

@@ -3,6 +3,7 @@
 
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { createEditorPagedRendering } from '@/app/editor/paged-rendering';
 import { PublicationPreview } from './PublicationPreview';
 
 const content = {
@@ -16,10 +17,42 @@ const content = {
   ],
 };
 
+const pagedRendering = createEditorPagedRendering();
+
 describe('PublicationPreview', () => {
+  it('uses the supplied application adapters to build the iframe document', () => {
+    const converter = { convert: vi.fn(() => '<p>Contenu converti</p>') };
+    const renderer = { render: vi.fn(() => '<!doctype html><html>Rendu injecté</html>') };
+
+    render(
+      <PublicationPreview
+        content={content}
+        profileId="kdp-6x9"
+        overrides={[]}
+        converter={converter}
+        renderer={renderer}
+      />
+    );
+
+    expect(converter.convert).toHaveBeenCalledWith(content);
+    expect(renderer.render).toHaveBeenCalledWith(
+      expect.objectContaining({ bodyHtml: '<p>Contenu converti</p>' })
+    );
+    expect(screen.getByTestId('publication-preview')).toHaveAttribute(
+      'srcdoc',
+      '<!doctype html><html>Rendu injecté</html>'
+    );
+  });
+
   it('regenerates the paged document at the selected profile trim', () => {
     const { rerender } = render(
-      <PublicationPreview content={content} profileId="kdp-6x9" overrides={[]} />
+      <PublicationPreview
+        content={content}
+        profileId="kdp-6x9"
+        overrides={[]}
+        renderer={pagedRendering.renderer}
+        converter={pagedRendering.converter}
+      />
     );
 
     expect(screen.getByTitle('Aperçu paginé KDP 6×9')).toHaveAttribute(
@@ -28,7 +61,13 @@ describe('PublicationPreview', () => {
     );
 
     rerender(
-      <PublicationPreview content={content} profileId="passerelle" overrides={[]} />
+      <PublicationPreview
+        content={content}
+        profileId="passerelle"
+        overrides={[]}
+        renderer={pagedRendering.renderer}
+        converter={pagedRendering.converter}
+      />
     );
 
     expect(screen.getByTitle('Aperçu paginé Passerelle')).toHaveAttribute(
@@ -43,6 +82,8 @@ describe('PublicationPreview', () => {
         content={content}
         profileId="kdp-6x9"
         overrides={[]}
+        renderer={pagedRendering.renderer}
+        converter={pagedRendering.converter}
         startPageNumber={84}
       />
     );
@@ -53,7 +94,15 @@ describe('PublicationPreview', () => {
   });
 
   it('includes a visible page-number rule in srcdoc so the author sees the printed page number', () => {
-    render(<PublicationPreview content={content} profileId="kdp-6x9" overrides={[]} />);
+    render(
+      <PublicationPreview
+        content={content}
+        profileId="kdp-6x9"
+        overrides={[]}
+        renderer={pagedRendering.renderer}
+        converter={pagedRendering.converter}
+      />
+    );
 
     const srcdoc = screen.getByTestId('publication-preview').getAttribute('srcdoc') ?? '';
 
@@ -69,6 +118,8 @@ describe('PublicationPreview', () => {
         content={content}
         profileId="kdp-6x9"
         overrides={[]}
+        renderer={pagedRendering.renderer}
+        converter={pagedRendering.converter}
         startPageNumber={1}
       />
     );
@@ -85,6 +136,8 @@ describe('PublicationPreview', () => {
         content={content}
         profileId="kdp-6x9"
         overrides={[]}
+        renderer={pagedRendering.renderer}
+        converter={pagedRendering.converter}
         onPageCountChange={onChange}
       />
     );
@@ -113,6 +166,8 @@ describe('PublicationPreview', () => {
         content={content}
         profileId="kdp-6x9"
         overrides={[]}
+        renderer={pagedRendering.renderer}
+        converter={pagedRendering.converter}
         scrollPosition={{ segmentIndex: 0, localRatio: 0 }}
       />
     );
@@ -128,6 +183,8 @@ describe('PublicationPreview', () => {
         content={content}
         profileId="kdp-6x9"
         overrides={[]}
+        renderer={pagedRendering.renderer}
+        converter={pagedRendering.converter}
         scrollPosition={{ segmentIndex: 1, localRatio: 0.5 }}
       />
     );
@@ -145,6 +202,8 @@ describe('PublicationPreview', () => {
         content={content}
         profileId="kdp-6x9"
         overrides={[]}
+        renderer={pagedRendering.renderer}
+        converter={pagedRendering.converter}
         scrollPosition={{ segmentIndex: 1, localRatio: 0.5 }}
       />
     );
@@ -183,7 +242,15 @@ describe('PublicationPreview', () => {
         },
       ],
     };
-    render(<PublicationPreview content={longContent} profileId="kdp-6x9" overrides={[]} />);
+    render(
+      <PublicationPreview
+        content={longContent}
+        profileId="kdp-6x9"
+        overrides={[]}
+        renderer={pagedRendering.renderer}
+        converter={pagedRendering.converter}
+      />
+    );
 
     expect(screen.getByTestId('publication-preview')).toHaveAttribute(
       'srcdoc',
