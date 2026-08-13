@@ -109,6 +109,15 @@ worktree to clean up.
 ALWAYS find the root cause; NEVER fix symptoms. Use the **`systematic-debugging`** skill
 (or the `/debug` command) for the full runbook — one hypothesis at a time, no piling on fixes.
 
+### Measure, don't assume
+
+- NEVER optimize, delete, or rewrite on a suspicion. Measure first, and put the number in
+  the commit message or the journal.
+- A claim in a doc, an issue, or a `FIXME` is a lead, NOT a fact. Re-verify it before acting
+  on it — stale claims outlive the code they describe.
+- "Nothing to do" is a result. Record it **with its measurement**, so the question is not
+  re-litigated from memory later.
+
 ### Code Quality
 
 - Prefer simple over clever
