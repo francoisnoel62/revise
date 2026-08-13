@@ -107,11 +107,9 @@ ALWAYS find the root cause; NEVER fix symptoms. Use the **`systematic-debugging`
 
 ### Code Quality
 
-- Prefer simple over clever
-- Readability is PRIMARY
 - NEVER rewrite without EXPLICIT permission
-- Fix broken things immediately
-- Make SMALLEST reasonable changes
+- Make the SMALLEST reasonable change
+- Fix broken things immediately, even when they are not what you came for
 
 ## Skills & commands
 
