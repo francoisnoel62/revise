@@ -5,6 +5,17 @@ For the product "why" see [.claude/philosophie.md](.claude/philosophie.md);
 for features see [README.md](README.md); for technical detail see [docs/architecture.md](docs/architecture.md).
 Repeatable procedures live in skills/commands, not here (see "Skills & commands" below).
 
+## Source Authority
+
+For present behaviour, scope and liveness, **the wired codebase is the single source of truth**.
+
+- Follow the active entry point and its imports; unused or test-only code is not a product capability.
+- Tests are evidence of intended behaviour, but do not make an unwired implementation live.
+- READMEs and architecture documents are compact maps: use them to find the source, then verify it.
+- ADRs, plans, issues and the changelog record intent or history; never infer current implementation from them alone.
+
+When a document disagrees with the active code, the code wins. Correct the document in the same change when it is in scope.
+
 ## Project Context
 
 **Revise** is an AI-powered writing assistant for fiction authors. Its mission is to augment
