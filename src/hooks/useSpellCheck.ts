@@ -107,9 +107,10 @@ export function useSpellCheck(
     // here to the dispatch is synchronous, so nothing can move in between.
     const wordsWithPositions = extractWordsFromDoc(ed);
 
-    const misspelledMap = new Map(
-      misspelled.map((m) => [m.word.toLowerCase(), m.suggestions])
-    );
+    // Keyed on the word exactly as the server saw it. The server accepts a capitalised word
+    // unconditionally — proper nouns and sentence starts — so folding case here would hand
+    // "Maisson" the underline the server deliberately withheld while flagging "maisson".
+    const misspelledMap = new Map(misspelled.map((m) => [m.word, m.suggestions]));
 
     // Filter locally too — guards against stale server responses and test mocks
     const locallyAccepted = new Set([
@@ -118,7 +119,7 @@ export function useSpellCheck(
     ]);
 
     const spelling: TextIssue[] = wordsWithPositions
-      .filter((w) => misspelledMap.has(w.word.toLowerCase()))
+      .filter((w) => misspelledMap.has(w.word))
       .filter((w) => !locallyAccepted.has(w.word))
       .map((w) => ({
         nature: 'spelling',
@@ -126,7 +127,7 @@ export function useSpellCheck(
         to: w.to,
         text: w.word,
         message: '',
-        suggestions: misspelledMap.get(w.word.toLowerCase()) ?? [],
+        suggestions: misspelledMap.get(w.word) ?? [],
       }));
 
     if (!ed.isDestroyed) {

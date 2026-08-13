@@ -172,6 +172,22 @@ describe('useSpellCheck', () => {
     expect(typeof dispatched[0].to).toBe('number');
   });
 
+  // The server accepts a word starting with a capital unconditionally — proper nouns and
+  // sentence starts, deliberately. It reports "maisson" and stays silent about "Maisson".
+  // Matching its answer case-insensitively hands the capitalised word the underline the
+  // server just chose not to give it, and the author is told a proper noun is misspelled.
+  it('leaves a capitalised word alone when the server only reported its lowercase twin', async () => {
+    mockCheckSpelling.mockResolvedValue([{ word: 'maisson', suggestions: ['maison'] }]);
+
+    const editor = createMockEditor('maisson Maisson', [{ text: 'maisson Maisson', pos: 1 }]);
+
+    renderHook(() => useSpellCheck(editor as unknown as Editor));
+    await flushDebounce();
+
+    const dispatched = dispatchedSpelling(editor._setMetaCalls.at(-1));
+    expect(dispatched.map((issue) => issue.text)).toEqual(['maisson']);
+  });
+
   // The author keeps writing while the round trip is in flight. Positions located in the
   // document as it was before the await are applied to the document as it is after, so a
   // correction replaces the wrong range — one character adrift is enough to swallow the
