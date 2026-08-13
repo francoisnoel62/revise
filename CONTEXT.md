@@ -1,148 +1,69 @@
-# Revise
+# Contexte de Revise
 
-Revise est un assistant d'écriture IA pour auteurs de fiction. Son rôle est d'augmenter le processus créatif de l'auteur sans jamais remplacer sa voix.
+Vocabulaire et contraintes de conception vérifiés le 13 août 2026. Ce document décrit les comportements actifs ; les décisions datées sont conservées dans `docs/adr/`.
 
-## Language
+## Langage commun
 
-### L'auteur et son œuvre
+**Auteur** — personne qui écrit l'œuvre. L'IA suggère ; l'auteur décide. Éviter « user » dans les textes produit.
 
-**Auteur** :
-La personne qui écrit le roman. Propriétaire absolu de son texte. L'IA suggère, l'auteur décide.
-_Avoid_ : utilisateur, écrivain, user
+**Manuscrit** — ensemble ordonné des chapitres d'un projet, source de vérité de l'œuvre à l'instant T.
 
-**Manuscrit** :
-L'ensemble des chapitres écrits par l'auteur, dans leur ordre narratif. Source de vérité unique sur ce qui existe dans l'œuvre à l'instant T.
-_Avoid_ : texte, roman, document
+**Chapitre** — unité de travail du manuscrit, stockée comme document TipTap sémantique.
 
-**Chapitre** :
-Unité de travail du manuscrit. L'auteur écrit chapitre par chapitre ; le système traite les faits et le contexte au niveau du chapitre.
+**Document de recherche** — document de planification de l'auteur (plan, chronologie, notes de monde), distinct de ce qui est déjà écrit dans le manuscrit.
 
-**Document de recherche** :
-Document de planification créé par l'auteur : plan du roman, chronologie, résolution de l'intrigue, notes de world-building. Distinct du manuscrit — c'est ce que l'auteur a prévu, pas ce qu'il a écrit.
-_Avoid_ : note, document, contexte
+**Fiche personnage** — description d'un personnage (identité, psychologie, voix, passé, relations), créée ou complétée par l'auteur. Elle sert notamment au chat personnage.
 
-**Fiche personnage** :
-Fiche descriptive d'un personnage : identité, psychologie, voix, backstory, relations. Créée ou générée par l'auteur. Sert de base au chat avec le personnage.
-_Avoid_ : profil, character
+**Fait canon** — affirmation atomique établie par le manuscrit, avec une validité à partir d'un chapitre et éventuellement jusqu'à un autre. Les catégories sont : fait objectif, état de connaissance, croyance, croyance sur autrui et dynamique relationnelle. Un fait est `derived` (extrait) ou `author` (manuel).
 
-### Canon et continuité narrative
+**Horizon narratif** — limite du contexte de l'autocomplétion : le flux actif ne reçoit que le texte local, les chapitres antérieurs et les faits de canon pertinents. Il n'injecte pas les documents de recherche.
 
-**Fait canon** :
-Affirmation atomique sur un personnage, établie par le texte du manuscrit, valide à partir d'un chapitre donné. Cinq catégories : fait objectif, état de connaissance, croyance, croyance sur les autres, dynamique relationnelle.
-_Avoid_ : fait, information, donnée
+**Contexte d'autocomplétion** — texte autour du curseur, manuscrit antérieur et canon filtré, complétés par des directives d'intention, de longueur et d'audace. Ce n'est pas le même assemblage que celui des opérations de réécriture ou de génération.
 
-**État de connaissance** :
-Catégorie de fait canon. Ce qu'un personnage sait ou ignore à l'instant T du récit. ("sait que Tom est le traître", "ignore que Léa a survécu")
-_Avoid_ : information, savoir
+**Extraction incrémentale** — traitement des seuls chapitres non vides dont le hash a changé pour mettre à jour le canon, en préservant les faits manuels et inchangés.
 
-**Croyance** :
-Catégorie de fait canon. Ce qu'un personnage tient pour vrai, même si c'est faux. ("croit à tort que Marc est innocent"). La croyance est établie par le texte, indépendamment de sa véracité dans le monde du roman.
-_Avoid_ : opinion, supposition
+## Publication et contenu
 
-**Dynamique relationnelle** :
-Catégorie de fait canon. La nature de la relation entre deux personnages à l'instant T. ("entretient une méfiance active envers Martin")
-_Avoid_ : relation, lien
+**Profil de publication** — cible de rendu choisie pour un projet : `kdp-6x9`, `a5` ou `passerelle`. Le profil se modifie sans réécrire le manuscrit. KDP 6×9 et A5 sont les profils paginés ; Passerelle est destiné au DOCX/Word ou Google Docs.
 
-**Horizon narratif** :
-La limite de connaissance de l'IA lors d'une autocomplétion : uniquement ce qui a été écrit jusqu'au chapitre courant. L'IA ne connaît ni la résolution de l'intrigue ni les événements futurs.
-_Avoid_ : contexte, limite
+**Profil imprimable** — profil KDP 6×9 ou A5 appliqué par le moteur Paged.js. Il structure l'export PDF, mais n'effectue pas de prévalidation de marketplace ni ne garantit l'acceptation par KDP, BoD ou un autre service.
 
-**Omniscience narrative** :
-Anti-pattern. L'IA a accès à des informations sur la résolution de l'intrigue (via les documents de recherche) et propose des suggestions qui anticipent des événements que les personnages ne connaissent pas encore.
-_Avoid_ : spoiler, biais
+**Profil Passerelle** — profil pour remise éditable. Il peut conserver des surcharges de police, taille et alignement, séparées du contenu sémantique. Ces surcharges sont retirées du rendu et des exports imprimables, puis restaurées au retour dans Passerelle.
 
-### Autocomplétion
+**Style sémantique** — rôle d'un bloc ou fragment : `corps`, `titre-de-chapitre`, `sous-titre`, `citation`, `epigraphe` ou `separateur-de-scene`. Le profil détermine son rendu. Dans Passerelle, l'auteur peut ajouter des surcharges de présentation ; dans les profils imprimables, il travaille avec les rôles et les styles de niveau.
 
-**Contexte d'autocomplétion** :
-L'ensemble des informations envoyées à l'IA pour une requête d'autocomplétion : faits canon filtrés + chapitres précédents + texte avant le curseur.
-_Avoid_ : prompt, contexte
+**Titre de chapitre** — un `heading` de niveau 1 portant le rôle `titre-de-chapitre`. Les nouveaux chapitres en reçoivent un. Un chapitre importé ou ancien peut en contenir plusieurs : le système ne suppose pas qu'il n'y en ait qu'un seul.
 
-**Extraction incrémentale** :
-Processus d'extraction des faits canon qui ne traite que les chapitres nouveaux ou modifiés depuis la dernière extraction, identifiés par leur hash de contenu.
-_Avoid_ : mise à jour, synchronisation
+**Sous-titre** — rôle d'un titre de section. Les titres de niveau 2 et plus sont classés comme sous-titres par la migration sémantique ; l'auteur peut les ajuster dans l'éditeur.
 
-**Déclencheur de fin de session** :
-Mécanisme qui lance l'extraction incrémentale des faits canon en arrière-plan quand l'auteur arrête d'écrire pendant 15-30 minutes.
-_Avoid_ : cron, timer, job
+**Séparateur de scène** — rupture entre deux scènes, représentée par le nœud TipTap `horizontalRule`.
 
-**Centre de notifications** :
-Interface (cloche) qui informe l'auteur d'événements système pertinents pendant ou après sa session d'écriture. Toutes les notifications sont actionnables avec confirmation avant action.
-_Avoid_ : alertes, messages, toast
+**Migration sémantique** — conversion idempotente du contenu TipTap ancien qui portait des marques de présentation (`fontFamily`, `fontSize`, `textAlign`) vers des rôles sémantiques. Les paragraphes centrés ambigus sont signalés. `ContentDemigrator` est un helper expérimental, non relié au produit et avec perte de présentation : il ne constitue pas un retour arrière opérationnel.
 
-### Mise en page et publication
+## Aperçu et export
 
-**Profil de publication** :
-Lentille de rendu et de contraintes appliquée au manuscrit pour une cible donnée (KDP 6×9, A4, A5, passerelle Word…). Changeable à tout moment, dans les deux sens, sans perte ; le manuscrit lui-même n'en dépend pas. L'auteur choisit un profil et l'écriture épouse le rendu d'export de cette cible.
-_Avoid_ : format, template, thème
+**Aperçu de publication** — rendu paginé distinct du champ d'écriture. Il utilise les réglages de publication et ne fait pas circuler le curseur entre des pages imprimées dans TipTap.
 
-**Profil print-ready** :
-Profil de publication strict destiné à une marketplace d'impression (KDP, BoD, TheBookEdition). N'expose que des styles sémantiques : un fichier invalide est impossible à produire, garantissant l'acceptation sans aller-retour.
-_Avoid_ : preset, gabarit
+**Aperçu du livre entier** — PDF du livre complet généré côté serveur et mis en cache pour `kdp-6x9` et `a5`. Il contient liminaires, sommaire, chapitres et notes. Passerelle n'en a pas.
 
-**Profil passerelle** :
-Profil de publication permissif destiné à une remise éditable (Word, Google Docs), par exemple pour un bêta-lecteur. Autorise les surcharges de présentation.
-_Avoid_ : brouillon, draft
+**Empreinte d'aperçu** — hash des entrées qui font varier le PDF : contenu et ordre des chapitres, liminaires/annexes, styles de niveau, préférences de sommaire, titre des notes, lignes blanches et révision du moteur. Le profil est une clé de cache distincte.
 
-**Style sémantique** :
-Marquage du rôle d'un bloc ou d'un fragment (Corps, Titre de chapitre, Sous-titre, Citation, Épigraphe, Séparateur de scène) — pas son apparence. Le profil décide du rendu. L'auteur choisit un style, jamais une police ni une taille.
-_Avoid_ : format, style de paragraphe, police
+**Notes de fin** — références intégrées au chapitre, lues dans l'ordre du document et renumérotées à chaque chapitre. Elles deviennent des notes Word natives en DOCX et une section Notes compilée dans le PDF paginé.
 
-**Corps** :
-Rôle sémantique du paragraphe de narration ordinaire. Valeur par défaut pour tout paragraphe non explicitement reclassifié lors de la migration. Identifiant code : `corps`.
-_Avoid_ : paragraphe, texte
+## Correction et analyse
 
-**Titre de chapitre** :
-Rôle sémantique du nœud `heading` level 1 — intitulé du chapitre courant. Mappé automatiquement lors de la migration. Un seul par chapitre. Identifiant code : `titre-de-chapitre`.
-_Avoid_ : titre, heading, h1
+**Orthographe** — vérification locale par `nspell` avec dictionnaire français, sans appel IA.
 
-**Sous-titre** :
-Rôle sémantique d'un titre de section à l'intérieur d'un chapitre (heading level 2+). Nécessite une reclassification manuelle — la migration ne peut pas l'inférer depuis les marques de présentation. Identifiant code : `sous-titre`.
-_Avoid_ : intertitre, heading
+**Grammaire et ponctuation** — vérification locale côté serveur par Grammalecte. Le profil de règles et le dictionnaire personnel sont propres au projet. Les remarques déclinées sont mémorisées par famille de règle et texte, de façon à résister aux déplacements dans le chapitre.
 
-**Citation** :
-Rôle sémantique d'un bloc de texte cité (extrait d'œuvre tiers, discours indirect libre). Rendu en retrait dans les profils print-ready. Nécessite une reclassification manuelle. Identifiant code : `citation`.
-_Avoid_ : blockquote, extrait
+**Analyse de chapitre** — service IA limité aux catégories `style` et `repetition`. Son résultat est éphémère : il n'est ni mis en cache ni archivé.
 
-**Épigraphe** :
-Rôle sémantique d'une citation placée en exergue, généralement en tête de chapitre. Un paragraphe centré est signalé comme ambigu lors de la migration — l'auteur confirme s'il s'agit d'une épigraphe. Identifiant code : `epigraphe`.
-_Avoid_ : exergue
+**Dictionnaire personnel** — vocabulaire ajouté par l'auteur. Lorsqu'une nature, un genre ou un pluriel sont renseignés, le dictionnaire est compilé pour aider Grammalecte avec les accords ; une simple entrée de mot reste valide pour l'orthographe.
 
-**Séparateur de scène** :
-Rôle sémantique d'une rupture entre deux scènes dans un chapitre. Représenté par le nœud `horizontalRule` — le type de nœud lui-même est le marqueur sémantique, aucun attribut supplémentaire n'est nécessaire. Identifiant code : `separateur-de-scene`.
-_Avoid_ : hr, break, séparateur
+## Règles de contribution
 
-**Surcharge de présentation** :
-Mise en forme manuelle (police, taille, alignement) posée en profil passerelle. Stockée en couche séparée, ignorée par les profils print-ready et restituée au retour en passerelle — jamais destructive.
-_Avoid_ : override, format manuel
-
-**Migration sémantique** :
-Script idempotent qui convertit le contenu TipTap legacy (portant des marques de présentation : fontFamily, fontSize, textAlign) en contenu sémantique pur (attribut `semanticRole` sur chaque bloc). Les cas ambigus (paragraphe centré pouvant être une épigraphe) sont conservés comme `corps` et signalés pour reclassification par l'auteur. Réversible par script inverse ; ne perd aucun texte.
-_Avoid_ : conversion, nettoyage, reformatage
-
-**Pagination vivante** :
-Affichage du chapitre en vraies pages au trim de la cible pendant l'écriture, re-paginées à la pause de frappe (débounce). Le curseur circule de page en page comme dans le livre imprimé.
-_Avoid_ : aperçu, preview, mode impression
-
-**Moteur de rendu paginé** :
-Composant unique HTML/CSS « paged media » qui paginate à la fois l'éditeur et l'export PDF. Une seule définition du livre, d'où la parité.
-_Avoid_ : exporteur, générateur PDF
-
-**Parité d'aperçu** :
-Garantie que ce que l'auteur voit dans l'éditeur paginé est, au pixel, le PDF exporté. Atteignable pour le PDF/impression, pas pour le DOCX (refluable).
-_Avoid_ : WYSIWYG, fidélité
-
-**Liminaires** :
-Pages d'entrée du livre (faux-titre, page de titre, copyright, dédicace, épigraphe) et table des matières. Générés automatiquement depuis les annexes éditoriales et les métadonnées ; comptés dans la numérotation mais hors de la surface d'écriture.
-_Avoid_ : front matter, préliminaires, en-têtes
-
-**Aperçu livre entier** :
-Le livre complet (liminaires + sommaire + corps) rendu comme **le vrai PDF d'export**, généré côté serveur et affiché dans un lecteur PDF. Généré **paresseusement** à l'ouverture puis mis en cache : aperçu et export sont le même artefact. Le profil `passerelle` n'a pas d'aperçu livre entier (cible partage/DOCX).
-_Avoid_ : rendu navigateur, preview client, aperçu Paged.js
-
-**Cache d'aperçu livre entier** (`BookPreviewCacheEntry`) :
-Entrée de cache par `{projet, profil, auteur}` : le **PDF** dans GridFS et les **métriques** (nombre de pages, pages liminaires, offsets de chapitres, empreinte de contenu) dans un document. Recalculé quand tout ce qui se voit dans le PDF change (contenu, ordre des chapitres, liminaires). Les offsets pilotent la navigation par `#page=N`.
-_Avoid_ : cache métriques seules, recalcul éager
-
-**Folio** :
-Numéro de page des liminaires en **chiffres romains bas de casse** (i, ii, iii…). Le faux-titre (1ʳᵉ page) ne porte pas de numéro imprimé ; le corps redémarre en **chiffres arabes à « 1 »**. Une seule correction dans le pipeline paginé sert aperçu et export.
-_Avoid_ : numéro de page liminaire, pagination romaine
+- Partir d'une Server Action ou d'une route active pour comprendre un flux, puis suivre les imports jusqu'à `src/infrastructure/config/providers.ts`.
+- Ne pas décrire le flux SSE d'autocomplétion comme s'il utilisait automatiquement les documents de recherche ; ce n'est vrai que pour certains autres chemins de contexte.
+- Ne pas présenter les éléments non raccordés (`PdfExporter`, `ContentDemigrator`, anciens composants) comme des capacités produit.
+- Lorsqu'une donnée quitte Revise vers un fournisseur IA, documenter le contexte transmis et l'option de journal IA ; ne pas faire de promesse au nom du fournisseur externe.
+- Toute évolution de correction doit mettre à jour ensemble les guides utilisateur, `docs/architecture.md`, le README de l'infrastructure et les tests de corpus.

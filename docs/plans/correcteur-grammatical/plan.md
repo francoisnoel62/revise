@@ -1,5 +1,10 @@
 # Correcteur grammatical local
 
+> **Statut : implémenté et actif au 13 août 2026.** Ce document est le dossier
+> de conception et d'exploitation du chemin `CheckChapterGrammarUseCase` →
+> `GrammalecteGrammarChecker`. Toute modification du moteur, du profil par
+> défaut ou du dictionnaire personnel doit conserver ses tests de corpus.
+
 ## Chaîne d’approvisionnement
 
 Le moteur est distribué séparément dans le paquet npm privé `@francoisnoel62/grammalecte`, sans code Grammalecte recopié dans Revise. Il est construit depuis le miroir GitHub `Pofilo/grammalecte`, révision `08511c222029b3be20bf547563315d10fb48d44b` (15 décembre 2025), correspondant à la base Grammalecte 2.3.0.

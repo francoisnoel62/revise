@@ -12,6 +12,18 @@ Revise exécute Grammalecte exclusivement côté serveur dans le service web. Le
 autrices et auteurs ne reçoivent pas le logiciel Grammalecte : ce mode de
 fonctionnement est la position retenue pour l'exploitation actuelle de Revise.
 
+## Statut au 13 août 2026
+
+**Implémenté.** `GrammalecteGrammarChecker` est assemblé dans
+`src/infrastructure/config/providers.ts` et est appelé par
+`CheckChapterGrammarUseCase`. La vérification s'exécute côté serveur, sans
+appel à un fournisseur IA. Le paquet `@francoisnoel62/grammalecte` reste un
+artefact d'infrastructure : il n'est pas distribué au navigateur.
+
+Ce statut atteste le chemin logiciel actuel ; il ne constitue pas un avis sur
+la compatibilité juridique. Toute distribution cliente reste soumise au
+garde-fou ci-dessous.
+
 ## Garde-fou de packaging
 
 Avant toute décision de build desktop, Electron, application installable ou
