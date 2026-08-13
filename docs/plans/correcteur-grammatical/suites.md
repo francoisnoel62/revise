@@ -193,16 +193,28 @@ conventions retenues — « typographie française » n'est pas une spécificati
 **Ce qu'il faut faire.** Traiter l'instabilité de la télémétrie d'autocomplétion à la racine,
 et réactiver les tests.
 
-**L'état réel.** `e2e/ai-strategy/autocomplete.spec.ts` porte **sept `test.fixme`** — lignes
-150, 173, 199, 218, 237, 260, 332 — tous sur la même cause déclarée : `waitForTelemetry`
-expire par intermittence et `tracker.accept()` renvoie parfois `null`. S'y ajoute l'aléa
-d'environ 20 % constaté pendant le merge, isolé comme en suite.
+**Traité le 13 août 2026.** Les sept `test.fixme` sont levés et le fichier est vert sur
+201 passages.
 
-**Pourquoi c'est ici.** Ce n'est pas un dommage du merge — ni `main` ni la branche n'ont
+**L'état constaté.** Les sept quarantaines accusaient une course dans la télémétrie :
+`waitForTelemetry` qui expire, `tracker.accept()` qui renvoie `null`. Levées et rejouées vingt
+fois, elles sont passées **140 fois sur 140**, et aucun événement de prefetch n'est apparu dans
+la télémétrie instrumentée. La cause déclarée ne se reproduit pas sur le code actuel.
+
+**Le vrai aléa était ailleurs**, sur un test qui n'avait jamais été quarantiné, et il ne tenait
+pas à la télémétrie mais à de l'**état partagé**. Ce fichier ne réamorçait rien entre ses tests,
+alors que chacun édite le manuscrit et que l'éditeur enregistre automatiquement : le test qui
+vide le chapitre laissait le suivant devant un manuscrit vide. S'y ajoutait une fenêtre de
+course à l'ouverture — l'éditeur se monte vide puis reçoit son chapitre dans un effet ultérieur,
+et agir pendant ce délai laissait le `setContent` entrant écraser ce que le test venait de
+faire. Chaque test repart désormais de la phrase semée, et l'ouverture attend que le chapitre
+soit arrivé.
+
+**Pourquoi c'était ici.** Ce n'était pas un dommage du merge — ni `main` ni la branche n'ont
 touché ce test ni le code d'autocomplétion, et c'est la seule raison pour laquelle il n'a pas
-bloqué l'atterrissage. Mais sept tests désactivés sur un même fichier ne sont plus une
-flakiness : c'est un **trou de couverture sur la télémétrie d'autocomplétion**, et il grandit
-sans bruit.
+bloqué l'atterrissage. Mais sept tests désactivés sur un même fichier n'étaient plus une
+flakiness : c'était un **trou de couverture sur la télémétrie d'autocomplétion**, et il
+grandissait sans bruit. Il est refermé.
 
 ---
 
