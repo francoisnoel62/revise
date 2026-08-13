@@ -1,0 +1,24 @@
+# Line endings are content, not a local preference. A checkout under core.autocrlf
+# rewrites data files as CRLF, and a parser splitting on "\n\n" then reads one giant
+# block instead of many — silently, with every threshold above it still green.
+# Normalise in the index, and hand out LF on every platform.
+* text=auto eol=lf
+
+# Corpora and other data files are parsed by separator, so their line endings are
+# load-bearing rather than cosmetic.
+*.txt text eol=lf
+
+# Binary: never touched, never diffed as text.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.pdf binary
+*.docx binary
+*.epub binary
