@@ -3,6 +3,25 @@
 Ce document rend exécutable le constat posé dans [suites.md](suites.md). La conception initiale
 est dans [plan.md](plan.md) ; le récit du merge dans [atterrissage.md](atterrissage.md).
 
+## État d'exécution au 13 août 2026
+
+Les sept lots sont exécutés sur la branche `docs/suites-correcteur`.
+
+| Lot | État | Ce qui en est sorti |
+|---|---|---|
+| 0 — décision + triage | ✅ | #185 close (`wontfix`), #186 `ready-for-human`, #187 `ready-for-agent` |
+| 1 — `.gitattributes` | ✅ | `eol=lf`, plus un test qui asserte le découpage des corpus |
+| 2 — autocomplétion | ✅ | 7 quarantaines levées, cause réelle trouvée ailleurs, 201 passages verts |
+| 3 — `c'est`/`s'est` | ✅ | Cause établie et caractérisée → **#199**. Planchers inchangés : rien n'a été gagné |
+| 4 — démarrage à froid | ✅ | ~390 ms, surcoût dictionnaire ~1 ms → ne rien optimiser. Trouvaille annexe → **#200** |
+| 5 — dette #187 | ✅ | Filet d'intégration puis refactor complet ; un défaut sorti explicitement |
+| 6 — spec #186 | ✅ | `docs/plans/typographie-export/spec.md` |
+
+Deux découvertes ont modifié le plan en cours de route, et les deux sont écrites dans le
+document plutôt que dans les seuls commits : le vrai aléa de l'autocomplétion n'était pas
+celui que les `test.fixme` déclaraient (lot 2), et le cluster `c'est`/`s'est` n'est ni une
+règle absente ni un problème de profil (lot 3).
+
 ## Contexte
 
 `suites.md` liste 8 chantiers restants après le merge de `codex/grammalecte` dans `main`. C'est
