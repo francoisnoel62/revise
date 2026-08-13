@@ -137,7 +137,9 @@ inchangés au 13 août 2026 : l'investigation de #199 a établi une cause, pas g
 **Débloqué par §2.** Ce chantier attendait de savoir si nspell disparaîtrait, auquel cas une
 bonne partie de cette dette serait partie avec lui. nspell reste : la dette est à payer.
 
-**Ce qui est en dette**, mesuré contre la contrainte Clean Architecture du `CLAUDE.md` :
+**Payé le 13 août 2026**, sauf un point sorti explicitement (voir la fin de la section).
+
+**Ce qui était en dette**, mesuré contre la contrainte Clean Architecture du `CLAUDE.md` :
 
 - L'adaptateur nspell est **inliné dans la Server Action** — un fichier de la couche interface
   lit des fichiers et instancie le moteur.
@@ -148,20 +150,33 @@ bonne partie de cette dette serait partie avec lui. nspell reste : la dette est 
 - Le type positionnel d'une faute vit dans un composant d'interface et est importé par un hook,
   sans représentation de domaine.
 
-Le correcteur grammatical livré est construit à l'opposé — port, use case, adaptateur en
-infrastructure — précisément pour ne pas propager le schéma. Les deux correcteurs cohabitent
-donc avec deux architectures différentes. C'est acceptable tant que c'est consigné ; ce
-document est cette consignation.
+Le correcteur grammatical livré était construit à l'opposé — port, use case, adaptateur en
+infrastructure — précisément pour ne pas propager le schéma. **Les deux correcteurs partagent
+désormais la même forme** : `NspellSpellChecker` en infrastructure, `CheckSpellingUseCase` en
+application, `LocatedWord` dans le domaine, et une Server Action redevenue mince.
 
-**Défauts adjacents relevés dans #187**, à rattacher ou à sortir explicitement : persistance
-en « fire and forget » sans gestion d'erreur, écritures silencieusement ignorées quand les
-réglages du projet n'existent pas encore, comparaison de casse incohérente entre filtrage
-serveur et filtrage client, absence de déduplication des initialisations concurrentes du
-moteur.
+**Défauts adjacents relevés dans #187** :
 
-**Prérequis non négociable** : il n'existe aujourd'hui **aucun test d'intégration pour
-l'orthographe** ; les actions adossées à la base ne sont couvertes que par les E2E.
-Refactoriser sans filet à cet endroit est un pari, pas un refactor.
+| Défaut | Sort |
+|---|---|
+| Déduplication des initialisations concurrentes | Réglé — l'adaptateur mémorise la **promesse**, pas l'instance : un second appelant attend le chargement en cours au lieu d'en démarrer un autre |
+| Comparaison de casse incohérente | Réglé — le client appariait en minuscules la réponse d'un serveur qui accepte les majuscules sans les consulter, et soulignait donc « Maisson » après que le serveur l'a délibérément épargné |
+| Persistance « fire and forget » | Réglé — l'écriture reste volontairement non attendue, mais un rejet est rapporté au lieu de devenir une promesse non gérée |
+| Écritures ignorées quand les réglages n'existent pas | **Sorti explicitement** — voir ci-dessous |
+
+**Ce qui reste, et pourquoi c'est sorti.** Ajouter un mot au dictionnaire d'un projet dont les
+réglages n'existent pas encore ne fait toujours rien, en silence. Le comportement est
+désormais **figé par un test d'intégration**, donc il ne peut plus changer sans qu'on le voie.
+Mais le corriger demande une décision produit qui n'est pas dans ce périmètre : ces cinq
+actions renvoient `void`, l'appelant n'a aucun moyen de réagir, et changer leur signature
+oblige à décider ce que la palette montre à l'auteur quand l'enregistrement échoue. C'est une
+question d'interface, pas de refactor.
+
+**Prérequis, tenu avant tout refactor** : il n'existait **aucun test d'intégration pour
+l'orthographe** ; les actions adossées à la base n'étaient couvertes que par les E2E.
+Refactoriser sans filet à cet endroit aurait été un pari, pas un refactor. Le filet est posé
+dans `spell-check-actions.integration.test.ts` — MongoDB réel, seule l'identité de
+l'utilisateur connecté est simulée.
 
 ---
 
