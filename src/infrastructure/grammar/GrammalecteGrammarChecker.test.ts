@@ -109,6 +109,17 @@ describe('GrammalecteGrammarChecker', () => {
     expect(errors.map((error) => error.ruleFamily.value)).toContain('gn');
   });
 
+  // The corpus thresholds below only mean something if the corpus actually splits. A file
+  // written with the wrong line endings collapses to one giant block, and both thresholds then
+  // measure a single paragraph while staying plausible. Assert the split itself, so that
+  // failure names its own cause instead of surfacing as a threshold that just missed.
+  it.each(['fiction-clean.txt', 'fiction-errors.txt'])(
+    'splits %s into its fifteen excerpts',
+    (fixtureName) => {
+      expect(checkFixture(fixtureName)).toHaveLength(15);
+    },
+  );
+
   it('reports no false positives in the clean fiction corpus', () => {
     const results = checkFixture('fiction-clean.txt').map((paragraph) =>
       checker.checkParagraph(paragraph, {
