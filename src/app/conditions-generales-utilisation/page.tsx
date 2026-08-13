@@ -203,9 +203,10 @@ export default function CGUPage() {
             <section className="space-y-4">
               <h2 className="text-2xl font-semibold">9. Résiliation</h2>
               <p>
-                L&apos;utilisateur peut à tout moment supprimer son compte en contactant l&apos;éditeur.
-                La suppression du compte entraîne la suppression définitive de toutes les données
-                associées, conformément à notre politique de confidentialité.
+                L&apos;utilisateur peut à tout moment demander la suppression de son compte depuis les{' '}
+                <Link href="/settings" className="text-primary hover:underline">paramètres</Link>.
+                Cette action supprime les données associées selon les règles décrites dans notre
+                politique de confidentialité.
               </p>
               <p>
                 L&apos;éditeur peut résilier le compte d&apos;un utilisateur en cas de violation des

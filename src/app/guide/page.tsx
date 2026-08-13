@@ -37,7 +37,7 @@ const categories = [
     icon: PenLine,
     title: "L'éditeur",
     description:
-      "La page A4, la typographie de roman, le compteur de mots, l'auto-save et tous les raccourcis clavier.",
+      "L'écriture du manuscrit, le compteur de mots, la sauvegarde automatique et les raccourcis clavier.",
   },
   {
     href: '/guide/assistant-ia',
@@ -93,7 +93,7 @@ const categories = [
     icon: ShieldCheck,
     title: 'Vos données & votre sécurité',
     description:
-      "Vos écrits vous appartiennent et ne servent jamais à l'entraînement. Chiffrement, export et suppression de compte.",
+      "Propriété de vos écrits, chiffrement des clés API, journal IA facultatif, export et suppression de compte.",
   },
 ];
 
@@ -152,11 +152,10 @@ export default function GuidePage() {
           <CardContent className="space-y-3">
             <h2 className="text-xl font-semibold">Notre promesse, dans chaque fonctionnalité</h2>
             <p className="text-muted-foreground">
-              L&apos;IA suggère, vous décidez. Revise propose toujours des choix plutôt qu&apos;une
-              réponse unique, préserve la singularité de votre voix et reste transparent sur ce
-              qu&apos;il fait. Vos écrits vous appartiennent et ne servent jamais à entraîner
-              l&apos;IA. Si une suggestion ne vous convient pas, ignorez-la : c&apos;est vous
-              l&apos;auteur.
+              L&apos;IA suggère, vous décidez de ce qui entre dans votre manuscrit. Revise rend les
+              fonctions et le contexte IA documentés dans le guide ; vos écrits restent votre
+              propriété et le fournisseur configuré traite les demandes qui lui sont envoyées.
+              Si une suggestion ne vous convient pas, ignorez-la : vous restez l&apos;auteur.
             </p>
           </CardContent>
         </Card>

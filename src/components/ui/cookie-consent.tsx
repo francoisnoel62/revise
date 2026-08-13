@@ -1,5 +1,5 @@
-// ABOUTME: Cookie consent banner component for GDPR compliance
-// ABOUTME: Displays a dismissible banner with accept/decline options, persists choice in cookie
+// ABOUTME: Cookie preference banner.
+// ABOUTME: Displays a dismissible banner and persists an acceptance choice in a browser cookie.
 
 "use client";
 
@@ -119,8 +119,8 @@ export function CookieConsent({
               <h3 className="text-base font-semibold">Cookies</h3>
             </div>
             <p className="mt-2 text-sm text-muted-foreground">
-              Nous utilisons des cookies pour améliorer votre navigation et analyser
-              notre trafic.
+              Nous utilisons des cookies nécessaires à la connexion et à vos préférences
+              d&apos;interface.
             </p>
             <div className="mt-4 flex gap-2">
               <Button
@@ -158,9 +158,9 @@ export function CookieConsent({
             <h3 className="text-lg font-semibold">Nous utilisons des cookies</h3>
           </div>
           <p className="mt-3 text-sm text-muted-foreground">
-            Ce site utilise des cookies pour améliorer votre expérience de
-            navigation, analyser le trafic et personnaliser le contenu. En
-            continuant à naviguer, vous acceptez notre utilisation des cookies.
+            Ce site utilise des cookies nécessaires à la connexion et à vos préférences
+            d&apos;interface. Revise n&apos;intègre pas de cookie publicitaire ni d&apos;outil
+            d&apos;analyse d&apos;audience tiers dans l&apos;application.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             <a
@@ -179,7 +179,7 @@ export function CookieConsent({
               Refuser
             </Button>
             <Button onClick={accept} className="w-full sm:w-auto">
-              Accepter tous les cookies
+              Mémoriser ce choix
             </Button>
           </div>
         </div>

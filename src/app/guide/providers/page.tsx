@@ -38,7 +38,7 @@ export default function GuideProvidersPage() {
           <section className="space-y-4">
             <h2 className="text-2xl font-semibold">Ajouter une clé</h2>
             <ol className="list-decimal pl-6 space-y-2">
-              <li>Ouvrez vos <Link href="/settings" className="text-primary hover:underline">paramètres</Link>.</li>
+              <li>Depuis le <Link href="/dashboard" className="text-primary hover:underline">tableau de bord</Link>, ouvrez <strong>Mes providers</strong> depuis le menu utilisateur.</li>
               <li>Ajoutez la clé API du fournisseur choisi.</li>
               <li>Sélectionnez le modèle à utiliser.</li>
             </ol>

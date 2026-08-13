@@ -1,12 +1,12 @@
-// ABOUTME: Guide « Vos données & votre sécurité » — propriété des écrits, RGPD, chiffrement, export et suppression de compte.
-// ABOUTME: Page de confiance (argument marketing) renvoyant aux pages légales pour le détail juridique.
+// ABOUTME: Guide « Vos données & votre sécurité » — propriété des écrits, chiffrement, export et suppression de compte.
+// ABOUTME: Résume les mécanismes présents dans l'application et renvoie aux pages légales pour le détail.
 
 import Link from 'next/link';
 
 export const metadata = {
   title: 'Vos données & votre sécurité dans Revise',
   description:
-    "Vos écrits vous appartiennent et ne servent jamais à l'entraînement. Chiffrement AES-256-GCM, isolation par compte, export de vos données et suppression de compte (RGPD).",
+    "Vos écrits restent les vôtres. Clés API et journal IA facultatif chiffrés, export et suppression depuis les paramètres.",
 };
 
 export default function GuideConfidentialitePage() {
@@ -24,17 +24,19 @@ export default function GuideConfidentialitePage() {
           <section className="space-y-4">
             <h2 className="text-2xl font-semibold">Vos écrits vous appartiennent</h2>
             <p>
-              Les textes que vous créez ou importez restent <strong>votre propriété exclusive</strong>.
-              Ils ne sont <strong>jamais utilisés pour entraîner</strong> une IA. Revise est un outil
-              au service de votre voix, pas une source d&apos;entraînement.
+              Les textes que vous créez ou importez restent <strong>votre propriété</strong>. Revise
+              ne les utilise pas pour entraîner ses propres modèles. Quand vous utilisez une fonction
+              IA, le contexte nécessaire est transmis au fournisseur que vous avez configuré ; ses
+              propres conditions s&apos;appliquent alors également.
             </p>
           </section>
 
           <section className="space-y-4">
             <h2 className="text-2xl font-semibold">Isolation par compte</h2>
             <p>
-              Chaque projet est cloisonné : vos données ne sont accessibles qu&apos;à vous. Cette
-              isolation par utilisateur est appliquée jusque dans la base de données.
+              Les actions de l&apos;application vérifient le compte propriétaire avant d&apos;accéder à un
+              projet. Un lien de lecture public ne donne accès qu&apos;au projet et aux chapitres que son
+              auteur a choisi de partager.
             </p>
           </section>
 
@@ -43,7 +45,7 @@ export default function GuideConfidentialitePage() {
             <ul className="list-disc pl-6 space-y-1">
               <li>Vos clés API sont chiffrées en <strong>AES-256-GCM</strong> et jamais exposées côté navigateur.</li>
               <li>Vos mots de passe sont hachés avec <strong>bcrypt</strong>.</li>
-              <li>L&apos;accès est protégé contre les abus : <strong>rate limiting</strong> et vérification anti-robot (hCaptcha) à l&apos;inscription.</li>
+              <li>L&apos;accès est protégé contre les abus par un <strong>rate limiting</strong> ; hCaptcha est utilisé à l&apos;inscription lorsqu&apos;il est configuré.</li>
             </ul>
           </section>
 
@@ -71,7 +73,7 @@ export default function GuideConfidentialitePage() {
             <ul className="list-disc pl-6 space-y-1">
               <li><strong>Export de vos données</strong> personnelles (droit à la portabilité, article 20).</li>
               <li><strong>Suppression de compte</strong> avec effacement de toutes les données associées.</li>
-              <li><strong>Consentement</strong> enregistré, et bannière de cookies conforme.</li>
+              <li><strong>Préférences de cookies</strong> décrites dans la politique de cookies.</li>
             </ul>
             <p>
               Ces actions se gèrent depuis vos{' '}

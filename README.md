@@ -93,15 +93,15 @@ Pas de chat. Pas d'explications. Pas de friction. Vous restez dans votre flow.
 - **Import .docx intelligent** : Détection automatique des chapitres (H1)
 - **Import de dossier Markdown** : Importez un dossier de fichiers .md comme chapitres
 - **Navigation par chapitres** : Panneau latéral, drag & drop, renommage inline
-- **Export multi-format** : DOCX et PDF, rendus par le même moteur de pagination que l'aperçu (profils KDP 6×9 / A5 / passerelle), avec typographie par profil, table des matières configurable, annexes personnalisées et notes de bas de page natives
-- **Profils de publication** : basculez entre profils d'impression (KDP 6×9, A5, passerelle) directement dans l'éditeur ; aperçu paginé du livre entier avant export
+- **Export multi-format** : export PDF paginé pour KDP 6×9 et A5 ; export DOCX pour tous les profils, dont Passerelle. Les profils imprimables disposent d'une typographie par profil, d'une table des matières configurable, d'annexes personnalisées et de notes de bas de page natives dans Word.
+- **Profils de publication** : basculez entre KDP 6×9, A5 et Passerelle directement dans l'éditeur. L'aperçu paginé du livre entier est disponible pour KDP 6×9 et A5 ; Passerelle est destiné au flux DOCX/Word ou Google Docs.
 - **Notes de bas de page** : insertion, panneau de gestion par chapitre, export en vraies notes Word / section de fin d'ouvrage PDF
 - **Historique de versions** : snapshots manuels et automatiques, restauration sans perdre l'état courant, comparaison entre versions
 - **Sélection des chapitres** : Choisissez les chapitres à exporter ou publier
 - **Auto-save** : Vers MongoDB, debounce 1 seconde
 - **Historique des corrections** : Retrouvez toutes vos réécritures par chapitre
 - **Génération de texte IA** : Générez le début d'un chapitre vide avec contexte du projet
-- **Autocomplétion IA** : Appuyez sur Tab pour déclencher une suggestion (streaming temps réel) ; `→` accepte un mot, `Tab` accepte tout, `Échap` rejette ; point animé quand une suggestion est déjà prête en arrière-plan ; variantes navigables au clavier ; préférences par projet (longueur, audace, prefetch)
+- **Autocomplétion IA** : Appuyez sur Tab pour déclencher ou accepter une suggestion ; `Ctrl/⌘ + →` accepte un mot, `Alt + →` un fragment et `Échap` rejette. Cinq intentions sont accessibles avec `Ctrl/⌘ + 1…5` ; les préférences par projet règlent longueur, audace et préchargement.
 - **Registre canon** : l'IA extrait automatiquement les faits établis du roman (états, croyances, relations, valables sur des plages de chapitres) pour rester cohérente sur un roman long
 - **Thésaurus contextuel** : recherche instantanée d'alternatives + suggestion IA ancrée sur votre voix
 - **Partage public** : Partagez votre projet via un lien unique en lecture seule
@@ -109,11 +109,11 @@ Pas de chat. Pas d'explications. Pas de friction. Vous restez dans votre flow.
 - **Image de couverture** : Uploadez une image de couverture pour vos projets
 - **Objectifs d'écriture** : objectif ponctuel (mots + échéance) ou quota récurrent (quotidien/hebdomadaire) avec graphique d'activité
 
-### 📄 Expérience d'écriture A4
+### 📄 Édition du manuscrit
 
-- **Page réaliste** : 794px, ombres, marges professionnelles
-- **Typographie** : Georgia / Times New Roman, 11-16pt
-- **Mise en page** : Alignement, indentation première ligne, interligne 1.5
+- **Surface d'écriture** : page confortable avec compteur et sauvegarde automatique ; ce n'est pas l'aperçu final de publication.
+- **Mise en forme** : rôles sémantiques pour les profils imprimables ; police, taille et alignement libres dans Passerelle.
+- **Aperçu de publication** : rendu séparé et paginé pour KDP 6×9 et A5.
 - **Compteur de mots** : Statistiques caractères/mots en temps réel
 - **Undo/Redo** : Boutons dans la toolbar + raccourcis clavier
 - **Raccourcis** : Gras, italique, surligné, tiret cadratin...
@@ -151,8 +151,8 @@ Analysez vos chapitres pour détecter et corriger les erreurs :
 | Catégorie | Ce qu'elle détecte |
 |-----------|-------------------|
 | **Orthographe** | Fautes d'orthographe, hors-ligne et instantané (dictionnaire fr-FR), sans consommer de token IA |
-| **Grammaire** | Erreurs grammaticales et accords (IA) |
-| **Ponctuation** | Erreurs de ponctuation et typographie (IA) |
+| **Grammaire** | Erreurs grammaticales et accords, vérifiés localement avec Grammalecte |
+| **Ponctuation** | Ponctuation et typographie, vérifiées localement avec Grammalecte |
 | **Style** | Suggestions d'amélioration stylistique (IA) |
 | **Répétitions** | Mots et phrases répétés trop souvent |
 
@@ -214,12 +214,9 @@ Section blog intégrée avec articles SEO pour les auteurs :
 
 ## ⚡ Performance
 
-| Opération | Cible | Réel | vs. Cible |
-|-----------|-------|------|-----------|
-| Export document | < 2s | **57ms** | 🚀 35× plus rapide |
-| Changement de chapitre | < 200ms | **0.23ms** | 🚀 870× plus rapide |
-| Mise à jour contenu | < 100ms | **0.10ms** | 🚀 1000× plus rapide |
-| Réécriture IA | < 3s | **2.7-3.3s** | ✅ Dans la cible |
+Les temps dépendent du fournisseur IA, de la taille du manuscrit, du cache et de
+l'environnement de déploiement. Les mesures reproductibles sont consignées dans les journaux et
+les suites de test ; ne déduisez pas une garantie de délai des exemples historiques.
 
 ---
 
@@ -257,9 +254,8 @@ RESEND_API_KEY=re_votre-cle-resend
 ADMIN_EMAIL=admin@votre-domaine.com
 EMAIL_FROM=noreply@votre-domaine.com
 
-# 🤖 Optionnel : Provider IA par défaut (configurable via UI)
-OPENAI_API_KEY=sk-votre-cle-api
-OPENAI_MODEL=gpt-4o-mini
+# Les fournisseurs IA sont configurés par chaque utilisateur depuis l'application.
+# Les variables OPENAI_* historiques ne constituent pas un fournisseur par défaut actif.
 ```
 
 <details>
@@ -314,7 +310,8 @@ graph LR
 | Annuler | `Ctrl/⌘ + Z` |
 | Rétablir | `Ctrl/⌘ + Shift + Z` |
 | Autocomplétion — déclencher / accepter tout | `Tab` |
-| Autocomplétion — accepter un mot | `→` (flèche droite) |
+| Autocomplétion — accepter un mot | `Ctrl/⌘ + →` |
+| Autocomplétion — accepter un fragment | `Alt + →` |
 | Autocomplétion — ignorer | `Échap` |
 | Palette de commandes IA | `Ctrl/⌘ + Shift + I` |
 

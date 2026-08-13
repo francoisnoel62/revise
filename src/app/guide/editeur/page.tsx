@@ -1,4 +1,4 @@
-// ABOUTME: Guide « L'éditeur » — page A4, typographie, raccourcis clavier, compteur de mots et auto-save.
+// ABOUTME: Guide « L'éditeur » — manuscrit, publication, raccourcis clavier, compteur de mots et auto-save.
 // ABOUTME: Décrit uniquement les capacités réellement présentes dans l'éditeur TipTap de Revise.
 
 import Link from 'next/link';
@@ -6,7 +6,7 @@ import Link from 'next/link';
 export const metadata = {
   title: "L'éditeur Revise — Écrire comme dans un roman",
   description:
-    "La page A4, la typographie de roman, le compteur de mots en temps réel, l'auto-save et tous les raccourcis clavier de l'éditeur Revise.",
+    "Le manuscrit, les profils de publication, le compteur de mots en temps réel, l'auto-save et les raccourcis clavier de l'éditeur Revise.",
 };
 
 const shortcuts: [string, string][] = [
@@ -18,7 +18,8 @@ const shortcuts: [string, string][] = [
   ['Annuler', 'Ctrl/⌘ + Z'],
   ['Rétablir', 'Ctrl/⌘ + Shift + Z'],
   ['Autocomplétion — déclencher / accepter tout', 'Tab'],
-  ['Autocomplétion — accepter un mot', '→ (flèche droite)'],
+  ['Autocomplétion — accepter un mot', 'Ctrl/⌘ + →'],
+  ['Autocomplétion — accepter un fragment', 'Alt + →'],
   ['Autocomplétion — ignorer', 'Échap'],
   ['Palette de commandes IA', 'Ctrl/⌘ + Shift + I'],
 ];
@@ -36,10 +37,16 @@ export default function GuideEditeurPage() {
 
         <div className="space-y-8">
           <section className="space-y-4">
-            <h2 className="text-2xl font-semibold">La page A4</h2>
+            <h2 className="text-2xl font-semibold">Le manuscrit et sa publication</h2>
             <p>
               Votre texte s&apos;affiche sur une page réaliste de 794&nbsp;px, avec ombres et marges
-              professionnelles — pour visualiser votre roman tel qu&apos;il sera imprimé.
+              confortables. Cette surface sert à écrire le manuscrit : elle ne constitue pas, à elle
+              seule, le rendu final imprimé.
+            </p>
+            <p>
+              Pour visualiser le livre publié, choisissez un profil KDP 6×9 ou A5 et ouvrez
+              l&apos;aperçu de publication. Il s&apos;agit d&apos;un rendu paginé séparé ; le profil Passerelle
+              est destiné au flux DOCX/Word ou Google Docs.
             </p>
           </section>
 

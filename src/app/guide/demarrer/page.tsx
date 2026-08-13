@@ -46,10 +46,11 @@ export default function GuideDemarrerPage() {
           <section className="space-y-4">
             <h2 className="text-2xl font-semibold">2. Connectez une IA (optionnel pour commencer)</h2>
             <p>
-              Revise fonctionne avec <strong>votre propre clé API</strong>. Dans vos{' '}
-              <Link href="/settings" className="text-primary hover:underline">paramètres</Link>,
-              ajoutez une clé OpenAI, Anthropic ou Google AI et choisissez votre modèle. Votre clé
-              est chiffrée et n&apos;est jamais exposée côté navigateur.
+              Revise fonctionne avec <strong>votre propre clé API</strong>. Depuis le{' '}
+              <Link href="/dashboard" className="text-primary hover:underline">tableau de bord</Link>,
+              ouvrez <strong>Mes providers</strong> dans le menu utilisateur, puis ajoutez une clé
+              OpenAI, Anthropic ou Google AI et choisissez votre modèle. Votre clé est chiffrée et
+              n&apos;est jamais exposée côté navigateur.
             </p>
             <p>
               Vous pouvez créer un projet et écrire <strong>sans configurer d&apos;IA</strong> ; la

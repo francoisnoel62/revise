@@ -92,8 +92,12 @@ export default function GuideAssistantIaPage() {
                     <td className="px-4 py-3">Accepter toute la suggestion</td>
                   </tr>
                   <tr className="border-t">
-                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">→ (flèche droite)</td>
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">Ctrl/⌘ + →</td>
                     <td className="px-4 py-3">Accepter seulement le premier mot</td>
+                  </tr>
+                  <tr className="border-t">
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">Alt + →</td>
+                    <td className="px-4 py-3">Accepter le prochain fragment</td>
                   </tr>
                   <tr className="border-t">
                     <td className="px-4 py-3 font-mono text-xs text-muted-foreground">Échap ou continuer à écrire</td>
@@ -107,24 +111,23 @@ export default function GuideAssistantIaPage() {
               convient. Vous piochez ce dont vous avez besoin sans rien supprimer.
             </p>
 
-            <h3 className="text-lg font-semibold mt-4">Les variantes</h3>
+            <h3 className="text-lg font-semibold mt-4">Les intentions</h3>
             <p>
-              Selon le ton de votre scène — dialogue, description, introspection — Revise peut
-              proposer plusieurs continuations possibles, chacune calibrée différemment. Les hints
-              affichés sous la suggestion vous indiquent les touches{' '}
-              <code className="bg-muted px-1 py-0.5 rounded text-sm">1</code>,{' '}
-              <code className="bg-muted px-1 py-0.5 rounded text-sm">2</code>,{' '}
-              <code className="bg-muted px-1 py-0.5 rounded text-sm">3</code>… pour naviguer entre
-              elles sans quitter le texte.
+              Vous pouvez demander une nouvelle suggestion selon cinq intentions : naturelle,
+              plus brève, plus tendue, plus concrète ou dialogue. Quand une suggestion est visible,
+              utilisez <code className="bg-muted px-1 py-0.5 rounded text-sm">Ctrl/⌘ + 1</code> à{' '}
+              <code className="bg-muted px-1 py-0.5 rounded text-sm">5</code> pour choisir l&apos;intention,
+              ou <code className="bg-muted px-1 py-0.5 rounded text-sm">Ctrl/⌘ + +</code> pour les faire défiler.
             </p>
 
             <div className="rounded-lg border bg-muted/30 px-5 py-4 text-sm space-y-2">
-              <p className="font-semibold">Ce que Revise n&apos;apprend pas</p>
+              <p className="font-semibold">Vos réglages et vos statistiques</p>
               <p className="text-muted-foreground">
-                Le système peut s&apos;adapter à vos préférences d&apos;assistance (longueur des
-                suggestions, audace) à partir de vos acceptations et rejets. Il n&apos;apprend
-                jamais à imiter votre style ou à standardiser votre voix. La singularité du texte
-                reste la vôtre.
+                Vous réglez vous-même la longueur et l&apos;audace des suggestions. Le partage de
+                statistiques d&apos;usage est facultatif et désactivé par défaut : il enregistre des
+                mesures liées à votre projet (longueurs, délais, acceptations ou rejets), jamais le
+                texte de la suggestion. Ces statistiques ne modifient pas encore vos réglages
+                automatiquement et ne servent pas à imiter votre style.
               </p>
               <p className="text-muted-foreground">
                 Ces réglages se configurent dans le{' '}
@@ -136,9 +139,10 @@ export default function GuideAssistantIaPage() {
           <section className="space-y-4">
             <h2 className="text-2xl font-semibold">D&apos;où l&apos;IA tire son contexte</h2>
             <p>
-              Pour l&apos;autocomplétion, Revise part toujours du <strong>texte réel</strong> que vous
-              avez écrit — les paragraphes autour de votre curseur. C&apos;est ce que vous avez écrit
-              qui prime, pas un résumé ou une analyse générée à un autre moment.
+              Pour l&apos;autocomplétion, Revise part du <strong>texte réel</strong> que vous avez écrit :
+              le début du chapitre jusqu&apos;au curseur, un court passage après celui-ci et, quand ils
+              tiennent dans le budget, les chapitres précédents. Ce que vous avez écrit prime, pas
+              un résumé ou une analyse générée à un autre moment.
             </p>
             <p>
               Ce principe — <em>manuscrit-premier</em> — évite deux problèmes courants : des
@@ -148,8 +152,10 @@ export default function GuideAssistantIaPage() {
             <p>
               Pour les romans longs, le{' '}
               <Link href="/guide/cockpit" className="text-primary hover:underline">registre canon</Link>{' '}
-              complète ce contexte local avec les faits établis de votre univers — personnages,
-              lieux, relations — extraits du manuscrit lui-même.
+              complète ce contexte avec des faits temporellement valides sur les personnages. Les
+              documents de recherche et les métadonnées n&apos;alimentent pas le flux d&apos;autocomplétion
+              streaming actuel ; ils servent à d&apos;autres outils IA, comme la génération de chapitre,
+              la réécriture et la persona des personnages.
             </p>
             <p className="text-muted-foreground">
               La langue est préservée : un texte français reste complété en français, un texte

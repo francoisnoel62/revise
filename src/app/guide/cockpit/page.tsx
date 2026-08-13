@@ -73,10 +73,10 @@ export default function GuideCockpitPage() {
           <section className="space-y-4">
             <h2 className="text-2xl font-semibold">Documents de recherche</h2>
             <p>
-              Rassemblez vos notes d&apos;univers, biographies, repères historiques. Ces documents
-              ne servent pas qu&apos;à vous : ils <strong>nourrissent le contexte de l&apos;IA</strong>,
-              pour des suggestions plus fidèles à votre monde (voir{' '}
-              <Link href="/guide/assistant-ia" className="text-primary hover:underline">d&apos;où l&apos;IA tire son contexte</Link>).
+              Rassemblez vos notes d&apos;univers, biographies et repères historiques. Elles peuvent
+              nourrir certains outils IA, notamment la génération de chapitre, la réécriture et la
+              persona des personnages. Elles ne sont pas injectées dans le flux streaming
+              d&apos;autocomplétion actuel.
             </p>
           </section>
 
@@ -102,13 +102,14 @@ export default function GuideCockpitPage() {
                 suggestion s&apos;affiche sans délai.
               </li>
               <li>
-                <strong>Acceptation mot à mot</strong> — Active ou désactive la flèche droite (→)
-                pour accepter un seul mot à la fois.
+                <strong>Acceptation partielle</strong> — Utilisez <code>Ctrl/⌘ + →</code> pour
+                accepter un mot ou <code>Alt + →</code> pour accepter un fragment.
               </li>
               <li>
-                <strong>Apprentissage depuis les rejets</strong> — Opt-in : permet à Revise
-                d&apos;enregistrer vos acceptations et rejets pour affiner les suggestions au fil du
-                temps. Aucune donnée n&apos;est partagée sans votre accord explicite.
+                <strong>Partage des statistiques d&apos;usage</strong> — Opt-in : enregistre des
+                longueurs, délais, acceptations et rejets associés au projet, sans le texte des
+                suggestions. Ces données servent au suivi d&apos;usage ; elles n&apos;adaptent pas encore
+                automatiquement vos suggestions.
               </li>
             </ul>
             <p className="text-sm text-muted-foreground">
@@ -122,8 +123,8 @@ export default function GuideCockpitPage() {
             <p>
               Sur un roman long, l&apos;IA ne peut pas relire l&apos;ensemble du manuscrit à chaque
               suggestion. Le registre canon résout ce problème : il extrait automatiquement les
-              faits établis de votre texte — personnages, lieux, relations, événements — et les
-              tient à jour au fil de l&apos;écriture.
+              faits et états établis concernant les personnages connus — faits objectifs,
+              connaissances, croyances et relations — et les tient à jour au fil de l&apos;écriture.
             </p>
             <p>
               Ces faits sont injectés dans le contexte des suggestions pour éviter les incohérences
@@ -131,15 +132,13 @@ export default function GuideCockpitPage() {
               décrit au nord ne migrera pas au sud.
             </p>
             <p>
-              Dans cette section du Cockpit, vous pouvez consulter les faits détectés et en{' '}
-              <strong>valider ou invalider</strong> certains. Un fait invalidé n&apos;est plus utilisé
-              dans les suggestions — utile si le modèle a extrait une interprétation erronée ou si
-              votre roman a délibérément évolué.
+              Dans cette section du Cockpit, vous pouvez consulter les faits détectés, en ajouter,
+              les modifier ou les supprimer. Une modification manuelle devient une information
+              d&apos;auteur et est préservée lors des régénérations.
             </p>
             <div className="rounded-lg border bg-muted/30 px-5 py-4 text-sm text-muted-foreground">
-              Le registre canon est alimenté uniquement par ce que vous avez <em>écrit</em> dans le
-              manuscrit. Revise n&apos;invente pas de faits et ne présente jamais une déduction comme
-              une certitude établie.
+              L&apos;extraction est une proposition d&apos;IA à partir de votre manuscrit. Relisez les faits
+              générés avant de vous y fier et corrigez-les si votre intention narrative diffère.
             </div>
           </section>
 

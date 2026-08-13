@@ -354,7 +354,7 @@ export default function LandingPage() {
               <FeatureCard
                 icon={Sparkles}
                 title="Suggestions intelligentes"
-                description="L'autocomplétion lit votre manuscrit en temps réel : personnages présents dans la scène, faits établis, contexte des chapitres précédents. La suggestion connaît votre histoire aussi bien que vous."
+                description="L'autocomplétion s'appuie sur le texte autour du curseur, les chapitres précédents et les faits du canon pertinents. Vous gardez la main sur chaque insertion."
                 available={true}
               />
             </div>
@@ -431,7 +431,7 @@ export default function LandingPage() {
                     <div>
                       <p className="font-medium">Éditeur professionnel</p>
                       <p className="text-sm text-muted-foreground">
-                        Format A4, typographie avancée, export .docx.
+                        Édition du manuscrit, profils de publication et export DOCX/PDF.
                       </p>
                     </div>
                   </div>
@@ -543,8 +543,9 @@ export default function LandingPage() {
                   </div>
                   <h3 className="text-xl font-semibold mb-3">Confidentialité absolue</h3>
                   <p className="text-muted-foreground">
-                    Manuscrits chiffrés, accès privé.
-                    Personne ne lit vos écrits à part vous.
+                    Accès privé par compte. Vos clés API et, si vous l&apos;activez, le journal des
+                    échanges IA sont chiffrés au repos ; les fonctions IA transmettent le contexte
+                    nécessaire au fournisseur que vous avez choisi.
                   </p>
                 </CardContent>
               </Card>
@@ -587,7 +588,7 @@ export default function LandingPage() {
               Rejoignez le Studio
             </h2>
             <p className="text-xl text-muted-foreground mb-12">
-              Accès bêta gratuit, puis abonnement simple sans engagement
+              Accès bêta gratuit
             </p>
 
             <Card className="border-2 border-primary">
@@ -616,21 +617,13 @@ export default function LandingPage() {
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-5 w-5 text-green-600 flex-shrink-0" />
-                    <span>Support prioritaire</span>
+                    <span>Configuration de votre propre fournisseur IA</span>
                   </li>
                 </ul>
 
-                <div className="border-t pt-6 mb-6">
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Après la bêta
-                  </p>
-                  <p className="text-2xl font-bold">
-                    9,90 &euro;<span className="text-base font-normal text-muted-foreground">/mois</span>
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Sans engagement, annulation libre
-                  </p>
-                </div>
+                <p className="border-t pt-6 mb-6 text-sm text-muted-foreground">
+                  Aucun abonnement ni paiement n&apos;est proposé dans la version bêta actuelle.
+                </p>
 
                 <Link href="/auth/signup" className="block">
                   <Button size="lg" className="w-full text-lg py-6">

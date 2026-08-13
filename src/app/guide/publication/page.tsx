@@ -1,5 +1,5 @@
 // ABOUTME: Guide « Profils de publication & aperçu du livre » — profils KDP 6×9/A5/passerelle, typographie par profil, TOC, annexes, aperçu paginé du livre entier.
-// ABOUTME: Décrit le pipeline de mise en page unifié qui pagine à la fois l'éditeur et l'export.
+// ABOUTME: Décrit les profils et le rendu paginé séparé employé pour l'aperçu et les exports PDF.
 
 import Link from 'next/link';
 
@@ -19,8 +19,8 @@ export default function GuidePublicationPage() {
         </h1>
         <p className="text-lg text-muted-foreground mb-10">
           Un manuscrit et un livre publié n&apos;ont pas la même mise en page. Revise fait
-          disparaître l&apos;aller-retour habituel vers un logiciel de mise en page : l&apos;éditeur
-          et l&apos;export utilisent le même moteur de pagination, avec le même résultat.
+          sépare l&apos;écriture du manuscrit de son rendu publié : l&apos;aperçu paginé et l&apos;export PDF
+          sont produits par le moteur de pagination, sans transformer le contenu de votre texte.
         </p>
 
         <div className="space-y-8">
@@ -42,8 +42,8 @@ export default function GuidePublicationPage() {
               </li>
             </ul>
             <p>
-              Basculez de profil directement depuis l&apos;éditeur : la mise en page se recalcule
-              immédiatement, marges et police comprises.
+              Basculez de profil directement depuis l&apos;éditeur. Les réglages de publication sont
+              appliqués au rendu sans réécrire le contenu de votre manuscrit.
             </p>
           </section>
 
@@ -82,8 +82,9 @@ export default function GuidePublicationPage() {
               chapitre ou sous-titre par sous-titre directement dans l&apos;aperçu.
             </p>
             <p>
-              C&apos;est ce même rendu qui est utilisé pour l&apos;export final — ce que vous voyez
-              dans l&apos;aperçu est ce que vous obtiendrez en PDF.
+              L&apos;aperçu est un PDF paginé distinct, mis en cache pour le livre entier. Il sert à
+              vérifier la composition avant l&apos;export ; un nouveau rendu est généré lorsque les
+              éléments qui déterminent le livre changent.
             </p>
           </section>
         </div>

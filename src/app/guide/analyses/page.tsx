@@ -21,8 +21,8 @@ const analyses: [string, string][] = [
 
 const checks: [string, string][] = [
   ['Orthographe', "Fautes d'orthographe détectées hors connexion (dictionnaire fr-FR)"],
-  ['Grammaire', 'Erreurs grammaticales et accords'],
-  ['Ponctuation', 'Erreurs de ponctuation et typographie'],
+  ['Grammaire', 'Erreurs grammaticales et accords, vérifiés localement avec Grammalecte'],
+  ['Ponctuation', 'Ponctuation et typographie, vérifiées localement avec Grammalecte'],
   ['Style', "Suggestions d'amélioration stylistique"],
   ['Répétitions', 'Mots et phrases revenant trop souvent'],
 ];
@@ -93,10 +93,10 @@ export default function GuideAnalysesPage() {
               </table>
             </div>
             <ul className="list-disc pl-6 space-y-1">
-              <li><strong>3 niveaux de rigueur</strong> : strict, équilibré ou léger, selon que vous polissez ou dégrossissez.</li>
+              <li><strong>3 niveaux de rigueur pour le style</strong> : permissif, modéré ou strict.</li>
               <li><strong>Application en un clic</strong> : acceptez les corrections proposées sans réécrire à la main.</li>
               <li><strong>Exclusion de mots</strong> : retirez vos noms de personnages du repérage des répétitions.</li>
-              <li><strong>Historique par chapitre</strong> : retrouvez vos analyses et corrections précédentes.</li>
+              <li><strong>Réexécution à la demande</strong> : les analyses et corrections de chapitre sont recalculées sur le texte courant.</li>
             </ul>
             <p className="text-muted-foreground">
               Là encore, rien n&apos;est appliqué sans vous : chaque correction est une suggestion
