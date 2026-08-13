@@ -50,6 +50,8 @@ loop is in the **`tdd-cycle`** skill. Non-negotiable principles:
 - NEVER delete a test because it's failing
 - NEVER write tests that only test mocked behavior
 - NEVER implement mocks in E2E tests
+- ALL tests must pass before committing — `npm test`, or `/verify` for the full
+  lint → tests → build loop (a pre-commit test run warns via the `guard-bash` hook)
 
 ### ABOUTME Comments (MANDATORY)
 
@@ -110,12 +112,6 @@ ALWAYS find the root cause; NEVER fix symptoms. Use the **`systematic-debugging`
 - NEVER rewrite without EXPLICIT permission
 - Fix broken things immediately
 - Make SMALLEST reasonable changes
-
-## Testing
-
-- ALL tests must pass before committing (a pre-commit test run warns via the `guard-bash` hook)
-- New features REQUIRE new tests
-- Run `npm test` before committing; use `/verify` for the full lint → tests → build loop.
 
 ## Skills & commands
 
