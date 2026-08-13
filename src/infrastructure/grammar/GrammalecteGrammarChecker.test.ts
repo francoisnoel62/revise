@@ -109,6 +109,61 @@ describe('GrammalecteGrammarChecker', () => {
     expect(errors.map((error) => error.ruleFamily.value)).toContain('gn');
   });
 
+  // `c'est` written for `s'est` is one of the mistakes a French author makes most, and the
+  // engine only catches it when the subject is a personal pronoun. The four tests below draw
+  // that boundary: the first records what works, the others record what the engine misses on
+  // real sentences from the Hiroshima corpus. They use `fails` rather than a skip so that the
+  // day the rule widens upstream, the suite turns red and tells us to raise the recall floors
+  // in e2e/ai-strategy/grammar-real-text.spec.ts.
+  const homophoneSuggestions = (sentence: string) =>
+    checker
+      .checkParagraph(sentence, { ruleProfile: DEFAULT_FICTION_GRAMMAR_RULE_PROFILE })
+      .filter((error) => error.ruleId.includes('conf_c_s_verbe'))
+      .flatMap((error) => [...error.suggestions]);
+
+  it('flags c’est written for s’est when the subject is a personal pronoun', () => {
+    expect(homophoneSuggestions("Il c'est levé tôt.")).toContain('s’');
+    expect(homophoneSuggestions("Elle c'était trompée de route.")).toContain('s’');
+  });
+
+  it.fails('flags c’est written for s’est when the subject is a noun', () => {
+    expect(homophoneSuggestions("Une fissure c'était ouverte dans le mur.")).toContain('s’');
+  });
+
+  it.fails('flags c’est written for s’est when the subject is an indefinite pronoun', () => {
+    expect(homophoneSuggestions("Quelque chose c'est brisé.")).toContain('s’');
+  });
+
+  it.fails('flags c’est written for s’est when the subject is a relative pronoun', () => {
+    expect(
+      homophoneSuggestions("Le champignon qui c'est élevé au-dessus de la ville."),
+    ).toContain('s’');
+  });
+
+  // Missing the homophone is not the whole cost. Reading `c'` as the impersonal "ce", the
+  // engine then demands a masculine agreement and offers to turn a correctly spelled feminine
+  // participle into a wrong one — a suggestion that degrades the author's text.
+  it.fails('does not offer to break the participle it failed to read as pronominal', () => {
+    const suggestions = checker
+      .checkParagraph("Une fissure c'était ouverte dans le mur.", {
+        ruleProfile: DEFAULT_FICTION_GRAMMAR_RULE_PROFILE,
+      })
+      .flatMap((error) => [...error.suggestions]);
+
+    expect(suggestions).not.toContain('ouvert');
+  });
+
+  // The corpus thresholds below only mean something if the corpus actually splits. A file
+  // written with the wrong line endings collapses to one giant block, and both thresholds then
+  // measure a single paragraph while staying plausible. Assert the split itself, so that
+  // failure names its own cause instead of surfacing as a threshold that just missed.
+  it.each(['fiction-clean.txt', 'fiction-errors.txt'])(
+    'splits %s into its fifteen excerpts',
+    (fixtureName) => {
+      expect(checkFixture(fixtureName)).toHaveLength(15);
+    },
+  );
+
   it('reports no false positives in the clean fiction corpus', () => {
     const results = checkFixture('fiction-clean.txt').map((paragraph) =>
       checker.checkParagraph(paragraph, {

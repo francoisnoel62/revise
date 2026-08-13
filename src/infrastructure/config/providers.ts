@@ -87,6 +87,8 @@ import { WholeBookHtmlAssembler } from '@/application/services/WholeBookHtmlAsse
 import { TipTapContentService } from '@/infrastructure/document/utils/TipTapContentService';
 import { GrammalecteDictionaryCompiler } from '@/infrastructure/grammar/GrammalecteDictionaryCompiler';
 import { GrammalecteGrammarChecker } from '@/infrastructure/grammar/GrammalecteGrammarChecker';
+import { loadNspellSpellChecker } from '@/infrastructure/spell/NspellSpellChecker';
+import type { SpellChecker } from '@/domain/interfaces/SpellChecker';
 import { Provider } from '@/domain/entities/Provider';
 import { config } from './env';
 import { getDatabase } from './database';
@@ -596,6 +598,16 @@ export function getGrammarChecker(): GrammarChecker {
     grammarCheckerInstance = new GrammalecteGrammarChecker();
   }
   return grammarCheckerInstance;
+}
+
+/**
+ * Get the process-local spell checker backed by nspell and the fr-FR dictionary.
+ *
+ * The adapter memoises the load itself, so concurrent callers share one engine rather than
+ * each starting their own — see `loadNspellSpellChecker`.
+ */
+export function getSpellChecker(): Promise<SpellChecker> {
+  return loadNspellSpellChecker();
 }
 
 /** Get the builder turning a project's declared vocabulary into an engine dictionary. */

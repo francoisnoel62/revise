@@ -429,6 +429,34 @@ export async function seedHiroshimaProject(): Promise<void> {
   }
 }
 
+/**
+ * Puts the autocomplete chapter back to its seeded sentence.
+ *
+ * Those specs accept suggestions and clear the editor, and every one of those edits is
+ * autosaved — so without a reset each test inherits the previous one's manuscript. The test
+ * that empties the chapter left the next one opening an editor whose seeded text no longer
+ * existed, which is not a state any of them are written for.
+ */
+export async function resetAutocompleteChapter(): Promise<void> {
+  const client = new MongoClient(MONGODB_URI);
+  await client.connect();
+  try {
+    const db = client.db(MONGODB_DB_NAME);
+    await db.collection('projects').updateOne(
+      { _id: TEST_AUTOCOMPLETE_PROJECT_ID } as object,
+      {
+        $set: {
+          'chapters.0.content': TEST_AUTOCOMPLETE_CHAPTER_CONTENT,
+          activeChapterId: TEST_AUTOCOMPLETE_CHAPTER_ID,
+          updatedAt: new Date(),
+        },
+      }
+    );
+  } finally {
+    await client.close();
+  }
+}
+
 export async function seedGrammarProject(): Promise<void> {
   const client = new MongoClient(MONGODB_URI);
   await client.connect();

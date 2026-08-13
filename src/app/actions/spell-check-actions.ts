@@ -3,41 +3,21 @@
 
 'use server';
 
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
-import type { SpellChecker } from '@/domain/interfaces/SpellChecker';
+import type { SpellCheckResult } from '@/domain/interfaces/SpellChecker';
+import { CheckSpellingUseCase } from '@/application/use-cases/CheckSpellingUseCase';
 import { UpdatePersonalDictionaryUseCase } from '@/application/use-cases/UpdatePersonalDictionaryUseCase';
-import { getGrammarDictionaryCompiler } from '@/infrastructure/config/providers';
+import {
+  getGrammarDictionaryCompiler,
+  getSpellChecker,
+} from '@/infrastructure/config/providers';
 import { getAuthenticatedUserId, getProjectSettingsRepo } from './utils';
 
-let spellCheckerInstance: SpellChecker | null = null;
-
-async function getSpellChecker(): Promise<SpellChecker> {
-  if (spellCheckerInstance) return spellCheckerInstance;
-
-  // Read .aff/.dic directly to avoid dictionary-fr's import.meta.url,
-  // which Turbopack rewrites to a bundle URL that fs.readFile cannot resolve.
-  const dictDir = path.join(process.cwd(), 'node_modules', 'dictionary-fr');
-  const [aff, dic] = await Promise.all([
-    readFile(path.join(dictDir, 'index.aff')),
-    readFile(path.join(dictDir, 'index.dic')),
-  ]);
-
-  const { default: Nspell } = await import('nspell');
-  spellCheckerInstance = new Nspell({ aff, dic }) as unknown as SpellChecker;
-  return spellCheckerInstance;
-}
-
-export interface SpellCheckWordResult {
-  word: string;
-  suggestions: string[];
-}
+export type SpellCheckWordResult = SpellCheckResult;
 
 /**
  * Checks a list of unique words against the French dictionary.
- * Words starting with an uppercase letter are accepted unconditionally
- * (proper nouns, place names, sentence starts — common in fiction).
- * Words present in customWords are also accepted.
+ * The acceptance rules — capitals, single letters, the author's own vocabulary —
+ * live in CheckSpellingUseCase, where they can be exercised without an engine.
  */
 export async function checkSpellingAction(
   words: string[],
@@ -45,28 +25,8 @@ export async function checkSpellingAction(
 ): Promise<SpellCheckWordResult[]> {
   if (words.length === 0) return [];
 
-  const spell = await getSpellChecker();
-  const customSet = new Set(customWords ?? []);
-  const misspelled: SpellCheckWordResult[] = [];
-
-  for (const word of words) {
-    if (word.length < 2) continue;
-
-    const isCorrect =
-      customSet.has(word) ||
-      word[0] !== word[0].toLowerCase() ||
-      spell.correct(word) ||
-      spell.correct(word.toLowerCase());
-
-    if (!isCorrect) {
-      misspelled.push({
-        word,
-        suggestions: spell.suggest(word).slice(0, 5),
-      });
-    }
-  }
-
-  return misspelled;
+  const useCase = new CheckSpellingUseCase(await getSpellChecker());
+  return useCase.execute({ words, acceptedWords: customWords });
 }
 
 /** Every written form of the project's vocabulary — declared plurals included. */

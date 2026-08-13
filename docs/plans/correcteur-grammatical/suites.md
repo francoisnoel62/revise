@@ -2,8 +2,8 @@
 
 Ce document liste ce qui reste à faire **après** l'atterrissage de `codex/grammalecte`
 dans `main`. La conception est dans [plan.md](plan.md) ; le récit du merge est dans
-[atterrissage.md](atterrissage.md). Ici : uniquement les corrections, dans l'ordre où
-elles se tiennent.
+[atterrissage.md](atterrissage.md) ; l'ordre d'exécution, les lots et leurs vérifications
+sont dans [suites-plan.md](suites-plan.md). Ici : uniquement les constats.
 
 ## État au 12 août 2026
 
@@ -19,9 +19,10 @@ Portes mesurées sur `main` juste avant le merge :
 | `build` | ✅ 0 |
 | E2E | ✅ 98–99 verts, 1 aléa préexistant (`autocomplete.spec.ts`) |
 
-Trois issues restent ouvertes, toutes trois étiquetées `needs-triage` : **#185**, **#186**,
-**#187**. Elles ne sont pas des oublis — elles ont été volontairement sorties du périmètre
-de la livraison.
+Trois issues restaient ouvertes et étiquetées `needs-triage` : **#185**, **#186**, **#187**.
+Elles n'étaient pas des oublis — elles avaient été volontairement sorties du périmètre de la
+livraison. Elles sont triées depuis le 13 août 2026 : **#185 est close** (voir §2), **#186**
+est `ready-for-human`, **#187** est `ready-for-agent`.
 
 ---
 
@@ -49,22 +50,19 @@ pour ne pas dépendre des fins de ligne du checkout. C'est un aveu, pas une solu
 
 ---
 
-## 2. Trancher le sort de nspell (#185) — l'arbitrage qui débloque le reste
+## 2. Le sort de nspell (#185) — tranché : nspell reste
 
-**Ce qu'il faut faire.** Décider, mesures à l'appui, si le correcteur orthographique
-Grammalecte remplace nspell.
+**Décision du 13 août 2026 : nous ne changeons pas de correcteur orthographique pour
+l'instant.** #185 est close en `wontfix`. Ce qui suit reste écrit parce que c'est ce qui
+rouvrirait la question, pas parce que c'est à faire.
 
-**Pourquoi c'est le premier arbitrage.** Il conditionne #187 (voir §4), il absorbe une
-partie du trou de rappel (voir §3), et il porte le gain de performance le plus élevé
-mesuré sur ce chantier. Tant qu'il n'est pas tranché, deux autres chantiers attendent
-une réponse qu'ils ne peuvent pas se donner eux-mêmes.
+**Les chiffres qui plaidaient pour le changement.** Revise fait tourner deux moteurs pour un
+seul travail depuis le merge. À l'initialisation : nspell ≈ **7 s et 305 Mo**, Grammalecte
+≈ **0,9 s et 49 Mo**. Le correcteur réputé le plus complexe démarre 8× plus vite que celui
+déjà en production, parce qu'il utilise une structure compressée là où nspell déplie tout
+en mémoire.
 
-**Les chiffres.** Revise fait tourner deux moteurs pour un seul travail depuis le merge.
-À l'initialisation : nspell ≈ **7 s et 305 Mo**, Grammalecte ≈ **0,9 s et 49 Mo**. Le
-correcteur réputé le plus complexe démarre 8× plus vite que celui déjà en production,
-parce qu'il utilise une structure compressée là où nspell déplie tout en mémoire.
-
-**Ce qui manque pour décider** (repris de #185, à mesurer et non à supposer) :
+**Ce qu'il aurait fallu mesurer pour basculer** (repris de #185, à mesurer et non à supposer) :
 
 - Comparer la **qualité des suggestions** sur un échantillon réel de fautes de frappe.
   C'est le point bloquant : si Grammalecte suggère moins bien, le gain au démarrage ne
@@ -78,6 +76,11 @@ parce qu'il utilise une structure compressée là où nspell déplie tout en mé
   portent sur des suggestions précises.
 - Décider si l'orthographe **reste au fil de la frappe** ou bascule à la demande comme la
   grammaire. Sur un moteur commun, la question se repose.
+
+**Ce que la décision change ailleurs dans ce document.** §4 n'attend plus rien : la dette du
+correcteur orthographique ne partira pas avec un moteur qui reste, elle est donc à payer.
+Et dans §3, le cluster « orthographe » reste chez nspell — ces fautes-là ne seront pas
+rattrapées par Grammalecte.
 
 ---
 
@@ -98,24 +101,45 @@ groupes disent chacun où aller :
 
 | Cluster | Où le traiter |
 |---|---|
-| Fautes d'**orthographe** et non de grammaire | §2 / #185 — c'est l'autre moteur qui devrait les voir |
+| Fautes d'**orthographe** et non de grammaire | nspell — c'est l'autre moteur qui devrait les voir, et il reste (§2) |
 | **Traits d'union** | §5 / #186 — la micro-typographie est coupée *exprès* dans le profil fiction ; ces fautes ne sont pas manquées, elles sont hors périmètre par décision |
-| Homophones **`c'est` / `s'est`** | Sans propriétaire aujourd'hui. Relève de la famille `conf`, qui est active. À investiguer pour de vrai : règle absente du jeu, ou désactivée par le profil ? |
+| Homophones **`c'est` / `s'est`** | #199 — investigué le 13 août 2026 : ni règle absente, ni profil. Voir ci-dessous |
 
-Le troisième cluster est le seul vrai trou : les deux premiers ont déjà un ticket. Il mérite
-son propre ticket une fois la cause établie.
+Le troisième cluster était le seul vrai trou : les deux premiers avaient déjà un ticket. Il a
+le sien depuis que sa cause est établie — **#199**.
+
+**Ce qu'a donné l'investigation.** La règle existe (`g2__conf_c_s_verbe`), la famille qui la
+gouverne est `conj` et elle est active dans le profil fiction, et l'apostrophe droite n'est pas
+en cause : le moteur normalise les apostrophes avant analyse. La frontière est ailleurs, et elle
+est nette — **le moteur ne signale la confusion que derrière un pronom personnel**. Le temps n'y
+change rien (`c'est` et `c'était` sont traités pareil), mais dès que le sujet est un nom, un
+pronom indéfini ou un relatif, la faute passe. Les trois occurrences du corpus tombent toutes
+dans cette zone.
+
+Et le coût ne s'arrête pas au silence : faute de lire la forme pronominale, le moteur interprète
+l'élision comme un « ce » impersonnel, réclame un accord masculin, et **propose de transformer un
+participe féminin correct en participe faux**. Il ne rate pas seulement la faute, il en suggère
+une. C'est le vrai grief, et il pèse plus lourd que le rappel manquant.
+
+Le correctif est en amont, dans le graphe de règles de Grammalecte. La caractérisation est
+écrite dans `GrammalecteGrammarChecker.test.ts` — un test vert pour ce qui marche, quatre
+`it.fails` pour ce qui ne marche pas, en `fails` et non en `skip` exprès : le jour où la règle
+s'élargit en amont, la suite vire au rouge et réclame la remontée des planchers.
 
 **Quand relever `MIN_FLAGGED_RANGES` et `MIN_KNOWN_MISTAKES_CAUGHT`** : à chaque amélioration
-constatée. Un plancher qu'on ne remonte jamais cesse de mesurer quoi que ce soit.
+constatée. Un plancher qu'on ne remonte jamais cesse de mesurer quoi que ce soit. Ils sont
+inchangés au 13 août 2026 : l'investigation de #199 a établi une cause, pas gagné un rappel.
 
 ---
 
 ## 4. Dette architecturale du correcteur orthographique (#187)
 
-**À ne pas lancer avant §2.** Si nspell disparaît, une bonne partie de cette dette part avec
-lui, et refactoriser d'abord pour supprimer ensuite serait du travail perdu.
+**Débloqué par §2.** Ce chantier attendait de savoir si nspell disparaîtrait, auquel cas une
+bonne partie de cette dette serait partie avec lui. nspell reste : la dette est à payer.
 
-**Ce qui est en dette**, mesuré contre la contrainte Clean Architecture du `CLAUDE.md` :
+**Payé le 13 août 2026**, sauf un point sorti explicitement (voir la fin de la section).
+
+**Ce qui était en dette**, mesuré contre la contrainte Clean Architecture du `CLAUDE.md` :
 
 - L'adaptateur nspell est **inliné dans la Server Action** — un fichier de la couche interface
   lit des fichiers et instancie le moteur.
@@ -126,20 +150,33 @@ lui, et refactoriser d'abord pour supprimer ensuite serait du travail perdu.
 - Le type positionnel d'une faute vit dans un composant d'interface et est importé par un hook,
   sans représentation de domaine.
 
-Le correcteur grammatical livré est construit à l'opposé — port, use case, adaptateur en
-infrastructure — précisément pour ne pas propager le schéma. Les deux correcteurs cohabitent
-donc avec deux architectures différentes. C'est acceptable tant que c'est consigné ; ce
-document est cette consignation.
+Le correcteur grammatical livré était construit à l'opposé — port, use case, adaptateur en
+infrastructure — précisément pour ne pas propager le schéma. **Les deux correcteurs partagent
+désormais la même forme** : `NspellSpellChecker` en infrastructure, `CheckSpellingUseCase` en
+application, `LocatedWord` dans le domaine, et une Server Action redevenue mince.
 
-**Défauts adjacents relevés dans #187**, à rattacher ou à sortir explicitement : persistance
-en « fire and forget » sans gestion d'erreur, écritures silencieusement ignorées quand les
-réglages du projet n'existent pas encore, comparaison de casse incohérente entre filtrage
-serveur et filtrage client, absence de déduplication des initialisations concurrentes du
-moteur.
+**Défauts adjacents relevés dans #187** :
 
-**Prérequis non négociable** : il n'existe aujourd'hui **aucun test d'intégration pour
-l'orthographe** ; les actions adossées à la base ne sont couvertes que par les E2E.
-Refactoriser sans filet à cet endroit est un pari, pas un refactor.
+| Défaut | Sort |
+|---|---|
+| Déduplication des initialisations concurrentes | Réglé — l'adaptateur mémorise la **promesse**, pas l'instance : un second appelant attend le chargement en cours au lieu d'en démarrer un autre |
+| Comparaison de casse incohérente | Réglé — le client appariait en minuscules la réponse d'un serveur qui accepte les majuscules sans les consulter, et soulignait donc « Maisson » après que le serveur l'a délibérément épargné |
+| Persistance « fire and forget » | Réglé — l'écriture reste volontairement non attendue, mais un rejet est rapporté au lieu de devenir une promesse non gérée |
+| Écritures ignorées quand les réglages n'existent pas | **Sorti explicitement** — voir ci-dessous |
+
+**Ce qui reste, et pourquoi c'est sorti.** Ajouter un mot au dictionnaire d'un projet dont les
+réglages n'existent pas encore ne fait toujours rien, en silence. Le comportement est
+désormais **figé par un test d'intégration**, donc il ne peut plus changer sans qu'on le voie.
+Mais le corriger demande une décision produit qui n'est pas dans ce périmètre : ces cinq
+actions renvoient `void`, l'appelant n'a aucun moyen de réagir, et changer leur signature
+oblige à décider ce que la palette montre à l'auteur quand l'enregistrement échoue. C'est une
+question d'interface, pas de refactor.
+
+**Prérequis, tenu avant tout refactor** : il n'existait **aucun test d'intégration pour
+l'orthographe** ; les actions adossées à la base n'étaient couvertes que par les E2E.
+Refactoriser sans filet à cet endroit aurait été un pari, pas un refactor. Le filet est posé
+dans `spell-check-actions.integration.test.ts` — MongoDB réel, seule l'identité de
+l'utilisateur connecté est simulée.
 
 ---
 
@@ -171,22 +208,54 @@ conventions retenues — « typographie française » n'est pas une spécificati
 **Ce qu'il faut faire.** Traiter l'instabilité de la télémétrie d'autocomplétion à la racine,
 et réactiver les tests.
 
-**L'état réel.** `e2e/ai-strategy/autocomplete.spec.ts` porte **sept `test.fixme`** — lignes
-150, 173, 199, 218, 237, 260, 332 — tous sur la même cause déclarée : `waitForTelemetry`
-expire par intermittence et `tracker.accept()` renvoie parfois `null`. S'y ajoute l'aléa
-d'environ 20 % constaté pendant le merge, isolé comme en suite.
+**Traité le 13 août 2026.** Les sept `test.fixme` sont levés et le fichier est vert sur
+201 passages.
 
-**Pourquoi c'est ici.** Ce n'est pas un dommage du merge — ni `main` ni la branche n'ont
+**L'état constaté.** Les sept quarantaines accusaient une course dans la télémétrie :
+`waitForTelemetry` qui expire, `tracker.accept()` qui renvoie `null`. Levées et rejouées vingt
+fois, elles sont passées **140 fois sur 140**, et aucun événement de prefetch n'est apparu dans
+la télémétrie instrumentée. La cause déclarée ne se reproduit pas sur le code actuel.
+
+**Le vrai aléa était ailleurs**, sur un test qui n'avait jamais été quarantiné, et il ne tenait
+pas à la télémétrie mais à de l'**état partagé**. Ce fichier ne réamorçait rien entre ses tests,
+alors que chacun édite le manuscrit et que l'éditeur enregistre automatiquement : le test qui
+vide le chapitre laissait le suivant devant un manuscrit vide. S'y ajoutait une fenêtre de
+course à l'ouverture — l'éditeur se monte vide puis reçoit son chapitre dans un effet ultérieur,
+et agir pendant ce délai laissait le `setContent` entrant écraser ce que le test venait de
+faire. Chaque test repart désormais de la phrase semée, et l'ouverture attend que le chapitre
+soit arrivé.
+
+**Pourquoi c'était ici.** Ce n'était pas un dommage du merge — ni `main` ni la branche n'ont
 touché ce test ni le code d'autocomplétion, et c'est la seule raison pour laquelle il n'a pas
-bloqué l'atterrissage. Mais sept tests désactivés sur un même fichier ne sont plus une
-flakiness : c'est un **trou de couverture sur la télémétrie d'autocomplétion**, et il grandit
-sans bruit.
+bloqué l'atterrissage. Mais sept tests désactivés sur un même fichier n'étaient plus une
+flakiness : c'était un **trou de couverture sur la télémétrie d'autocomplétion**, et il
+grandissait sans bruit. Il est refermé.
 
 ---
 
 ## 7. Le démarrage à froid du moteur, côté auteur
 
-**Ce qu'il faut faire.** Mesurer ce que coûte réellement la **première** « Corriger le
+**Mesuré le 13 août 2026. Décision : ne rien faire.**
+
+| Mesure | Valeur |
+|---|---|
+| Import du paquet (24,9 Mo) | ~12 ms |
+| Première analyse du processus, chargement compris | ~380 ms |
+| **Total avant le premier signalement** | **~390 ms** |
+| Chapitre entier (24 blocs, 6 195 caractères) | ~117 ms |
+| Le même, moteur chaud | ~85 ms |
+
+Le budget de 150 s du test E2E est **environ 400 fois** la mesure. C'était un budget de test ;
+il ne disait rien de l'expérience réelle, et il ne faut pas le lire comme un symptôme.
+
+**Limite à ne pas oublier** : mesure prise en Node local, système de fichiers chaud. Une
+instance serverless froide paie en plus le démarrage du conteneur et la lecture des 24,9 Mo
+depuis une couche froide, ce qui n'est pas mesuré ici. Si la question se repose, c'est là qu'il
+faut mesurer. Le repère est figé dans `tests/performance/grammar-cold-start.test.ts`, avec des
+plafonds larges : un empaquetage ou un jeu de règles qui multiplierait le démarrage à froid
+vire au rouge au lieu d'allonger l'attente en silence.
+
+**Ce qu'il fallait faire.** Mesurer ce que coûte réellement la **première** « Corriger le
 chapitre » d'un processus serveur, en conditions de production, puis décider s'il faut agir.
 
 **Ce qu'on sait.** Le paquet fait 24,9 Mo décompressés et charge règles, dictionnaires
@@ -216,20 +285,29 @@ la bonne décision et elle est documentée : sans ça, le vocabulaire d'un proje
 dans le paragraphe d'un autre. Le comparer par valeur plutôt que par référence garderait
 cette garantie tout en cessant de la payer pour rien.
 
-**Priorité basse, et à mesurer d'abord.** Le coût est réel mais amorti sur une vérification
-entière (les blocs d'un même chapitre partagent la référence, donc ne rechargent pas).
-Ne pas y toucher tant que §7 n'a pas dit si ça se voit.
+**Mesuré le 13 août 2026. Décision : ne pas y toucher.** Le surcoût de la réinstallation est
+de **~1 ms sur un chapitre entier** — 76 ms avec un dictionnaire relu à chaque fois contre 74 ms
+avec une référence stable. Le coût était réel, il est négligeable : comme prévu, il est amorti
+sur une vérification entière, les blocs d'un même chapitre partageant la référence.
+
+La comparaison par identité reste donc en l'état. Corriger vaudrait une milliseconde et
+ajouterait une clé d'identité à faire vivre. Si la question se repose — un dictionnaire beaucoup
+plus gros, ou une vérification par bloc plutôt que par chapitre — la forme du correctif est
+consignée dans [suites-plan.md](suites-plan.md) (lot 4).
 
 ---
 
 ## Ordre recommandé
 
-1. **§1 `.gitattributes`** — indépendant, court, et il ferme une classe de bugs déjà avérée.
-2. **§2 arbitrage #185** — parce que §3 et §4 attendent sa réponse.
-3. **§6 autocomplétion** — indépendant de tout le reste, et le trou s'élargit.
-4. **§3 cluster `c'est`/`s'est`** — la seule part du trou de rappel sans propriétaire.
-5. **§7 mesure du démarrage à froid**, puis §8 s'il le justifie.
-6. **§4 ou §5** selon ce qu'a donné §2.
+L'arbitrage #185 étant rendu, l'ordre ci-dessous remplace celui écrit le 12 août. Le découpage
+en lots, les tests à écrire et les vérifications sont dans [suites-plan.md](suites-plan.md).
 
-Et, dans tous les cas : **trier #185, #186 et #187**. Elles portent encore `needs-triage`
-alors que leur contenu est écrit et que leurs dépendances sont connues.
+1. **§1 `.gitattributes`** — indépendant, court, et il ferme une classe de bugs déjà avérée.
+2. **§6 autocomplétion** — indépendant de tout le reste, et le trou s'élargit.
+3. **§3 cluster `c'est`/`s'est`** — la seule part du trou de rappel sans propriétaire.
+4. **§7 mesure du démarrage à froid**, puis §8 s'il le justifie — mesurer et décider par écrit,
+   sans optimiser.
+5. **§4 dette #187** — débloqué par §2, et à ne pas commencer avant d'avoir posé les tests
+   d'intégration qui manquent.
+6. **§5 spécification #186** — le livrable est une spec, pas du code : les décisions produit
+   restent à prendre.

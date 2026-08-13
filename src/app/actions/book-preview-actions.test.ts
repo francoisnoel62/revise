@@ -37,6 +37,17 @@ import { computeBookPreviewContentHash } from '@/application/services/bookPrevie
 import { LevelStyleSet, type LevelStyleSetProperties } from '@/domain/value-objects/LevelStyleSet';
 import { PublicationProfile } from '@/domain/value-objects/PublicationProfile';
 import type { TocPreferences } from '@/domain/value-objects/TocPreferences';
+import { honorsBlankLines } from '@/domain/value-objects/BlankLinePolicy';
+
+/**
+ * Fixed rather than `new Date()`.
+ *
+ * Whether blank lines are honoured depends on how the project's creation date compares to
+ * BLANK_LINES_HONORED_FROM, so a project created "now" answered one way before that date and
+ * the other way after — and the cache hash below changed with it, on a day nobody touched the
+ * code. A date the calendar cannot move keeps this suite saying the same thing forever.
+ */
+const PROJECT_CREATED_AT = new Date('2026-09-01T00:00:00.000Z');
 
 const CONTENT = '{"type":"doc","content":[{"type":"paragraph"}]}';
 
@@ -53,7 +64,7 @@ function makeProject(): Project {
     new Chapter('ch-1', 'Chapitre 1', CONTENT, 0),
     new Chapter('ch-2', 'Chapitre 2', CONTENT, 1),
   ];
-  return new Project('proj-1', 'user-1', 'Mon Roman', chapters, 'ch-1', null, new Date(), new Date());
+  return new Project('proj-1', 'user-1', 'Mon Roman', chapters, 'ch-1', null, PROJECT_CREATED_AT, PROJECT_CREATED_AT);
 }
 
 function makeProjectWithSubtitle(): Project {
@@ -61,7 +72,7 @@ function makeProjectWithSubtitle(): Project {
     new Chapter('ch-1', 'Chapitre 1', CHAPTER_WITH_SUBTITLE_CONTENT, 0),
     new Chapter('ch-2', 'Chapitre 2', CONTENT, 1),
   ];
-  return new Project('proj-1', 'user-1', 'Mon Roman', chapters, 'ch-1', null, new Date(), new Date());
+  return new Project('proj-1', 'user-1', 'Mon Roman', chapters, 'ch-1', null, PROJECT_CREATED_AT, PROJECT_CREATED_AT);
 }
 
 function frontMatterFor(dedication?: string) {
@@ -92,6 +103,7 @@ function hashFor(
     tocDepth: tocPreferences.depth,
     tocStyle: tocPreferences.style,
     endnotesTitle: 'Notes',
+    honorBlankLines: honorsBlankLines(undefined, PROJECT_CREATED_AT),
   });
 }
 

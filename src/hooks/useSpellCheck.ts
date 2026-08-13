@@ -6,6 +6,11 @@ import type { Editor } from '@tiptap/react';
 import { textIssuePluginKey } from '@/components/editor/TextIssueExtension';
 import type { TextIssue } from '@/domain/value-objects/TextIssue';
 import {
+  locateWords,
+  spellingIssueAt,
+  type LocatedWord,
+} from '@/domain/value-objects/LocatedWord';
+import {
   checkSpellingAction,
   getCustomDictionaryAction,
   addWordToCustomDictionaryAction,
@@ -13,25 +18,12 @@ import {
   addIgnoredWordAction,
 } from '@/app/actions/spell-check-actions';
 
-// Word regex: letters and combining marks, at least 2 chars
-const WORD_RE = /[\p{L}\p{M}]{2,}/gu;
-
-function extractWordsFromDoc(
-  editor: Editor
-): Array<{ word: string; from: number; to: number }> {
-  const result: Array<{ word: string; from: number; to: number }> = [];
+function extractWordsFromDoc(editor: Editor): LocatedWord[] {
+  const result: LocatedWord[] = [];
 
   editor.state.doc.descendants((node, pos) => {
     if (!node.isText || !node.text) return;
-    WORD_RE.lastIndex = 0;
-    let match: RegExpExecArray | null;
-    while ((match = WORD_RE.exec(node.text)) !== null) {
-      result.push({
-        word: match[0],
-        from: pos + match.index,
-        to: pos + match.index + match[0].length,
-      });
-    }
+    result.push(...locateWords(node.text, pos));
   });
 
   return result;
@@ -107,9 +99,10 @@ export function useSpellCheck(
     // here to the dispatch is synchronous, so nothing can move in between.
     const wordsWithPositions = extractWordsFromDoc(ed);
 
-    const misspelledMap = new Map(
-      misspelled.map((m) => [m.word.toLowerCase(), m.suggestions])
-    );
+    // Keyed on the word exactly as the server saw it. The server accepts a capitalised word
+    // unconditionally — proper nouns and sentence starts — so folding case here would hand
+    // "Maisson" the underline the server deliberately withheld while flagging "maisson".
+    const misspelledMap = new Map(misspelled.map((m) => [m.word, m.suggestions]));
 
     // Filter locally too — guards against stale server responses and test mocks
     const locallyAccepted = new Set([
@@ -118,16 +111,9 @@ export function useSpellCheck(
     ]);
 
     const spelling: TextIssue[] = wordsWithPositions
-      .filter((w) => misspelledMap.has(w.word.toLowerCase()))
+      .filter((w) => misspelledMap.has(w.word))
       .filter((w) => !locallyAccepted.has(w.word))
-      .map((w) => ({
-        nature: 'spelling',
-        from: w.from,
-        to: w.to,
-        text: w.word,
-        message: '',
-        suggestions: misspelledMap.get(w.word.toLowerCase()) ?? [],
-      }));
+      .map((w) => spellingIssueAt(w, misspelledMap.get(w.word) ?? []));
 
     if (!ed.isDestroyed) {
       ed.view.dispatch(ed.state.tr.setMeta(textIssuePluginKey, { spelling }));
@@ -140,9 +126,14 @@ export function useSpellCheck(
       if (!ignoredWordsRef.current.includes(word)) {
         ignoredWordsRef.current = [...ignoredWordsRef.current, word];
       }
-      // Persist per-project when possible
+      // Persist per-project when possible. Deliberately not awaited — the underline goes
+      // away at once, which is the whole point — but a rejection has to be reported rather
+      // than become an unhandled promise: the author's choice is lost on the next reload,
+      // and silence is the one response that leaves them no way to know.
       if (projectId) {
-        addIgnoredWordAction(projectId, word);
+        addIgnoredWordAction(projectId, word).catch((error: unknown) => {
+          console.error(`Le mot ignoré « ${word} » n'a pas pu être enregistré`, error);
+        });
       }
       // Remove the decoration immediately
       clearSpellingIssuesFor(editor, word);
