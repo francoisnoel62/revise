@@ -7,11 +7,13 @@ Repeatable procedures live in skills/commands, not here (see "Skills & commands"
 
 ## Project Context
 
-**Revise** is an AI-powered writing assistant for fiction authors. Its mission is to
-augment the author's creative process **without ever replacing their voice**.
-The founding principles (AI suggests / author decides, always offer choices, preserve
-the text's singularity, the author owns their writing) are defined in
-[.claude/philosophie.md](.claude/philosophie.md) and are binding on every feature.
+**Revise** is an AI-powered writing assistant for fiction authors. Its mission is to augment
+the author's creative process **without ever replacing their voice**.
+
+Every feature is bound by [.claude/philosophie.md](.claude/philosophie.md): AI suggests /
+author decides, always offer choices, transparency, and ownership (writings belong to the
+author, never used for training). Anything that writes "instead of" the author, erases the
+text's singularity, or standardizes the voice does NOT belong in Revise.
 
 ## Tech Stack
 
@@ -125,14 +127,6 @@ ALWAYS find the root cause; NEVER fix symptoms. Use the **`systematic-debugging`
 - NEVER rewrite without EXPLICIT permission
 - Fix broken things immediately
 - Make SMALLEST reasonable changes
-
-## Product Principles
-
-Every feature must respect the principles in [.claude/philosophie.md](.claude/philosophie.md):
-author's voice first (AI suggests, author decides), always offer choices, transparency,
-and ownership (writings belong to the author, never used for training). Anything that writes
-"instead of" the author, erases the text's singularity, or standardizes the voice does NOT
-belong in Revise.
 
 ## Testing
 
