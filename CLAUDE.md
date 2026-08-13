@@ -113,8 +113,13 @@ ALWAYS find the root cause; NEVER fix symptoms. Use the **`systematic-debugging`
 
 ## Skills & commands
 
-Repeatable procedures live in `.claude/skills/` (tdd-cycle, systematic-debugging, journal) and `.claude/commands/`.
-Hooks in `.claude/hooks/` require **Git Bash + `jq`** in PATH (Windows: install jq via WinGet). If `jq` is missing the hooks print a warning and no-op.
+Repeatable procedures live in `.claude/skills/` and `.claude/commands/`.
+
+- **Not every skill in `.claude/skills/` is versioned.** Many are junctions into `.agents/`,
+  which is machine-local and gitignored — editing one of those changes a file no clone and no
+  other worktree will ever see. Run `git ls-files` on a skill before editing it.
+- Hooks in `.claude/hooks/` require **Git Bash + `jq`** in PATH (Windows: install jq via
+  WinGet). If `jq` is missing the hooks print a warning and no-op.
 
 ## Agent skills
 
