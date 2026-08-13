@@ -2,8 +2,8 @@
 
 Ce document liste ce qui reste à faire **après** l'atterrissage de `codex/grammalecte`
 dans `main`. La conception est dans [plan.md](plan.md) ; le récit du merge est dans
-[atterrissage.md](atterrissage.md). Ici : uniquement les corrections, dans l'ordre où
-elles se tiennent.
+[atterrissage.md](atterrissage.md) ; l'ordre d'exécution, les lots et leurs vérifications
+sont dans [suites-plan.md](suites-plan.md). Ici : uniquement les constats.
 
 ## État au 12 août 2026
 
@@ -19,9 +19,10 @@ Portes mesurées sur `main` juste avant le merge :
 | `build` | ✅ 0 |
 | E2E | ✅ 98–99 verts, 1 aléa préexistant (`autocomplete.spec.ts`) |
 
-Trois issues restent ouvertes, toutes trois étiquetées `needs-triage` : **#185**, **#186**,
-**#187**. Elles ne sont pas des oublis — elles ont été volontairement sorties du périmètre
-de la livraison.
+Trois issues restaient ouvertes et étiquetées `needs-triage` : **#185**, **#186**, **#187**.
+Elles n'étaient pas des oublis — elles avaient été volontairement sorties du périmètre de la
+livraison. Elles sont triées depuis le 13 août 2026 : **#185 est close** (voir §2), **#186**
+est `ready-for-human`, **#187** est `ready-for-agent`.
 
 ---
 
@@ -49,22 +50,19 @@ pour ne pas dépendre des fins de ligne du checkout. C'est un aveu, pas une solu
 
 ---
 
-## 2. Trancher le sort de nspell (#185) — l'arbitrage qui débloque le reste
+## 2. Le sort de nspell (#185) — tranché : nspell reste
 
-**Ce qu'il faut faire.** Décider, mesures à l'appui, si le correcteur orthographique
-Grammalecte remplace nspell.
+**Décision du 13 août 2026 : nous ne changeons pas de correcteur orthographique pour
+l'instant.** #185 est close en `wontfix`. Ce qui suit reste écrit parce que c'est ce qui
+rouvrirait la question, pas parce que c'est à faire.
 
-**Pourquoi c'est le premier arbitrage.** Il conditionne #187 (voir §4), il absorbe une
-partie du trou de rappel (voir §3), et il porte le gain de performance le plus élevé
-mesuré sur ce chantier. Tant qu'il n'est pas tranché, deux autres chantiers attendent
-une réponse qu'ils ne peuvent pas se donner eux-mêmes.
+**Les chiffres qui plaidaient pour le changement.** Revise fait tourner deux moteurs pour un
+seul travail depuis le merge. À l'initialisation : nspell ≈ **7 s et 305 Mo**, Grammalecte
+≈ **0,9 s et 49 Mo**. Le correcteur réputé le plus complexe démarre 8× plus vite que celui
+déjà en production, parce qu'il utilise une structure compressée là où nspell déplie tout
+en mémoire.
 
-**Les chiffres.** Revise fait tourner deux moteurs pour un seul travail depuis le merge.
-À l'initialisation : nspell ≈ **7 s et 305 Mo**, Grammalecte ≈ **0,9 s et 49 Mo**. Le
-correcteur réputé le plus complexe démarre 8× plus vite que celui déjà en production,
-parce qu'il utilise une structure compressée là où nspell déplie tout en mémoire.
-
-**Ce qui manque pour décider** (repris de #185, à mesurer et non à supposer) :
+**Ce qu'il aurait fallu mesurer pour basculer** (repris de #185, à mesurer et non à supposer) :
 
 - Comparer la **qualité des suggestions** sur un échantillon réel de fautes de frappe.
   C'est le point bloquant : si Grammalecte suggère moins bien, le gain au démarrage ne
@@ -78,6 +76,11 @@ parce qu'il utilise une structure compressée là où nspell déplie tout en mé
   portent sur des suggestions précises.
 - Décider si l'orthographe **reste au fil de la frappe** ou bascule à la demande comme la
   grammaire. Sur un moteur commun, la question se repose.
+
+**Ce que la décision change ailleurs dans ce document.** §4 n'attend plus rien : la dette du
+correcteur orthographique ne partira pas avec un moteur qui reste, elle est donc à payer.
+Et dans §3, le cluster « orthographe » reste chez nspell — ces fautes-là ne seront pas
+rattrapées par Grammalecte.
 
 ---
 
@@ -98,7 +101,7 @@ groupes disent chacun où aller :
 
 | Cluster | Où le traiter |
 |---|---|
-| Fautes d'**orthographe** et non de grammaire | §2 / #185 — c'est l'autre moteur qui devrait les voir |
+| Fautes d'**orthographe** et non de grammaire | nspell — c'est l'autre moteur qui devrait les voir, et il reste (§2) |
 | **Traits d'union** | §5 / #186 — la micro-typographie est coupée *exprès* dans le profil fiction ; ces fautes ne sont pas manquées, elles sont hors périmètre par décision |
 | Homophones **`c'est` / `s'est`** | Sans propriétaire aujourd'hui. Relève de la famille `conf`, qui est active. À investiguer pour de vrai : règle absente du jeu, ou désactivée par le profil ? |
 
@@ -112,8 +115,8 @@ constatée. Un plancher qu'on ne remonte jamais cesse de mesurer quoi que ce soi
 
 ## 4. Dette architecturale du correcteur orthographique (#187)
 
-**À ne pas lancer avant §2.** Si nspell disparaît, une bonne partie de cette dette part avec
-lui, et refactoriser d'abord pour supprimer ensuite serait du travail perdu.
+**Débloqué par §2.** Ce chantier attendait de savoir si nspell disparaîtrait, auquel cas une
+bonne partie de cette dette serait partie avec lui. nspell reste : la dette est à payer.
 
 **Ce qui est en dette**, mesuré contre la contrainte Clean Architecture du `CLAUDE.md` :
 
@@ -224,12 +227,15 @@ Ne pas y toucher tant que §7 n'a pas dit si ça se voit.
 
 ## Ordre recommandé
 
-1. **§1 `.gitattributes`** — indépendant, court, et il ferme une classe de bugs déjà avérée.
-2. **§2 arbitrage #185** — parce que §3 et §4 attendent sa réponse.
-3. **§6 autocomplétion** — indépendant de tout le reste, et le trou s'élargit.
-4. **§3 cluster `c'est`/`s'est`** — la seule part du trou de rappel sans propriétaire.
-5. **§7 mesure du démarrage à froid**, puis §8 s'il le justifie.
-6. **§4 ou §5** selon ce qu'a donné §2.
+L'arbitrage #185 étant rendu, l'ordre ci-dessous remplace celui écrit le 12 août. Le découpage
+en lots, les tests à écrire et les vérifications sont dans [suites-plan.md](suites-plan.md).
 
-Et, dans tous les cas : **trier #185, #186 et #187**. Elles portent encore `needs-triage`
-alors que leur contenu est écrit et que leurs dépendances sont connues.
+1. **§1 `.gitattributes`** — indépendant, court, et il ferme une classe de bugs déjà avérée.
+2. **§6 autocomplétion** — indépendant de tout le reste, et le trou s'élargit.
+3. **§3 cluster `c'est`/`s'est`** — la seule part du trou de rappel sans propriétaire.
+4. **§7 mesure du démarrage à froid**, puis §8 s'il le justifie — mesurer et décider par écrit,
+   sans optimiser.
+5. **§4 dette #187** — débloqué par §2, et à ne pas commencer avant d'avoir posé les tests
+   d'intégration qui manquent.
+6. **§5 spécification #186** — le livrable est une spec, pas du code : les décisions produit
+   restent à prendre.
