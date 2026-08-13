@@ -392,6 +392,29 @@ describe('useSpellCheck', () => {
     expect(mockAddIgnoredWord).toHaveBeenCalledWith('proj-1', 'maisson');
   });
 
+  // The word is dropped from the underlines the moment the author asks, without waiting for
+  // the server — that responsiveness is the point. But the write was launched and never
+  // looked at again: a rejection became an unhandled promise, and the author's choice was
+  // silently lost on the next reload. It still cannot block the UI; it can be reported.
+  it('reports a failed ignored-word write instead of dropping it on the floor', async () => {
+    mockCheckSpelling.mockResolvedValue([]);
+    mockAddIgnoredWord.mockRejectedValue(new Error('base injoignable'));
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const editor = createMockEditor('maisson', [{ text: 'maisson', pos: 1 }]);
+    const { result } = renderHook(() =>
+      useSpellCheck(editor as unknown as Editor, 'project-1')
+    );
+
+    await act(async () => {
+      result.current.ignoreWord('maisson');
+      await vi.runAllTimersAsync();
+    });
+
+    expect(consoleError).toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
   it('ignoreWord does NOT call addIgnoredWordAction when no projectId', async () => {
     mockCheckSpelling.mockResolvedValue([{ word: 'maisson', suggestions: ['maison'] }]);
 
