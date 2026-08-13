@@ -84,27 +84,10 @@ Names tell WHAT code does, NOT HOW or its HISTORY.
 Isolate parallel sessions in their own worktree + branch to avoid Git conflicts.
 
 - Branch naming: `feature/<name>`, `bugfix/<name>`, `refactor/<name>`, `docs/<name>`
-- Create a worktree: `git worktree add ../revise-<name> -b feature/<name>`
-- List worktrees: `git worktree list`
-- Remove a worktree when done: `git worktree remove ../revise-<name>`
-- Launch Claude Code in a worktree: `cd` into its path, then start a new session there —
-  one Claude Code session per worktree, never share a branch across sessions.
-
-Examples:
-```bash
-# New feature, own worktree
-git worktree add ../revise-export-epub -b feature/export-epub
-cd ../revise-export-epub
-claude
-
-# Bugfix in parallel with the above
-git worktree add ../revise-fix-toc -b bugfix/fix-toc
-cd ../revise-fix-toc
-claude
-```
-
-When finished: merge/PR the branch, then `git worktree remove <path>` from the main
-worktree to clean up.
+- `git worktree add ../revise-<name> -b <type>/<name>`, then start a Claude Code session
+  inside it — one session per worktree, never share a branch across sessions.
+- When done: merge/PR the branch, then `git worktree remove ../revise-<name>` from the
+  main worktree.
 
 ### Debugging
 
