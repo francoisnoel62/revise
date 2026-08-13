@@ -1,5 +1,10 @@
 # Suites du correcteur grammatical
 
+> **Archive de constats.** Les lots décrits ont été exécutés le 13 août 2026 ;
+> [suites-plan.md](suites-plan.md) en consigne le résultat. Les formulations
+> « ce qu'il faut faire » ci-dessous sont conservées pour expliquer la décision,
+> et ne constituent pas une file de travail actuelle.
+
 Ce document liste ce qui reste à faire **après** l'atterrissage de `codex/grammalecte`
 dans `main`. La conception est dans [plan.md](plan.md) ; le récit du merge est dans
 [atterrissage.md](atterrissage.md) ; l'ordre d'exécution, les lots et leurs vérifications

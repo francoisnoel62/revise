@@ -1,5 +1,10 @@
 # Normalisation typographique à l'export — spécification
 
+> **Non implémenté au 13 août 2026.** Cette spécification explore une évolution
+> possible du rendu. Aucun `TextFormatter` n'est appelé par le chemin actuel
+> d'aperçu ou d'export ; ne pas présenter les conventions ci-dessous comme des
+> comportements livrés.
+
 Issue : **#186**. Ce document est le livrable du lot 6 de
 [suites-plan.md](../correcteur-grammatical/suites-plan.md). C'est une spécification, pas un plan
 d'implémentation : les décisions marquées « à confirmer » relèvent du produit, et rien ne doit
@@ -59,7 +64,7 @@ cinquante options — et à les maintenir.
 |---|---|---|
 | **Réversible ou destructive** | **Non destructive** : transformation au rendu, le manuscrit n'est jamais réécrit | Le manuscrit appartient à l'auteur. Une réécriture silencieuse de son texte est exactement ce que la philosophie du produit interdit |
 | **Où ça s'applique** | Export **et** aperçu livre | Un aperçu qui ne montre pas la typographie finale ment sur ce qu'on s'apprête à publier |
-| **Optionnelle** | Oui, par profil d'export (KDP / A4 / A5), activée par défaut | Un profil est déjà l'endroit où se règle ce qui dépend du support |
+| **Optionnelle** | Oui, par profil d'export (KDP 6×9 / A5), activée par défaut | Un profil est déjà l'endroit où se règle ce qui dépend du support |
 | **Périmètre des conventions** | Voir le tableau ci-dessous — explicite, pas « la typographie française » | « typographie française » n'est pas une spécification : deux personnes n'en tireront pas le même résultat |
 
 ## Les conventions retenues — liste explicite

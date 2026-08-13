@@ -1,34 +1,16 @@
-# Workflow B — L'auteur corrige, l'IA suit
+# Workflow B — Édition auteur et fraîcheur
 
-**Actes couverts :** **Acte 1** (l'édition manuelle d'une fiche fait foi pour l'IA) + **Acte 3** (péremption visible, régénération à la demande).
-**Durée :** ~10 min.
-**C'est le test le plus important de tout le chantier.**
-
-## Sentinelle
-Le manuscrit dit explicitement que Marguerite a les **yeux bleus**. On va l'éditer à la main en **yeux violets** dans la fiche Personnages, et vérifier que l'IA suit la **fiche** (violets), pas le manuscrit (bleus).
+**But :** vérifier la règle « l'édition de l'auteur l'emporte » dans les opérations qui utilisent `AIContextBuilder`, ainsi que l'indicateur de fraîcheur des métadonnées.
 
 ## Étapes
 
-1. [x] Nouveau projet. Coller `manuscrit-chapitre-1.md` dans le chapitre 1. Sauvegarder.
-2. [x] cockpit → **Métadonnées** → générer **Personnages**.
-   - ✅ Ouvrir la fiche : elle décrit Marguerite avec des **yeux bleus** (issu du manuscrit). Pas de repère de péremption.
-3. [x] **(cœur — Acte 1)** Dans la fiche Personnages, **éditer à la main** : remplacer « yeux bleus » par « **yeux VIOLETS, injectés de mauve** ». Sauvegarder la fiche.
-4. [x] Aller dans l'éditeur, à la fin du texte, taper :
-   `Il s'approcha et plongea son regard dans le sien. Ses yeux étaient`
-   puis **Tab**.
-   - 🎯 **Attendu** : la complétion tend vers **violets / mauve** (la valeur **éditée**), pas vers « bleus ».
-   - 🔁 Probabiliste : relancer 2-3 fois.
-5. [x] **(cœur — Acte 3)** Retourner dans le manuscrit, **ajouter un paragraphe** quelconque (ex. « Le facteur passa sans s'arrêter. »). Sauvegarder. Revenir à cockpit → **Métadonnées**.
-   - 🎯 **Attendu** : la carte **Personnages** affiche le repère **« basé sur une version antérieure — régénérer »**.
-6. [x] Cliquer **⋮ → Régénérer** sur la carte Personnages → choisir le provider → confirmer.
-   - 🎯 **Attendu** : après régénération, **le repère disparaît**. (Et la fiche repart du manuscrit : Marguerite redevient « yeux bleus » — c'est normal, la régénération écrase l'édition manuelle, l'auteur a été prévenu par le dialogue.)
-7. [x] Vérifier qu'une **annexe éditoriale** (créer une *Dédicace*) **n'affiche jamais** le repère de péremption.
+1. Créer un projet, coller `manuscrit-chapitre-1.md`, puis générer la métadonnée Personnages.
+2. Modifier explicitement la fiche générée, par exemple « yeux bleus » en « yeux violets, injectés de mauve », et sauvegarder.
+3. Lancer une génération de chapitre ou une réécriture qui utilise le contexte du projet.
+4. Vérifier que le résultat peut s'appuyer sur la valeur éditée, sans considérer la formulation exacte comme déterministe.
+5. Modifier le manuscrit, sauvegarder et ouvrir les métadonnées pour constater le signal de fraîcheur.
+6. Régénérer uniquement si l'auteur choisit de remplacer la donnée ; relire ensuite le contenu obtenu avant de s'en servir.
 
 ## Verdict
-- ✅ Étape 4 : la valeur **éditée** (violets) ressort → **l'auteur fait foi** (Acte 1).
-- ✅ Étape 5 : le repère apparaît après modification du manuscrit (Acte 3).
-- ✅ Étape 6 : le repère disparaît après régénération, et **rien ne s'est régénéré tout seul** avant ton clic.
-- ✅ Étape 7 : les annexes/fiches manuelles ne sont jamais marquées périmées.
 
-## Point de vigilance
-Entre l'étape 4 (auteur prioritaire) et l'étape 6 (régénération qui écrase) : c'est volontaire et conforme à la philosophie — **l'IA propose, l'auteur décide**. La régénération est toujours un **acte explicite**, jamais automatique.
+La métadonnée modifiée n'est pas silencieusement remplacée par son `structuredData` généré pendant la construction du contexte. La fraîcheur indique l'écart entre manuscrit et métadonnée ; elle ne déclenche pas elle-même une régénération.

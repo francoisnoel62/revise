@@ -1,5 +1,10 @@
 # Atterrissage du correcteur grammatical dans `main`
 
+> **Archive de livraison.** Le merge décrit ici est achevé ; les incertitudes et
+> actions formulées au présent sont le contexte du 12 août 2026, pas une liste
+> de travail actuelle. Pour le correcteur actif, voir [plan.md](plan.md) et
+> `docs/architecture.md`.
+
 Ce document ne décrit pas la conception du correcteur — elle est dans [plan.md](plan.md).
 Il décrit comment faire atterrir la branche `codex/grammalecte` dans `main` sans rien casser.
 

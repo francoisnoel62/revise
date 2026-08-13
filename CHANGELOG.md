@@ -378,8 +378,8 @@ Principe directeur : *Revise ne finit pas votre chapitre. Il vous tend la procha
 
 The AI now writes *from the author's own material* — their generated metadata **and**
 their research documents — instead of generic knowledge, while never silently
-overriding what the author has edited. See [docs/strategie-ia-contexte.md](docs/strategie-ia-contexte.md)
-for the vision, diagnostic, and 3-act roadmap.
+overriding what the author has edited. The corresponding implementation has since evolved; see
+the current [architecture documentation](docs/architecture.md) for active context paths.
 
 ### Domain Layer
 - **ProjectMetadata enhanced** - `structuredData` field (JSON-serialized AI output preserved

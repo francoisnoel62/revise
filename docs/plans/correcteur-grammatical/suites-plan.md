@@ -1,5 +1,9 @@
 # Plan d'exécution — suites du correcteur grammatical
 
+> **Archive d'exécution.** Les sept lots sont terminés. Les étapes impératives
+> qui suivent expliquent leur réalisation ; elles ne doivent pas être relancées
+> sans une nouvelle décision et un nouveau plan.
+
 Ce document rend exécutable le constat posé dans [suites.md](suites.md). La conception initiale
 est dans [plan.md](plan.md) ; le récit du merge dans [atterrissage.md](atterrissage.md).
 
@@ -261,7 +265,7 @@ proposées, à confirmer :
 |---|---|
 | Où ça s'applique | À l'export **et** à l'aperçu livre — sinon l'aperçu ment sur le rendu final |
 | Réversible ou destructive | **Non destructive** : transformation au rendu, le manuscrit n'est pas touché. La philosophie du produit ne laisse pas vraiment le choix |
-| Optionnelle par profil | Oui, par profil d'export (KDP / A4 / A5) |
+| Optionnelle par profil | Oui, par profil d'export (KDP 6×9 / A5) |
 | Nœuds non textuels | Appliquer **après** le mapping des offsets, jamais dessus — c'est ce qui casse les appels de note |
 | Moteur | Évaluer `textformatter.js`, déjà présent dans le paquet Grammalecte, avant d'écrire une transformation dédiée |
 | Liste des conventions | **À écrire explicitement** — apostrophes typographiques, insécables avant `! ? : ;`, espaces fines, ligatures. « typographie française » n'est pas une spécification |

@@ -1,6 +1,6 @@
 # Revise Documentation
 
-Comprehensive documentation for Revise - the ultra-minimalist AI-assisted writing tool.
+Index de la documentation courante et des archives de Revise.
 
 ## 📚 Documentation Structure
 
@@ -17,19 +17,12 @@ For writers and end users of Revise.
 ### Developer Documentation
 For developers working on or integrating with Revise.
 
-- **[API Reference](./developer/api-reference.md)** - Complete API documentation for provider management
-  - Server Actions API
-  - Domain entities
-  - Data types
-  - Security details
-  - Testing examples
-  - Performance considerations
+- **[API Reference](./developer/api-reference.md)** - Contrats actifs des Server Actions de fournisseurs et de publication
 
 ### Project Documentation
 High-level project information.
 
-- **[docs/architecture.md](./architecture.md)** - Full Domain/Application/Infrastructure/Interface layer
-  inventory, kept current with the code
+- **[docs/architecture.md](./architecture.md)** - Carte des couches, chemins actifs, correction locale et publication
 - **[CLAUDE.md](../CLAUDE.md)** - Governance rules for Claude Code working in this repo (tech stack,
   Clean Architecture constraints, development rules). It no longer contains phase-by-phase feature
   history — see `docs/architecture.md` and `CHANGELOG.md` for that.
@@ -58,9 +51,9 @@ High-level project information.
 
 ### Authentication & Security
 - User authentication: See README.md → Quick Start
-- Password security: bcrypt with 12 rounds; forgot/reset password flow (`/auth/forgot-password`, `/auth/reset-password`)
-- API key encryption: [Provider Management](./user/provider-management.md#security-best-practices)
-- Multi-tenant isolation: [API Reference](./developer/api-reference.md#security)
+- Password security: bcrypt; forgot/reset password flow (`/auth/forgot-password`, `/auth/reset-password`)
+- API key encryption: [Provider Management](./user/provider-management.md)
+- Multi-tenant isolation: [Architecture](./architecture.md)
 - AI transparency ledger: opt-in log of captured AI exchanges, encrypted at rest — see `docs/architecture.md`
 
 ### AI Providers
@@ -71,14 +64,14 @@ High-level project information.
 - Model pricing synced dynamically from OpenRouter; admin panel at `/admin/pricing`
 
 ### Database & Persistence
-- MongoDB Atlas integration: See [docs/architecture.md](./architecture.md) → Infrastructure Layer
+- MongoDB integration: See [docs/architecture.md](./architecture.md)
 - Auto-save: 1-second debounce
 - Multi-tenant data isolation: All queries filtered by ownerId
 - Encryption at rest: AES-256-GCM for API keys and transparency-ledger content (separate, domain-separated keys)
 
 ### Editor & Formatting
 - TipTap rich text editor with a semantic content model (role decoupled from presentation)
-- A4-style writing surface; paginated publication preview (KDP 6×9 / A5 / passerelle profiles) for export-accurate layout
+- Manuscript editor with a separate paginated publication preview for KDP 6×9 and A5; Passerelle is a DOCX/Word or Google Docs flow
 - Typography controls: per-profile font family, size, alignment, indent
 - Keyboard shortcuts: See README.md → Usage
 
@@ -86,8 +79,8 @@ High-level project information.
 - Unit tests: Vitest + React Testing Library
 - Integration tests: Real API calls (OpenAI, Anthropic, Google)
 - E2E tests: Playwright with auth seeding (`e2e/auth.setup.ts`)
-- AI Efficiency tests: Manual workflow guides A–D (`tests_ia_efficiency/`) validating contextual AI behaviour, each paired with an automated Vitest suite
-- See [API Reference](./developer/api-reference.md#testing) for examples, and `npm run test:coverage` for current numbers rather than a figure hard-coded here
+- AI context scenarios: Manual workflow guides A–D (`tests_ia_efficiency/`) distinguish generation/rewrite context from the active autocomplete stream
+- Use nearby tests and `npm run test:coverage` for current evidence rather than a figure hard-coded here
 
 ## 🔍 Find What You Need
 
@@ -99,14 +92,13 @@ High-level project information.
 - Learn shortcuts: README.md → Usage
 
 **I'm a Developer:**
-- Architecture: [CLAUDE.md](../CLAUDE.md)
+- Architecture: [Architecture](./architecture.md) and [CONTEXT.md](../CONTEXT.md)
 - API docs: [API Reference](./developer/api-reference.md)
 - Code examples: Check test files in `/src`
 
 **I'm Deploying to Production:**
 - Environment setup: README.md → Environment Variables
-- Security checklist: [Provider Management](./user/provider-management.md#security-best-practices)
-- Performance targets: [API Reference](./developer/api-reference.md#performance-considerations)
+- Composition and runtime dependencies: [Architecture](./architecture.md) and `src/infrastructure/README.md`
 
 ### By Task
 
@@ -114,23 +106,23 @@ High-level project information.
 → [Provider Management Guide](./user/provider-management.md)
 
 **Understanding the architecture:**
-→ [CLAUDE.md](../CLAUDE.md) → Architecture Principles
+→ [Architecture](./architecture.md)
 
 **Using the Server Actions API:**
 → [API Reference](./developer/api-reference.md) → Server Actions API
 
 **Writing tests:**
-→ [API Reference](./developer/api-reference.md#testing)
+→ Tests colocated with the capability and `tests_ia_efficiency/` where applicable
 
 **Troubleshooting issues:**
-→ [Provider Management](./user/provider-management.md#troubleshooting)
+→ [Provider Management](./user/provider-management.md)
 
-## 🆕 What's New
+## 🆕 Archive historique — What's New
 
-> This section stops at Phase 9.0 (June 2026) and is kept only as a historical record. For
-> everything since — dynamic AI pricing, the AI transparency ledger, the autocomplete/canon-facts
-> redesign, the offline spell-checker, the full editorial refonte (semantic content, publication
-> profiles, pagination), endnotes, and project snapshots — see **[CHANGELOG.md](../CHANGELOG.md)**.
+> Cette section est conservée telle qu'elle a été écrite. Ses noms de composants, compteurs et
+> descriptions de flux ne constituent pas la source de vérité de l'état présent. Pour le code
+> actif, consulter `docs/architecture.md` et les README de couche ; pour la chronologie, consulter
+> **[CHANGELOG.md](../CHANGELOG.md)**.
 
 ### Phase 9.0 - Character Chat & Character Sheet Auto-Fill (June 2026) ✅
 
@@ -373,8 +365,7 @@ docs/
 ## 📮 Need Help?
 
 **For Users:**
-- Check [FAQ](./user/provider-management.md#faq)
-- Review [Troubleshooting](./user/provider-management.md#troubleshooting)
+- Review [Provider Management](./user/provider-management.md)
 - Open GitHub issue
 
 **For Developers:**
@@ -384,5 +375,5 @@ docs/
 
 ---
 
-**Last Updated**: 29 July 2026. This index and `docs/architecture.md` are maintained alongside the
-code; `CHANGELOG.md` is the source of truth for what shipped and when.
+**Last reviewed**: 13 August 2026. L'index et `docs/architecture.md` sont mis à jour avec les
+changements de capacité ; `CHANGELOG.md` reste la chronologie des livraisons.

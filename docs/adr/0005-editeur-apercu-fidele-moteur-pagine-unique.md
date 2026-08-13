@@ -1,5 +1,22 @@
 # Éditeur-aperçu fidèle : pagination vivante et moteur de rendu unique piloté par les profils de publication
 
+> **Statut au 13 août 2026 : partiellement réalisé et complété par une
+> architecture d'aperçu séparé.** Cette ADR conserve l'objectif et les choix de
+> l'époque ; les garanties de pagination vivante et de parité pixel dans le champ
+> d'écriture ne décrivent pas le comportement actuel.
+
+## Statut actuel
+
+- Le contenu sémantique, les profils `kdp-6x9`, `a5` et `passerelle`, les styles par
+  niveau, les surcharges Passerelle, Paged.js et l'export PDF paginé sont actifs.
+- L'éditeur reste une surface TipTap de manuscrit. `PublicationPreview` est un rendu
+  de publication séparé : le caret ne circule pas à travers des pages imprimées.
+- L'aperçu du livre entier est un PDF serveur mis en cache (MongoDB/GridFS), distinct
+  de l'export lancé depuis l'éditeur, même s'ils partagent le sous-système Paged.js.
+- Aucun préflight de marketplace ni garantie d'acceptation KDP/BoD n'est implémenté.
+- Le spike `editor/paged-spike` est conservé comme expérience et n'est pas exposé dans
+  le parcours de production.
+
 ## Contexte
 
 L'objectif de Revise est de permettre à l'auteur de **publier le plus facilement possible**, en supprimant les points de douleur de l'auto-édition sur les marketplaces (Amazon KDP, BoD, TheBookEdition, Bookelis…). Le critère dur : un export destiné à une plateforme doit être **accepté du premier coup, sans aller-retour**.

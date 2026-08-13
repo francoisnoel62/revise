@@ -14,7 +14,14 @@ Ces catégories permettent de modéliser l'**horizon narratif** de chaque person
 
 Le modèle de données (`entity`, `statement`, `validFromChapter`) reste inchangé — la richesse est dans le texte libre du `statement`, pas dans un schéma structuré. Cela évite de sur-modéliser des croyances de second ordre difficiles à représenter proprement en base.
 
-Le plafond d'injection passe de 20 à 40 faits, avec priorisation : chapitres récents en premier, puis catégories 2-4 (états de connaissance, croyances) avant les faits objectifs.
+Le plafond d'injection passe de 20 à 40 faits, avec priorisation : chapitres récents en premier, puis catégories 2-5 (états de connaissance, croyances et dynamiques relationnelles) avant les faits objectifs.
+
+## Statut au 13 août 2026
+
+**Actif.** Les cinq catégories, la validité temporelle et le plafond de 40 faits
+sont employés par le contexte d'autocomplétion. La priorité inclut la catégorie 5 :
+une dynamique relationnelle peut être aussi importante pour la continuité qu'un état
+de connaissance ou une croyance.
 
 ## Considered Options
 
