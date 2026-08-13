@@ -103,13 +103,32 @@ groupes disent chacun où aller :
 |---|---|
 | Fautes d'**orthographe** et non de grammaire | nspell — c'est l'autre moteur qui devrait les voir, et il reste (§2) |
 | **Traits d'union** | §5 / #186 — la micro-typographie est coupée *exprès* dans le profil fiction ; ces fautes ne sont pas manquées, elles sont hors périmètre par décision |
-| Homophones **`c'est` / `s'est`** | Sans propriétaire aujourd'hui. Relève de la famille `conf`, qui est active. À investiguer pour de vrai : règle absente du jeu, ou désactivée par le profil ? |
+| Homophones **`c'est` / `s'est`** | #199 — investigué le 13 août 2026 : ni règle absente, ni profil. Voir ci-dessous |
 
-Le troisième cluster est le seul vrai trou : les deux premiers ont déjà un ticket. Il mérite
-son propre ticket une fois la cause établie.
+Le troisième cluster était le seul vrai trou : les deux premiers avaient déjà un ticket. Il a
+le sien depuis que sa cause est établie — **#199**.
+
+**Ce qu'a donné l'investigation.** La règle existe (`g2__conf_c_s_verbe`), la famille qui la
+gouverne est `conj` et elle est active dans le profil fiction, et l'apostrophe droite n'est pas
+en cause : le moteur normalise les apostrophes avant analyse. La frontière est ailleurs, et elle
+est nette — **le moteur ne signale la confusion que derrière un pronom personnel**. Le temps n'y
+change rien (`c'est` et `c'était` sont traités pareil), mais dès que le sujet est un nom, un
+pronom indéfini ou un relatif, la faute passe. Les trois occurrences du corpus tombent toutes
+dans cette zone.
+
+Et le coût ne s'arrête pas au silence : faute de lire la forme pronominale, le moteur interprète
+l'élision comme un « ce » impersonnel, réclame un accord masculin, et **propose de transformer un
+participe féminin correct en participe faux**. Il ne rate pas seulement la faute, il en suggère
+une. C'est le vrai grief, et il pèse plus lourd que le rappel manquant.
+
+Le correctif est en amont, dans le graphe de règles de Grammalecte. La caractérisation est
+écrite dans `GrammalecteGrammarChecker.test.ts` — un test vert pour ce qui marche, quatre
+`it.fails` pour ce qui ne marche pas, en `fails` et non en `skip` exprès : le jour où la règle
+s'élargit en amont, la suite vire au rouge et réclame la remontée des planchers.
 
 **Quand relever `MIN_FLAGGED_RANGES` et `MIN_KNOWN_MISTAKES_CAUGHT`** : à chaque amélioration
-constatée. Un plancher qu'on ne remonte jamais cesse de mesurer quoi que ce soit.
+constatée. Un plancher qu'on ne remonte jamais cesse de mesurer quoi que ce soit. Ils sont
+inchangés au 13 août 2026 : l'investigation de #199 a établi une cause, pas gagné un rappel.
 
 ---
 
