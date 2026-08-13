@@ -220,7 +220,27 @@ grandissait sans bruit. Il est refermé.
 
 ## 7. Le démarrage à froid du moteur, côté auteur
 
-**Ce qu'il faut faire.** Mesurer ce que coûte réellement la **première** « Corriger le
+**Mesuré le 13 août 2026. Décision : ne rien faire.**
+
+| Mesure | Valeur |
+|---|---|
+| Import du paquet (24,9 Mo) | ~12 ms |
+| Première analyse du processus, chargement compris | ~380 ms |
+| **Total avant le premier signalement** | **~390 ms** |
+| Chapitre entier (24 blocs, 6 195 caractères) | ~117 ms |
+| Le même, moteur chaud | ~85 ms |
+
+Le budget de 150 s du test E2E est **environ 400 fois** la mesure. C'était un budget de test ;
+il ne disait rien de l'expérience réelle, et il ne faut pas le lire comme un symptôme.
+
+**Limite à ne pas oublier** : mesure prise en Node local, système de fichiers chaud. Une
+instance serverless froide paie en plus le démarrage du conteneur et la lecture des 24,9 Mo
+depuis une couche froide, ce qui n'est pas mesuré ici. Si la question se repose, c'est là qu'il
+faut mesurer. Le repère est figé dans `tests/performance/grammar-cold-start.test.ts`, avec des
+plafonds larges : un empaquetage ou un jeu de règles qui multiplierait le démarrage à froid
+vire au rouge au lieu d'allonger l'attente en silence.
+
+**Ce qu'il fallait faire.** Mesurer ce que coûte réellement la **première** « Corriger le
 chapitre » d'un processus serveur, en conditions de production, puis décider s'il faut agir.
 
 **Ce qu'on sait.** Le paquet fait 24,9 Mo décompressés et charge règles, dictionnaires
@@ -250,9 +270,15 @@ la bonne décision et elle est documentée : sans ça, le vocabulaire d'un proje
 dans le paragraphe d'un autre. Le comparer par valeur plutôt que par référence garderait
 cette garantie tout en cessant de la payer pour rien.
 
-**Priorité basse, et à mesurer d'abord.** Le coût est réel mais amorti sur une vérification
-entière (les blocs d'un même chapitre partagent la référence, donc ne rechargent pas).
-Ne pas y toucher tant que §7 n'a pas dit si ça se voit.
+**Mesuré le 13 août 2026. Décision : ne pas y toucher.** Le surcoût de la réinstallation est
+de **~1 ms sur un chapitre entier** — 76 ms avec un dictionnaire relu à chaque fois contre 74 ms
+avec une référence stable. Le coût était réel, il est négligeable : comme prévu, il est amorti
+sur une vérification entière, les blocs d'un même chapitre partageant la référence.
+
+La comparaison par identité reste donc en l'état. Corriger vaudrait une milliseconde et
+ajouterait une clé d'identité à faire vivre. Si la question se repose — un dictionnaire beaucoup
+plus gros, ou une vérification par bloc plutôt que par chapitre — la forme du correctif est
+consignée dans [suites-plan.md](suites-plan.md) (lot 4).
 
 ---
 
