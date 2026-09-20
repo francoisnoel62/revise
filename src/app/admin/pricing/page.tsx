@@ -6,8 +6,9 @@ import { redirect } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { getAuthenticatedAdminId } from '@/app/actions/utils';
-import { listModelPricingAction } from '@/app/actions/pricing-admin-actions';
+import { listModelPricingAction, listPendingPriceChangesAction } from '@/app/actions/pricing-admin-actions';
 import { ModelPricingTable } from '@/components/admin/ModelPricingTable';
+import { PendingPriceChangesPanel } from '@/components/admin/PendingPriceChangesPanel';
 import { SyncButton } from '@/components/admin/SyncButton';
 import { PruneButton } from '@/components/admin/PruneButton';
 
@@ -21,7 +22,10 @@ export default async function AdminPricingPage() {
     redirect('/auth/signin');
   }
 
-  const result = await listModelPricingAction();
+  const [result, pendingResult] = await Promise.all([
+    listModelPricingAction(),
+    listPendingPriceChangesAction(),
+  ]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -44,6 +48,7 @@ export default async function AdminPricingPage() {
       </nav>
 
       <main className="container mx-auto px-4 py-8">
+        {pendingResult.success && <PendingPriceChangesPanel changes={pendingResult.data} />}
         {!result.success ? (
           <p className="text-destructive">{result.error}</p>
         ) : result.data.length === 0 ? (

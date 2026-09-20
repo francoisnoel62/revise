@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SyncModelPricingUseCase } from '@/application/use-cases/SyncModelPricingUseCase';
 import { OpenRouterPricingClient } from '@/infrastructure/pricing/OpenRouterPricingClient';
-import { getModelPricingRepository } from '@/infrastructure/config/providers';
+import { getModelPricingRepository, getPendingPriceChangeRepository } from '@/infrastructure/config/providers';
 import { ResendEmailService } from '@/infrastructure/email/ResendEmailService';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -18,10 +18,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   try {
     const pricingRepo = await getModelPricingRepository();
+    const pendingPriceChangeRepo = await getPendingPriceChangeRepository();
     const useCase = new SyncModelPricingUseCase(
       new OpenRouterPricingClient(),
       pricingRepo,
-      new ResendEmailService()
+      new ResendEmailService(),
+      pendingPriceChangeRepo
     );
     const report = await useCase.execute();
     return NextResponse.json({ success: true, report });
