@@ -4,6 +4,7 @@
 import { ModelPricingEntry, ModelPricingRepository } from '@/domain/interfaces/ModelPricingRepository';
 import { EmailService, PricingSyncReport } from '@/domain/interfaces/EmailService';
 import { PricingClient } from '@/domain/interfaces/PricingClient';
+import { PendingPriceChangeRepository } from '@/domain/interfaces/PendingPriceChangeRepository';
 
 /** Price swings beyond this ratio are quarantined for manual review instead of applied automatically. */
 const MAX_VARIATION_RATIO = 0.5;
@@ -30,7 +31,8 @@ export class SyncModelPricingUseCase {
   constructor(
     private readonly pricingClient: PricingClient,
     private readonly pricingRepository: ModelPricingRepository,
-    private readonly emailService: EmailService
+    private readonly emailService: EmailService,
+    private readonly pendingPriceChangeRepository: PendingPriceChangeRepository
   ) {}
 
   async execute(): Promise<PricingSyncReport> {
@@ -112,8 +114,24 @@ export class SyncModelPricingUseCase {
               `sortie ${formatUsd(prev.outputPerM)}→${formatUsd(current.outputPerM)} $, ` +
               `cache ${formatUsd(prev.cachedInputPerM)}→${formatUsd(current.cachedInputPerM)} $.`
           );
+          await this.pendingPriceChangeRepository.upsert({
+            key,
+            provider: entry.provider,
+            prefix: entry.prefix,
+            modelPricingId: prev.id,
+            previous: {
+              inputPerM: prev.inputPerM,
+              outputPerM: prev.outputPerM,
+              cachedInputPerM: prev.cachedInputPerM,
+            },
+            current,
+            detectedAt: new Date(),
+          });
           continue;
         }
+
+        // A normal (non-quarantined) update resolves any stale pending review for this key.
+        await this.pendingPriceChangeRepository.deleteByKey(key);
 
         report.updatedModels.push({
           key,

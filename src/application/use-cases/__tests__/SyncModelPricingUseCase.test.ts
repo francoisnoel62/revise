@@ -31,14 +31,27 @@ function makeDeps(overrides: Record<string, unknown> = {}) {
     emailService: {
       sendPricingSyncReport: vi.fn().mockResolvedValue(undefined),
     },
+    pendingPriceChangeRepository: {
+      upsert: vi.fn().mockResolvedValue(undefined),
+      deleteByKey: vi.fn().mockResolvedValue(undefined),
+    },
     ...overrides,
   };
+}
+
+function makeUseCase(deps: ReturnType<typeof makeDeps>) {
+  return new SyncModelPricingUseCase(
+    deps.pricingClient as never,
+    deps.pricingRepository as never,
+    deps.emailService as never,
+    deps.pendingPriceChangeRepository as never
+  );
 }
 
 describe('SyncModelPricingUseCase', () => {
   it('upserts all fetched entries', async () => {
     const deps = makeDeps();
-    const useCase = new SyncModelPricingUseCase(deps.pricingClient as never, deps.pricingRepository as never, deps.emailService as never);
+    const useCase = makeUseCase(deps);
 
     await useCase.execute();
 
@@ -49,7 +62,7 @@ describe('SyncModelPricingUseCase', () => {
 
   it('identifies new models vs updated models in the diff', async () => {
     const deps = makeDeps();
-    const useCase = new SyncModelPricingUseCase(deps.pricingClient as never, deps.pricingRepository as never, deps.emailService as never);
+    const useCase = makeUseCase(deps);
 
     const report = await useCase.execute();
 
@@ -68,7 +81,7 @@ describe('SyncModelPricingUseCase', () => {
 
   it('sends email report after sync', async () => {
     const deps = makeDeps();
-    const useCase = new SyncModelPricingUseCase(deps.pricingClient as never, deps.pricingRepository as never, deps.emailService as never);
+    const useCase = makeUseCase(deps);
 
     await useCase.execute();
 
@@ -79,7 +92,7 @@ describe('SyncModelPricingUseCase', () => {
     const deps = makeDeps({
       pricingClient: { fetchPricingEntries: vi.fn().mockRejectedValue(new Error('network error')) },
     });
-    const useCase = new SyncModelPricingUseCase(deps.pricingClient as never, deps.pricingRepository as never, deps.emailService as never);
+    const useCase = makeUseCase(deps);
 
     const report = await useCase.execute();
 
@@ -101,7 +114,7 @@ describe('SyncModelPricingUseCase', () => {
         ]),
       },
     });
-    const useCase = new SyncModelPricingUseCase(deps.pricingClient as never, deps.pricingRepository as never, deps.emailService as never);
+    const useCase = makeUseCase(deps);
 
     const report = await useCase.execute();
 
@@ -130,7 +143,7 @@ describe('SyncModelPricingUseCase', () => {
         ]),
       },
     });
-    const useCase = new SyncModelPricingUseCase(deps.pricingClient as never, deps.pricingRepository as never, deps.emailService as never);
+    const useCase = makeUseCase(deps);
 
     const report = await useCase.execute();
 
@@ -142,6 +155,53 @@ describe('SyncModelPricingUseCase', () => {
     expect(
       report.errors.some((e) => e.includes('Variation') && e.includes('anthropic/claude-opus-4'))
     ).toBe(true);
+  });
+
+  it('persists a pending price change for admin review when quarantining a variation', async () => {
+    const deps = makeDeps({
+      pricingRepository: {
+        findAll: vi.fn().mockResolvedValue([
+          { id: '1', provider: 'anthropic', prefix: 'claude-opus-4', inputPerM: 15.0, outputPerM: 75.0, cachedInputPerM: 1.5, cachedInInput: false, updatedAt: new Date('2026-01-01') },
+        ]),
+        upsertMany: vi.fn().mockResolvedValue(undefined),
+      },
+      pricingClient: {
+        fetchPricingEntries: vi.fn().mockResolvedValue([
+          { provider: 'anthropic', prefix: 'claude-opus-4', inputPerM: 5.0, outputPerM: 25.0, cachedInputPerM: 0.5, cachedInInput: false, updatedAt: new Date() },
+        ]),
+      },
+    });
+    const useCase = makeUseCase(deps);
+
+    await useCase.execute();
+
+    expect(deps.pendingPriceChangeRepository.upsert).toHaveBeenCalledOnce();
+    const change = deps.pendingPriceChangeRepository.upsert.mock.calls[0][0];
+    expect(change.key).toBe('anthropic/claude-opus-4');
+    expect(change.modelPricingId).toBe('1');
+    expect(change.previous.inputPerM).toBe(15.0);
+    expect(change.current.inputPerM).toBe(5.0);
+  });
+
+  it('clears a stale pending change for a key once a normal update is applied for it', async () => {
+    const deps = makeDeps({
+      pricingRepository: {
+        findAll: vi.fn().mockResolvedValue([
+          { id: '2', provider: 'openai', prefix: 'gpt-4o', inputPerM: 2.5, outputPerM: 10.0, cachedInputPerM: 1.25, cachedInInput: true, updatedAt: new Date('2026-01-01') },
+        ]),
+        upsertMany: vi.fn().mockResolvedValue(undefined),
+      },
+      pricingClient: {
+        fetchPricingEntries: vi.fn().mockResolvedValue([
+          { provider: 'openai', prefix: 'gpt-4o', inputPerM: 2.6, outputPerM: 10.0, cachedInputPerM: 1.25, cachedInInput: true, updatedAt: new Date() },
+        ]),
+      },
+    });
+    const useCase = makeUseCase(deps);
+
+    await useCase.execute();
+
+    expect(deps.pendingPriceChangeRepository.deleteByKey).toHaveBeenCalledWith('openai/gpt-4o');
   });
 
   it('reports totalModels as the count of distinct keys, not raw fetched length', async () => {
@@ -158,7 +218,7 @@ describe('SyncModelPricingUseCase', () => {
         ]),
       },
     });
-    const useCase = new SyncModelPricingUseCase(deps.pricingClient as never, deps.pricingRepository as never, deps.emailService as never);
+    const useCase = makeUseCase(deps);
 
     const report = await useCase.execute();
 

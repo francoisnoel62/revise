@@ -54,6 +54,8 @@ import { MongoDBExchangeRepository } from '@/infrastructure/persistence/MongoDBE
 import { getFieldEncryption } from '@/infrastructure/security/FieldEncryption';
 import { MongoDBModelPricingRepository } from '@/infrastructure/persistence/MongoDBModelPricingRepository';
 import { ModelPricingRepository } from '@/domain/interfaces/ModelPricingRepository';
+import { MongoDBPendingPriceChangeRepository } from '@/infrastructure/persistence/MongoDBPendingPriceChangeRepository';
+import { PendingPriceChangeRepository } from '@/domain/interfaces/PendingPriceChangeRepository';
 import { MongoDBBlogArticleRepository } from '@/infrastructure/persistence/MongoDBBlogArticleRepository';
 import { MongoDBContactMessageRepository } from '@/infrastructure/persistence/MongoDBContactMessageRepository';
 import { MongoDBArticleViewRepository } from '@/infrastructure/persistence/MongoDBArticleViewRepository';
@@ -293,6 +295,20 @@ export async function getModelPricingRepository(): Promise<ModelPricingRepositor
     await modelPricingRepoInstance.ensureIndexes();
   }
   return modelPricingRepoInstance;
+}
+
+/**
+ * Get the pending (quarantined) price change repository.
+ */
+let pendingPriceChangeRepoInstance: MongoDBPendingPriceChangeRepository | null = null;
+
+export async function getPendingPriceChangeRepository(): Promise<PendingPriceChangeRepository> {
+  if (!pendingPriceChangeRepoInstance) {
+    const db = await getDatabase();
+    pendingPriceChangeRepoInstance = new MongoDBPendingPriceChangeRepository(db);
+    await pendingPriceChangeRepoInstance.ensureIndexes();
+  }
+  return pendingPriceChangeRepoInstance;
 }
 
 /**
