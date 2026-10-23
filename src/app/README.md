@@ -53,7 +53,7 @@ Les familles actives couvrent : projets et chapitres, import/export, publication
 | `api/character-chat/stream` | Flux SSE de chat personnage. |
 | `api/approve` | Approbation de compte. |
 | `api/book-preview/pdf` | Lecture du PDF mis en cache. |
-| `api/cron/sync-pricing` | Synchronisation planifiée des tarifs. |
+| `api/cron/sync-pricing` | Synchronisation planifiée des tarifs ; l'email de rapport renvoie vers `/admin/pricing` pour valider les variations > 50 %. |
 
 `editor/paged-spike` et `api/paged-spike/export` sont une expérimentation explicitement exclue de l'UX de production.
 

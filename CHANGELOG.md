@@ -11,6 +11,22 @@ For current features and roadmap, see [README.md](README.md).
 
 ---
 
+## Tarifs IA — validation des variations depuis l'email (octobre 2026)
+
+L'email quotidien de synchronisation des tarifs comporte désormais un bouton **Valider les
+variations** quand des écarts supérieurs à 50 % ont été mis en quarantaine par la synchronisation.
+
+- Le bouton mène à `/admin/pricing`, où un panneau « variations à valider » liste chaque écart
+  (ancien → nouveau prix, % de variation) avec **Appliquer** par modèle et **Tout appliquer**
+- Les variations sont recalculées à l'ouverture de la page depuis les prix OpenRouter actuels
+  (`ReviewPricingVariationsUseCase`) ; rien de plus n'est persisté
+- `PricingSyncReport.pendingVariations` expose la quarantaine sous forme structurée ; la règle de
+  seuil est partagée entre la synchronisation et la validation (`pricing-variation.ts`)
+- `/admin/pricing` redirige désormais vers la connexion avec `callbackUrl`, pour revenir sur la page
+  après authentification depuis le lien de l'email
+
+---
+
 ## Historique de versions — snapshots de projet (25–29 juillet 2026)
 
 Filet de sécurité pour revenir sur une version antérieure d'un projet, avec verrouillage optimiste

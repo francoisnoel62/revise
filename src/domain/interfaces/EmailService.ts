@@ -27,6 +27,8 @@ export interface ModelPriceChange {
 export interface PricingSyncReport {
   newModels: ModelPriceChange[];
   updatedModels: ModelPriceChange[];
+  /** Price swings held back for manual validation (not applied to the database). */
+  pendingVariations: ModelPriceChange[];
   totalModels: number;
   syncedAt: Date;
   errors: string[];

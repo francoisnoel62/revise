@@ -142,6 +142,16 @@ describe('SyncModelPricingUseCase', () => {
     expect(
       report.errors.some((e) => e.includes('Variation') && e.includes('anthropic/claude-opus-4'))
     ).toBe(true);
+    // the quarantined swing is also exposed in structured form for the review link
+    expect(report.pendingVariations).toEqual([
+      {
+        key: 'anthropic/claude-opus-4',
+        provider: 'anthropic',
+        prefix: 'claude-opus-4',
+        previous: { inputPerM: 15, outputPerM: 75, cachedInputPerM: 1.5 },
+        current: { inputPerM: 5, outputPerM: 25, cachedInputPerM: 0.5 },
+      },
+    ]);
   });
 
   it('reports totalModels as the count of distinct keys, not raw fetched length', async () => {

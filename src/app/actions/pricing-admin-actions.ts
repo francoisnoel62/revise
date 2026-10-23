@@ -7,10 +7,11 @@ import { getAuthenticatedAdminId } from './utils';
 import { getModelPricingRepository } from '@/infrastructure/config/providers';
 import { SyncModelPricingUseCase } from '@/application/use-cases/SyncModelPricingUseCase';
 import { PruneObsoletePricingUseCase, PrunePricingReport } from '@/application/use-cases/PruneObsoletePricingUseCase';
+import { ReviewPricingVariationsUseCase, ApplyVariationsReport } from '@/application/use-cases/ReviewPricingVariationsUseCase';
 import { OpenRouterPricingClient } from '@/infrastructure/pricing/OpenRouterPricingClient';
 import { ResendEmailService } from '@/infrastructure/email/ResendEmailService';
 import { ModelPricingEntry } from '@/domain/interfaces/ModelPricingRepository';
-import { PricingSyncReport } from '@/domain/interfaces/EmailService';
+import { ModelPriceChange, PricingSyncReport } from '@/domain/interfaces/EmailService';
 
 type ActionResult<T> =
   | { success: true; data: T }
@@ -94,3 +95,29 @@ export async function prunePricingAction(): Promise<ActionResult<PrunePricingRep
   }
 }
 
+export async function listPendingPricingVariationsAction(): Promise<ActionResult<ModelPriceChange[]>> {
+  const auth = await getAuthenticatedAdminId();
+  if ('error' in auth) return { success: false, error: 'Admin access required' };
+
+  try {
+    const repo = await getModelPricingRepository();
+    const useCase = new ReviewPricingVariationsUseCase(new OpenRouterPricingClient(), repo);
+    return { success: true, data: await useCase.listPending() };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+/** Applies the given pending keys, or every pending variation when `keys` is omitted. */
+export async function applyPricingVariationsAction(keys?: string[]): Promise<ActionResult<ApplyVariationsReport>> {
+  const auth = await getAuthenticatedAdminId();
+  if ('error' in auth) return { success: false, error: 'Admin access required' };
+
+  try {
+    const repo = await getModelPricingRepository();
+    const useCase = new ReviewPricingVariationsUseCase(new OpenRouterPricingClient(), repo);
+    return { success: true, data: await useCase.apply(keys) };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}

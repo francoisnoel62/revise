@@ -9,12 +9,21 @@ function makeReport(overrides: Partial<PricingSyncReport> = {}): PricingSyncRepo
   return {
     newModels: [],
     updatedModels: [],
+    pendingVariations: [],
     totalModels: 0,
     syncedAt: new Date('2026-06-17T06:00:00Z'),
     errors: [],
     ...overrides,
   };
 }
+
+const pendingOpus = {
+  key: 'anthropic/claude-opus-4',
+  provider: 'anthropic' as const,
+  prefix: 'claude-opus-4',
+  previous: { inputPerM: 15, outputPerM: 75, cachedInputPerM: 1.5 },
+  current: { inputPerM: 5, outputPerM: 25, cachedInputPerM: 0.5 },
+};
 
 describe('renderPricingSyncReportEmail', () => {
   it('summarizes counts in the subject', () => {
@@ -108,6 +117,28 @@ describe('renderPricingSyncReportEmail', () => {
 
     expect(html).toContain('Aucun changement');
     expect(text).toContain('Aucun changement');
+  });
+
+  it('adds a review button linking to the admin page when variations await validation', () => {
+    const report = makeReport({ pendingVariations: [pendingOpus], totalModels: 24 });
+
+    const { subject, html, text } = renderPricingSyncReportEmail(report, 'https://revise.test/admin/pricing');
+
+    expect(html).toContain('<a href="https://revise.test/admin/pricing"');
+    expect(html).toContain('Valider les variations');
+    expect(text).toContain('https://revise.test/admin/pricing');
+    expect(subject).toContain('1 à valider');
+    expect(html).not.toContain('Aucun changement');
+  });
+
+  it('omits the review button when no variation is pending', () => {
+    const report = makeReport({ totalModels: 24 });
+
+    const { subject, html, text } = renderPricingSyncReportEmail(report, 'https://revise.test/admin/pricing');
+
+    expect(html).not.toContain('Valider les variations');
+    expect(text).not.toContain('https://revise.test/admin/pricing');
+    expect(subject).not.toContain('à valider');
   });
 
   it('surfaces errors when the sync failed', () => {

@@ -4,26 +4,10 @@
 import { ModelPricingEntry, ModelPricingRepository } from '@/domain/interfaces/ModelPricingRepository';
 import { EmailService, PricingSyncReport } from '@/domain/interfaces/EmailService';
 import { PricingClient } from '@/domain/interfaces/PricingClient';
-
-/** Price swings beyond this ratio are quarantined for manual review instead of applied automatically. */
-const MAX_VARIATION_RATIO = 0.5;
-
-type PriceFields = Pick<ModelPricingEntry, 'inputPerM' | 'outputPerM' | 'cachedInputPerM'>;
+import { MAX_VARIATION_RATIO, exceedsThreshold } from '../utils/pricing-variation';
 
 function formatUsd(value: number): string {
   return value.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 3 });
-}
-
-/** True when any of the three rates moves by more than MAX_VARIATION_RATIO (a drop to/from 0 always counts). */
-function exceedsThreshold(prev: PriceFields, current: PriceFields): boolean {
-  const fields: (keyof PriceFields)[] = ['inputPerM', 'outputPerM', 'cachedInputPerM'];
-  return fields.some((field) => {
-    const before = prev[field];
-    const after = current[field];
-    if (before === after) return false;
-    if (before === 0) return true;
-    return Math.abs(after - before) / before > MAX_VARIATION_RATIO;
-  });
 }
 
 export class SyncModelPricingUseCase {
@@ -37,6 +21,7 @@ export class SyncModelPricingUseCase {
     const report: PricingSyncReport = {
       newModels: [],
       updatedModels: [],
+      pendingVariations: [],
       totalModels: 0,
       syncedAt: new Date(),
       errors: [],
@@ -112,6 +97,17 @@ export class SyncModelPricingUseCase {
               `sortie ${formatUsd(prev.outputPerM)}→${formatUsd(current.outputPerM)} $, ` +
               `cache ${formatUsd(prev.cachedInputPerM)}→${formatUsd(current.cachedInputPerM)} $.`
           );
+          report.pendingVariations.push({
+            key,
+            provider: entry.provider,
+            prefix: entry.prefix,
+            previous: {
+              inputPerM: prev.inputPerM,
+              outputPerM: prev.outputPerM,
+              cachedInputPerM: prev.cachedInputPerM,
+            },
+            current,
+          });
           continue;
         }
 

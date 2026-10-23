@@ -1,6 +1,7 @@
 // ABOUTME: Admin page for managing AI model pricing entries.
 // ABOUTME: Shows all pricing entries from MongoDB with sync and CRUD actions.
 
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import { listModelPricingAction } from '@/app/actions/pricing-admin-actions';
 import { ModelPricingTable } from '@/components/admin/ModelPricingTable';
 import { SyncButton } from '@/components/admin/SyncButton';
 import { PruneButton } from '@/components/admin/PruneButton';
+import { PendingVariationsSection } from '@/components/admin/PendingVariationsSection';
 
 export const metadata = {
   title: 'Tarifs IA - Admin Revise',
@@ -18,7 +20,7 @@ export const metadata = {
 export default async function AdminPricingPage() {
   const auth = await getAuthenticatedAdminId();
   if ('error' in auth) {
-    redirect('/auth/signin');
+    redirect('/auth/signin?callbackUrl=/admin/pricing');
   }
 
   const result = await listModelPricingAction();
@@ -44,6 +46,9 @@ export default async function AdminPricingPage() {
       </nav>
 
       <main className="container mx-auto px-4 py-8">
+        <Suspense fallback={null}>
+          <PendingVariationsSection />
+        </Suspense>
         {!result.success ? (
           <p className="text-destructive">{result.error}</p>
         ) : result.data.length === 0 ? (

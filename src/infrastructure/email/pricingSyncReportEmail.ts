@@ -120,13 +120,24 @@ function renderTextChange(change: ModelPriceChange): string {
   return `  ${PROVIDER_LABELS[change.provider]} / ${change.prefix}\n${lines.join('\n')}`;
 }
 
-export function renderPricingSyncReportEmail(report: PricingSyncReport): RenderedEmail {
+/**
+ * @param reviewUrl Admin page where held-back price swings are validated; the
+ *   review button is only rendered when the report has pending variations.
+ */
+export function renderPricingSyncReportEmail(report: PricingSyncReport, reviewUrl?: string): RenderedEmail {
   const date = report.syncedAt.toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' });
   const newCount = report.newModels.length;
   const updatedCount = report.updatedModels.length;
-  const noChange = newCount === 0 && updatedCount === 0;
+  const pendingCount = report.pendingVariations.length;
+  const noChange = newCount === 0 && updatedCount === 0 && pendingCount === 0;
 
-  const subject = `[Revise] Tarifs IA — ${newCount} ${plural(newCount, 'nouveau', 'nouveaux')}, ${updatedCount} ${plural(updatedCount, 'modifié', 'modifiés')}`;
+  const pendingSuffix = pendingCount ? `, ${pendingCount} à valider` : '';
+  const subject = `[Revise] Tarifs IA — ${newCount} ${plural(newCount, 'nouveau', 'nouveaux')}, ${updatedCount} ${plural(updatedCount, 'modifié', 'modifiés')}${pendingSuffix}`;
+
+  const reviewHtml =
+    pendingCount && reviewUrl
+      ? `<div class="review"><p>${pendingCount} ${plural(pendingCount, 'variation supérieure', 'variations supérieures')} à 50 % ${plural(pendingCount, 'attend', 'attendent')} votre validation (non ${plural(pendingCount, 'appliquée', 'appliquées')}).</p><a href="${reviewUrl}" class="btn">Valider les variations (${pendingCount})</a></div>`
+      : '';
 
   const errorsHtml = report.errors.length
     ? `<div class="errors"><strong>Erreurs (${report.errors.length})</strong><ul>${report.errors
@@ -175,6 +186,9 @@ export function renderPricingSyncReportEmail(report: PricingSyncReport): Rendere
   td.var{text-align:right;font-weight:600;white-space:nowrap}
   td.var.up{color:#b91c1c}td.var.down{color:#15803d}td.var.same{color:#9ca3af}
   .empty{color:#6b7280}
+  .review{margin-top:20px;padding:16px;border-radius:8px;background:#fffbeb;border:1px solid #fcd34d;text-align:center}
+  .review p{margin:0 0 12px;color:#92400e;font-size:14px}
+  .btn{display:inline-block;padding:12px 24px;background:#0a0a0a;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px}
   .errors{margin-top:20px;padding:12px;border-radius:8px;background:#fef2f2;color:#b91c1c;font-size:13px}
   .errors ul{margin:6px 0 0;padding-left:18px}
 </style></head>
@@ -182,6 +196,7 @@ export function renderPricingSyncReportEmail(report: PricingSyncReport): Rendere
   <h1>Synchronisation des tarifs IA</h1>
   <p class="date">${date}</p>
   ${summaryHtml}
+  ${reviewHtml}
   ${bodyHtml}
   ${errorsHtml}
 </div></body></html>`.trim();
@@ -196,6 +211,9 @@ export function renderPricingSyncReportEmail(report: PricingSyncReport): Rendere
     if (updatedCount) {
       textSections.push('', `Prix mis à jour (${updatedCount}) :`, ...report.updatedModels.map(renderTextChange));
     }
+  }
+  if (pendingCount && reviewUrl) {
+    textSections.push('', `Variations à valider (${pendingCount}) : ${reviewUrl}`);
   }
   if (report.errors.length) {
     textSections.push('', `Erreurs (${report.errors.length}) :`, ...report.errors.map((e) => `  - ${e}`));

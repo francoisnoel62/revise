@@ -635,7 +635,7 @@ Cet email a été envoyé à ${user.email} suite à une demande de réinitialisa
   }
 
   async sendPricingSyncReport(report: PricingSyncReport): Promise<void> {
-    const { subject, html, text } = renderPricingSyncReportEmail(report);
+    const { subject, html, text } = renderPricingSyncReportEmail(report, `${this.baseUrl}/admin/pricing`);
 
     await this.resend.emails.send({
       from: this.fromEmail,
